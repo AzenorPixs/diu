@@ -10599,7 +10599,7 @@ then
 
 	echo "" >> /root/.zshrc
 	echo "# ROOT SCRIPT PIXS #" >> /root/.zshrc
-	echo "alias rid='/root/root-install-debian.sh'" >> /root/.zshrc
+	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
 	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
 	echo "alias riidjd='/root/root-install-init-django-dev.sh'" >> /root/.zshrc
 	echo "alias riidjp='/root/root-install-init-django-prod.sh'" >> /root/.zshrc
