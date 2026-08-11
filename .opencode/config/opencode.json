@@ -38,7 +38,8 @@
 		"*": "ask",
 		"bash": {
 			"*": "deny",
-			"bash -n *": "ask",
+      "bash /tmp/opencode/*": "ask",
+      "bash -n *": "ask",
 			"find *": "ask",
 			"file *": "ask",
 			"git add": "ask",
@@ -90,6 +91,8 @@
 			"openspec": "ask",
 			"openspec *": "ask",
 			"pwd": "allow",
+			"rm": "ask",
+			"rm *": "ask",
 			"shellcheck *": "ask",
 			"tree": "ask",
 			"tree *": "ask"
@@ -146,7 +149,10 @@
 			"tmp/**": "deny",
 			"venv/**": "deny"
 		},
-		"external_directory": "deny",
+    "external_directory": {
+      "*": "deny",
+      "/tmp/opencode/**": "allow"
+    },
 		"glob": "allow",
 		"grep": "allow",
 		"lsp": "allow",	

@@ -13,6 +13,7 @@ set -Eeuo pipefail
 # Le chemin où je me trouve est
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 . "$BASH_SCRIPT_PATH/variables.sh"
+. "$BASH_SCRIPT_PATH/lib/logging.sh"
 
 
 # Vérifier qu'on est root
@@ -397,7 +398,8 @@ EOF
 		"*": "ask",
 		"bash": {
 			"*": "deny",
-			"bash -n *": "ask",
+      "bash /tmp/opencode/*": "ask",
+      "bash -n *": "ask",
 			"find *": "ask",
 			"file *": "ask",
 			"git add": "ask",
@@ -449,6 +451,8 @@ EOF
 			"openspec": "ask",
 			"openspec *": "ask",
 			"pwd": "allow",
+			"rm": "ask",
+			"rm *": "ask",
 			"shellcheck *": "ask",
 			"tree": "ask",
 			"tree *": "ask"
@@ -505,7 +509,10 @@ EOF
 			"tmp/**": "deny",
 			"venv/**": "deny"
 		},
-		"external_directory": "deny",
+    "external_directory": {
+      "*": "deny",
+      "/tmp/opencode/**": "allow"
+    },
 		"glob": "allow",
 		"grep": "allow",
 		"lsp": "allow",	
@@ -4821,58 +4828,6 @@ launch_oc_shell() {
 	su - ${DEVOPS_USER} -c "docker exec -it ${project_id}-opencode sh"
 }
 
-launch_ocro_old() {
-
-    local project_id="$1"
-    local project_name="$2"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-    local confirmation
-
-    if [[ ! -e "$project_path/.opencode/share" ]]; then
-        echo "❌ Le projet n'existe pas :"
-        echo "   $project_path/.opencode/share"
-        exit 1
-		
-    fi
-
-	ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "check"
-
-    su - ${DEVOPS_USER} -c "docker run --rm -it \
-      --name ${project_id}-opencode \
-      --user "$(id -u ${DEVOPS_USER}):$(id -g ${DEVOPS_USER})" \
-      --workdir /workspace \
-      --read-only \
-      --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
-      --cap-drop ALL \
-      --security-opt no-new-privileges:true \
-      --pids-limit 256 \
-      --memory 2g \La suite logique n’est pas /opsx-apply sur ce changement, puisque ce change sert surtout à formaliser le cap architectural. Le prochain vrai travail sera de créer un nouveau changement OpenSpec, beaucoup plus petit, pour le premier refactoring concret vers cette architecture cible.
-
-À ce stade, je considérerais donc define-modular-architecture comme validé et prêt à servir de référence pour les 
-      --cpus 2 \
-      -e HOME=/home/opencode \
-      -e XDG_CACHE_HOME=/home/opencode/.cache \
-      -e XDG_CONFIG_HOME=/home/opencode/.config \
-      -e XDG_DATA_HOME=/home/opencode/.local/share \
-      -e XDG_STATE_HOME=/home/opencode/.local/state \
-      -e NPM_CONFIG_CACHE=/home/opencode/.cache/opencode/npm \
-      -e OPENCODE_CONFIG=/home/opencode/.config/opencode/opencode.json \
-      -e OPENCODE_DISABLE_AUTOUPDATE=true \
-      -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
-      -e OPENCODE_DISABLE_LSP_DOWNLOAD=true \
-      -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
-      -v /home/devops/datas/${project_id}:/workspace:ro \
-      -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
-      -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
-      -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
-      -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
-      -v /home/devops/.local/npm:/opt/devops/npm:ro \
-      ghcr.io/anomalyco/opencode"
-La suite logique n’est pas /opsx-apply sur ce changement, puisque ce change sert surtout à formaliser le cap architectural. Le prochain vrai travail sera de créer un nouveau changement OpenSpec, beaucoup plus petit, pour le premier refactoring concret vers cette architecture cible.
-
-À ce stade, je considérerais donc define-modular-architecture comme validé et prêt à servir de référence pour les 
-}
-
 launch_ocro() {
 
     local project_id="$1"
@@ -4917,53 +4872,8 @@ launch_ocro() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache nodejs npm su-exec && \
+      -c 'apk add --no-cache bash git nodejs npm su-exec && \
           exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
-}
-
-launch_ocrw_old() {
-    local project_id="$1"
-    local project_name="$2"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-    local confirmation
-
-    if [[ ! -e "$project_path/.opencode/share" ]]; then
-        echo "❌ Le projet n'existe pas :"
-        echo "   $project_path/.opencode/share"
-        exit 1
-    fi
-
-	ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "check"
-
-    su - ${DEVOPS_USER} -c "docker run --rm -it \
-      --name ${project_id}-opencode \
-      --user "$(id -u ${DEVOPS_USER}):$(id -g ${DEVOPS_USER})" \
-      --workdir /workspace \
-      --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
-      --cap-drop ALL \
-      --security-opt no-new-privileges:true \
-      --pids-limit 256 \
-      --memory 2g \
-      --cpus 2 \
-      -e HOME=/home/opencode \
-      -e XDG_CACHE_HOME=/home/opencode/.cache \
-      -e XDG_CONFIG_HOME=/home/opencode/.config \
-      -e XDG_DATA_HOME=/home/opencode/.local/share \
-      -e XDG_STATE_HOME=/home/opencode/.local/state \
-      -e NPM_CONFIG_CACHE=/home/opencode/.cache/opencode/npm \
-      -e OPENCODE_CONFIG=/home/opencode/.config/opencode/opencode.json \
-      -e OPENCODE_DISABLE_AUTOUPDATE=true \
-      -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
-      -e OPENCODE_DISABLE_LSP_DOWNLOAD=true \
-      -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
-      -v /home/devops/datas/${project_id}:/workspace:rw \
-      -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
-      -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
-      -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
-      -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
-      -v /home/devops/.local/npm:/opt/devops/npm:ro \
-      ghcr.io/anomalyco/opencode"
-
 }
 
 launch_ocrw() {
@@ -5009,7 +4919,7 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache nodejs npm su-exec &&
+      -c 'apk add --no-cache bash git nodejs npm su-exec &&
           exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
 }
 
@@ -5162,28 +5072,6 @@ openspec_view() {
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec view"
 
     exit 0
-}
-
-print_title() {
-    local title="$1"
-
-    echo ""
-    echo "=========================================================="
-    echo " ${title}"
-    echo "=========================================================="
-    echo ""
-}
-
-print_info() {
-    echo "ℹ️  $*"
-}
-
-print_success() {
-    echo "✅ $*"
-}
-
-print_error() {
-    echo "❌ $*" >&2
 }
 
 # Affichage des erreurs
@@ -10674,6 +10562,7 @@ then
 	echo "" >> /root/.zshrc
 	echo "# ROOT SCRIPT PIXS #" >> /root/.zshrc
 	echo "alias rid='/root/root-install-debian.sh'" >> /root/.zshrc
+	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
 	echo "alias riidjd='/root/root-install-init-django-dev.sh'" >> /root/.zshrc
 	echo "alias riidjp='/root/root-install-init-django-prod.sh'" >> /root/.zshrc
 	echo "alias riim='/root/root-install-init-monero.sh'" >> /root/.zshrc
