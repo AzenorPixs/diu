@@ -87,6 +87,8 @@
 			"ls": "allow",
 			"ls *": "allow",
 			"lsp": "allow",
+			"openspec": "ask",
+			"openspec *": "ask",
 			"pwd": "allow",
 			"shellcheck *": "ask",
 			"tree": "ask",

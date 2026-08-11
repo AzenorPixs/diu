@@ -44,8 +44,7 @@ AND le DIU se termine avec le code 1
 
 ### Requirement: Création de l'arborescence du projet
 
-Le DIU SHALL créer les répertoires et fichiers suivants lors de la création
-d'un projet :
+Le DIU SHALL créer les répertoires et fichiers suivants lors de la création d'un projet :
 
 - les répertoires de cache, configuration, partage, état et compétences d'OpenCode ;
 - les répertoires de spécifications et de changements OpenSpec ;
@@ -108,8 +107,7 @@ AND le répertoire deb/ n'est pas créé
 
 Le DIU SHALL initialiser OpenSpec dans le projet.
 
-Si la commande `openspec` n'est pas disponible pour l'utilisateur cible, le
-DIU SHALL refuser la création du projet.
+Si la commande `openspec` n'est pas disponible pour l'utilisateur cible, le DIU SHALL refuse la création du projet.
 
 #### Scenario: OpenSpec initialisé avec succès
 

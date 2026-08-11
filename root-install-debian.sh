@@ -446,6 +446,8 @@ EOF
 			"ls": "allow",
 			"ls *": "allow",
 			"lsp": "allow",
+			"openspec": "ask",
+			"openspec *": "ask",
 			"pwd": "allow",
 			"shellcheck *": "ask",
 			"tree": "ask",
@@ -642,15 +644,16 @@ EOF
 AGENTS.md
 ${project_name}
 
-Ce fichier est généré à l'initialisation du projet par le Debian Installer Unifié (DIU).
+Ce fichier est généré à l'initialisation du projet par le DIU.
 
 ## Variables utilisées :
 
 ${project_name} : nom du projet ;
-${project_path} : chemin racine du projet.
-Préambule
+/workspace : chemin racine du projet.
 
-## Ce document définit les règles que doivent respecter les agents de codage intervenant sur ce projet.
+## Préambule
+
+Ce document définit les règles que doivent respecter les agents de codage intervenant sur ce projet.
 
 Les agents doivent privilégier :
 
@@ -696,6 +699,9 @@ Les agents de codage doivent préserver le comportement existant tout en respect
 
 ## Portée
 
+AGENTS.md ;
+les spécifications présentes dans openspec/ ;
+les conventions du projet ;
 Les règles définies dans ce fichier s'appliquent à l'ensemble du projet.
 
 Un fichier AGENTS.md situé dans un sous-répertoire peut être utilisé lorsque OpenCode est lancé depuis ce sous-répertoire,
@@ -711,13 +717,13 @@ En cas de conflit, le fichier AGENTS.md le plus proche du fichier modifié prév
 
 La racine du projet est située dans :
 
-${project_path}
+/workspace
 
 Toutes les opérations doivent être réalisées relativement à cette racine.
 
 Les agents ne doivent créer, modifier ou supprimer des fichiers que sous :
 
-${project_path}
+/workspace
 
 Toute écriture en dehors de cette arborescence nécessite une validation explicite.
 
@@ -757,6 +763,12 @@ les fichiers concernés ;
 les modifications envisagées ;
 les impacts éventuels ;
 les vérifications à effectuer.
+
+## Règles permanentes de Développements
+
+Privilégier une architecture modulaire
+Préserver la compatibilité
+Pas de changement fonctionnel non spécifié
 
 ## Périmètre des modifications
 
@@ -861,6 +873,8 @@ Cette règle ne s'applique pas aux fichiers générés et versionnés suivants :
 
 .gitignore
 AGENTS.md
+LICENSE
+README.md
 .opencode/commands/
 .opencode/skills/
 .opencode/config/opencode.json
@@ -948,6 +962,8 @@ Les agents peuvent consulter les éléments suivants pour les besoins techniques
 
 .gitignore
 AGENTS.md
+LICENSE
+README.md
 .opencode/commands/
 .opencode/config/opencode.json
 .opencode/skills/
@@ -4805,7 +4821,7 @@ launch_oc_shell() {
 	su - ${DEVOPS_USER} -c "docker exec -it ${project_id}-opencode sh"
 }
 
-launch_ocro() {
+launch_ocro_old() {
 
     local project_id="$1"
     local project_name="$2"
@@ -4830,7 +4846,9 @@ launch_ocro() {
       --cap-drop ALL \
       --security-opt no-new-privileges:true \
       --pids-limit 256 \
-      --memory 2g \
+      --memory 2g \La suite logique n’est pas /opsx-apply sur ce changement, puisque ce change sert surtout à formaliser le cap architectural. Le prochain vrai travail sera de créer un nouveau changement OpenSpec, beaucoup plus petit, pour le premier refactoring concret vers cette architecture cible.
+
+À ce stade, je considérerais donc define-modular-architecture comme validé et prêt à servir de référence pour les 
       --cpus 2 \
       -e HOME=/home/opencode \
       -e XDG_CACHE_HOME=/home/opencode/.cache \
@@ -4842,16 +4860,68 @@ launch_ocro() {
       -e OPENCODE_DISABLE_AUTOUPDATE=true \
       -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=true \
+      -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
       -v /home/devops/datas/${project_id}:/workspace:ro \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
       -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
+      -v /home/devops/.local/npm:/opt/devops/npm:ro \
       ghcr.io/anomalyco/opencode"
+La suite logique n’est pas /opsx-apply sur ce changement, puisque ce change sert surtout à formaliser le cap architectural. Le prochain vrai travail sera de créer un nouveau changement OpenSpec, beaucoup plus petit, pour le premier refactoring concret vers cette architecture cible.
 
+À ce stade, je considérerais donc define-modular-architecture comme validé et prêt à servir de référence pour les 
 }
 
-launch_ocrw() {
+launch_ocro() {
+
+    local project_id="$1"
+    local project_name="$2"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local confirmation
+
+    if [[ ! -e "$project_path/.opencode/share" ]]; then
+        echo "❌ Le projet n'existe pas :"
+        echo "   $project_path/.opencode/share"
+        exit 1
+    fi
+
+    ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "check"
+
+    su - "${DEVOPS_USER}" -c "docker run --rm -it \
+      --name ${project_id}-opencode \
+      --workdir /workspace \
+      --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
+      --security-opt no-new-privileges:true \
+      --pids-limit 256 \
+      --memory 2g \
+      --cpus 2 \
+      -e OPENCODE_UID=$(id -u "${DEVOPS_USER}") \
+      -e OPENCODE_GID=$(id -g "${DEVOPS_USER}") \
+      -e HOME=/home/opencode \
+      -e XDG_CACHE_HOME=/home/opencode/.cache \
+      -e XDG_CONFIG_HOME=/home/opencode/.config \
+      -e XDG_DATA_HOME=/home/opencode/.local/share \
+      -e XDG_STATE_HOME=/home/opencode/.local/state \
+      -e NPM_CONFIG_CACHE=/home/opencode/.cache/opencode/npm \
+      -e OPENCODE_CONFIG=/home/opencode/.config/opencode/opencode.json \
+      -e OPENCODE_DISABLE_AUTOUPDATE=true \
+      -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
+      -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
+      -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
+      -v /home/devops/datas/${project_id}:/workspace:ro \
+      -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
+      -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
+      -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
+      -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
+      -v /home/devops/.local/npm:/opt/devops/npm:ro \
+      --entrypoint /bin/sh \
+      ghcr.io/anomalyco/opencode \
+      -c 'apk add --no-cache nodejs npm su-exec && \
+          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
+}
+
+launch_ocrw_old() {
     local project_id="$1"
     local project_name="$2"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -4885,13 +4955,62 @@ launch_ocrw() {
       -e OPENCODE_DISABLE_AUTOUPDATE=true \
       -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=true \
+      -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
       -v /home/devops/datas/${project_id}:/workspace:rw \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
       -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
+      -v /home/devops/.local/npm:/opt/devops/npm:ro \
       ghcr.io/anomalyco/opencode"
 
+}
+
+launch_ocrw() {
+    local project_id="$1"
+    local project_name="$2"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local confirmation
+
+    if [[ ! -e "$project_path/.opencode/share" ]]; then
+        echo "❌ Le projet n'existe pas :"
+        echo "   $project_path/.opencode/share"
+        exit 1
+    fi
+
+    ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "check"
+
+    su - "${DEVOPS_USER}" -c "docker run --rm -it \
+      --name ${project_id}-opencode \
+      --workdir /workspace \
+      --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
+      --security-opt no-new-privileges:true \
+      --pids-limit 256 \
+      --memory 2g \
+      --cpus 2 \
+      -e OPENCODE_UID=$(id -u "${DEVOPS_USER}") \
+      -e OPENCODE_GID=$(id -g "${DEVOPS_USER}") \
+      -e HOME=/home/opencode \
+      -e XDG_CACHE_HOME=/home/opencode/.cache \
+      -e XDG_CONFIG_HOME=/home/opencode/.config \
+      -e XDG_DATA_HOME=/home/opencode/.local/share \
+      -e XDG_STATE_HOME=/home/opencode/.local/state \
+      -e NPM_CONFIG_CACHE=/home/opencode/.cache/opencode/npm \
+      -e OPENCODE_CONFIG=/home/opencode/.config/opencode/opencode.json \
+      -e OPENCODE_DISABLE_AUTOUPDATE=true \
+      -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
+      -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
+      -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
+      -v /home/devops/datas/${project_id}:/workspace:rw \
+      -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
+      -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
+      -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
+      -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
+      -v /home/devops/.local/npm:/opt/devops/npm:ro \
+      --entrypoint /bin/sh \
+      ghcr.io/anomalyco/opencode \
+      -c 'apk add --no-cache nodejs npm su-exec &&
+          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
 }
 
 manage_devops_action() {
@@ -4930,8 +5049,17 @@ manage_openspec_action() {
     local spec_name="$3"
 
     case "$action" in
-        validate)
-            openspec_validate "$project_id" "$spec_name"
+        list)
+            openspec_list "$project_id"
+            ;;
+        show)
+            openspec_show "$project_id" "$spec_name"
+            ;;
+        vc)
+            openspec_validate_change "$project_id" "$spec_name"
+            ;;
+        vs)
+            openspec_validate_spec "$project_id" "$spec_name"
             ;;
         view)
             openspec_view "$project_id"
@@ -4989,12 +5117,42 @@ manage_project_action() {
     esac
 }
 
-openspec_validate() {
+openspec_list() {
+    local project_id="$1"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+
+    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec list"
+
+    exit 0
+}
+
+openspec_show() {
+    local project_id="$1"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+
+    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec show"
+
+    exit 0
+}
+
+openspec_validate_change() {
+    local project_id="$1"
+    local spec_name="$2"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+
+    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type change --strict"
+
+    exit 0
+}
+
+openspec_validate_spec() {
     local project_id="$1"
     local spec_name="$2"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type spec --strict"
+
+    exit 0
 }
 
 openspec_view() {
@@ -5002,6 +5160,8 @@ openspec_view() {
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec view"
+
+    exit 0
 }
 
 print_title() {
@@ -10092,26 +10252,38 @@ then
 
 	fi
 
-	if [ $GO -eq 1 ]
-	then
+  if [ "$GO" -eq 1 ]
+  then
 
-		if command -v sesh >/dev/null 2>&1; then
+      GO_BIN="/home/$DEVOPS_USER/go/current/bin/go"
+      SESH_BIN="/home/$DEVOPS_USER/go/bin/sesh"
 
-			echo "	SESH OK ✅"
+      if [ -x "$SESH_BIN" ]
+      then
 
-		else
+          echo "	SESH OK ✅"
 
-			if ! command -v go >/dev/null 2>&1; then
-				echo "	💥 Go n'est pas installé. Abandon."
-				exit 1
-			fi
+      else
 
-			echo "	🔧 INSTALL SESH"
-			go install github.com/joshmedeski/sesh@latest
+          if [ ! -x "$GO_BIN" ]
+          then
 
-		fi
+              echo "	💥 Go n'est pas installé pour $DEVOPS_USER. Abandon."
+              exit 1
 
-	fi
+          fi
+
+          echo "	🔧 INSTALL SESH"
+
+          runuser -u "$DEVOPS_USER" -- \
+              env \
+                  HOME="/home/$DEVOPS_USER" \
+                  GOPATH="/home/$DEVOPS_USER/go" \
+                  "$GO_BIN" install github.com/joshmedeski/sesh@latest
+
+      fi
+
+  fi
 
 	if dpkg -s zoxide &>/dev/null
 	then
