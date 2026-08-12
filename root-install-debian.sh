@@ -14,7 +14,10 @@ set -Eeuo pipefail
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 . "$BASH_SCRIPT_PATH/variables.sh"
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
+. "$BASH_SCRIPT_PATH/lib/git-auth.sh"
+. "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/forgejo-release.sh"
 
 
 # Vérifier qu'on est root
@@ -349,6 +352,7 @@ venv/
 *.pem
 *.p12
 *.pfx
+*.token
 credentials.json
 credentials.yaml
 id_rsa
@@ -399,8 +403,10 @@ EOF
 		"*": "ask",
 		"bash": {
 			"*": "deny",
+			"awk": "ask",
+			"awk *": "ask",
       "bash /tmp/opencode/*": "ask",
-      "bash -n *": "ask",
+      "bash -n *": "allow",
       "cat": "allow",
       "cat *": "allow",
       "chmod": "ask",
@@ -468,7 +474,13 @@ EOF
       "openspec": "ask",
       "openspec *": "ask",
       "openspec archive *": "ask",
+      "openspec status *": "allow",
       "openspec instructions *": "ask",
+      "openspec instructions apply *": "allow",
+      "openspec instructions design *": "allow",
+      "openspec instructions proposal *": "allow",
+      "openspec instructions specs *": "allow",
+      "openspec instructions tasks *": "allow",
       "openspec list": "allow",
       "openspec list *": "allow",
       "openspec show": "allow",
@@ -482,7 +494,10 @@ EOF
 			"pwd": "allow",
 			"rm": "ask",
 			"rm *": "ask",
-			"shellcheck *": "ask",
+			"sed": "ask",
+			"sed *": "ask",
+			"shellcheck": "allow",
+			"shellcheck *": "allow",
       "tail": "allow",
       "tail *": "allow",
       "touch": "ask",
@@ -507,6 +522,7 @@ EOF
 			"**/*.pem": "deny",
 			"**/*.p12": "deny",
 			"**/*.pfx": "deny",
+			"**/*.token,": "deny",
 			"**/credentials.json": "deny",
 			"**/credentials.yaml": "deny",
 			"**/id_rsa": "deny",
@@ -567,6 +583,7 @@ EOF
 			"**/*.pem": "deny",
 			"**/*.p12": "deny",
 			"**/*.pfx": "deny",
+			"**/*.token,": "deny",
 			"**/credentials.json": "deny",
 			"**/credentials.yaml": "deny",
 			"**/id_rsa": "deny",
@@ -631,6 +648,7 @@ EOF
 			"**/*.pid",
 			"**/*.tmp",
 			"**/*.temp",
+			"**/*.token,",
 			"**/*.trace",
 			"**/credentials.json",
 			"**/credentials.yaml",
@@ -1607,6 +1625,9 @@ Utilisation :
   rid proj deb "ID Projet"
       Construit le paquet Debian du DIU à partir du projet /home/devops/datas/"ID Projet" et dépose l'artefact dans dist/.
 
+  rid proj rel "ID Projet"
+      Publie une Release Forgejo à partir du paquet Debian dans dist/.
+
 
 Structure générale :
 
@@ -1615,7 +1636,7 @@ Structure générale :
 Arguments actuellement disponibles :
 
   Classe :    proj
-  Actions :   bash | del | deb | gita | gitc | giti | gitp | gits
+  Actions :   bash | del | deb | gita | gitc | giti | gitp | gits | rel
   Variable :  myprojet
 
 EOF
@@ -3685,23 +3706,24 @@ git_push() {
     esac
 
     # ----------------------------------------------------------
-    # Push
+    # Push authentifié via forgejo-auth
     # ----------------------------------------------------------
 
     print_title "Push vers Forgejo"
+
+    local push_rc=0
 
     if [[ -z "${upstream_branch}" ]]; then
 
         print_info \
             "Premier push : création de la branche distante et de son suivi."
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" push \
-            -u "${remote_name}" "${current_branch}"; then
+        forgejo_git_push "${project_path}" \
+            -u "${remote_name}" "${current_branch}" || push_rc=$?
 
-            print_error \
-                "Échec du premier push vers Forgejo."
-            return 1
+        if [[ "${push_rc}" -ne 0 ]]; then
+            print_error "Échec du premier push vers Forgejo (code ${push_rc})."
+            return "${push_rc}"
         fi
 
     else
@@ -3709,12 +3731,11 @@ git_push() {
         print_info \
             "Push vers la branche distante ${upstream_branch}."
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" push; then
+        forgejo_git_push "${project_path}" || push_rc=$?
 
-            print_error \
-                "Échec du push vers Forgejo."
-            return 1
+        if [[ "${push_rc}" -ne 0 ]]; then
+            print_error "Échec du push vers Forgejo (code ${push_rc})."
+            return "${push_rc}"
         fi
     fi
 
@@ -4914,7 +4935,7 @@ launch_ocro() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash git nodejs npm su-exec && \
+      -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec && \
           exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
 }
 
@@ -4961,7 +4982,7 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash git nodejs npm su-exec &&
+      -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec &&
           exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
 }
 
@@ -5063,6 +5084,9 @@ manage_project_action() {
             ;;
         deb)
             build_deb "$project_id"
+            ;;
+        rel)
+            publish_release "$project_id"
             ;;
         *)
             echo "❌ Action inconnue pour la classe 'proj' : $action"
@@ -10522,8 +10546,8 @@ then
 	echo "alias ng='nano /etc/group'" >> /root/.zshrc
 	echo "alias nm='nano /etc/monero/monerod.conf'" >> /root/.zshrc
 	echo "alias np='nano /etc/passwd'" >> /root/.zschrc
-	echo "alias nrid='nano /root/root-install-debian.sh'" >> /root/.zshrc
-	echo "alias nriv='nano /root/variables.sh'" >> /root/.zshrc
+	echo "alias nrid='nano /root/diu/root-install-debian.sh'" >> /root/.zshrc
+	echo "alias nriv='nano /root/diu/variables.sh'" >> /root/.zshrc
 	echo "alias nriidjd='nano /root/root-install-init-django-dev.sh'" >> /root/.zshrc
 	echo "alias nriidjp='nano /root/root-install-init-django-prod.sh'" >> /root/.zshrc
 	echo "alias nriim='nano /root/root-install-init-monero.sh'" >> /root/.zshrc
