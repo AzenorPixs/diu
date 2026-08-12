@@ -182,6 +182,7 @@ venv/
 *.pem
 *.p12
 *.pfx
+*.token
 credentials.json
 credentials.yaml
 id_rsa
