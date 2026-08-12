@@ -59,7 +59,7 @@
 
 ## 7. Cas legacy
 
-- [ ] 7.1 Vérifier le comportement quand `config/forgejo.token` est présent mais `config/forgejo.username` est absent : fail-closed, message demandant la création de `config/forgejo.username`, aucun fallback `owner=username`, aucun bootstrap automatique, aucune commande Git distante exécutée
+- [x] 7.1 Vérifier le comportement quand `config/forgejo.token` est présent mais `config/forgejo.username` est absent : fail-closed, message demandant la création de `config/forgejo.username`, aucun fallback `owner=username`, aucun bootstrap automatique, aucune commande Git distante exécutée
 
 ## 8. Tests d'intégration Forgejo réels
 
@@ -67,11 +67,11 @@ Ces tests impliquent de vrais appels Git vers Forgejo et ne doivent pas être
 exécutés automatiquement pendant l'implémentation sans validation explicite
 de l'administrateur. Utiliser le DIU de développement (`ridt`).
 
-- [ ] 8.1 Tester `ridt proj rel` avec `forgejo.token` et `forgejo.username` existants et valides — fetch authentifié réussi, HEAD == origin/main, publication réussie
+- [x] 8.1 Tester `ridt proj rel` avec `forgejo.token` et `forgejo.username` existants et valides — fetch authentifié réussi, HEAD == origin/main, publication réussie
 - [ ] 8.2 Tester `ridt proj rel` avec token absent sur une nouvelle version jamais publiée sur Forgejo — bootstrap automatique, création de `forgejo.token` + `forgejo.username`, fetch authentifié, création du tag, création de la Release, upload asset réussi. Toute suppression éventuelle d'un tag/Release de test doit rester une action administrateur explicite
-- [ ] 8.3 Tester `ridt proj gitp` avec `forgejo.token` et `forgejo.username` existants — push authentifié réussi, aucun prompt Username/Password
-- [ ] 8.4 Tester `ridt proj gitp` avec token absent — échec explicite (code 1, message), aucun bootstrap, aucun prompt
-- [ ] 8.5 Tester `ridt proj gitp` avec `forgejo.token` présent mais `forgejo.username` absent — fail-closed, message explicite, aucun fallback
-- [ ] 8.6 Tester `ridt proj rel` avec token invalide/refusé par Forgejo — fail-closed, erreur explicite, aucun bootstrap (fichier existe)
-- [ ] 8.7 Vérifier l'absence de prompt Username/Password dans tous les scénarios ci-dessus
-- [ ] 8.8 Vérifier empiriquement que le scope `write:repository` du token fonctionne pour `git fetch`, `git push` et les appels API Release — documenter le résultat
+- [x] 8.3 Tester `ridt proj gitp` avec `forgejo.token` et `forgejo.username` existants — push authentifié réussi, aucun prompt Username/Password
+- [x] 8.4 Tester `ridt proj gitp` avec token absent — échec explicite (code 1, message), aucun bootstrap, aucun prompt
+- [x] 8.5 Tester `ridt proj gitp` avec `forgejo.token` présent mais `forgejo.username` absent — fail-closed, message explicite, aucun fallback
+- [x] 8.6 Tester `ridt proj rel` avec token invalide/refusé par Forgejo — fail-closed, erreur explicite, aucun bootstrap (fichier existe)
+- [x] 8.7 Vérifier l'absence de prompt Username/Password dans tous les scénarios ci-dessus
+- [x] 8.8 Vérifier empiriquement que le scope `write:repository` du token fonctionne pour `git fetch`, `git push` et les appels API Release — documenter le résultat
