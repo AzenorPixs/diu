@@ -14,6 +14,7 @@ set -Eeuo pipefail
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 . "$BASH_SCRIPT_PATH/variables.sh"
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
 
 
 # Vérifier qu'on est root
@@ -1603,6 +1604,9 @@ Utilisation :
    rid proj ocrw "ID Projet"
       Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
 
+  rid proj deb "ID Projet"
+      Construit le paquet Debian du DIU à partir du projet /home/devops/datas/"ID Projet" et dépose l'artefact dans dist/.
+
 
 Structure générale :
 
@@ -1611,7 +1615,7 @@ Structure générale :
 Arguments actuellement disponibles :
 
   Classe :    proj
-  Actions :   bash | del | gita | gitc | giti | gitp | gits
+  Actions :   bash | del | deb | gita | gitc | giti | gitp | gits
   Variable :  myprojet
 
 EOF
@@ -5056,6 +5060,9 @@ manage_project_action() {
             ;;
         ocsh)
             launch_oc_shell "$project_id" "$project_name"
+            ;;
+        deb)
+            build_deb "$project_id"
             ;;
         *)
             echo "❌ Action inconnue pour la classe 'proj' : $action"
