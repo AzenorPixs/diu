@@ -15,10 +15,21 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/variables.sh"
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
 . "$BASH_SCRIPT_PATH/lib/git-auth.sh"
+. "$BASH_SCRIPT_PATH/lib/docker.sh"
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
+. "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
+. "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/forgejo-release.sh"
 
+# Creer l'arborescence.
+mkdir -p "$BASH_SCRIPT_PATH/config"
+mkdir -p "$BASH_SCRIPT_PATH/deb"
+
+# Génération des Variables
+
+# Chargement des variables
+load_environments_config
 
 # Vérifier qu'on est root
 if [ "$EUID" -ne 0 ]; then
@@ -169,7 +180,7 @@ create_project_bash() {
     # Création du fichier .gitignore initial.
     cat > "$project_path/.gitignore" <<EOF
 # ==========================================================
-# ${project_name}
+# Debian Installer Unifié (DIU)
 # Git Ignore
 # Fichiers à ne pas versionner
 # ==========================================================
@@ -187,7 +198,7 @@ create_project_bash() {
 # ----------------------------------------------------------
 # Paquets Debian
 # ----------------------------------------------------------
-*.debs
+*.deb
 
 # ----------------------------------------------------------
 # Fichiers de crashs
@@ -344,6 +355,11 @@ venv/
 # Visual Studio Code
 # ----------------------------------------------------------
 .vscode/
+
+# ----------------------------------------------------------
+# Configuration DIU locale
+# ----------------------------------------------------------
+/config/
 
 # ----------------------------------------------------------
 # Variables et secrets locaux
@@ -1547,11 +1563,8 @@ devops_info () {
 }
 
 dispatch_arguments() {
+
     local argument_class="${1:-}"
-    local argument_action="${2:-}"
-    local argument_value1="${3:-}"
-    local argument_value2="${4:-}"
-    local argument_value3="${5:-}"
 
     # Aucun argument : poursuite normale du DIU.
     if [[ "$#" -eq 0 ]]; then
@@ -1559,19 +1572,30 @@ dispatch_arguments() {
     fi
 
     case "$argument_class" in
+
         devops)
-            manage_devops_action "$argument_action"
+            shift
+            manage_devops_action "$@"
             ;;
+
         docker)
-            manage_docker_action "$argument_action"
+            shift
+            manage_docker_action "$@"
+            ;;
+
+        ia)
+            shift
+            manage_ia_action "$@"
             ;;
 
         os)
-            manage_openspec_action "$argument_action" "$argument_value1" "$argument_value2"
+            shift
+            manage_openspec_action "$@"
             ;;
 
         proj)
-            manage_project_action "$argument_action" "$argument_value1" "$argument_value2" "$argument_value3"
+            shift
+            manage_project_action "$@"
             ;;
 
         help|--help|-h)
@@ -1583,6 +1607,7 @@ dispatch_arguments() {
             display_usage
             exit 2
             ;;
+
     esac
 
     # Une action avec arguments ne doit pas poursuivre
@@ -1598,29 +1623,39 @@ Utilisation :
   rid
       Exécute normalement l'installation Debian.
 
-  rid os validate ID Projet" "Nom de la Spec"
+  rid ia configure hm                                                   →  Configure Agent Hermès
+  rid ia install hm                                                     →  Install Agent Hermes
+  rid ia docker ps                                                      →  Execute un docker PS dans l'environnement IA (rootless)                                                         
+  rit ia start hm                                                       →  Start Agent Hermes
+  rid ia stop hm                                                        →  Stop Agent Hermes
+  rid ia update hm                                                      →  Update Agent Hermes
+  rid ia uninstall hm                                                   →  Uninstall Agent Hermes
+
+  rid docker root check-containers                                      →   Effectue une analyse de tous les containers Up dans l'environnements Docker Rootfull  
+  rid docker root diag <USER>                                           →   Effectue un diagnostic dans l'environnement Docker Rootfull de l'utilisateur <USER>  
+  rid docker root test <USER>                                           →   Teste l'état de l'environnement Docker Rootfull de l'utilisateur <USER>
+
+  rid docker rootless analyse <USER>                                    →   Analyse l'état de l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless configure <USER>                                  →   Configure l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless diag <USER>                                       →   Effectue un diagnostic dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless exec <USER> <CONTAINER>                           →   Exécute une commande dans l'environnement Docker Rootless de l'utilisateur <USER> pour le container <CONTAINER>
+  rid docker rootless inspect <USER> <CONTAINER>                        →   Inspecte le container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless log <USER> <CONTAINER>                            →   Affiche les journaux du container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless ps <USER>                                         →   Affiche la liste des des container Up dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless test <USER>                                       →   Teste l'état de l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless unconfigure <USER>                                →   Déconfigure Docker Rootless et restaure l'environnement Docker Rootfull de l'utilisateur <USER>
+
+  rid os validate <ID Projet"> <"Nom de la Spec">
       Analyse la Spec la commande openspec validate "Nom de la Spec" --type spec --stric dans le projet //home/devops/datas/"ID Projet".
 
-  rid proj bash "ID Projet" "Nom du Projet"
-      Crée un nouveau projet BASH nomé "Nom du Projet" dans le répertoire /home/devops/datas/"ID Projet".
-
-  rid proj del "ID Projet"
-      Supprime le projet /home/devops/datas/"ID Projet" après confirmation.
-
-  rid proj gita "ID Projet" "Nom du Projet"
-      Analyse du dépôt GIT dans le projet //home/devops/datas/"ID Projet".
-
-  rid proj gitc "ID Projet" "Nom du Projet" "Nom du Commit"
-      Commit vers le dépôt GIT dans le projet /home/devops/datas/"ID Projet".
-
-  rid proj giti "ID Projet" "Nom du Projet"
-      Initialisation du dépôt GIT dans le projet /home/devops/datas/"ID Projet".
-
-  rid proj gitp "ID Projet" "Nom du Projet"
-      Push vers le dépôt distant du dépot GIT dans le projet /home/devops/datas/"ID Projet".
-
-  rid proj gits "ID Projet" "Nom du Projet"
-      Statut du dépôt GIT dans le projet /home/devops/datas/"ID Projet".
+  rid proj deb <ID Projet">                                             →  Construit le paquet Debian à partir du projet /home/devops/datas/"ID Projet" et dépose l'artefact dans dist/.
+  rid proj bash <ID Projet"> <Nom du Projet>                            →  Crée un nouveau projet BASH nomé <Nom du Projet> dans le répertoire /home/<DEVOPS USER>/datas/<ID Projet>.
+  rid proj del <ID Projet">                                             →  Supprime le projet /home/devops/datas/<ID Projet> après confirmation.
+  rid proj gita <ID Projet"> <Nom du Projet>                            →  Analyse du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
+  rid proj gitc <ID Projet"> <Nom du Projet> <Nom du Commit>            →  Commit vers le dépôt Git local pour projet /home/devops/datas/"<ID Projet> avec comme nom de commit <Nom du Commit>.
+  rid proj giti <ID Projet"> <Nom du Projet>                            →  Initialisation du dépôt Git local dans le projet /home/devops/datas/<ID Projet>.
+  rid proj gitp <ID Projet"> <Nom du Projet>                            →  Push vers le dépôt Git distant le dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
+  rid proj gits <ID Projet"> <Nom du Projet>                            →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
 
    rid proj ocro "ID Projet"
       Démarre un Docker OpenCode en lecture seul dans le projet /home/devops/datas/"ID Projet".
@@ -1628,8 +1663,6 @@ Utilisation :
    rid proj ocrw "ID Projet"
       Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
 
-  rid proj deb "ID Projet"
-      Construit le paquet Debian du DIU à partir du projet /home/devops/datas/"ID Projet" et dépose l'artefact dans dist/.
 
   rid proj rel "ID Projet"
       Publie une Release Forgejo à partir du paquet Debian dans dist/.
@@ -1691,217 +1724,6 @@ display_infos() {
         fi
 
     done
-}
-
-ensure_docker_image() {
-
-	# Vérifie qu'une image Docker est disponible selon une politique
-	# de mise à jour donnée.
-	#
-	# Paramètres :
-	#   $1 : image Docker complète à vérifier.
-	#        Exemple :
-	#        ghcr.io/anomalyco/opencode:latest
-	#
-	#   $2 : politique de mise à jour facultative.
-	#        Valeurs autorisées :
-	#
-	#        never
-	#            Utilise l'image locale sans consulter le registre distant.
-	#            Si l'image n'existe pas localement, elle est téléchargée.
-	#
-	#        check
-	#            Compare le digest de l'image locale avec le digest publié
-	#            dans le registre distant.
-	#            L'image est téléchargée uniquement si les digests diffèrent.
-	#
-	#        always
-	#            Exécute systématiquement docker pull.
-	#            Docker ne télécharge que les couches absentes ou modifiées.
-	#
-	# Politique par défaut :
-	#   Si le deuxième argument n'est pas fourni, la fonction utilise la
-	#   variable globale DOCKER_IMAGE_UPDATE_POLICY.
-	#
-	#   Si cette variable globale est absente ou vide, la politique "check"
-	#   est utilisée par défaut.
-	#
-	# Priorité de sélection de la politique :
-	#   1. Deuxième argument passé à la fonction ;
-	#   2. Variable globale DOCKER_IMAGE_UPDATE_POLICY ;
-	#   3. Valeur par défaut "check".
-	#
-	# Exemples :
-	#
-	#   Utilisation de la politique globale :
-	#       ensure_docker_image "${DOCKER_IMAGE_OPENCODE}"
-	#
-	#   Utilisation forcée de la politique "always" :
-	#       ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "always"
-	#
-	#   Utilisation forcée de la politique "never" :
-	#       ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "never"
-	#
-	# Valeurs de retour :
-	#   0 : image Docker disponible et utilisable ;
-	#   1 : paramètre invalide, image indisponible ou erreur bloquante.
-
-    local docker_image="${1:-}"
-    local requested_policy="${2:-}"
-    local update_policy=""
-    local local_digest=""
-    local remote_digest=""
-
-    if [[ -z "${docker_image}" ]]; then
-        echo "❌ Aucune image Docker n'a été indiquée."
-        return 1
-    fi
-
-    # Le deuxième argument est prioritaire.
-    # À défaut, la politique globale est utilisée.
-    # Si aucune des deux n'est définie, la valeur "check" est appliquée.
-    update_policy="${requested_policy:-${DOCKER_IMAGE_UPDATE_POLICY:-check}}"
-
-    case "${update_policy}" in
-        never|check|always)
-            ;;
-        *)
-            echo "❌ Politique de mise à jour Docker invalide :"
-            echo "   ${update_policy}"
-            echo
-            echo "Valeurs autorisées : never, check, always"
-            return 1
-            ;;
-    esac
-
-    echo
-    echo "=============================================="
-    echo " Vérification de l'image Docker"
-    echo "=============================================="
-    echo
-    echo "Image     : ${docker_image}"
-    echo "Politique : ${update_policy}"
-
-    # Vérifie si l'image est déjà présente localement.
-    if ! su - "${DEVOPS_USER}" -c \
-        "docker image inspect '${docker_image}' >/dev/null 2>&1"
-    then
-        echo
-        echo "ℹ️ L'image n'est pas présente localement."
-        echo "📥 Téléchargement de l'image..."
-
-        if ! su - "${DEVOPS_USER}" -c \
-            "docker pull '${docker_image}'"
-        then
-            echo
-            echo "❌ Impossible de télécharger l'image :"
-            echo "   ${docker_image}"
-            return 1
-        fi
-
-        echo
-        echo "✅ Image téléchargée avec succès."
-        return 0
-    fi
-
-    case "${update_policy}" in
-        never)
-            echo
-            echo "ℹ️ Vérification distante désactivée."
-            echo "✅ Utilisation de l'image locale."
-            return 0
-            ;;
-
-        always)
-            echo
-            echo "📥 Vérification et téléchargement de l'image..."
-
-            if ! su - "${DEVOPS_USER}" -c \
-                "docker pull '${docker_image}'"
-            then
-                echo
-                echo "❌ Impossible de vérifier ou mettre à jour l'image."
-                return 1
-            fi
-
-            echo
-            echo "✅ Image Docker disponible et à jour."
-            return 0
-            ;;
-
-        check)
-            ;;
-    esac
-
-    # Récupère le premier digest associé à l'image locale.
-    local_digest="$(
-        su - "${DEVOPS_USER}" -c \
-            "docker image inspect '${docker_image}' \
-                --format '{{range .RepoDigests}}{{println .}}{{end}}'" \
-            2>/dev/null |
-        awk -F '@' 'NF == 2 { print $2; exit }'
-    )"
-
-    # Récupère le digest actuellement publié dans le registre distant.
-    inspect_output=""
-
-    if ! inspect_output="$(
-        su - "${DEVOPS_USER}" -c \
-            "docker buildx imagetools inspect '${docker_image}'"
-    )"; then
-        echo "⚠️ Impossible de vérifier l'image distante : ${docker_image}"
-        return 1
-    fi
-
-    remote_digest="$(
-        printf '%s\n' "${inspect_output}" |
-            awk '/^Digest:/ { print $2; exit }'
-    )"
-
-    if [[ -z "${remote_digest}" ]]; then
-        echo "⚠️ Digest distant introuvable : ${docker_image}"
-        return 1
-    fi
-
-    echo
-    echo "Digest local   : ${local_digest:-indisponible}"
-    echo "Digest distant : ${remote_digest:-indisponible}"
-
-    # Si le registre distant est inaccessible, l'image locale existante
-    # reste utilisable.
-    if [[ -z "${remote_digest}" ]]; then
-        echo
-        echo "⚠️ Impossible de vérifier le registre distant."
-        echo "ℹ️ Utilisation de l'image locale existante."
-        return 0
-    fi
-
-    # Aucun téléchargement n'est nécessaire lorsque les digests
-    # local et distant sont identiques.
-    if [[ -n "${local_digest}" ]] &&
-       [[ "${local_digest}" == "${remote_digest}" ]]
-    then
-        echo
-        echo "✅ L'image Docker locale est à jour."
-        return 0
-    fi
-
-    echo
-    echo "📥 Une nouvelle version de l'image est disponible."
-    echo "   Mise à jour en cours..."
-
-    if ! su - "${DEVOPS_USER}" -c \
-        "docker pull '${docker_image}'"
-    then
-        echo
-        echo "❌ La mise à jour de l'image Docker a échoué."
-        return 1
-    fi
-
-    echo
-    echo "✅ Image Docker mise à jour avec succès."
-
-    return 0
 }
 
 error_handler() {
@@ -4010,567 +3832,6 @@ git_status() {
         "État Git affiché pour ${project_name:-${project_id}}."
 }
 
-info_docker_analyse() {
-    local containers
-    local container
-    local name
-    local pid
-    local uid
-    local gid
-    local config_user
-    local process_users
-    local image
-    local status
-    local health
-    local restart_policy
-    local privileged
-    local readonly_rootfs
-    local ip
-    local cpu
-    local memory
-    local mounts_rw
-    local mounts_ro
-
-    local mount_type
-    local mount_source
-    local mount_destination
-    local mount_rw
-    local mount_uid
-    local mount_gid
-    local mount_owner
-    local mount_mode
-    local mount_user
-    local mount_group
-    local mount_status
-
-    local container_count=0
-    local root_pid1_count=0
-    local root_only_count=0
-    local mixed_root_count=0
-    local non_root_count=0
-    local privileged_count=0
-    local socket_count=0
-    local bind_count=0
-    local bind_rw_count=0
-    local bind_ro_count=0
-    local bind_match_count=0
-    local bind_check_count=0
-    local bind_missing_count=0
-
-    echo
-    echo "=========================================================="
-    echo " Analyse des conteneurs Docker"
-    echo "=========================================================="
-    echo
-
-    # ----------------------------------------------------------
-    # Vérification de Docker
-    # ----------------------------------------------------------
-
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "❌ Docker n'est pas installé."
-        return 1
-    fi
-
-    if ! docker info >/dev/null 2>&1; then
-        echo "❌ Le démon Docker n'est pas accessible."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Recherche des conteneurs actifs
-    # ----------------------------------------------------------
-
-    containers="$(docker ps --quiet)"
-
-    if [ -z "$containers" ]; then
-        echo "ℹ️ Aucun conteneur Docker en cours d'exécution."
-        return 0
-    fi
-
-    container_count="$(printf "%s\n" "$containers" | wc -l)"
-
-    echo "Conteneurs actifs : $container_count"
-    echo
-
-    # ----------------------------------------------------------
-    # Tableau principal
-    # ----------------------------------------------------------
-
-    printf "%-18s %-24s %-15s %-12s %-12s %-24s %-9s %-12s\n" \
-        "CONTENEUR" \
-        "IMAGE" \
-        "ÉTAT" \
-        "USER" \
-        "PID1" \
-        "UID:GID PROCESSUS" \
-        "CPU" \
-        "MÉMOIRE"
-
-    printf "%-18s %-24s %-15s %-12s %-12s %-24s %-9s %-12s\n" \
-        "------------------" \
-        "------------------------" \
-        "---------------" \
-        "------------" \
-        "------------" \
-        "------------------------" \
-        "---------" \
-        "------------"
-
-    for container in $containers; do
-
-        # ------------------------------------------------------
-        # Informations générales
-        # ------------------------------------------------------
-
-        name="$(
-            docker inspect \
-                --format '{{.Name}}' \
-                "$container" 2>/dev/null |
-            sed 's#^/##'
-        )"
-
-        image="$(
-            docker inspect \
-                --format '{{.Config.Image}}' \
-                "$container" 2>/dev/null
-        )"
-
-        status="$(
-            docker inspect \
-                --format '{{.State.Status}}' \
-                "$container" 2>/dev/null
-        )"
-
-        health="$(
-            docker inspect \
-                --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
-                "$container" 2>/dev/null
-        )"
-
-        config_user="$(
-            docker inspect \
-                --format '{{.Config.User}}' \
-                "$container" 2>/dev/null
-        )"
-
-        if [ -z "$config_user" ]; then
-            config_user="default"
-        fi
-
-        # ------------------------------------------------------
-        # PID 1
-        # ------------------------------------------------------
-
-        pid="$(
-            docker inspect \
-                --format '{{.State.Pid}}' \
-                "$container" 2>/dev/null
-        )"
-
-        uid="?"
-        gid="?"
-
-        if [ -n "$pid" ] && \
-           [ "$pid" != "0" ] && \
-           [ -r "/proc/$pid/status" ]; then
-
-            uid="$(
-                awk '/^Uid:/ {print $2}' \
-                    "/proc/$pid/status"
-            )"
-
-            gid="$(
-                awk '/^Gid:/ {print $2}' \
-                    "/proc/$pid/status"
-            )"
-        fi
-
-        # ------------------------------------------------------
-        # UID:GID de tous les processus
-        # ------------------------------------------------------
-
-        process_users="$(
-            info_docker_analyse_container "$container"
-        )"
-
-        # ------------------------------------------------------
-        # CPU
-        # ------------------------------------------------------
-
-        cpu="$(
-            docker stats \
-                --no-stream \
-                --format '{{.CPUPerc}}' \
-                "$container" 2>/dev/null
-        )"
-
-        if [ -z "$cpu" ]; then
-            cpu="-"
-        fi
-
-        # ------------------------------------------------------
-        # Mémoire
-        # ------------------------------------------------------
-
-        memory="$(
-            docker stats \
-                --no-stream \
-                --format '{{.MemUsage}}' \
-                "$container" 2>/dev/null |
-            awk -F' / ' '{print $1}'
-        )"
-
-        if [ -z "$memory" ]; then
-            memory="-"
-        fi
-
-        # ------------------------------------------------------
-        # État + Healthcheck
-        # ------------------------------------------------------
-
-        if [ "$health" != "none" ]; then
-            status="${status}/${health}"
-        fi
-
-        # ------------------------------------------------------
-        # Affichage
-        # ------------------------------------------------------
-
-        printf "%-18s %-24.24s %-15s %-12s %-12s %-24s %-9s %-12s\n" \
-            "$name" \
-            "$image" \
-            "$status" \
-            "$config_user" \
-            "${uid}:${gid}" \
-            "$process_users" \
-            "$cpu" \
-            "$memory"
-    done
-
-    # ----------------------------------------------------------
-    # Analyse détaillée
-    # ----------------------------------------------------------
-
-    echo
-    echo "=========================================================="
-    echo " Détails des conteneurs"
-    echo "=========================================================="
-
-    for container in $containers; do
-
-        name="$(
-            docker inspect \
-                --format '{{.Name}}' \
-                "$container" |
-            sed 's#^/##'
-        )"
-
-        image="$(
-            docker inspect \
-                --format '{{.Config.Image}}' \
-                "$container"
-        )"
-
-        pid="$(
-            docker inspect \
-                --format '{{.State.Pid}}' \
-                "$container"
-        )"
-
-        config_user="$(
-            docker inspect \
-                --format '{{.Config.User}}' \
-                "$container"
-        )"
-
-        if [ -z "$config_user" ]; then
-            config_user="non défini"
-        fi
-
-        uid="?"
-        gid="?"
-
-        if [ "$pid" != "0" ] && \
-           [ -r "/proc/$pid/status" ]; then
-
-            uid="$(
-                awk '/^Uid:/ {print $2}' \
-                    "/proc/$pid/status"
-            )"
-
-            gid="$(
-                awk '/^Gid:/ {print $2}' \
-                    "/proc/$pid/status"
-            )"
-        fi
-
-        process_users="$(
-            info_docker_analyse_container "$container"
-        )"
-
-        restart_policy="$(
-            docker inspect \
-                --format '{{.HostConfig.RestartPolicy.Name}}' \
-                "$container"
-        )"
-
-        privileged="$(
-            docker inspect \
-                --format '{{.HostConfig.Privileged}}' \
-                "$container"
-        )"
-
-        readonly_rootfs="$(
-            docker inspect \
-                --format '{{.HostConfig.ReadonlyRootfs}}' \
-                "$container"
-        )"
-
-        ip="$(
-            docker inspect \
-                --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' \
-                "$container"
-        )"
-
-        mounts_rw="$(
-            docker inspect \
-                --format '{{range .Mounts}}{{if .RW}}1 {{end}}{{end}}' \
-                "$container" |
-            wc -w
-        )"
-
-        mounts_ro="$(
-            docker inspect \
-                --format '{{range .Mounts}}{{if not .RW}}1 {{end}}{{end}}' \
-                "$container" |
-            wc -w
-        )"
-
-        echo
-        echo "----------------------------------------------------------"
-        echo " $name"
-        echo "----------------------------------------------------------"
-
-        echo "Image                 : $image"
-        echo "PID hôte              : $pid"
-        echo "Utilisateur Docker    : $config_user"
-        echo "UID:GID PID 1         : ${uid}:${gid}"
-        echo "UID:GID processus     : $process_users"
-        echo "Adresse(s) IP         : ${ip:-aucune}"
-        echo "Restart policy        : ${restart_policy:-none}"
-        echo "Privileged            : $privileged"
-        echo "RootFS read-only      : $readonly_rootfs"
-        echo "Volumes RW            : $mounts_rw"
-        echo "Volumes RO            : $mounts_ro"
-
-        # ------------------------------------------------------
-        # Analyse UID / GID
-        # ------------------------------------------------------
-
-        if [ "$uid" = "0" ]; then
-            root_pid1_count=$((root_pid1_count + 1))
-
-            if [ "$process_users" = "0:0" ]; then
-                echo
-                echo "⚠️ Tous les processus détectés fonctionnent en root."
-
-                root_only_count=$((root_only_count + 1))
-
-            elif printf "%s\n" "$process_users" |
-                 grep -Eq '(^|,)0:0(,|$)'; then
-
-                echo
-                echo "ℹ️ PID 1 en root avec processus non-root."
-                echo "   Utilisateurs détectés : $process_users"
-
-                mixed_root_count=$((mixed_root_count + 1))
-
-            else
-                echo
-                echo "ℹ️ PID 1 en root."
-                echo "   Utilisateurs détectés : $process_users"
-
-                mixed_root_count=$((mixed_root_count + 1))
-            fi
-
-        else
-            non_root_count=$((non_root_count + 1))
-        fi
-
-        # ------------------------------------------------------
-        # Analyse privileged
-        # ------------------------------------------------------
-
-        if [ "$privileged" = "true" ]; then
-            echo
-            echo "⚠️ Conteneur exécuté en mode privileged."
-
-            privileged_count=$((privileged_count + 1))
-        fi
-
-        # ------------------------------------------------------
-        # Analyse Docker Socket
-        # ------------------------------------------------------
-
-        if docker inspect \
-            --format '{{range .Mounts}}{{println .Source}}{{end}}' \
-            "$container" |
-            grep -qx '/var/run/docker.sock'; then
-
-            echo
-            echo "⚠️ Accès direct au socket Docker détecté."
-
-            socket_count=$((socket_count + 1))
-        fi
-
-        # ------------------------------------------------------
-        # Montages
-        # ------------------------------------------------------
-
-        echo
-        echo "Montages :"
-
-        docker inspect \
-            --format '{{range .Mounts}}{{printf "  %-6s %-45s -> %-35s RW=%v\n" .Type .Source .Destination .RW}}{{end}}' \
-            "$container"
-
-        # ------------------------------------------------------
-        # Inspection des bind mounts sur l'hôte
-        # ------------------------------------------------------
-
-        echo
-        echo "Bind mounts - propriétaires sur l'hôte :"
-
-        while IFS='|' read -r \
-            mount_type \
-            mount_source \
-            mount_destination \
-            mount_rw
-        do
-
-        if [ "$mount_type" != "bind" ]; then
-            continue
-        fi
-
-        bind_count=$((bind_count + 1))
-
-        if [ "$mount_rw" = "true" ]; then
-            bind_rw_count=$((bind_rw_count + 1))
-        else
-            bind_ro_count=$((bind_ro_count + 1))
-        fi
-
-        echo
-        echo "  Source      : $mount_source"
-        echo "  Destination : $mount_destination"
-        echo "  Lecture/écr.: $mount_rw"
-
-        if [ ! -e "$mount_source" ]; then
-            echo "  Propriétaire: introuvable"
-            echo "  État        : ⚠️ chemin absent sur l'hôte"
-
-            bind_missing_count=$((bind_missing_count + 1))
-            continue
-        fi
-
-        mount_uid="$(stat -c '%u' "$mount_source" 2>/dev/null)"
-        mount_gid="$(stat -c '%g' "$mount_source" 2>/dev/null)"
-        mount_user="$(stat -c '%U' "$mount_source" 2>/dev/null)"
-        mount_group="$(stat -c '%G' "$mount_source" 2>/dev/null)"
-        mount_mode="$(stat -c '%a' "$mount_source" 2>/dev/null)"
-
-        mount_owner="${mount_uid}:${mount_gid}"
-
-        echo "  UID:GID hôte: $mount_owner"
-        echo "  User:Group  : ${mount_user}:${mount_group}"
-        echo "  Permissions : $mount_mode"
-
-        # --------------------------------------------------
-        # Comparaison avec les processus du conteneur
-        # --------------------------------------------------
-        if printf "%s\n" "$process_users" |
-           grep -Eq "(^|,)${mount_uid}:${mount_gid}(,|$)"; then
-
-            mount_status="OK"
-
-            echo "  État        : ✅ UID:GID présent dans le conteneur"
-
-            bind_match_count=$((bind_match_count + 1))
-
-        elif printf "%s\n" "$process_users" |
-             grep -Eq '(^|,)0:0(,|$)'; then
-
-            mount_status="ROOT"
-
-            echo "  État        : ℹ️ processus root - UID:GID hôte différent accepté"
-            echo "                Processus : $process_users"
-
-        elif [ "$mount_rw" = "true" ]; then
-
-            mount_status="CHECK"
-
-            echo "  État        : ⚠️ propriétaire différent des UID:GID détectés"
-            echo "                Processus : $process_users"
-
-            bind_check_count=$((bind_check_count + 1))
-
-        else
-
-            mount_status="RO"
-
-            echo "  État        : ℹ️ montage en lecture seule"
-            echo "                Correspondance UID:GID non requise"
-        fi
-
-        done < <(
-            docker inspect \
-                --format '{{range .Mounts}}{{printf "%s|%s|%s|%v\n" .Type .Source .Destination .RW}}{{end}}' \
-                "$container"
-        )
-
-        # ------------------------------------------------------
-        # Ports
-        # ------------------------------------------------------
-
-        echo
-        echo "Ports :"
-
-        docker port "$container" 2>/dev/null |
-            sed 's/^/  /'
-    done
-
-    # ----------------------------------------------------------
-    # Résumé
-    # ----------------------------------------------------------
-
-    echo
-    echo "=========================================================="
-    echo " Résumé"
-    echo "=========================================================="
-    echo
-
-    echo "Conteneurs actifs                 : $container_count"
-    echo "PID 1 exécutés en UID 0           : $root_pid1_count"
-    echo "Uniquement processus root         : $root_only_count"
-    echo "Root + processus non-root         : $mixed_root_count"
-    echo "PID 1 non-root                    : $non_root_count"
-    echo "Conteneurs privileged             : $privileged_count"
-    echo "Accès direct au socket Docker     : $socket_count"
-
-    echo
-    echo "Bind mounts                       : $bind_count"
-    echo "Bind mounts RW                    : $bind_rw_count"
-    echo "Bind mounts RO                    : $bind_ro_count"
-    echo "UID:GID correspondant             : $bind_match_count"
-    echo "Bind mounts RW à vérifier         : $bind_check_count"
-    echo "Chemins hôte absents              : $bind_missing_count"
-
-    echo
-    echo "✅ Analyse Docker terminée."
-    echo
-}
-
 info_docker_analyse_container() {
     local container="$1"
     local pids
@@ -4910,7 +4171,9 @@ launch_ocro() {
         exit 1
     fi
 
-    ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "check"
+    ensure_docker_image \
+        "${DOCKER_IMAGE_OPENCODE}" \
+        "${DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
     su - "${DEVOPS_USER}" -c "docker run --rm -it \
       --name ${project_id}-opencode \
@@ -4942,7 +4205,7 @@ launch_ocro() {
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
       -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec && \
-          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
+          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
 }
 
 launch_ocrw() {
@@ -4957,7 +4220,9 @@ launch_ocrw() {
         exit 1
     fi
 
-    ensure_docker_image "${DOCKER_IMAGE_OPENCODE}" "check"
+    ensure_docker_image \
+        "${DOCKER_IMAGE_OPENCODE}" \
+        "${DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
     su - "${DEVOPS_USER}" -c "docker run --rm -it \
       --name ${project_id}-opencode \
@@ -4989,15 +4254,58 @@ launch_ocrw() {
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
       -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec &&
-          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode'"
+          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
 }
 
 manage_devops_action() {
-    local action="$1"
 
-    case "$action" in
+    local action_1="${1:-}"
+    local project_id="${2:-}"
+    local action_2="${3:-}"
+    local value="${4:-}"
+
+    case "$action_1" in
+
         info)
             devops_info
+            ;;
+
+        os)
+            manage_devops_openspec_action \
+                "$action_2" \
+                "$project_id" \
+                "$value"
+            ;;
+
+        *)
+            echo "❌ Action inconnue pour la classe 'devops' : ${action_1}"
+            display_usage
+            exit 2
+            ;;
+
+    esac
+}
+
+manage_devops_openspec_action() {
+    local action_2="$1"
+    local project_id="$2"
+    local spec_name="$3"
+
+    case "$action_2" in
+        list)
+            devops_openspec_list "$project_id"
+            ;;
+        show)
+            devops_openspec_show "$project_id"
+            ;;
+        vc)
+            devops_openspec_validate_change "$project_id" "$spec_name"
+            ;;
+        vs)
+            devops_openspec_validate_spec "$project_id" "$spec_name"
+            ;;
+        view)
+            devops_openspec_view "$project_id"
             ;;
         *)
             echo "❌ Action inconnue pour la classe 'openspec' : $action"
@@ -5008,101 +4316,396 @@ manage_devops_action() {
 }
 
 manage_docker_action() {
-    local action="$1"
+
+    local action="${1:-}"
+    local subaction="${2:-}"
+    local username="${3:-}"
+    shift 3 2>/dev/null || true
 
     case "$action" in
-        analyse)
-            info_docker_analyse
+
+        root)
+
+            case "$subaction" in
+
+                check-containers)
+                    docker_root_check_containers
+                    ;;
+
+                test)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_root_test "$username"
+                    ;;
+
+                diag)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_root_diag "$username"
+                    ;;
+
+                *)
+
+                    echo "❌ Action root inconnue : ${subaction}"
+                    display_usage
+                    exit 2
+                    ;;
+
+            esac
             ;;
+
+        rootless)
+
+            case "$subaction" in
+
+                analyse)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_analyse "$username"
+                    ;;
+
+                configure)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_configure "$username"
+                    ;;
+
+                delete-state)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_delete_state "$username"
+                    ;;
+
+                diag)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_diag "$username"
+                    ;;
+
+                exec)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_exec "$username" "$@"
+                    ;;
+
+                inspect)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_inspect "$username" "$value4"
+                    ;;
+
+                log)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_log "$username" "$@"
+                    ;;
+
+                ps)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_ps "$username"
+                    ;;
+
+                unconfigure)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_unconfigure "$username"
+                    ;;
+
+                restore-state)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_restore_state "$username"
+                    ;;
+
+                save-state)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_rootless_save_state "$username"
+                    ;;
+
+                test)
+
+                    if [[ -z "$username" ]]; then
+                        echo "❌ Le nom d'utilisateur est obligatoire."
+                        display_usage
+                        exit 2
+                    fi
+
+                    docker_test_rootless "$username"
+                    ;;
+
+                *)
+
+                    echo "❌ Action rootless inconnue : ${subaction}"
+                    display_usage
+                    exit 2
+                    ;;
+
+            esac
+            ;;
+
         *)
-            echo "❌ Action inconnue pour la classe 'proj' : $action"
+
+            echo "❌ Action inconnue pour la classe 'docker' : ${action}"
             display_usage
             exit 2
             ;;
+
     esac
 }
 
-manage_openspec_action() {
-    local action="$1"
-    local project_id="$2"
-    local spec_name="$3"
+manage_ia_action() {
+
+    local action="${1:-}"
+    local value2="${2:-}"
+    local value3="${3:-}"
+    shift 3 2>/dev/null || true
 
     case "$action" in
-        list)
-            openspec_list "$project_id"
+
+        configure)
+            case "$value2" in
+                hm)
+                    configure_agent_hermes
+                    ;;
+                *)
+                    echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
+                    display_usage
+                    exit 2
+                    ;;
+            esac
             ;;
-        show)
-            openspec_show "$project_id" "$spec_name"
+
+        install)
+            case "$value2" in
+                hm)
+                    install_agent_hermes
+                    ;;
+                *)
+                    echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
+                    display_usage
+                    exit 2
+                    ;;
+            esac
             ;;
-        vc)
-            openspec_validate_change "$project_id" "$spec_name"
+
+        start)
+            case "$value2" in
+                hm)
+                    start_agent_hermes
+                    ;;
+                *)
+                    echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
+                    display_usage
+                    exit 2
+                    ;;
+            esac
             ;;
-        vs)
-            openspec_validate_spec "$project_id" "$spec_name"
+
+        stop)
+            case "$value2" in
+                hm)
+                    stop_agent_hermes
+                    ;;
+                *)
+                    echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
+                    display_usage
+                    exit 2
+                    ;;
+            esac
             ;;
-        view)
-            openspec_view "$project_id"
+
+        update)
+            case "$value2" in
+                hm)
+                    update_agent_hermes
+                    ;;
+                *)
+                    echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
+                    display_usage
+                    exit 2
+                    ;;
+            esac
             ;;
+
+        uninstall)
+            case "$value2" in
+                hm)
+                    uninstall_agent_hermes
+                    ;;
+                *)
+                    echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
+                    display_usage
+                    exit 2
+                    ;;
+            esac
+            ;;
+
         *)
-            echo "❌ Action inconnue pour la classe 'openspec' : $action"
+            echo "❌ Action (${action}) inconnue pour la classe 'ia'."
             display_usage
             exit 2
             ;;
+
     esac
 }
 
 manage_project_action() {
-    local action="$1"
-    local project_id="$2"
-    local project_name="$3"
-    local other_info="$4"
+
+    local action="${1:-}"
+    local project_id="${2:-}"
+    local project_name="${3:-}"
+    local other_info="${4:-}"
 
     case "$action" in
+
         del)
-            delete_project "$project_id" "$project_name"
+            delete_project \
+                "$project_id" \
+                "$project_name"
             ;;
+
         bash)
-            create_project_bash "$project_id" "$project_name"
+            create_project_bash \
+                "$project_id" \
+                "$project_name"
             ;;
+
         gita)
-            git_analyse "$project_id" "$project_name"
+            git_analyse \
+                "$project_id" \
+                "$project_name"
             ;;
+
         gitc)
-            git_commit "$project_id" "$project_name" "$other_info"
+            git_commit \
+                "$project_id" \
+                "$project_name" \
+                "$other_info"
             ;;
+
         giti)
-            git_init "$project_id" "$project_name"
+            git_init \
+                "$project_id" \
+                "$project_name"
             ;;
+
         gitp)
-            git_push "$project_id" "$project_name"
+            git_push \
+                "$project_id" \
+                "$project_name"
             ;;
+
         gits)
-            git_status "$project_id" "$project_name"
+            git_status \
+                "$project_id" \
+                "$project_name"
             ;;
+
         ocro)
-            launch_ocro "$project_id" "$project_name"
+            launch_ocro \
+                "$project_id" \
+                "$project_name"
             ;;
+
         ocrw)
-            launch_ocrw "$project_id" "$project_name"
+            launch_ocrw \
+                "$project_id" \
+                "$project_name"
             ;;
+
         ocsh)
-            launch_oc_shell "$project_id" "$project_name"
+            launch_oc_shell \
+                "$project_id" \
+                "$project_name"
             ;;
+
         deb)
-            build_deb "$project_id"
+            build_deb \
+                "$project_id"
             ;;
+
         rel)
-            publish_release "$project_id"
+            publish_release \
+                "$project_id"
             ;;
+
         *)
-            echo "❌ Action inconnue pour la classe 'proj' : $action"
+            echo "❌ Action inconnue pour la classe 'proj' : ${action}"
             display_usage
             exit 2
             ;;
+
     esac
 }
 
-openspec_list() {
+devops_openspec_list() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
 
@@ -5111,7 +4714,7 @@ openspec_list() {
     exit 0
 }
 
-openspec_show() {
+devops_openspec_show() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
 
@@ -5120,7 +4723,7 @@ openspec_show() {
     exit 0
 }
 
-openspec_validate_change() {
+devops_openspec_validate_change() {
     local project_id="$1"
     local spec_name="$2"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -5130,7 +4733,7 @@ openspec_validate_change() {
     exit 0
 }
 
-openspec_validate_spec() {
+devops_openspec_validate_spec() {
     local project_id="$1"
     local spec_name="$2"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -5140,7 +4743,7 @@ openspec_validate_spec() {
     exit 0
 }
 
-openspec_view() {
+devops_openspec_view() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
 
@@ -6936,10 +6539,6 @@ then
 	echo "AllowHybridSleep=no" >> /etc/systemd/sleep.conf.d/nosleep.conf
 fi
 
-
-
-
-
 #### SOFTWARES ####
 
 if [ "${ACMESH:-0}" -eq 1 ]; then
@@ -7824,29 +7423,54 @@ EOF
 
 fi
 
-if [ $DEVOPS -eq 1 ]
+if [ $ENV_DEVOPS -eq 1 ]
 then
 
 	echo ""
-	groupadd -f $DEVOPS_GROUP
-	if id -u $DEVOPS_USER> /dev/null 2>&1 
+	groupadd -f $ENV_DEVOPS_GROUP
+
+	if id -u $ENV_DEVOPS_USER> /dev/null 2>&1 
 	then
-	  echo "USER FOR DEVOPS $DEVOPS_USER IS OK ✅"
-	  echo "$DEVOPS_USER:$DEVOPS_PASSWORD" | chpasswd
+	  echo "USER FOR DEVOPS $ENV_DEVOPS_USER IS OK ✅"
+	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	else
-	  useradd -m $DEVOPS_USER --gid $DEVOPS_GROUP -s /bin/bash
-	  echo "$DEVOPS_USER:$DEVOPS_PASSWORD" | chpasswd
-	fi
-	usermod -aG sudo,$DEVOPS_GROUP $DEVOPS_USER
-	usermod -aG sudo,$DEVOPS_GROUP $DEVOPS_HUMAN_USER
-
-	echo "🔧 CONFIGURE /home/$DEVOPS_USER"
-
-	if [ ! -d "/home/$DEVOPS_USER" ]; then
-		mkhomedir_helper "$DEVOPS_USER"
+	  useradd -m $ENV_DEVOPS_USER --gid $ENV_DEVOPS_GROUP -s /bin/bash
+	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	fi
 
-	install -d -o "$DEVOPS_USER" -g "$DEVOPS_GROUP" -m 2770 "/home/$DEVOPS_USER/.local/npm" "/home/$DEVOPS_USER/.local/npm/bin" "/home/$DEVOPS_USER/.opencode/bin" "/home/$DEVOPS_USER/datas" "/home/$DEVOPS_USER/syncthing"
+	usermod -aG $ENV_DEVOPS_GROUP $ENV_DEVOPS_USER
+	usermod -aG $ENV_DEVOPS_GROUP $ENV_HUMAN_USER
+
+  if [[ "${ENV_DEVOPS_DOCKER_ROOTLESS:-0}" == "1" ]]; then
+      # Rootless : l'utilisateur ENV_DEVOPS_USER NE doit PAS être dans le groupe docker
+      if id -nG "$ENV_DEVOPS_USER" | grep -qw docker; then
+          gpasswd -d "$ENV_DEVOPS_USER" docker
+      fi
+  else
+      # Rootful : l'utilisateur ENV_DEVOPS_USER doit être dans le groupe docker
+      if ! id -nG "$ENV_DEVOPS_USER" | grep -qw docker; then
+          usermod -aG docker "$ENV_DEVOPS_USER"
+      fi
+  fi
+
+  if [[ "${ENV_IA:-0}" == "0" ]]; then
+      # l'utilisateur ENV_IA_USER NE doit pas être dans le groupe $ENV_DEVOPS_GROUP
+      if id -nG "$ENV_IA_USER" | grep -qw "$ENV_DEVOPS_GROUP"; then
+          gpasswd -d "$ENV_IA_USER" "$ENV_DEVOPS_GROUP"
+      fi
+  else
+      # L'utilisateur ENV_IA_USER doit être dans le groupe ENV_DEVOPS_GROUP
+      if ! id -nG "$ENV_IA_USER" | grep -qw "$ENV_DEVOPS_GROUP"; then
+          usermod -aG "$ENV_DEVOPS_GROUP" "$ENV_IA_USER"
+      fi
+  fi
+
+	echo "🔧 CONFIGURE /home/$ENV_DEVOPS_USER"
+	if [ ! -d "/home/$ENV_DEVOPS_USER" ]; then
+		mkhomedir_helper "$ENV_DEVOPS_USER"
+	fi
+
+	install -d -o "$ENV_DEVOPS_USER" -g "$ENV_DEVOPS_GROUP" -m 2770 "/home/$ENV_DEVOPS_USER/.local/npm" "/home/$ENV_DEVOPS_USER/.local/npm/bin" "/home/$ENV_DEVOPS_USER/.opencode/bin" "/home/$ENV_DEVOPS_USER/datas" "/home/$ENV_DEVOPS_USER/syncthing"
 
   if [ "${SYNCTHING}" = "1" ]; then
       cat > /home/devops/datas/.stignore <<'EOF'
@@ -8436,217 +8060,10 @@ EOF
 
 	fi
 
-  if [ "${CERTBOT:-0}" -eq 1 ]
-  then
-
-    PIP_BIN="/home/$DEVOPS_USER/python/current/bin/pip3"
-    CERTBOT_BIN="/home/$DEVOPS_USER/python/current/bin/certbot"
-
-    # Vérification de Python Dev / pip
-    if [ ! -x "$PIP_BIN" ]
-    then
-
-        echo "❌ ERREUR : pip3 Python Dev est introuvable ($PIP_BIN)"
-        exit 1
-
-    fi
-
-    #
-    # CERTBOT
-    #
-
-    local_version_certbot=$(
-        "$PIP_BIN" show certbot 2>/dev/null |
-        awk '/^Version:/ {print $2}' ||
-        true
-    )
-
-    online_version_certbot=$(
-        "$PIP_BIN" index versions certbot 2>/dev/null |
-        head -n 1 |
-        awk -F'[()]' '{print $2}' ||
-        true
-    )
-
-    if [ -z "$local_version_certbot" ]
-    then
-
-        echo "🔧 INSTALL CERTBOT (${online_version_certbot:-version inconnue})"
-
-        if ! "$PIP_BIN" install certbot
-        then
-            echo "❌ ERREUR : installation de Certbot échouée"
-            exit 1
-        fi
-
-    elif [ -z "$online_version_certbot" ]
-    then
-
-        echo "⚠️ Impossible de vérifier la version disponible de Certbot."
-
-    elif [ "$local_version_certbot" != "$online_version_certbot" ]
-    then
-
-        echo "🔧 UPGRADE CERTBOT ($local_version_certbot -> $online_version_certbot)"
-
-        if ! "$PIP_BIN" install --upgrade certbot
-        then
-            echo "❌ ERREUR : mise à jour de Certbot échouée"
-            exit 1
-        fi
-
-    else
-
-        echo "CERTBOT OK ✅ ($local_version_certbot)"
-
-    fi
-
-    #
-    # CERTBOT-DNS-OVH
-    #
-
-    local_version_certbot_dns_ovh=$(
-        "$PIP_BIN" show certbot-dns-ovh 2>/dev/null |
-        awk '/^Version:/ {print $2}' ||
-        true
-    )
-
-    online_version_certbot_dns_ovh=$(
-        "$PIP_BIN" index versions certbot-dns-ovh 2>/dev/null |
-        head -n 1 |
-        awk -F'[()]' '{print $2}' ||
-        true
-    )
-
-    if [ -z "$local_version_certbot_dns_ovh" ]
-    then
-
-        echo "🔧 INSTALL CERTBOT-DNS-OVH (${online_version_certbot_dns_ovh:-version inconnue})"
-
-        if ! "$PIP_BIN" install certbot-dns-ovh
-        then
-            echo "❌ ERREUR : installation de certbot-dns-ovh échouée"
-            exit 1
-        fi
-
-    elif [ -z "$online_version_certbot_dns_ovh" ]
-    then
-
-        echo "⚠️ Impossible de vérifier la version disponible de certbot-dns-ovh."
-
-    elif [ "$local_version_certbot_dns_ovh" != "$online_version_certbot_dns_ovh" ]
-    then
-
-        echo "🔧 UPGRADE CERTBOT-DNS-OVH ($local_version_certbot_dns_ovh -> $online_version_certbot_dns_ovh)"
-
-        if ! "$PIP_BIN" install --upgrade certbot-dns-ovh
-        then
-            echo "❌ ERREUR : mise à jour de certbot-dns-ovh échouée"
-            exit 1
-        fi
-
-    else
-
-        echo "CERTBOT-DNS-OVH OK ✅ ($local_version_certbot_dns_ovh)"
-
-    fi
-
-    #
-    # Configuration OVH
-    #
-
-    cat > /root/.ovhapi <<EOF
-dns_ovh_endpoint = ${DNS_OVH_ENDPOINT}
-dns_ovh_application_key = ${DNS_OVH_APPLICATION_KEY}
-dns_ovh_application_secret = ${DNS_OVH_APPLICATION_SECRET}
-dns_ovh_consumer_key = ${DNS_OVH_CONSUMER_KEY}
-EOF
-
-    chown root:root /root/.ovhapi
-    chmod 600 /root/.ovhapi
-    sed -i 's/\r$//' /root/.ovhapi
-
-    #
-    # Création du certificat Let's Encrypt
-    #
-
-    CERTBOT_CREDENTIALS="/root/.ovhapi"
-    CERTBOT_CERTIFICATE="/etc/letsencrypt/live/${CERTBOT_DOMAIN1}/fullchain.pem"
-
-    if [ ! -x "$CERTBOT_BIN" ]
-    then
-
-        echo "❌ CERTBOT NON INSTALLÉ"
-
-    elif [ ! -f "$CERTBOT_CREDENTIALS" ]
-    then
-
-        echo "❌ FICHIER ${CERTBOT_CREDENTIALS} ABSENT"
-
-    elif [ -f "$CERTBOT_CERTIFICATE" ]
-    then
-
-        echo "CERTIFICAT LET'S ENCRYPT OK ✅ (${CERTBOT_DOMAIN1})"
-
-    else
-
-        echo "🔧 CREATE CERTIFICAT LET'S ENCRYPT (${CERTBOT_DOMAIN1})"
-
-        rm -f /var/log/letsencrypt.log
-
-        "$CERTBOT_BIN" certonly \
-            --verbose \
-            --config-dir /etc/letsencrypt \
-            --authenticator dns-ovh \
-            --dns-ovh-credentials "$CERTBOT_CREDENTIALS" \
-            --dns-ovh-propagation-seconds 180 \
-            --agree-tos \
-            --logs-dir /var/log \
-            --non-interactive \
-            --email "postmaster@${DNS_OVH_DOMAIN1}" \
-            --key-type ecdsa \
-            --elliptic-curve secp384r1 \
-            --reuse-key \
-            --cert-name "${CERTBOT_DOMAIN1}" \
-            --domains "${DNS_OVH_DOMAIN1}" \
-            --domains "*.${DNS_OVH_DOMAIN1}"
-
-    fi
-
-    #
-    # Renouvellement automatique
-    #
-
-    CRON_JOB="0 12 1,15 * * ${CERTBOT_BIN} renew --quiet"
-
-    if [ ! -x "$CERTBOT_BIN" ]
-    then
-
-        echo "❌ CERTBOT NON INSTALLÉ"
-
-    else
-
-        if crontab -l 2>/dev/null | grep -Fxq "$CRON_JOB"
-        then
-
-            echo "CRONTAB CERTBOT OK ✅"
-
-        else
-
-            (
-                crontab -l 2>/dev/null
-                echo "$CRON_JOB"
-            ) | crontab -
-
-            echo "🔧 ADD CRONTAB CERTBOT"
-
-        fi
-
-    fi
-
-  fi
-
-  chown -R $DEVOPS_USER:$DEVOPS_GROUP /home/$DEVOPS_USER
+  chown -R $ENV_DEVOPS_USER:$ENV_DEVOPS_GROUP /home/$ENV_DEVOPS_USER
+  find /home/$ENV_DEVOPS_USER -mindepth 1 -type d -exec chmod 2770 {} +
+  find /home/$ENV_DEVOPS_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_DEVOPS_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
 
   ############################################################
   # DEVOPS PATH
@@ -8724,106 +8141,83 @@ EOF
 
 fi
 
-if [ $DOCKER -eq 1 ]
+if [ $ENV_DOCKER -eq 1 ]
 then
 
-	if [ $DEVOPS -eq 1 ]
-	then
+  echo ""
+  groupadd -f $ENV_DOCKER_GROUP
 
-		groupadd -f $DEVOPS_GROUP
-		if id -u $DOCKER_USER> /dev/null 2>&1 
-		then
-		  echo "USER FOR DOCKER $DOCKER_USER IS OK ✅"
-		else
-		  useradd -m $DOCKER_USER --gid $DEVOPS_GROUP -s /bin/bash
-		fi
-		usermod -aG sudo,docker,$DEVOPS_GROUP $DOCKER_USER
-		usermod -aG sudo,docker,$DEVOPS_GROUP $DEVOPS_USER
-		echo "docker:$DOCKER_PASSWORD" | chpasswd
+  if id -u $ENV_DOCKER_USER> /dev/null 2>&1 
+  then
+    echo "USER FOR DOCKER $ENV_DOCKER_USER IS OK ✅"
+    echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
+  else
+    useradd -m $ENV_DOCKER_USER --gid $ENV_DOCKER_GROUP -s /bin/bash
+    echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
+  fi
 
-		su -c "mkdir -p proxy/dockhand-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/hawser-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/librespeed-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/myspeed-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/traefik-data/configurations" - $DOCKER_USER
-		su -c "mkdir -p proxy/traefik-manager/backups" - $DOCKER_USER
+  usermod -aG $ENV_DOCKER_GROUP $ENV_DOCKER_USER
+  usermod -aG $ENV_DOCKER_GROUP $ENV_HUMAN_USER
 
-		su -c "mkdir -p datas" - $DOCKER_USER
-		su -c "mkdir -p datas/forgejo" - $DOCKER_USER
-		su -c "mkdir -p datas/g4f-cookies" - $DOCKER_USER
-		su -c "mkdir -p datas/g4f-medias" - $DOCKER_USER
-		su -c "mkdir -p datas/meilisearch" - $DOCKER_USER
-		su -c "mkdir -p datas/pgadmin" - $DOCKER_USER
-		su -c "mkdir -p datas/postgres" - $DOCKER_USER
-		su -c "mkdir -p datas/redis" - $DOCKER_USER
-		su -c "mkdir -p inits/postgres" - $DOCKER_USER
-		su -c "mkdir -p proxy/letsencrypt" - $DOCKER_USER
-		su -c "touch proxy/.env" - $DOCKER_USER
-		su -c "touch proxy/letsencrypt/acme.json" - $DOCKER_USER
+  if [[ "${ENV_DOCKER_DOCKER_ROOTLESS:-0}" == "1" ]]; then
+      # Rootless : l'utilisateur ENV_DOCKER_USER NE doit PAS être dans le groupe docker
+      if id -nG "$ENV_DOCKER_USER" | grep -qw docker; then
+          gpasswd -d "$ENV_DOCKER_USER" docker
+      fi
+  else
+      # Rootful : l'utilisateur ENV_DOCKER_USER DOIT être dans le groupe docker
+      if ! id -nG "$ENV_DOCKER_USER" | grep -qw docker; then
+          usermod -aG docker "$ENV_DOCKER_USER"
+      fi
+  fi
 
-		chown -R $DOCKER_USER:$DEVOPS_GROUP /home/$DOCKER_USER
-    chown -R 1000:$DEVOPS_GROUP /home/$DOCKER_USER/proxy/librespeed-data
-		chmod -R 2770 /home/$DOCKER_USER
-		chmod -R 2740 /home/$DOCKER_USER/proxy/letsencrypt
-		chmod 600 /home/$DOCKER_USER/proxy/.env
-		chmod 600 /home/$DOCKER_USER/proxy/letsencrypt/acme.json
-		chown -R 0:$DEVOPS_GROUP /home/docker/datas/meilisearch
-		chown -R 999:$DEVOPS_GROUP /home/docker/datas/redis
-		chown -R 999:$DEVOPS_GROUP /home/docker/datas/postgres
-		chown -R 999:$DEVOPS_GROUP /home/docker/inits/postgres
-		chown -R 1000:$DEVOPS_GROUP /home/docker/datas/forgejo
-		chown -R 1200:$DEVOPS_GROUP /home/docker/datas/g4f-cookies
-		chown -R 1200:$DEVOPS_GROUP /home/docker/datas/g4f-medias
-		chown -R 5050:$DEVOPS_GROUP /home/docker/datas/pgadmin
+  echo "🔧 CONFIGURE /home/$ENV_DOCKER_USER"
+  if [ ! -d "/home/$ENV_DOCKER_USER" ]; then
+    mkhomedir_helper "$ENV_DOCKER_USER"
+  fi
 
-	else
+  install -d -o "$ENV_DOCKER_USER" -g "$ENV_DOCKER_GROUP" -m 2770 "/home/$ENV_DOCKER_USER/datas" "/home/$ENV_DOCKER_USER/proxy"
 
-		groupadd -f $DOCKER_USER
-		if id -u $DOCKER_USER> /dev/null 2>&1 
-		then
-		  echo "USER FOR DOCKER $DOCKER_USER IS OK ✅"
-		else
-		  useradd -m $DOCKER_USER --gid docker -s /bin/bash
-		fi
-		usermod -aG sudo,docker $DOCKER_USER
-		echo "docker:$DOCKER_PASSWORD" | chpasswd
+  su -c "mkdir -p proxy/dockhand-data" - $ENV_DOCKER_USER
+  su -c "mkdir -p proxy/hawser-data" - $ENV_DOCKER_USER
+  su -c "mkdir -p proxy/librespeed-data" - $ENV_DOCKER_USER
+  su -c "mkdir -p proxy/myspeed-data" - $ENV_DOCKER_USER
+  su -c "mkdir -p proxy/traefik-data/configurations" - $ENV_DOCKER_USER
+  su -c "mkdir -p proxy/traefik-manager/backups" - $ENV_DOCKER_USER
 
-		su -c "mkdir -p proxy/dockhand-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/hawser-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/librespeed-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/myspeed-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/traefik-data/configurations" - $DOCKER_USER
-		su -c "mkdir -p proxy/traefik-manager/backups" - $DOCKER_USER
+  su -c "mkdir -p datas" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/forgejo" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/g4f-cookies" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/g4f-medias" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/meilisearch" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/pgadmin" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/postgres" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/redis" - $ENV_DOCKER_USER
+  su -c "mkdir -p inits/postgres" - $ENV_DOCKER_USER
+  su -c "mkdir -p proxy/letsencrypt" - $ENV_DOCKER_USER
+  su -c "touch proxy/.env" - $ENV_DOCKER_USER
+  su -c "touch proxy/letsencrypt/acme.json" - $ENV_DOCKER_USER
 
-		su -c "mkdir -p datas" - $DOCKER_USER
-		su -c "mkdir -p datas/forgejo" - $DOCKER_USER
-		su -c "mkdir -p datas/g4f-cookies" - $DOCKER_USER
-		su -c "mkdir -p datas/g4f-medias" - $DOCKER_USER
-		su -c "mkdir -p datas/meilisearch" - $DOCKER_USER
-		su -c "mkdir -p datas/pgadmin" - $DOCKER_USER
-		su -c "mkdir -p datas/postgres" - $DOCKER_USER
-		su -c "mkdir -p datas/redis" - $DOCKER_USER
-		su -c "mkdir -p inits/postgres" - $DOCKER_USER
-		su -c "mkdir -p proxy/letsencrypt" - $DOCKER_USER
-		su -c "touch proxy/.env" - $DOCKER_USER
-		su -c "touch proxy/letsencrypt/acme.json" - $DOCKER_USER
+  chown -R $ENV_DOCKER_USER:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER
+  find /home/$ENV_DOCKER_USER -mindepth 1 -type d -exec chmod 2770 {} +
+  find /home/$ENV_DOCKER_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_DOCKER_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
 
-		chown -R $DOCKER_USER:$DOCKER_USER /home/$DOCKER_USER
-    chown -R 1000:$DOCKER_USER /home/$DOCKER_USER/proxy/librespeed-data
-		chmod -R 2770 /home/$DOCKER_USER
-		chmod -R 2740 /home/$DOCKER_USER/proxy/letsencrypt
-		chmod 600 /home/$DOCKER_USER/proxy/.env
-		chmod 600 /home/$DOCKER_USER/proxy/letsencrypt/acme.json
-		chown -R 0:$DOCKER_USER /home/docker/datas/meilisearch
-		chown -R 999:$DOCKER_USER /home/docker/datas/redis
-		chown -R 999:$DOCKER_USER /home/docker/datas/postgres
-		chown -R 999:$DOCKER_USER /home/docker/inits/postgres
-		chown -R 1000:$DOCKER_USER /home/docker/datas/forgejo
-		chown -R 1200:$DOCKER_USER /home/docker/datas/g4f-cookies
-		chown -R 1200:$DOCKER_USER /home/docker/datas/g4f-medias
-		chown -R 5050:$DOCKER_USER /home/docker/datas/pgadmin
-
-	fi
+  chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/proxy/librespeed-data
+  chmod 2770 /home/$ENV_DOCKER_USER
+  chmod 2770 /home/$ENV_DOCKER_USER/datas
+  chmod 2770 /home/$ENV_DOCKER_USER/proxy
+  chmod 2770 /home/$ENV_DOCKER_USER/proxy/letsencrypt
+  chmod 600 /home/$ENV_DOCKER_USER/proxy/.env
+  chmod 600 /home/$ENV_DOCKER_USER/proxy/letsencrypt/acme.json
+  chown -R 0:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/meilisearch
+  chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/redis
+  chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/postgres
+  chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/inits/postgres
+  chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/forgejo
+  chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-cookies
+  chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-medias
+  chown -R 5050:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/pgadmin
 
   if [[ "${ACMESH:-0}" -eq 1 ]]; then
 
@@ -8884,7 +8278,7 @@ then
 
 			echo "🔧 INSTALL DOCKER FIXED VERSION"
 			apt install containerd.io=$DOCKER_CONTAINERDIO_FIXED_VERSION -y --allow-downgrades && apt-mark hold containerd.io
-			apt install docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin -y
+			apt install docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin uidmap -y
 
 		fi
 
@@ -8895,12 +8289,12 @@ then
 
 			echo "🔧 INSTALL DOCKER"
 			apt-mark unhold containerd.io
-			apt install containerd.io docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin -y
+			apt install containerd.io docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin uidmap -y
 		else
 
 			echo "🔧 INSTALL DOCKER FIXED VERSION"
 			apt install containerd.io=$DOCKER_CONTAINERDIO_FIXED_VERSION -y --allow-downgrades && apt-mark hold containerd.io
-			apt install docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin -y
+			apt install docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin uidmap -y
 		fi
 
 	fi
@@ -9402,6 +8796,61 @@ else
 		rm -R -f /home/docker/proxy
 
 	fi
+
+fi
+
+if [ $ENV_IA -eq 1 ]
+then
+
+	echo ""
+  groupadd -f $ENV_IA_GROUP
+	if id -u $ENV_IA_USER> /dev/null 2>&1 
+	then
+	  echo "USER FOR IA $ENV_IA_USER IS OK ✅"
+	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
+	else
+	  useradd -m $ENV_IA_USER --gid $ENV_IA_GROUP -s /bin/bash
+	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
+	fi
+
+	usermod -aG $ENV_IA_GROUP $ENV_IA_USER
+	usermod -aG $ENV_IA_GROUP $ENV_HUMAN_USER
+
+  if [[ "${ENV_IA_DOCKER_ROOTLESS:-0}" == "1" ]]; then
+      if ! id -nG "$ENV_IA_USER" | grep -qw docker; then
+          usermod -aG docker "$ENV_IA_USER"
+      fi
+  else
+      if id -nG "$ENV_IA_USER" | grep -qw docker; then
+          gpasswd -d "$ENV_IA_USER" docker
+      fi
+  fi
+
+	echo "🔧 CONFIGURE /home/$ENV_IA_USER"
+	if [ ! -d "/home/$ENV_IA_USER" ]; then
+		mkhomedir_helper "$ENV_IA_USER"
+	fi
+
+	install -d -o "$ENV_IA_USER" -g "$ENV_IA_GROUP" -m 2770 "/home/$ENV_IA_USER/download" "/home/$ENV_IA_USER/tools"
+
+  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER
+  find /home/$ENV_IA_USER -mindepth 1 -type d -exec chmod 2770 {} +
+  find /home/$ENV_IA_USER -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_IA_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
+  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/hermes
+  find /home/$ENV_IA_USER/hermes -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/hermes -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_IA_USER/hermes -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
+  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/download
+  find /home/$ENV_IA_USER/download -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/download -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_IA_USER/download -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
+  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/tools
+  find /home/$ENV_IA_USER/tools -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/tools -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_IA_USER/tools -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
+
+  chmod 2770 /home/$ENV_IA_USER
 
 fi
 
@@ -10382,6 +9831,10 @@ then
 	echo "alias cdhdod='cd /home/docker/datas'" >> /root/.zshrc
 	echo "alias cdhdos='cd /home/docker/.ssh'" >> /root/.zshrc
 	echo "alias cdhdop='cd /home/docker/proxy'" >> /root/.zshrc
+	echo "alias cdhi='cd /home/ia'" >> /root/.zshrc
+	echo "alias cdhid='cd /home/ia/download'" >> /root/.zshrc
+	echo "alias cdhih='cd /home/ia/hermes'" >> /root/.zshrc
+	echo "alias cdhit='cd /home/ia/tools'" >> /root/.zshrc
 	echo "alias cdm='cd /home/monero'" >> /root/.zshrc
 	echo "alias cdr='cd /root'" >> /root/.zshrc
 	echo "alias cdt='cd /tmp'" >> /root/.zshrc
@@ -10662,6 +10115,7 @@ then
 	echo "alias s='su -'" >> /root/.zshrc
 	echo "alias sudev='su - devops'" >> /root/.zshrc
 	echo "alias sudoc='su - docker'" >> /root/.zshrc
+	echo "alias suia='su - ia'" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# Commande SYSTEMCTL #" >> /root/.zshrc
