@@ -47,6 +47,7 @@ build_deb() {
 
     local missing=()
     [[ ! -f "${project_path}/root-install-debian.sh" ]] && missing+=("root-install-debian.sh")
+    [[ ! -d "${project_path}/deb" ]] && missing+=("deb/")
     [[ ! -d "${project_path}/lib" ]] && missing+=("lib/")
     [[ ! -d "${project_path}/modules" ]] && missing+=("modules/")
 
@@ -119,20 +120,19 @@ build_deb() {
         return 1
     fi
 
-    if [[ -d "${project_path}/config" ]]; then
-        if ! cp -r "${project_path}/config" "${staging_dir}/root/diu/"; then
-            print_error "Échec de la copie de config/."
-            rm -rf "${staging_dir}"
-            return 1
-        fi
-    fi
-
     # ----------------------------------------------------------
-    # Vérification que variables.sh n'est pas présent dans le staging
+    # Vérification que variables.sh et config/ ne sont pas présents
+    # dans le staging
     # ----------------------------------------------------------
 
     if [[ -f "${staging_dir}/root/diu/variables.sh" ]]; then
         print_error "variables.sh ne doit pas être présent dans le paquet."
+        rm -rf "${staging_dir}"
+        return 1
+    fi
+
+    if [[ -d "${staging_dir}/root/diu/config" ]]; then
+        print_error "config/ ne doit pas être présent dans le paquet."
         rm -rf "${staging_dir}"
         return 1
     fi
