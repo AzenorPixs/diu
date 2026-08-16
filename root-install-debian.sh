@@ -8063,7 +8063,7 @@ EOF
   chown -R $ENV_DEVOPS_USER:$ENV_DEVOPS_GROUP /home/$ENV_DEVOPS_USER
   find /home/$ENV_DEVOPS_USER -mindepth 1 -type d -exec chmod 2770 {} +
   find /home/$ENV_DEVOPS_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0770 {} +
-  find /home/$ENV_DEVOPS_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
+  find /home/$ENV_DEVOPS_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0600 {} +
 
   ############################################################
   # DEVOPS PATH
