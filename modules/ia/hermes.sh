@@ -708,7 +708,7 @@ _hermes_generate_10_tune() {
 # 10_tune_hermes — Exécuté à chaque démarrage du conteneur Hermes
 command -v tmux >/dev/null 2>&1 || {
     apt-get update >/dev/null 2>&1
-    apt-get install -y tmux >/dev/null 2>&1
+    apt-get install -y nano tmux >/dev/null 2>&1
 }
 EOF
     fi
