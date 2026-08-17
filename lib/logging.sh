@@ -2,7 +2,7 @@
 # Fonctions génériques de journalisation et d'affichage du DIU
 
 print_title() {
-    local title="$1"
+    local title="${1:-}"
 
     echo ""
     echo "=========================================================="
