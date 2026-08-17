@@ -1,15 +1,16 @@
 AGENTS.md
-Debian Installer Unifié (DIU)
+Debian Installeur Unifié (DIU)}
 
-Ce fichier est généré à l'initialisation du projet par le Debian Installer Unifié (DIU).
+Ce fichier est généré à l'initialisation du projet par le DIU.
 
 ## Variables utilisées :
 
-Debian Installer Unifié (DIU) : nom du projet ;
-/home/devops/datas/diu : chemin racine du projet.
-Préambule
+Debian Installeur Unifié (DIU)} : nom du projet ;
+/workspace : chemin racine du projet.
 
-## Ce document définit les règles que doivent respecter les agents de codage intervenant sur ce projet.
+## Préambule
+
+Ce document définit les règles que doivent respecter les agents de codage intervenant sur ce projet.
 
 Les agents doivent privilégier :
 
@@ -49,12 +50,15 @@ Toutes les décisions doivent privilégier ces objectifs.
 
 ## Rôle du projet
 
-Le projet Debian Installer Unifié (DIU) est développé selon une approche progressive, documentée et reproductible.
+Le projet Debian Installeur Unifié (DIU)} est développé selon une approche progressive, documentée et reproductible.
 
 Les agents de codage doivent préserver le comportement existant tout en respectant les spécifications validées.
 
 ## Portée
 
+AGENTS.md ;
+les spécifications présentes dans openspec/ ;
+les conventions du projet ;
 Les règles définies dans ce fichier s'appliquent à l'ensemble du projet.
 
 Un fichier AGENTS.md situé dans un sous-répertoire peut être utilisé lorsque OpenCode est lancé depuis ce sous-répertoire,
@@ -70,13 +74,13 @@ En cas de conflit, le fichier AGENTS.md le plus proche du fichier modifié prév
 
 La racine du projet est située dans :
 
-/home/devops/datas/diu
+/workspace
 
 Toutes les opérations doivent être réalisées relativement à cette racine.
 
 Les agents ne doivent créer, modifier ou supprimer des fichiers que sous :
 
-/home/devops/datas/diu
+/workspace
 
 Toute écriture en dehors de cette arborescence nécessite une validation explicite.
 
@@ -116,6 +120,12 @@ les fichiers concernés ;
 les modifications envisagées ;
 les impacts éventuels ;
 les vérifications à effectuer.
+
+## Règles permanentes de Développements
+
+Privilégier une architecture modulaire
+Préserver la compatibilité
+Pas de changement fonctionnel non spécifié
 
 ## Périmètre des modifications
 
@@ -220,6 +230,8 @@ Cette règle ne s'applique pas aux fichiers générés et versionnés suivants :
 
 .gitignore
 AGENTS.md
+LICENSE
+README.md
 .opencode/commands/
 .opencode/skills/
 .opencode/config/opencode.json
@@ -281,7 +293,7 @@ credentials.json
 credentials.yaml
 id_rsa
 id_ed25519
-env/
+env/Debian Installer Unifié (DIU)
 logs/
 node_modules/
 openspec/.cache/
@@ -297,7 +309,7 @@ openspec/logs/
 secrets.json
 secrets.yaml
 tmp/
-venv/
+venv/Debian Installer Unifié (DIU)
 
 ## Sources incluses et protégées
 
@@ -307,6 +319,8 @@ Les agents peuvent consulter les éléments suivants pour les besoins techniques
 
 .gitignore
 AGENTS.md
+LICENSE
+README.md
 .opencode/commands/
 .opencode/config/opencode.json
 .opencode/skills/
@@ -319,7 +333,7 @@ reports/
 
 Ces éléments ne constituent pas nécessairement une source de vérité fonctionnelle.
 
-Leur modification nécessite une demande ou une validation explicite portant sur :
+Leur modification nécessite une demande ou une validatiDebian Installer Unifié (DIU)on explicite portant sur :
 
 OpenCode ;
 OpenSpec ;
