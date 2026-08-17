@@ -1,51 +1,184 @@
 #!/usr/bin/env bash
 # Publication d'une Release Forgejo à partir du paquet Debian DIU
-
-# ===========================================================
-# ENDPOINTS FORGEJO CONFIRMÉS (vérifiés sur forgejo.pixs.fr/api/swagger)
-# ===========================================================
 #
-# GET  /api/v1/repos/{owner}/{repo}/tags/{tag}
-# POST /api/v1/repos/{owner}/{repo}/tags
-# GET  /api/v1/repos/{owner}/{repo}/releases/tags/{tag}
-# POST /api/v1/repos/{owner}/{repo}/releases
-# POST /api/v1/repos/{owner}/{repo}/releases/{id}/assets
-# POST /api/v1/users/{username}/tokens
+# Authentification :
+#   forgejo-auth.sh est l'unique fournisseur de credentials Forgejo.
 #
-# Auth : Authorization: token <TOKEN> (appels API)
-# Auth : BasicAuth via netrc (création de token)
-# Token : extrait de .sha1 dans la réponse AccessToken
-# Scope V1 : write:repository + repositories[] pour restriction au dépôt
+# Flux :
+#   1. Vérification des prérequis
+#   2. Validation du projet
+#   3. Sélection du paquet Debian
+#   4. Validation des métadonnées
+#   5. Résolution du remote Forgejo
+#   6. Validation / initialisation des credentials
+#   7. Synchronisation Git
+#   8. Vérification tag / release
+#   9. Création du tag
+#  10. Création de la Release
+#  11. Upload du paquet
 #
-# ===========================================================
+# Le token utilisé ici est exactement celui utilisé par git push.
+#
+# Endpoints Forgejo :
+#   GET  /api/v1/repos/{owner}/{repo}/tags/{tag}
+#   POST /api/v1/repos/{owner}/{repo}/tags
+#   GET  /api/v1/repos/{owner}/{repo}/releases/tags/{tag}
+#   POST /api/v1/repos/{owner}/{repo}/releases
+#   POST /api/v1/repos/{owner}/{repo}/releases/{id}/assets
 
 publish_release() {
+
     local project_id="${1:-}"
     local project_path=""
-    local dist_files=()
+
     local deb_file=""
     local deb_filename=""
     local deb_version=""
+
     local package_name=""
     local package_version=""
+
     local forgejo_host=""
     local forgejo_base=""
     local forgejo_owner=""
     local forgejo_repo=""
+    local forgejo_username=""
     local forgejo_token=""
-    local token_file=""
+
+    local current_branch=""
     local head_sha=""
+    local origin_main_sha=""
     local head_message=""
-    local release_id=""
+
     local tag_name=""
+    local release_id=""
 
-    # ----------------------------------------------------------
-    # Étape 1 : Vérification des prérequis
-    # ----------------------------------------------------------
+    local -a missing_tools=()
+    local -a dist_files=()
 
-    print_title "Étape 1/12 — Vérification des prérequis"
+    # ==========================================================
+    # Fonction locale d'appel API Forgejo
+    # ==========================================================
+    #
+    # Usage :
+    #
+    #   _forgejo_release_api METHOD URL [DATA]
+    #
+    # Retour :
+    #   stdout = réponse HTTP complète avec code sur dernière ligne
+    #
+    # Le token n'est jamais placé directement dans la ligne de
+    # commande curl. Un fichier de configuration temporaire
+    # sécurisé est utilisé.
+    #
 
-    local missing_tools=()
+    _forgejo_release_api() {
+
+        local method="${1:-GET}"
+        local url="${2:-}"
+        local data="${3:-}"
+
+        local auth_file=""
+        local response=""
+        local curl_rc=0
+
+        if [[ -z "${url}" ]]; then
+            print_error "_forgejo_release_api : URL vide."
+            return 1
+        fi
+
+        auth_file="$(mktemp)" || {
+            print_error \
+                "_forgejo_release_api : impossible de créer le fichier temporaire."
+            return 1
+        }
+
+        if ! chmod 600 "${auth_file}"; then
+            print_error \
+                "_forgejo_release_api : impossible de sécuriser le fichier temporaire."
+            rm -f "${auth_file}"
+            return 1
+        fi
+
+        if ! printf 'header = "Authorization: token %s"\n' \
+            "${forgejo_token}" > "${auth_file}"; then
+
+            print_error \
+                "_forgejo_release_api : impossible d'écrire les credentials."
+            rm -f "${auth_file}"
+            return 1
+        fi
+
+        if [[ -n "${data}" ]]; then
+
+            if response="$(
+                curl -sS \
+                    -w '\n%{http_code}' \
+                    --config "${auth_file}" \
+                    -X "${method}" \
+                    -H "Content-Type: application/json" \
+                    -d "${data}" \
+                    "${url}" \
+                    2>/dev/null
+            )"; then
+                curl_rc=0
+            else
+                curl_rc=$?
+            fi
+
+        else
+
+            if response="$(
+                curl -sS \
+                    -w '\n%{http_code}' \
+                    --config "${auth_file}" \
+                    -X "${method}" \
+                    "${url}" \
+                    2>/dev/null
+            )"; then
+                curl_rc=0
+            else
+                curl_rc=$?
+            fi
+
+        fi
+
+        rm -f "${auth_file}"
+
+        if [[ "${curl_rc}" -ne 0 ]]; then
+            print_error \
+                "_forgejo_release_api : erreur réseau (curl=${curl_rc})."
+            return 1
+        fi
+
+        printf '%s' "${response}"
+
+        return 0
+    }
+
+    # ==========================================================
+    # Fonction locale d'extraction du code HTTP
+    # ==========================================================
+
+    _forgejo_release_http_code() {
+        local response="${1:-}"
+        printf '%s' "${response##*$'\n'}"
+    }
+
+    # ==========================================================
+    # Fonction locale d'extraction du body
+    # ==========================================================
+
+    _forgejo_release_http_body() {
+        local response="${1:-}"
+        printf '%s' "${response%$'\n'*}"
+    }
+
+    # ==========================================================
+    # Étape 1 — Prérequis
+    # ==========================================================
+
+    print_title "Étape 1/11 — Vérification des prérequis"
 
     if ! command -v git >/dev/null 2>&1; then
         missing_tools+=("git")
@@ -63,6 +196,10 @@ publish_release() {
         missing_tools+=("dpkg-deb")
     fi
 
+    if ! command -v find >/dev/null 2>&1; then
+        missing_tools+=("find")
+    fi
+
     if [[ ${#missing_tools[@]} -gt 0 ]]; then
         print_error "Outils manquants : ${missing_tools[*]}"
         return 1
@@ -70,11 +207,11 @@ publish_release() {
 
     print_success "Tous les prérequis sont disponibles."
 
-    # ----------------------------------------------------------
-    # Étape 2 : Validation du projet
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Étape 2 — Validation du projet
+    # ==========================================================
 
-    print_title "Étape 2/12 — Validation du projet"
+    print_title "Étape 2/11 — Validation du projet"
 
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : publish_release <project_id>"
@@ -92,744 +229,675 @@ publish_release() {
         git -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
-        print_error "Aucun dépôt Git valide dans : ${project_path}"
+        print_error \
+            "Aucun dépôt Git valide dans : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}/dist" ]]; then
+        print_error \
+            "Répertoire dist/ introuvable : ${project_path}/dist"
         return 1
     fi
 
     print_success "Projet validé : ${project_path}"
 
-    # ----------------------------------------------------------
-    # Étape 3 : Sélection du paquet dans dist/
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Étape 3 — Sélection du paquet
+    # ==========================================================
 
-    print_title "Étape 3/12 — Sélection du paquet dans dist/"
-
-    dist_files=()
+    print_title "Étape 3/11 — Sélection du paquet Debian"
 
     while IFS= read -r -d '' file; do
         dist_files+=("${file}")
     done < <(
-        find "${project_path}/dist" -maxdepth 1 -type f \
-            -name "diu_*_all.deb" -print0 2>/dev/null
+        find "${project_path}/dist" \
+            -maxdepth 1 \
+            -type f \
+            -name "diu_*_all.deb" \
+            -print0 \
+            2>/dev/null
     )
 
     if [[ ${#dist_files[@]} -eq 0 ]]; then
-        print_error "Aucun paquet diu_*_all.deb trouvé dans ${project_path}/dist/"
+        print_error \
+            "Aucun paquet diu_*_all.deb trouvé dans ${project_path}/dist/"
         return 1
     fi
 
     if [[ ${#dist_files[@]} -gt 1 ]]; then
-        print_error "Plusieurs paquets diu_*_all.deb trouvés dans ${project_path}/dist/ :"
-        for f in "${dist_files[@]}"; do
-            echo "  $(basename "${f}")"
+        print_error \
+            "Plusieurs paquets diu_*_all.deb sont présents :"
+
+        for deb_file in "${dist_files[@]}"; do
+            echo "  $(basename "${deb_file}")"
         done
+
+        print_error \
+            "Le répertoire dist/ doit contenir un seul paquet DIU."
         return 1
     fi
 
     deb_file="${dist_files[0]}"
     deb_filename="$(basename "${deb_file}")"
 
-    print_success "Paquet sélectionné : ${deb_filename}"
+    print_success \
+        "Paquet sélectionné : ${deb_filename}"
 
-    # ----------------------------------------------------------
-    # Étape 4 : Vérification des métadonnées du paquet
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Étape 4 — Métadonnées Debian
+    # ==========================================================
 
-    print_title "Étape 4/12 — Vérification des métadonnées du paquet"
+    print_title "Étape 4/11 — Vérification des métadonnées Debian"
 
-    deb_version="${deb_filename#diu_}"
-    deb_version="${deb_version%_all.deb}"
+    package_name="$(
+        dpkg-deb \
+            --show \
+            --showformat='${Package}' \
+            "${deb_file}" \
+            2>/dev/null
+    )"
 
-    if [[ -z "${deb_version}" ]]; then
-        print_error "Impossible d'extraire la version du nom de fichier : ${deb_filename}"
-        return 1
-    fi
-
-    package_name="$(dpkg-deb --show --showformat='${Package}' "${deb_file}" 2>/dev/null)"
-    package_version="$(dpkg-deb --show --showformat='${Version}' "${deb_file}" 2>/dev/null)"
+    package_version="$(
+        dpkg-deb \
+            --show \
+            --showformat='${Version}' \
+            "${deb_file}" \
+            2>/dev/null
+    )"
 
     if [[ "${package_name}" != "diu" ]]; then
-        print_error "Incohérence : Package du paquet = '${package_name}' (attendu : diu)"
+        print_error \
+            "Nom de paquet invalide : '${package_name}' (attendu : diu)"
         return 1
     fi
 
-    if [[ "${package_version}" != "${deb_version}" ]]; then
-        print_error "Incohérence : Version du paquet = '${package_version}' (attendu : ${deb_version})"
+    if [[ -z "${package_version}" ]]; then
+        print_error \
+            "Impossible de déterminer la version Debian."
         return 1
     fi
 
-    print_success "Métadonnées cohérentes : ${package_name} ${package_version}"
+    deb_version="${package_version}"
+
+    if [[ "${deb_filename}" != "diu_${deb_version}_all.deb" ]]; then
+        print_error \
+            "Incohérence entre le nom du fichier et la version Debian."
+        print_error \
+            "Fichier   : ${deb_filename}"
+        print_error \
+            "Version   : ${deb_version}"
+        return 1
+    fi
+
+    print_success \
+        "Paquet Debian valide : ${package_name} ${package_version}"
 
     tag_name="v${deb_version}"
 
-    # ----------------------------------------------------------
-    # Étape 5 : Déduction des informations Forgejo
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Étape 5 — Résolution Forgejo
+    # ==========================================================
 
-    print_title "Étape 5/12 — Déduction des informations Forgejo"
+    print_title "Étape 5/11 — Résolution du dépôt Forgejo"
 
     if ! _forgejo_resolve_remote "${project_path}"; then
         return 1
     fi
 
-    print_success "Base : ${forgejo_base}"
-    print_success "Owner : ${forgejo_owner}"
-    print_success "Repository : ${forgejo_repo}"
+    print_success "Forgejo : ${forgejo_base}"
+    print_success "Owner   : ${forgejo_owner}"
+    print_success "Repo    : ${forgejo_repo}"
 
-    # ----------------------------------------------------------
-    # Étape 6 : Authentification Forgejo
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Étape 6 — Authentification Forgejo
+    # ==========================================================
 
-    print_title "Étape 6/12 — Authentification Forgejo"
+    print_title "Étape 6/11 — Authentification Forgejo"
 
-    token_file="${project_path}/config/forgejo.token"
+    #
+    # IMPORTANT :
+    #
+    # Aucun accès direct à config/forgejo.token ici.
+    #
+    # forgejo_ensure_credentials() :
+    #   - vérifie les credentials existants ;
+    #   - les régénère si nécessaire ;
+    #   - valide réellement le token ;
+    #   - garantit les permissions 600.
+    #
 
-    if [[ -f "${token_file}" ]]; then
-        # --- Token existant : validation via provider ---
-        if ! _forgejo_read_token "${project_path}"; then
-            return 1
-        fi
-
-        if ! _forgejo_read_username "${project_path}"; then
-            return 1
-        fi
-
-        print_success "Authentification Forgejo locale validée."
-
-    else
-        # --- Bootstrap : création du token et du username ---
-        print_info "Le fichier token n'existe pas : ${token_file}"
-
-        local create_token=""
-        read -r -p "Créer automatiquement un token Forgejo ? [o/N] : " create_token
-
-        case "${create_token}" in
-            o|O|oui|OUI|y|Y|yes|YES)
-                ;;
-            *)
-                print_error "Création de token annulée. Veuillez créer manuellement le token dans Forgejo."
-                return 1
-                ;;
-        esac
-
-        local forgejo_user=""
-        local forgejo_password=""
-
-        read -r -p "Identifiant Forgejo : " forgejo_user
-
-        if [[ -z "${forgejo_user}" ]]; then
-            print_error "L'identifiant Forgejo ne peut pas être vide."
-            return 1
-        fi
-
-        read -s -p "Mot de passe Forgejo : " forgejo_password
-        echo ""
-
-        if [[ -z "${forgejo_password}" ]]; then
-            print_error "Le mot de passe ne peut pas être vide."
-            return 1
-        fi
-
-        # Créer un fichier netrc temporaire pour BasicAuth
-        local netrc_file=""
-        netrc_file="$(mktemp)" || {
-            print_error "Impossible de créer un fichier temporaire pour l'authentification."
-            unset forgejo_password
-            return 1
-        }
-
-        if ! chmod 600 "${netrc_file}"; then
-            print_error "Échec des permissions sur le fichier temporaire."
-            rm -f "${netrc_file}"
-            unset forgejo_password
-            return 1
-        fi
-
-        if ! printf 'machine %s\nlogin %s\npassword %s\n' \
-            "${forgejo_host}" "${forgejo_user}" "${forgejo_password}" \
-            > "${netrc_file}"; then
-            print_error "Échec de l'écriture du fichier temporaire."
-            rm -f "${netrc_file}"
-            unset forgejo_password
-            return 1
-        fi
-
-        unset forgejo_password
-
-        local token_http_response=""
-        local token_http_code=""
-        local token_http_body=""
-        local bootstrap_curl_rc=0
-
-        if token_http_response="$(curl -s -w '\n%{http_code}' \
-            --netrc-file "${netrc_file}" \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d "$(jq -n \
-                --arg name "diu-publish" \
-                --arg owner "${forgejo_owner}" \
-                --arg repo "${forgejo_repo}" \
-                '{
-                    name: $name,
-                    scopes: ["write:repository"],
-                    repositories: [{owner: $owner, name: $repo}]
-                }')" \
-            "${forgejo_base}/api/v1/users/${forgejo_user}/tokens" \
-            2>/dev/null)"; then
-            bootstrap_curl_rc=0
-        else
-            bootstrap_curl_rc=$?
-        fi
-
-        rm -f "${netrc_file}"
-
-        if [[ "${bootstrap_curl_rc}" -ne 0 ]]; then
-            print_error "Échec réseau lors de la création du token (curl=${bootstrap_curl_rc})."
-            print_error "Veuillez créer manuellement le token dans Forgejo."
-            return 1
-        fi
-
-        token_http_code="${token_http_response##*$'\n'}"
-        token_http_body="${token_http_response%$'\n'*}"
-
-        if [[ "${token_http_code}" -lt 200 || "${token_http_code}" -ge 300 ]]; then
-            print_error "Échec de la création du token Forgejo (HTTP ${token_http_code})."
-            print_error "Vérifiez l'identifiant, le mot de passe et les droits du compte Forgejo."
-            print_error "Aucun détail renvoyé par Forgejo n'est affiché afin d'éviter toute fuite de credential."
-            print_error "Veuillez créer manuellement le token dans Forgejo."
-            return 1
-        fi
-
-        if ! printf '%s' "${token_http_body}" | jq empty 2>/dev/null; then
-            print_error "Réponse invalide de l'API Forgejo lors de la création du token."
-            print_error "Veuillez créer manuellement le token dans Forgejo."
-            return 1
-        fi
-
-        forgejo_token="$(printf '%s' "${token_http_body}" | jq -r '.sha1 // empty')"
-
-        if [[ -z "${forgejo_token}" ]]; then
-            print_error "Impossible d'extraire le token de la réponse Forgejo."
-            print_error "Veuillez créer manuellement le token dans Forgejo."
-            return 1
-        fi
-
-        # --- Persistance locale cohérente : token + username ---
-        # À partir d'ici, le token distant a potentiellement été créé.
-        # Toute erreur de persistance locale doit signaler ce fait
-        # sans rollback distant automatique.
-
-        if ! mkdir -p "${project_path}/config"; then
-            print_error "Impossible de créer le répertoire config."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            return 1
-        fi
-
-        # Persister forgejo.token
-        local token_write_file=""
-        token_write_file="$(mktemp "${project_path}/config/.forgejo.token.XXXXXX")" || {
-            print_error "Impossible de créer un fichier temporaire pour le token."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            return 1
-        }
-
-        if ! chmod 600 "${token_write_file}"; then
-            print_error "Échec des permissions sur le fichier token."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${token_write_file}"
-            return 1
-        fi
-
-        if ! printf '%s' "${forgejo_token}" > "${token_write_file}"; then
-            print_error "Échec de l'écriture du token."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${token_write_file}"
-            return 1
-        fi
-
-        if ! mv "${token_write_file}" "${token_file}"; then
-            print_error "Échec du déplacement du fichier token."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${token_write_file}"
-            return 1
-        fi
-
-        local final_token_perms=""
-        final_token_perms="$(stat -c %a "${token_file}" 2>/dev/null)"
-
-        if [[ "${final_token_perms}" != "600" ]]; then
-            print_error "Permissions du token invalides après création : ${final_token_perms}"
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${token_file}"
-            return 1
-        fi
-
-        # Persister forgejo.username
-        local username_file="${project_path}/config/forgejo.username"
-        local username_write_file=""
-        username_write_file="$(mktemp "${project_path}/config/.forgejo.username.XXXXXX")" || {
-            print_error "Impossible de créer un fichier temporaire pour le username."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${token_file}"
-            return 1
-        }
-
-        if ! chmod 600 "${username_write_file}"; then
-            print_error "Échec des permissions sur le fichier username."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${username_write_file}"
-            rm -f "${token_file}"
-            return 1
-        fi
-
-        if ! printf '%s' "${forgejo_user}" > "${username_write_file}"; then
-            print_error "Échec de l'écriture du username."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${username_write_file}"
-            rm -f "${token_file}"
-            return 1
-        fi
-
-        if ! mv "${username_write_file}" "${username_file}"; then
-            print_error "Échec du déplacement du fichier username."
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${username_write_file}"
-            rm -f "${token_file}"
-            return 1
-        fi
-
-        local final_username_perms=""
-        final_username_perms="$(stat -c %a "${username_file}" 2>/dev/null)"
-
-        if [[ "${final_username_perms}" != "600" ]]; then
-            print_error "Permissions du username invalides après création : ${final_username_perms}"
-            print_error "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
-            print_error "Aucun rollback distant automatique n'est effectué."
-            rm -f "${username_file}"
-            rm -f "${token_file}"
-            return 1
-        fi
-
-        print_success "Token créé et enregistré dans ${token_file}"
-        print_success "Username enregistré dans ${username_file}"
-    fi
-
-    # ----------------------------------------------------------
-    # Étape 7 : Rafraîchissement de l'état distant
-    # ----------------------------------------------------------
-
-    print_title "Étape 7/12 — Rafraîchissement de l'état distant"
-
-    if ! forgejo_git_fetch "${project_path}"; then
-        print_error "Échec du git fetch authentifié."
+    if ! _forgejo_ensure_credentials "${project_path}"; then
+        print_error \
+            "Impossible d'obtenir des credentials Forgejo valides."
         return 1
     fi
 
-    print_success "git fetch origin authentifié effectué."
+    if ! _forgejo_read_username "${project_path}"; then
+        return 1
+    fi
 
-    # ----------------------------------------------------------
-    # Étape 8 : Vérification de la synchronisation Git
-    # ----------------------------------------------------------
+    if ! _forgejo_read_token "${project_path}"; then
+        return 1
+    fi
 
-    print_title "Étape 8/12 — Vérification de la synchronisation Git"
+    print_success \
+        "Credentials Forgejo disponibles."
 
-    local current_branch=""
-    current_branch="$(runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" branch --show-current 2>/dev/null)"
+    # ==========================================================
+    # Étape 7 — Synchronisation Git
+    # ==========================================================
+
+    print_title "Étape 7/11 — Vérification de la synchronisation Git"
+
+    if ! forgejo_git_fetch "${project_path}"; then
+        print_error \
+            "Échec du git fetch authentifié."
+        return 1
+    fi
+
+    print_success \
+        "git fetch origin authentifié effectué."
+
+    current_branch="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            branch --show-current \
+            2>/dev/null
+    )"
 
     if [[ "${current_branch}" != "main" ]]; then
-        print_error "La branche courante est '${current_branch}' (attendu : main)"
+        print_error \
+            "La branche courante est '${current_branch}' (attendu : main)."
         return 1
     fi
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" rev-parse \
-        --verify origin/main >/dev/null 2>&1; then
+        git -C "${project_path}" \
+        rev-parse --verify origin/main >/dev/null 2>&1; then
 
-        print_error "La branche distante origin/main n'existe pas."
+        print_error \
+            "La branche distante origin/main n'existe pas."
         return 1
     fi
 
-    local head_sha_local=""
-    local origin_main_sha=""
-    head_sha_local="$(runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" rev-parse HEAD 2>/dev/null)"
-    origin_main_sha="$(runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" rev-parse origin/main 2>/dev/null)"
+    head_sha="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            rev-parse HEAD \
+            2>/dev/null
+    )"
 
-    if [[ "${head_sha_local}" != "${origin_main_sha}" ]]; then
-        print_error "HEAD (${head_sha_local:0:12}) != origin/main (${origin_main_sha:0:12})"
-        print_error "Le dépôt n'est pas synchronisé. Effectuez un git pull ou un git merge."
+    origin_main_sha="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            rev-parse origin/main \
+            2>/dev/null
+    )"
+
+    if [[ -z "${head_sha}" || -z "${origin_main_sha}" ]]; then
+        print_error \
+            "Impossible de déterminer l'état Git."
         return 1
     fi
 
-    head_sha="${head_sha_local}"
+    if [[ "${head_sha}" != "${origin_main_sha}" ]]; then
+        print_error \
+            "Le dépôt local n'est pas synchronisé avec origin/main."
 
-    print_success "HEAD == origin/main (${head_sha:0:12})"
+        print_error \
+            "HEAD         : ${head_sha:0:12}"
+
+        print_error \
+            "origin/main  : ${origin_main_sha:0:12}"
+
+        print_error \
+            "Effectuez d'abord le git push."
+        return 1
+    fi
+
+    head_message="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            log -1 \
+            --format='%s' \
+            2>/dev/null
+    )"
+
+    print_success \
+        "HEAD == origin/main (${head_sha:0:12})"
+
+    # ==========================================================
+    # Étape 8 — Vérification tag / Release
+    # ==========================================================
+
+    print_title \
+        "Étape 8/11 — Vérification du tag ${tag_name} et de la Release"
+
+    local api_response=""
+    local http_code=""
+    local http_body=""
+    local error_msg=""
 
     # ----------------------------------------------------------
-    # Étape 9 : Vérification existence tag/Release
+    # Tag
     # ----------------------------------------------------------
 
-    print_title "Étape 9/12 — Vérification existence tag/Release"
-
-    # --- Vérification du tag ---
-    local tag_curl_auth_file=""
-    tag_curl_auth_file="$(mktemp)" || {
-        print_error "Impossible de créer un fichier temporaire pour l'authentification."
+    api_response="$(
+        _forgejo_release_api \
+            GET \
+            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/tags/${tag_name}"
+    )" || {
         return 1
     }
 
-    if ! chmod 600 "${tag_curl_auth_file}"; then
-        print_error "Échec des permissions sur le fichier temporaire."
-        rm -f "${tag_curl_auth_file}"
-        return 1
-    fi
+    http_code="$(
+        _forgejo_release_http_code "${api_response}"
+    )"
 
-    if ! printf 'header = "Authorization: token %s"\n' "${forgejo_token}" \
-        > "${tag_curl_auth_file}"; then
-        print_error "Échec de l'écriture du fichier temporaire d'authentification."
-        rm -f "${tag_curl_auth_file}"
-        return 1
-    fi
+    http_body="$(
+        _forgejo_release_http_body "${api_response}"
+    )"
 
-    local tag_http_response=""
-    local tag_http_code=""
-    local tag_http_body=""
-    local tag_curl_rc=0
+    case "${http_code}" in
 
-    if tag_http_response="$(curl -s -w '\n%{http_code}' \
-        --config "${tag_curl_auth_file}" \
-        "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/tags/${tag_name}" \
-        2>/dev/null)"; then
-        tag_curl_rc=0
-    else
-        tag_curl_rc=$?
-    fi
-
-    rm -f "${tag_curl_auth_file}"
-
-    if [[ "${tag_curl_rc}" -ne 0 ]]; then
-        print_error "Échec réseau lors de la vérification du tag (curl=${tag_curl_rc})."
-        return 1
-    fi
-
-    tag_http_code="${tag_http_response##*$'\n'}"
-    tag_http_body="${tag_http_response%$'\n'*}"
-
-    if [[ "${tag_http_code}" == "200" ]]; then
-        if ! printf '%s' "${tag_http_body}" | jq empty 2>/dev/null; then
-            print_error "Réponse invalide lors de la vérification du tag."
+        200)
+            print_error \
+                "Le tag ${tag_name} existe déjà sur Forgejo."
+            print_error \
+                "Aucun tag existant ne sera déplacé ou modifié."
             return 1
-        fi
-        print_error "Le tag ${tag_name} existe déjà sur Forgejo."
-        print_error "Aucune Release n'est créée. Le tag existant n'est ni déplacé, ni recréé, ni modifié."
-        return 1
-    fi
+            ;;
 
-    if [[ "${tag_http_code}" != "404" ]]; then
-        local error_msg=""
-        error_msg="$(printf '%s' "${tag_http_body}" | jq -r '.message // "erreur inconnue"' 2>/dev/null)"
-        print_error "Erreur lors de la vérification du tag (HTTP ${tag_http_code}) : ${error_msg}"
-        return 1
-    fi
+        404)
+            print_success \
+                "Le tag ${tag_name} n'existe pas."
+            ;;
 
-    # --- Vérification de la Release ---
-    local release_check_curl_auth_file=""
-    release_check_curl_auth_file="$(mktemp)" || {
-        print_error "Impossible de créer un fichier temporaire pour l'authentification."
-        return 1
-    }
-
-    if ! chmod 600 "${release_check_curl_auth_file}"; then
-        print_error "Échec des permissions sur le fichier temporaire."
-        rm -f "${release_check_curl_auth_file}"
-        return 1
-    fi
-
-    if ! printf 'header = "Authorization: token %s"\n' "${forgejo_token}" \
-        > "${release_check_curl_auth_file}"; then
-        print_error "Échec de l'écriture du fichier temporaire d'authentification."
-        rm -f "${release_check_curl_auth_file}"
-        return 1
-    fi
-
-    local release_check_http_response=""
-    local release_check_http_code=""
-    local release_check_http_body=""
-    local release_check_curl_rc=0
-
-    if release_check_http_response="$(curl -s -w '\n%{http_code}' \
-        --config "${release_check_curl_auth_file}" \
-        "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases/tags/${tag_name}" \
-        2>/dev/null)"; then
-        release_check_curl_rc=0
-    else
-        release_check_curl_rc=$?
-    fi
-
-    rm -f "${release_check_curl_auth_file}"
-
-    if [[ "${release_check_curl_rc}" -ne 0 ]]; then
-        print_error "Échec réseau lors de la vérification de la Release (curl=${release_check_curl_rc})."
-        return 1
-    fi
-
-    release_check_http_code="${release_check_http_response##*$'\n'}"
-    release_check_http_body="${release_check_http_response%$'\n'*}"
-
-    if [[ "${release_check_http_code}" == "200" ]]; then
-        if ! printf '%s' "${release_check_http_body}" | jq empty 2>/dev/null; then
-            print_error "Réponse invalide lors de la vérification de la Release."
+        401)
+            print_error \
+                "Token Forgejo invalide ou expiré (HTTP 401)."
             return 1
-        fi
-        print_error "Une Release pour le tag ${tag_name} existe déjà sur Forgejo."
-        print_error "Rien n'est écrasé ni modifié."
-        return 1
-    fi
+            ;;
 
-    if [[ "${release_check_http_code}" != "404" ]]; then
-        local error_msg=""
-        error_msg="$(printf '%s' "${release_check_http_body}" | jq -r '.message // "erreur inconnue"' 2>/dev/null)"
-        print_error "Erreur lors de la vérification de la Release (HTTP ${release_check_http_code}) : ${error_msg}"
-        return 1
-    fi
+        403)
+            print_error \
+                "Token Forgejo refusé (HTTP 403)."
+            print_error \
+                "Vérifiez les permissions du token."
+            return 1
+            ;;
 
-    print_success "Tag ${tag_name} et Release inexistants. Continuation."
+        *)
+            error_msg="$(
+                printf '%s' "${http_body}" |
+                    jq -r '.message // "erreur inconnue"' \
+                    2>/dev/null
+            )"
+
+            print_error \
+                "Erreur lors de la vérification du tag."
+            print_error \
+                "HTTP ${http_code} : ${error_msg}"
+            return 1
+            ;;
+    esac
 
     # ----------------------------------------------------------
-    # Étape 10 : Création du tag v<VERSION>
+    # Release
     # ----------------------------------------------------------
 
-    print_title "Étape 10/12 — Création du tag ${tag_name}"
-
-    head_message="$(runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" log -1 --format='%s' 2>/dev/null)"
-
-    local tag_create_curl_auth_file=""
-    tag_create_curl_auth_file="$(mktemp)" || {
-        print_error "Impossible de créer un fichier temporaire pour l'authentification."
+    api_response="$(
+        _forgejo_release_api \
+            GET \
+            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases/tags/${tag_name}"
+    )" || {
         return 1
     }
 
-    if ! chmod 600 "${tag_create_curl_auth_file}"; then
-        print_error "Échec des permissions sur le fichier temporaire."
-        rm -f "${tag_create_curl_auth_file}"
+    http_code="$(
+        _forgejo_release_http_code "${api_response}"
+    )"
+
+    http_body="$(
+        _forgejo_release_http_body "${api_response}"
+    )"
+
+    case "${http_code}" in
+
+        200)
+            print_error \
+                "Une Release ${tag_name} existe déjà sur Forgejo."
+            print_error \
+                "Aucune Release existante ne sera modifiée."
+            return 1
+            ;;
+
+        404)
+            print_success \
+                "Aucune Release ${tag_name} existante."
+            ;;
+
+        401)
+            print_error \
+                "Token Forgejo invalide ou expiré (HTTP 401)."
+            return 1
+            ;;
+
+        403)
+            print_error \
+                "Accès Forgejo refusé (HTTP 403)."
+            return 1
+            ;;
+
+        *)
+            error_msg="$(
+                printf '%s' "${http_body}" |
+                    jq -r '.message // "erreur inconnue"' \
+                    2>/dev/null
+            )"
+
+            print_error \
+                "Erreur lors de la vérification de la Release."
+            print_error \
+                "HTTP ${http_code} : ${error_msg}"
+            return 1
+            ;;
+    esac
+
+    # ==========================================================
+    # Étape 9 — Création du tag
+    # ==========================================================
+
+    print_title \
+        "Étape 9/11 — Création du tag ${tag_name}"
+
+    api_response="$(
+        _forgejo_release_api \
+            POST \
+            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/tags" \
+            "$(jq -n \
+                --arg tag_name "${tag_name}" \
+                --arg target "${head_sha}" \
+                --arg message "Release ${tag_name}" \
+                '{
+                    tag_name: $tag_name,
+                    target: $target,
+                    message: $message
+                }'
+            )"
+    )" || {
+        return 1
+    }
+
+    http_code="$(
+        _forgejo_release_http_code "${api_response}"
+    )"
+
+    http_body="$(
+        _forgejo_release_http_body "${api_response}"
+    )"
+
+    if [[ "${http_code}" -lt 200 || "${http_code}" -ge 300 ]]; then
+
+        error_msg="$(
+            printf '%s' "${http_body}" |
+                jq -r '.message // "erreur inconnue"' \
+                2>/dev/null
+        )"
+
+        print_error \
+            "Impossible de créer le tag ${tag_name}."
+
+        print_error \
+            "HTTP ${http_code} : ${error_msg}"
+
         return 1
     fi
 
-    if ! printf 'header = "Authorization: token %s"\n' "${forgejo_token}" \
-        > "${tag_create_curl_auth_file}"; then
-        print_error "Échec de l'écriture du fichier temporaire d'authentification."
-        rm -f "${tag_create_curl_auth_file}"
-        return 1
-    fi
+    print_success \
+        "Tag ${tag_name} créé sur ${head_sha:0:12}."
 
-    local tag_create_http_response=""
-    local tag_create_http_code=""
-    local tag_create_http_body=""
-    local tag_create_curl_rc=0
+    # ==========================================================
+    # Étape 10 — Création de la Release
+    # ==========================================================
 
-    if tag_create_http_response="$(curl -s -w '\n%{http_code}' \
-        --config "${tag_create_curl_auth_file}" \
-        -X POST \
-        -H "Content-Type: application/json" \
-        -d "$(jq -n \
-            --arg tag_name "${tag_name}" \
-            --arg target "${head_sha}" \
-            --arg message "Release ${tag_name}" \
-            '{
-                tag_name: $tag_name,
-                target: $target,
-                message: $message
-            }')" \
-        "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/tags" \
-        2>/dev/null)"; then
-        tag_create_curl_rc=0
-    else
-        tag_create_curl_rc=$?
-    fi
-
-    rm -f "${tag_create_curl_auth_file}"
-
-    if [[ "${tag_create_curl_rc}" -ne 0 ]]; then
-        print_error "Échec réseau lors de la création du tag (curl=${tag_create_curl_rc})."
-        return 1
-    fi
-
-    tag_create_http_code="${tag_create_http_response##*$'\n'}"
-    tag_create_http_body="${tag_create_http_response%$'\n'*}"
-
-    if [[ "${tag_create_http_code}" -lt 200 || "${tag_create_http_code}" -ge 300 ]]; then
-        local error_msg=""
-        error_msg="$(printf '%s' "${tag_create_http_body}" | jq -r '.message // "erreur inconnue"' 2>/dev/null)"
-        print_error "Échec de la création du tag ${tag_name} (HTTP ${tag_create_http_code}) : ${error_msg}"
-        return 1
-    fi
-
-    print_success "Tag ${tag_name} créé sur ${head_sha:0:12}"
-
-    # ----------------------------------------------------------
-    # Étape 11 : Création de la Release
-    # ----------------------------------------------------------
-
-    print_title "Étape 11/12 — Création de la Release DIU ${deb_version}"
+    print_title \
+        "Étape 10/11 — Création de la Release DIU ${deb_version}"
 
     local release_notes=""
-    release_notes="$(printf 'Version : %s\nCommit : %s\nMessage : %s' \
-        "${deb_version}" "${head_sha}" "${head_message}")"
 
-    local release_curl_auth_file=""
-    release_curl_auth_file="$(mktemp)" || {
-        print_error "Impossible de créer un fichier temporaire pour l'authentification."
+    release_notes="$(
+        printf \
+            'Version : %s\nCommit : %s\nMessage : %s' \
+            "${deb_version}" \
+            "${head_sha}" \
+            "${head_message}"
+    )"
+
+    api_response="$(
+        _forgejo_release_api \
+            POST \
+            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases" \
+            "$(jq -n \
+                --arg tag_name "${tag_name}" \
+                --arg name "DIU ${deb_version}" \
+                --arg body "${release_notes}" \
+                '{
+                    tag_name: $tag_name,
+                    name: $name,
+                    body: $body
+                }'
+            )"
+    )" || {
         return 1
     }
 
-    if ! chmod 600 "${release_curl_auth_file}"; then
-        print_error "Échec des permissions sur le fichier temporaire."
-        rm -f "${release_curl_auth_file}"
+    http_code="$(
+        _forgejo_release_http_code "${api_response}"
+    )"
+
+    http_body="$(
+        _forgejo_release_http_body "${api_response}"
+    )"
+
+    if [[ "${http_code}" -lt 200 || "${http_code}" -ge 300 ]]; then
+
+        error_msg="$(
+            printf '%s' "${http_body}" |
+                jq -r '.message // "erreur inconnue"' \
+                2>/dev/null
+        )"
+
+        print_error \
+            "Impossible de créer la Release."
+
+        print_error \
+            "HTTP ${http_code} : ${error_msg}"
+
+        print_error \
+            "Le tag ${tag_name} existe désormais."
+        print_error \
+            "Aucun rollback automatique n'est effectué."
+
         return 1
     fi
 
-    if ! printf 'header = "Authorization: token %s"\n' "${forgejo_token}" \
-        > "${release_curl_auth_file}"; then
-        print_error "Échec de l'écriture du fichier temporaire d'authentification."
-        rm -f "${release_curl_auth_file}"
+    if ! printf '%s' "${http_body}" |
+        jq empty >/dev/null 2>&1; then
+
+        print_error \
+            "Réponse JSON invalide lors de la création de la Release."
+
+        print_error \
+            "Le tag ${tag_name} existe désormais."
+
         return 1
     fi
 
-    local release_http_response=""
-    local release_http_code=""
-    local release_http_body=""
-    local release_curl_rc=0
-
-    if release_http_response="$(curl -s -w '\n%{http_code}' \
-        --config "${release_curl_auth_file}" \
-        -X POST \
-        -H "Content-Type: application/json" \
-        -d "$(jq -n \
-            --arg tag_name "${tag_name}" \
-            --arg name "DIU ${deb_version}" \
-            --arg body "${release_notes}" \
-            '{
-                tag_name: $tag_name,
-                name: $name,
-                body: $body
-            }')" \
-        "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases" \
-        2>/dev/null)"; then
-        release_curl_rc=0
-    else
-        release_curl_rc=$?
-    fi
-
-    rm -f "${release_curl_auth_file}"
-
-    if [[ "${release_curl_rc}" -ne 0 ]]; then
-        print_error "Échec réseau lors de la création de la Release (curl=${release_curl_rc})."
-        return 1
-    fi
-
-    release_http_code="${release_http_response##*$'\n'}"
-    release_http_body="${release_http_response%$'\n'*}"
-
-    if [[ "${release_http_code}" -lt 200 || "${release_http_code}" -ge 300 ]]; then
-        local error_msg=""
-        error_msg="$(printf '%s' "${release_http_body}" | jq -r '.message // "erreur inconnue"' 2>/dev/null)"
-        print_error "Échec de la création de la Release (HTTP ${release_http_code}) : ${error_msg}"
-        return 1
-    fi
-
-    if ! printf '%s' "${release_http_body}" | jq empty 2>/dev/null; then
-        print_error "Réponse invalide de l'API Forgejo lors de la création de la Release."
-        return 1
-    fi
-
-    release_id="$(printf '%s' "${release_http_body}" | jq -r '.id // empty')"
+    release_id="$(
+        printf '%s' "${http_body}" |
+            jq -r '.id // empty'
+    )"
 
     if [[ -z "${release_id}" ]]; then
-        print_error "Impossible de récupérer l'identifiant de la Release créée."
+
+        print_error \
+            "L'API Forgejo n'a retourné aucun identifiant de Release."
+
+        print_error \
+            "Le tag ${tag_name} existe désormais."
+
         return 1
     fi
 
-    print_success "Release créée (ID: ${release_id})"
+    print_success \
+        "Release créée : DIU ${deb_version} (ID ${release_id})."
 
-    # ----------------------------------------------------------
-    # Étape 12 : Upload de l'asset
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Étape 11 — Upload du paquet
+    # ==========================================================
 
-    print_title "Étape 12/12 — Upload du paquet ${deb_filename}"
+    print_title \
+        "Étape 11/11 — Upload du paquet ${deb_filename}"
 
-    local upload_curl_auth_file=""
-    upload_curl_auth_file="$(mktemp)" || {
-        print_error "Impossible de créer un fichier temporaire pour l'authentification."
+    #
+    # Ici on utilise volontairement un appel curl dédié car
+    # l'upload multipart/form-data n'est pas un appel JSON.
+    #
+
+    local upload_auth_file=""
+    local upload_response=""
+    local upload_code=""
+    local upload_body=""
+    local upload_rc=0
+
+    upload_auth_file="$(mktemp)" || {
+        print_error \
+            "Impossible de créer le fichier temporaire d'authentification."
         return 1
     }
 
-    if ! chmod 600 "${upload_curl_auth_file}"; then
-        print_error "Échec des permissions sur le fichier temporaire."
-        rm -f "${upload_curl_auth_file}"
+    if ! chmod 600 "${upload_auth_file}"; then
+        print_error \
+            "Impossible de sécuriser le fichier temporaire."
+        rm -f "${upload_auth_file}"
         return 1
     fi
 
-    if ! printf 'header = "Authorization: token %s"\n' "${forgejo_token}" \
-        > "${upload_curl_auth_file}"; then
-        print_error "Échec de l'écriture du fichier temporaire d'authentification."
-        rm -f "${upload_curl_auth_file}"
+    if ! printf \
+        'header = "Authorization: token %s"\n' \
+        "${forgejo_token}" \
+        > "${upload_auth_file}"; then
+
+        print_error \
+            "Impossible de préparer l'authentification."
+        rm -f "${upload_auth_file}"
         return 1
     fi
 
-    local upload_http_response=""
-    local upload_http_code=""
-    local upload_http_body=""
-    local upload_curl_rc=0
+    if upload_response="$(
+        curl -sS \
+            -w '\n%{http_code}' \
+            --config "${upload_auth_file}" \
+            -X POST \
+            -F "attachment=@${deb_file}" \
+            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases/${release_id}/assets" \
+            2>/dev/null
+    )"; then
 
-    if upload_http_response="$(curl -s -w '\n%{http_code}' \
-        --config "${upload_curl_auth_file}" \
-        -X POST \
-        -F "attachment=@${deb_file}" \
-        "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases/${release_id}/assets" \
-        2>/dev/null)"; then
-        upload_curl_rc=0
+        upload_rc=0
+
     else
-        upload_curl_rc=$?
+
+        upload_rc=$?
+
     fi
 
-    rm -f "${upload_curl_auth_file}"
+    rm -f "${upload_auth_file}"
 
-    if [[ "${upload_curl_rc}" -ne 0 ]]; then
-        print_error "Échec réseau lors de l'upload de l'asset (curl=${upload_curl_rc})."
-        print_error "La Release reste visible mais incomplète. Aucun rollback."
+    if [[ "${upload_rc}" -ne 0 ]]; then
+
+        print_error \
+            "Échec réseau lors de l'upload de l'asset."
+        print_error \
+            "Code curl : ${upload_rc}"
+        print_error \
+            "La Release reste visible mais incomplète."
+        print_error \
+            "Aucun rollback automatique."
+
         return 1
     fi
 
-    upload_http_code="${upload_http_response##*$'\n'}"
-    upload_http_body="${upload_http_response%$'\n'*}"
+    upload_code="$(
+        _forgejo_release_http_code "${upload_response}"
+    )"
 
-    if [[ "${upload_http_code}" -lt 200 || "${upload_http_code}" -ge 300 ]]; then
-        local error_msg=""
-        error_msg="$(printf '%s' "${upload_http_body}" | jq -r '.message // "erreur inconnue"' 2>/dev/null)"
-        print_error "Échec de l'upload de l'asset (HTTP ${upload_http_code}) : ${error_msg}"
-        print_error "La Release reste visible mais incomplète. Aucun rollback."
+    upload_body="$(
+        _forgejo_release_http_body "${upload_response}"
+    )"
+
+    if [[ "${upload_code}" -lt 200 ||
+          "${upload_code}" -ge 300 ]]; then
+
+        error_msg="$(
+            printf '%s' "${upload_body}" |
+                jq -r '.message // "erreur inconnue"' \
+                2>/dev/null
+        )"
+
+        print_error \
+            "Échec de l'upload de l'asset."
+
+        print_error \
+            "HTTP ${upload_code} : ${error_msg}"
+
+        print_error \
+            "La Release reste visible mais incomplète."
+        print_error \
+            "Aucun rollback automatique."
+
         return 1
     fi
 
-    if ! printf '%s' "${upload_http_body}" | jq empty 2>/dev/null; then
-        print_error "Réponse invalide de l'API Forgejo lors de l'upload de l'asset."
-        print_error "La Release reste visible mais incomplète. Aucun rollback."
+    if ! printf '%s' "${upload_body}" |
+        jq empty >/dev/null 2>&1; then
+
+        print_error \
+            "Réponse JSON invalide lors de l'upload."
+
+        print_error \
+            "La Release reste visible mais incomplète."
+
         return 1
     fi
 
-    print_success "Asset uploadé : ${deb_filename}"
-    print_success "Release DIU ${deb_version} publiée avec succès."
+    print_success \
+        "Asset uploadé : ${deb_filename}"
+
+    echo ""
+
+    print_success \
+        "=============================================="
+
+    print_success \
+        "Release DIU ${deb_version} publiée avec succès."
+
+    print_success \
+        "Tag     : ${tag_name}"
+
+    print_success \
+        "Commit  : ${head_sha:0:12}"
+
+    print_success \
+        "Release : ${release_id}"
+
+    print_success \
+        "Asset   : ${deb_filename}"
+
+    print_success \
+        "=============================================="
+
+    return 0
 }
