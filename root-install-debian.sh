@@ -3200,6 +3200,364 @@ git_init() {
 }
 
 git_push() {
+    local project_id="${1:-}"
+    local project_name="${2:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+
+    local remote_name="origin"
+    local remote_url=""
+    local current_branch=""
+    local upstream_branch=""
+    local confirmation=""
+    local push_rc=0
+
+    echo ""
+    echo "=============================================="
+    echo " Push Git du projet ${project_name}"
+    echo "=============================================="
+    echo ""
+
+    # ----------------------------------------------------------
+    # Étape 1 : Vérification des paramètres
+    # ----------------------------------------------------------
+
+    if [[ -z "${project_id}" || -z "${project_name}" ]]; then
+        print_error "Usage : git_push <project_id> <project_name>"
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 2 : Vérification de l'utilisateur DevOps
+    # ----------------------------------------------------------
+
+    if ! check_devops_user; then
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 3 : Vérification du projet
+    # ----------------------------------------------------------
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error \
+            "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 4 : Vérification de Git
+    # ----------------------------------------------------------
+
+    if ! command -v git >/dev/null 2>&1; then
+        print_error "Git n'est pas installé."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git --version >/dev/null 2>&1; then
+
+        print_error \
+            "Git n'est pas accessible pour l'utilisateur ${DEVOPS_USER}."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 5 : Vérification des droits
+    # ----------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        test -r "${project_path}"; then
+
+        print_error \
+            "${DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        test -w "${project_path}"; then
+
+        print_error \
+            "${DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 6 : Vérification du dépôt Git
+    # ----------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" rev-parse \
+        --is-inside-work-tree >/dev/null 2>&1; then
+
+        print_error \
+            "Aucun dépôt Git initialisé dans : ${project_path}"
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 7 : Vérification de la présence d'un commit
+    # ----------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" rev-parse \
+        --verify HEAD >/dev/null 2>&1; then
+
+        print_error \
+            "Aucun commit local n'est disponible pour le push."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 8 : Vérification du remote origin
+    # ----------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote |
+        grep -qx "${remote_name}"; then
+
+        print_error \
+            "Le remote '${remote_name}' n'est pas configuré."
+        print_error \
+            "Configurez d'abord le dépôt distant avec 'git remote'."
+        return 1
+    fi
+
+    remote_url="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" remote \
+            get-url "${remote_name}" 2>/dev/null
+    )"
+
+    if [[ -z "${remote_url}" ]]; then
+        print_error \
+            "Impossible de déterminer l'URL du remote '${remote_name}'."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 9 : Détermination de la branche courante
+    # ----------------------------------------------------------
+
+    current_branch="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" branch \
+            --show-current 2>/dev/null
+    )"
+
+    if [[ -z "${current_branch}" ]]; then
+        print_error \
+            "Impossible de déterminer la branche Git courante."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 10 : Vérification de l'authentification Forgejo
+    # ----------------------------------------------------------
+    #
+    # forgejo_git_push() réalisera également cette validation
+    # juste avant le push. Cette étape permet d'échouer proprement
+    # avant la confirmation utilisateur.
+
+    if ! _forgejo_resolve_remote "${project_path}"; then
+        return 1
+    fi
+
+    if ! _forgejo_read_username "${project_path}"; then
+        return 1
+    fi
+
+    if ! _forgejo_read_token "${project_path}"; then
+        return 1
+    fi
+
+    print_success "Authentification Forgejo locale validée."
+
+    # ----------------------------------------------------------
+    # Étape 11 : Informations du dépôt
+    # ----------------------------------------------------------
+
+    print_title "Dépôt Git"
+
+    echo "Projet          : ${project_name}"
+    echo "Répertoire      : ${project_path}"
+    echo "Utilisateur     : ${DEVOPS_USER}"
+    echo "Branche locale  : ${current_branch}"
+    echo "Remote          : ${remote_name}"
+    echo "URL distante    : ${remote_url}"
+    echo ""
+
+    # ----------------------------------------------------------
+    # Étape 12 : État du dépôt local
+    # ----------------------------------------------------------
+
+    print_title "git status"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" status; then
+
+        print_error \
+            "Impossible d'afficher l'état du dépôt Git."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 13 : Historique local
+    # ----------------------------------------------------------
+
+    print_title "git log --oneline"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" log \
+        --oneline \
+        --decorate \
+        -5; then
+
+        print_error \
+            "Impossible d'afficher l'historique du dépôt Git."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 14 : Vérification de la branche de suivi
+    # ----------------------------------------------------------
+
+    upstream_branch="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" rev-parse \
+            --abbrev-ref \
+            --symbolic-full-name \
+            '@{upstream}' \
+            2>/dev/null || true
+    )"
+
+    echo ""
+
+    if [[ -z "${upstream_branch}" ]]; then
+        print_info \
+            "Aucune branche distante de suivi n'est encore configurée."
+    else
+        print_info \
+            "Branche distante suivie : ${upstream_branch}"
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 15 : Confirmation du push
+    # ----------------------------------------------------------
+
+    echo ""
+    echo "Le dépôt local va être envoyé vers :"
+    echo "  ${remote_url}"
+    echo ""
+    echo "Branche : ${current_branch}"
+    echo ""
+
+    read -r -p "Effectuer le push ? [o/N] : " confirmation
+
+    case "${confirmation}" in
+        o|O|oui|OUI|y|Y|yes|YES)
+            ;;
+        *)
+            print_info "Push annulé."
+            return 0
+            ;;
+    esac
+
+    # ----------------------------------------------------------
+    # Étape 16 : Push authentifié via forgejo-auth
+    # ----------------------------------------------------------
+
+    print_title "Push vers Forgejo"
+
+    if [[ -z "${upstream_branch}" ]]; then
+
+        print_info \
+            "Premier push : création de la branche distante et de son suivi."
+
+        forgejo_git_push \
+            "${project_path}" \
+            -u "${remote_name}" "${current_branch}" \
+            || push_rc=$?
+
+    else
+
+        print_info \
+            "Push vers la branche distante ${upstream_branch}."
+
+        forgejo_git_push \
+            "${project_path}" \
+            || push_rc=$?
+
+    fi
+
+    if [[ "${push_rc}" -ne 0 ]]; then
+        print_error \
+            "Échec du push vers Forgejo (code ${push_rc})."
+        return "${push_rc}"
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 17 : Vérification de la branche de suivi
+    # ----------------------------------------------------------
+
+    upstream_branch="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" rev-parse \
+            --abbrev-ref \
+            --symbolic-full-name \
+            '@{upstream}' \
+            2>/dev/null || true
+    )"
+
+    # ----------------------------------------------------------
+    # Étape 18 : Vérifications finales
+    # ----------------------------------------------------------
+
+    print_title "Vérification finale"
+
+    echo "Remote          : ${remote_name}"
+    echo "URL distante    : ${remote_url}"
+    echo "Branche locale  : ${current_branch}"
+
+    if [[ -n "${upstream_branch}" ]]; then
+        echo "Branche suivie  : ${upstream_branch}"
+    else
+        echo "Branche suivie  : aucune"
+    fi
+
+    echo ""
+
+    print_title "git status"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" status; then
+
+        print_error \
+            "Impossible d'afficher l'état final du dépôt Git."
+        return 1
+    fi
+
+    print_title "git log --oneline"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" log \
+        --oneline \
+        --decorate \
+        -5; then
+
+        print_error \
+            "Impossible d'afficher l'historique Git."
+        return 1
+    fi
+
+    echo ""
+
+    print_success \
+        "Push Git effectué avec succès vers Forgejo par ${DEVOPS_USER}."
+
+    return 0
+}
+
+git_push_old() {
     local project_id="$1"
     local project_name="$2"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -8318,7 +8676,7 @@ then
 	echo '}' >> /etc/docker/daemon.json
 	echo "DOCKER CONFIGURED ✅"
 
-	DOCKER_COMPOSE_LAST_VERSION=`git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/docker/compose.git | sed -r '/v2|\{\}/d' | tail --lines=1 | cut --delimiter='/' --fields=3`
+	DOCKER_COMPOSE_LAST_VERSION=`git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/docker/compose.git | sed -r '/v2|v5\.5|\{\}/d' | tail --lines=1 | cut --delimiter='/' --fields=3`
 	if test -f /usr/local/bin/docker-compose ; then DOCKER_COMPOSE_VERSION=`docker-compose --version | sed -e 's/.* //'` ; else DOCKER_COMPOSE_VERSION=0 ; fi
 
 	if [ "$DOCKER_COMPOSE_VERSION" = "$DOCKER_COMPOSE_LAST_VERSION" ]
