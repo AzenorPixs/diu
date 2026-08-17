@@ -4389,7 +4389,7 @@ manage_project_action() {
     case "$action" in
 
         cicd)
-            git_commit \
+            cicd_project \
                 "$project_id" \
                 "$project_name" \
                 "$commit_name"
