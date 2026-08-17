@@ -3300,7 +3300,7 @@ git_push() {
     # Credentials Forgejo
     # ==========================================================
 
-    if ! forgejo_ensure_credentials "${project_path}"; then
+    if ! _forgejo_ensure_credentials "${project_path}"; then
         print_error "Impossible d'initialiser les credentials Forgejo."
         return 1
     fi
