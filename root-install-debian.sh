@@ -19,8 +19,9 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
-. "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/cicd.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/forgejo-release.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
 
 # Creer l'arborescence.
 mkdir -p "$BASH_SCRIPT_PATH/config"
@@ -4383,9 +4384,16 @@ manage_project_action() {
     local action="${1:-}"
     local project_id="${2:-}"
     local project_name="${3:-}"
-    local other_info="${4:-}"
+    local commit_name="${4:-}"
 
     case "$action" in
+
+        cicd)
+            git_commit \
+                "$project_id" \
+                "$project_name" \
+                "$commit_name"
+            ;;
 
         del)
             delete_project \
@@ -4409,7 +4417,7 @@ manage_project_action() {
             git_commit \
                 "$project_id" \
                 "$project_name" \
-                "$other_info"
+                "$commit_name"
             ;;
 
         giti)
