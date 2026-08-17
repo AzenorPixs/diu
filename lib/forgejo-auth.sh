@@ -234,3 +234,310 @@ forgejo_git_push() {
         git_with_token "${project_path}" "${forgejo_username}" "${forgejo_token}" push
     fi
 }
+
+# Exécute une vérification des Crédiential, et les regénère si pas OK
+
+forgejo_ensure_credentials() {
+    local project_path="${1:-}"
+    local forgejo_host=""
+    local forgejo_base=""
+    local forgejo_owner=""
+    local forgejo_repo=""
+    local forgejo_user=""
+    local forgejo_password=""
+    local forgejo_token=""
+    local token_file=""
+    local username_file=""
+    local create_token=""
+    local netrc_file=""
+    local token_http_response=""
+    local token_http_code=""
+    local token_http_body=""
+    local bootstrap_curl_rc=0
+
+    if [[ -z "${project_path}" ]]; then
+        print_error "forgejo_ensure_credentials : project_path est vide."
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Projet introuvable : ${project_path}"
+        return 1
+    fi
+
+    token_file="${project_path}/config/forgejo.token"
+    username_file="${project_path}/config/forgejo.username"
+
+    # ----------------------------------------------------------
+    # Étape 1 : Déduction des informations Forgejo
+    # ----------------------------------------------------------
+
+    if ! _forgejo_resolve_remote "${project_path}"; then
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 2 : Credentials déjà présents
+    # ----------------------------------------------------------
+
+    if [[ -f "${token_file}" && -f "${username_file}" ]]; then
+
+        if ! _forgejo_read_token "${project_path}"; then
+            return 1
+        fi
+
+        if ! _forgejo_read_username "${project_path}"; then
+            return 1
+        fi
+
+        print_success "Authentification Forgejo locale validée."
+        return 0
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 3 : Bootstrap des credentials
+    # ----------------------------------------------------------
+
+    print_info "Les credentials Forgejo locaux sont incomplets."
+
+    read -r -p \
+        "Créer automatiquement un token Forgejo ? [o/N] : " \
+        create_token
+
+    case "${create_token}" in
+        o|O|oui|OUI|y|Y|yes|YES)
+            ;;
+        *)
+            print_error \
+                "Création de token annulée. Veuillez créer manuellement le token dans Forgejo."
+            return 1
+            ;;
+    esac
+
+    read -r -p "Identifiant Forgejo : " forgejo_user
+
+    if [[ -z "${forgejo_user}" ]]; then
+        print_error "L'identifiant Forgejo ne peut pas être vide."
+        return 1
+    fi
+
+    read -r -s -p "Mot de passe Forgejo : " forgejo_password
+    echo ""
+
+    if [[ -z "${forgejo_password}" ]]; then
+        print_error "Le mot de passe ne peut pas être vide."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 4 : Fichier netrc temporaire
+    # ----------------------------------------------------------
+
+    netrc_file="$(mktemp)" || {
+        print_error \
+            "Impossible de créer un fichier temporaire pour l'authentification."
+        unset forgejo_password
+        return 1
+    }
+
+    if ! chmod 600 "${netrc_file}"; then
+        print_error "Échec des permissions sur le fichier temporaire."
+        rm -f "${netrc_file}"
+        unset forgejo_password
+        return 1
+    fi
+
+    if ! printf 'machine %s\nlogin %s\npassword %s\n' \
+        "${forgejo_host}" \
+        "${forgejo_user}" \
+        "${forgejo_password}" \
+        > "${netrc_file}"; then
+
+        print_error "Échec de l'écriture du fichier temporaire."
+        rm -f "${netrc_file}"
+        unset forgejo_password
+        return 1
+    fi
+
+    unset forgejo_password
+
+    # ----------------------------------------------------------
+    # Étape 5 : Création du token Forgejo
+    # ----------------------------------------------------------
+
+    if token_http_response="$(curl -s -w '\n%{http_code}' \
+        --netrc-file "${netrc_file}" \
+        -X POST \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n \
+            --arg name "diu-publish" \
+            --arg owner "${forgejo_owner}" \
+            --arg repo "${forgejo_repo}" \
+            '{
+                name: $name,
+                scopes: ["write:repository"],
+                repositories: [{owner: $owner, name: $repo}]
+            }')" \
+        "${forgejo_base}/api/v1/users/${forgejo_user}/tokens" \
+        2>/dev/null)"; then
+
+        bootstrap_curl_rc=0
+    else
+        bootstrap_curl_rc=$?
+    fi
+
+    rm -f "${netrc_file}"
+
+    if [[ "${bootstrap_curl_rc}" -ne 0 ]]; then
+        print_error \
+            "Échec réseau lors de la création du token (curl=${bootstrap_curl_rc})."
+        print_error \
+            "Veuillez créer manuellement le token dans Forgejo."
+        return 1
+    fi
+
+    token_http_code="${token_http_response##*$'\n'}"
+    token_http_body="${token_http_response%$'\n'*}"
+
+    if [[ "${token_http_code}" -lt 200 ||
+          "${token_http_code}" -ge 300 ]]; then
+
+        print_error \
+            "Échec de la création du token Forgejo (HTTP ${token_http_code})."
+        print_error \
+            "Vérifiez l'identifiant, le mot de passe et les droits du compte Forgejo."
+        print_error \
+            "Aucun détail renvoyé par Forgejo n'est affiché afin d'éviter toute fuite de credential."
+        print_error \
+            "Veuillez créer manuellement le token dans Forgejo."
+        return 1
+    fi
+
+    if ! printf '%s' "${token_http_body}" | jq empty 2>/dev/null; then
+        print_error \
+            "Réponse invalide de l'API Forgejo lors de la création du token."
+        print_error \
+            "Veuillez créer manuellement le token dans Forgejo."
+        return 1
+    fi
+
+    forgejo_token="$(printf '%s' "${token_http_body}" |
+        jq -r '.sha1 // empty')"
+
+    if [[ -z "${forgejo_token}" ]]; then
+        print_error \
+            "Impossible d'extraire le token de la réponse Forgejo."
+        print_error \
+            "Veuillez créer manuellement le token dans Forgejo."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Étape 6 : Persistance locale
+    # ----------------------------------------------------------
+
+    if ! mkdir -p "${project_path}/config"; then
+        print_error "Impossible de créer le répertoire config."
+        print_error \
+            "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
+        print_error "Aucun rollback distant automatique n'est effectué."
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Persistance du token
+    # ----------------------------------------------------------
+
+    local token_write_file=""
+
+    token_write_file="$(
+        mktemp "${project_path}/config/.forgejo.token.XXXXXX"
+    )" || {
+        print_error \
+            "Impossible de créer un fichier temporaire pour le token."
+        print_error \
+            "Le token distant a été créé, mais la configuration locale n'a pas pu être finalisée."
+        print_error "Aucun rollback distant automatique n'est effectué."
+        return 1
+    }
+
+    if ! chmod 600 "${token_write_file}"; then
+        print_error "Échec des permissions sur le fichier token."
+        rm -f "${token_write_file}"
+        return 1
+    fi
+
+    if ! printf '%s' "${forgejo_token}" > "${token_write_file}"; then
+        print_error "Échec de l'écriture du token."
+        rm -f "${token_write_file}"
+        return 1
+    fi
+
+    if ! mv "${token_write_file}" "${token_file}"; then
+        print_error "Échec du déplacement du fichier token."
+        rm -f "${token_write_file}"
+        return 1
+    fi
+
+    local final_token_perms=""
+    final_token_perms="$(stat -c %a "${token_file}" 2>/dev/null)"
+
+    if [[ "${final_token_perms}" != "600" ]]; then
+        print_error \
+            "Permissions du token invalides après création : ${final_token_perms}"
+        rm -f "${token_file}"
+        return 1
+    fi
+
+    # ----------------------------------------------------------
+    # Persistance du username
+    # ----------------------------------------------------------
+
+    local username_write_file=""
+
+    username_write_file="$(
+        mktemp "${project_path}/config/.forgejo.username.XXXXXX"
+    )" || {
+        print_error \
+            "Impossible de créer un fichier temporaire pour le username."
+        rm -f "${token_file}"
+        return 1
+    }
+
+    if ! chmod 600 "${username_write_file}"; then
+        print_error "Échec des permissions sur le fichier username."
+        rm -f "${username_write_file}"
+        rm -f "${token_file}"
+        return 1
+    fi
+
+    if ! printf '%s' "${forgejo_user}" > "${username_write_file}"; then
+        print_error "Échec de l'écriture du username."
+        rm -f "${username_write_file}"
+        rm -f "${token_file}"
+        return 1
+    fi
+
+    if ! mv "${username_write_file}" "${username_file}"; then
+        print_error "Échec du déplacement du fichier username."
+        rm -f "${username_write_file}"
+        rm -f "${token_file}"
+        return 1
+    fi
+
+    local final_username_perms=""
+    final_username_perms="$(stat -c %a "${username_file}" 2>/dev/null)"
+
+    if [[ "${final_username_perms}" != "600" ]]; then
+        print_error \
+            "Permissions du username invalides après création : ${final_username_perms}"
+        rm -f "${username_file}"
+        rm -f "${token_file}"
+        return 1
+    fi
+
+    print_success "Token créé et enregistré dans ${token_file}"
+    print_success "Username enregistré dans ${username_file}"
+
+    return 0
+}
