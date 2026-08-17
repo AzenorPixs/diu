@@ -367,7 +367,7 @@ publish_release() {
     #   - garantit les permissions 600.
     #
 
-    if ! forgejo_ensure_credentials "${project_path}"; then
+    if ! _forgejo_ensure_credentials "${project_path}"; then
         print_error \
             "Impossible d'obtenir des credentials Forgejo valides."
         return 1

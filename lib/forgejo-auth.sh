@@ -540,91 +540,221 @@ forgejo_api_upload() {
 _forgejo_validate_credentials() {
     local project_path="${1:-}"
 
-    local response=""
     local http_code=""
-    local http_body=""
     local curl_rc=0
+    local error_body=""
+    local forgejo_url=""
 
     if [[ -z "${project_path}" ]]; then
         print_error \
-            "_forgejo_validate_credentials : project_path vide."
+            "_forgejo_validate_credentials : project_path est vide."
         return 1
     fi
 
-    if ! _forgejo_prepare_context "${project_path}"; then
+    if [[ ! -d "${project_path}" ]]; then
+        print_error \
+            "_forgejo_validate_credentials : projet introuvable : ${project_path}"
         return 1
     fi
 
-    if response="$(
-        forgejo_api_get \
-            "${project_path}" \
-            "/api/v1/user"
-    )"; then
-        curl_rc=0
-    else
-        curl_rc=$?
+    # ==========================================================
+    # Étape 1 : Résolution du remote Forgejo
+    # ==========================================================
+
+    if ! _forgejo_resolve_remote "${project_path}"; then
+        return 1
     fi
+
+    if [[ -z "${forgejo_base}" ]]; then
+        print_error \
+            "_forgejo_validate_credentials : URL Forgejo non initialisée."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_owner}" ]]; then
+        print_error \
+            "_forgejo_validate_credentials : owner Forgejo non initialisé."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_repo}" ]]; then
+        print_error \
+            "_forgejo_validate_credentials : repository Forgejo non initialisé."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 2 : Lecture du username
+    # ==========================================================
+
+    if ! _forgejo_read_username "${project_path}"; then
+        return 1
+    fi
+
+    if [[ -z "${forgejo_username}" ]]; then
+        print_error \
+            "_forgejo_validate_credentials : username vide."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 3 : Lecture du token
+    # ==========================================================
+
+    if ! _forgejo_read_token "${project_path}"; then
+        return 1
+    fi
+
+    if [[ -z "${forgejo_token}" ]]; then
+        print_error \
+            "_forgejo_validate_credentials : token vide."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 4 : Validation du token sur le repository
+    #
+    # IMPORTANT :
+    #
+    # Nous validons directement une ressource /repos/.
+    #
+    # Le scope write:repository couvre les routes repository
+    # ainsi que les opérations de Release.
+    #
+    # Nous n'utilisons volontairement pas /api/v1/user :
+    # ce endpoint nécessite le scope user et n'est pas nécessaire
+    # pour le fonctionnement du token de publication DIU.
+    #
+    # ==========================================================
+
+    print_info \
+        "Vérification de la validité du token Forgejo..."
+
+    print_info \
+        "Vérification de l'accès au dépôt Forgejo..."
+
+    forgejo_url="${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}"
+
+    http_code="$(
+        curl -sS \
+            -o /dev/null \
+            -w '%{http_code}' \
+            -H "Authorization: token ${forgejo_token}" \
+            -H "Accept: application/json" \
+            "${forgejo_url}" \
+            2>/dev/null
+    )"
+
+    curl_rc=$?
 
     if [[ "${curl_rc}" -ne 0 ]]; then
+        print_error \
+            "_forgejo_validate_credentials : impossible de contacter Forgejo."
+        print_error \
+            "Code curl : ${curl_rc}"
         return 1
     fi
 
-    http_code="${response##*$'\n'}"
-    http_body="${response%$'\n'*}"
+    # ==========================================================
+    # Étape 5 : Interprétation du code HTTP
+    # ==========================================================
 
     case "${http_code}" in
 
         200)
-            if ! printf '%s' "${http_body}" |
-                jq empty >/dev/null 2>&1; then
+            print_success \
+                "Token Forgejo valide."
 
-                print_error \
-                    "Réponse JSON invalide de Forgejo."
-                return 1
-            fi
+            print_success \
+                "Dépôt Forgejo ${forgejo_owner}/${forgejo_repo} accessible."
+
+            return 0
+            ;;
+
+        404)
+            # --------------------------------------------------
+            # Le token est accepté mais le dépôt n'existe pas.
+            #
+            # Cette situation est valide pour un premier push
+            # lorsque Forgejo autorise la création du dépôt par
+            # push.
+            # --------------------------------------------------
+
+            print_success \
+                "Token Forgejo valide."
+
+            print_info \
+                "Le dépôt Forgejo ${forgejo_owner}/${forgejo_repo} n'existe pas encore."
+
+            print_info \
+                "Le premier git push pourra créer le dépôt selon la configuration Forgejo."
 
             return 0
             ;;
 
         401)
             print_error \
-                "Token Forgejo invalide ou expiré."
+                "_forgejo_validate_credentials : token Forgejo invalide ou expiré."
+
             return 2
             ;;
 
         403)
             print_error \
-                "Forgejo refuse l'accès avec ce token."
+                "_forgejo_validate_credentials : accès au dépôt Forgejo refusé (HTTP 403)."
+
+            print_error \
+                "Le token existe mais ne possède pas les droits nécessaires."
+
+            print_error \
+                "Vérifiez le scope write:repository et les restrictions du token."
+
             return 2
             ;;
 
         000|"")
             print_error \
-                "Impossible de contacter Forgejo."
+                "_forgejo_validate_credentials : impossible de contacter Forgejo."
+
             return 1
             ;;
 
         *)
-            print_error \
-                "Réponse inattendue lors de la validation du token : HTTP ${http_code}"
+            # --------------------------------------------------
+            # Pour les erreurs inattendues, récupération séparée
+            # du message JSON.
+            #
+            # Le corps n'est PAS capturé dans la commande qui
+            # récupère le code HTTP : cela évite le problème
+            # d'octet NUL observé précédemment.
+            # --------------------------------------------------
 
-            if [[ -n "${http_body}" ]]; then
-                local error_message=""
-                error_message="$(
-                    printf '%s' "${http_body}" |
-                        jq -r '.message // empty' 2>/dev/null
-                )"
+            error_body="$(
+                curl -sS \
+                    -H "Authorization: token ${forgejo_token}" \
+                    -H "Accept: application/json" \
+                    "${forgejo_url}" \
+                    2>/dev/null |
+                    tr -d '\000'
+            )"
 
-                if [[ -n "${error_message}" ]]; then
-                    print_error "${error_message}"
-                fi
+            forgejo_error="$(
+                printf '%s' "${error_body}" |
+                    jq -r '.message // empty' 2>/dev/null
+            )"
+
+            if [[ -n "${forgejo_error}" ]]; then
+                print_error \
+                    "_forgejo_validate_credentials : Forgejo répond HTTP ${http_code} : ${forgejo_error}"
+            else
+                print_error \
+                    "_forgejo_validate_credentials : réponse Forgejo inattendue (HTTP ${http_code})."
             fi
 
             return 1
             ;;
     esac
 }
-
 
 # ==========================================================
 # Validation / initialisation des credentials
@@ -638,70 +768,86 @@ _forgejo_validate_credentials() {
 # La génération automatique du token est conservée.
 # ==========================================================
 
-forgejo_ensure_credentials() {
+_forgejo_ensure_credentials() {
     local project_path="${1:-}"
+
+    local forgejo_host=""
+    local forgejo_base=""
+    local forgejo_owner=""
+    local forgejo_repo=""
+
+    local forgejo_user=""
+    local forgejo_username=""
+    local forgejo_password=""
+    local forgejo_token=""
 
     local token_file=""
     local username_file=""
 
-    local forgejo_user=""
-    local forgejo_password=""
     local token_choice=""
-
-    local netrc_file=""
-    local auth_http_code=""
-
     local token_http_response=""
     local token_http_code=""
     local token_http_body=""
-    local token_curl_rc=0
 
-    local forgejo_token_generated=""
-
-    local username_write_file=""
-    local token_write_file=""
-
+    local auth_http_code=""
+    local bootstrap_curl_rc=0
     local credentials_rc=0
 
+    local netrc_file=""
+    local token_write_file=""
+    local username_write_file=""
+
+    local final_token_perms=""
+    local final_username_perms=""
+
     if [[ -z "${project_path}" ]]; then
-        print_error \
-            "forgejo_ensure_credentials : project_path vide."
+        print_error "forgejo_ensure_credentials : project_path est vide."
         return 1
     fi
 
     if [[ ! -d "${project_path}" ]]; then
-        print_error \
-            "Projet introuvable : ${project_path}"
+        print_error "Projet introuvable : ${project_path}"
         return 1
     fi
 
     token_file="${project_path}/config/forgejo.token"
     username_file="${project_path}/config/forgejo.username"
 
-    # ------------------------------------------------------
-    # Résolution Forgejo
-    # ------------------------------------------------------
+    # ==========================================================
+    # Étape 1 : Déduction des informations Forgejo
+    # ==========================================================
 
     if ! _forgejo_resolve_remote "${project_path}"; then
         return 1
     fi
 
-    # ------------------------------------------------------
-    # Credentials existants
-    # ------------------------------------------------------
+    # ==========================================================
+    # Étape 2 : Vérification des credentials locaux
+    # ==========================================================
 
     if [[ -f "${token_file}" && -f "${username_file}" ]]; then
 
         if ! _forgejo_read_username "${project_path}"; then
+            print_error "Impossible de lire l'identifiant Forgejo local."
             return 1
         fi
 
         if ! _forgejo_read_token "${project_path}"; then
+            print_error "Impossible de lire le token Forgejo local."
             return 1
         fi
 
-        print_info \
-            "Vérification des credentials Forgejo locaux..."
+        if [[ -z "${forgejo_username}" ]]; then
+            print_error "L'identifiant Forgejo local est vide."
+            return 1
+        fi
+
+        if [[ -z "${forgejo_token}" ]]; then
+            print_error "Le token Forgejo local est vide."
+            return 1
+        fi
+
+        print_info "Vérification des credentials Forgejo locaux..."
 
         credentials_rc=0
 
@@ -720,6 +866,9 @@ forgejo_ensure_credentials() {
                 print_error \
                     "Les credentials Forgejo locaux sont invalides ou expirés."
 
+                print_info \
+                    "Le token local doit être remplacé."
+
                 rm -f "${token_file}" "${username_file}"
 
                 if [[ -e "${token_file}" || -e "${username_file}" ]]; then
@@ -735,34 +884,34 @@ forgejo_ensure_credentials() {
                 return 1
                 ;;
         esac
+
     else
-        print_info \
-            "Les credentials Forgejo locaux sont incomplets."
+        print_info "Les credentials Forgejo locaux sont incomplets."
     fi
 
-    # ------------------------------------------------------
-    # Choix du mode de configuration
-    # ------------------------------------------------------
+    # ==========================================================
+    # Étape 3 : Choix du mode de configuration du token
+    # ==========================================================
 
-    print_info \
-        "Le token Forgejo est absent ou invalide."
-
+    print_info "Le token Forgejo est absent ou invalide."
     echo ""
     echo "Comment souhaitez-vous configurer les credentials Forgejo ?"
     echo ""
     echo "  1) Saisir un token Forgejo existant"
+    echo "     → aucun mot de passe Forgejo requis"
+    echo ""
     echo "  2) Créer automatiquement un nouveau token via l'API Forgejo"
+    echo "     → identifiant et mot de passe Forgejo requis"
     echo ""
 
     read -r -p "Votre choix [1-2] : " token_choice
 
     case "${token_choice}" in
 
-        # ==================================================
-        # Token existant
-        # ==================================================
-
         1)
+            # ==================================================
+            # Étape 4A : Saisie manuelle du token
+            # ==================================================
 
             echo ""
             print_title "Configuration manuelle du token Forgejo"
@@ -780,15 +929,11 @@ forgejo_ensure_credentials() {
             echo ""
 
             read -r -s -p \
-                "Token Forgejo pour ${forgejo_user} : " \
-                forgejo_token
-
+                "Token Forgejo pour ${forgejo_user} : " forgejo_token
             echo ""
 
             if [[ -z "${forgejo_token}" ]]; then
-                print_error \
-                    "Le token Forgejo ne peut pas être vide."
-                unset forgejo_token
+                print_error "Le token Forgejo ne peut pas être vide."
                 return 1
             fi
 
@@ -797,7 +942,6 @@ forgejo_ensure_credentials() {
             if ! mkdir -p "${project_path}/config"; then
                 print_error \
                     "Impossible de créer le répertoire config."
-                unset forgejo_token
                 return 1
             fi
 
@@ -806,27 +950,29 @@ forgejo_ensure_credentials() {
             )" || {
                 print_error \
                     "Impossible de créer le fichier temporaire username."
-                unset forgejo_token
                 return 1
             }
 
             chmod 600 "${username_write_file}" || {
+                print_error \
+                    "Impossible de sécuriser le fichier username temporaire."
                 rm -f "${username_write_file}"
-                unset forgejo_token
                 return 1
             }
 
             if ! printf '%s' "${forgejo_username}" \
                 > "${username_write_file}"; then
 
+                print_error \
+                    "Impossible d'écrire l'identifiant Forgejo."
                 rm -f "${username_write_file}"
-                unset forgejo_token
                 return 1
             fi
 
             if ! mv "${username_write_file}" "${username_file}"; then
+                print_error \
+                    "Impossible d'enregistrer l'identifiant Forgejo."
                 rm -f "${username_write_file}"
-                unset forgejo_token
                 return 1
             fi
 
@@ -837,70 +983,71 @@ forgejo_ensure_credentials() {
             )" || {
                 print_error \
                     "Impossible de créer le fichier temporaire token."
-                rm -f "${username_file}"
-                unset forgejo_token
                 return 1
             }
 
             chmod 600 "${token_write_file}" || {
+                print_error \
+                    "Impossible de sécuriser le fichier token temporaire."
                 rm -f "${token_write_file}"
-                rm -f "${username_file}"
-                unset forgejo_token
                 return 1
             }
 
             if ! printf '%s' "${forgejo_token}" \
                 > "${token_write_file}"; then
 
+                print_error \
+                    "Impossible d'écrire le token Forgejo."
                 rm -f "${token_write_file}"
-                rm -f "${username_file}"
-                unset forgejo_token
                 return 1
             fi
 
             if ! mv "${token_write_file}" "${token_file}"; then
+                print_error \
+                    "Impossible d'enregistrer le token Forgejo."
                 rm -f "${token_write_file}"
-                rm -f "${username_file}"
-                unset forgejo_token
                 return 1
             fi
 
             chmod 600 "${token_file}"
 
-            unset forgejo_token
-
+            echo ""
             print_info \
-                "Validation du token Forgejo..."
+                "Validation du token Forgejo auprès de l'API..."
 
             credentials_rc=0
 
             _forgejo_validate_credentials \
                 "${project_path}" || credentials_rc=$?
 
-            if [[ "${credentials_rc}" -eq 0 ]]; then
-                print_success \
-                    "Authentification Forgejo réussie."
-                return 0
-            fi
+            case "${credentials_rc}" in
+
+                0)
+                    print_success \
+                        "Authentification Forgejo réussie."
+                    return 0
+                    ;;
+
+                2)
+                    print_error \
+                        "Le token Forgejo fourni est invalide ou expiré."
+                    ;;
+
+                *)
+                    print_error \
+                        "Impossible de valider le token Forgejo."
+                    ;;
+            esac
 
             rm -f "${token_file}" "${username_file}"
-
-            if [[ "${credentials_rc}" -eq 2 ]]; then
-                print_error \
-                    "Le token Forgejo fourni est invalide ou expiré."
-            else
-                print_error \
-                    "Impossible de valider le token Forgejo."
-            fi
 
             return 1
             ;;
 
-        # ==================================================
-        # Génération automatique
-        # ==================================================
-
         2)
+            # ==================================================
+            # Étape 4B : Génération automatique du token
+            # ==================================================
 
             echo ""
             print_title "Création automatique du token Forgejo"
@@ -910,7 +1057,10 @@ forgejo_ensure_credentials() {
                 "DIU va se connecter à Forgejo avec votre compte."
 
             print_info \
-                "L'API Forgejo sera utilisée pour créer automatiquement un token."
+                "L'API Forgejo sera utilisée pour créer"
+
+            print_info \
+                "automatiquement un nouveau token."
 
             echo ""
 
@@ -928,7 +1078,6 @@ forgejo_ensure_credentials() {
             read -r -s -p \
                 "Mot de passe Forgejo pour ${forgejo_user} : " \
                 forgejo_password
-
             echo ""
 
             if [[ -z "${forgejo_password}" ]]; then
@@ -940,9 +1089,16 @@ forgejo_ensure_credentials() {
 
             forgejo_username="${forgejo_user}"
 
-            # ------------------------------------------------
-            # Authentification temporaire par .netrc
-            # ------------------------------------------------
+            # ==================================================
+            # Étape 5 : Authentification HTTP
+            # ==================================================
+
+            echo ""
+            print_title "Authentification Forgejo"
+            echo ""
+
+            print_info \
+                "Vérification des identifiants HTTP Forgejo..."
 
             netrc_file="$(mktemp)" || {
                 print_error \
@@ -951,19 +1107,22 @@ forgejo_ensure_credentials() {
                 return 1
             }
 
-            chmod 600 "${netrc_file}" || {
+            if ! chmod 600 "${netrc_file}"; then
+                print_error \
+                    "Impossible de sécuriser le fichier temporaire."
                 rm -f "${netrc_file}"
                 unset forgejo_password
                 return 1
-            }
+            fi
 
-            if ! printf \
-                'machine %s\nlogin %s\npassword %s\n' \
+            if ! printf 'machine %s\nlogin %s\npassword %s\n' \
                 "${forgejo_host}" \
                 "${forgejo_user}" \
                 "${forgejo_password}" \
                 > "${netrc_file}"; then
 
+                print_error \
+                    "Impossible de préparer l'authentification HTTP."
                 rm -f "${netrc_file}"
                 unset forgejo_password
                 return 1
@@ -989,14 +1148,16 @@ forgejo_ensure_credentials() {
 
                 401)
                     print_error \
-                        "Identifiant ou mot de passe Forgejo invalide."
+                        "Authentification HTTP Forgejo échouée."
+                    print_error \
+                        "Forgejo a refusé l'identifiant ou le mot de passe (HTTP 401)."
                     rm -f "${netrc_file}"
                     return 1
                     ;;
 
                 403)
                     print_error \
-                        "Authentification Forgejo refusée (HTTP 403)."
+                        "Authentification HTTP Forgejo refusée (HTTP 403)."
                     rm -f "${netrc_file}"
                     return 1
                     ;;
@@ -1010,20 +1171,30 @@ forgejo_ensure_credentials() {
 
                 *)
                     print_error \
+                        "Authentification HTTP Forgejo échouée."
+                    print_error \
                         "Réponse inattendue de Forgejo : HTTP ${auth_http_code}"
                     rm -f "${netrc_file}"
                     return 1
                     ;;
             esac
 
-            # ------------------------------------------------
-            # Création du token
-            # ------------------------------------------------
+            # ==================================================
+            # Étape 6 : Création du token
+            # ==================================================
 
+            echo ""
             print_title "Création du token Forgejo"
+            echo ""
 
-            print_info "Nom du token : diu-publish"
-            print_info "Scope demandé : write:repository"
+            print_info \
+                "Nom du token : diu-publish"
+
+            print_info \
+                "Scope demandé : write:repository"
+
+            print_info \
+                "Création du token en cours..."
 
             token_http_response="$(
                 curl -sS \
@@ -1041,13 +1212,15 @@ forgejo_ensure_credentials() {
                     2>/dev/null
             )"
 
-            token_curl_rc=$?
+            bootstrap_curl_rc=$?
 
             rm -f "${netrc_file}"
 
-            if [[ "${token_curl_rc}" -ne 0 ]]; then
+            if [[ "${bootstrap_curl_rc}" -ne 0 ]]; then
                 print_error \
                     "Échec réseau lors de la création du token."
+                print_error \
+                    "Code curl : ${bootstrap_curl_rc}"
                 return 1
             fi
 
@@ -1061,21 +1234,38 @@ forgejo_ensure_credentials() {
                         "Token Forgejo créé avec succès."
                     ;;
 
-                400)
-                    print_error \
-                        "Forgejo a refusé la requête de création du token (HTTP 400)."
-                    return 1
-                    ;;
-
                 401)
                     print_error \
-                        "Forgejo a refusé l'authentification (HTTP 401)."
+                        "Forgejo a refusé l'authentification lors de la création du token."
+                    print_error \
+                        "Réponse HTTP : 401"
                     return 1
                     ;;
 
                 403)
                     print_error \
-                        "Forgejo refuse la création du token (HTTP 403)."
+                        "Forgejo refuse la création du token pour ce compte."
+                    print_error \
+                        "Réponse HTTP : 403"
+                    return 1
+                    ;;
+
+                400)
+                    local error_msg=""
+
+                    error_msg="$(
+                        printf '%s' "${token_http_body}" |
+                            jq -r \
+                                '.message // .error // "erreur inconnue"' \
+                                2>/dev/null
+                    )"
+
+                    print_error \
+                        "Forgejo a refusé la requête de création du token (HTTP 400)."
+
+                    print_error \
+                        "Message Forgejo : ${error_msg}"
+
                     return 1
                     ;;
 
@@ -1088,63 +1278,67 @@ forgejo_ensure_credentials() {
                     ;;
             esac
 
+            # ==================================================
+            # Étape 7 : Extraction du token
+            # ==================================================
+
             if ! printf '%s' "${token_http_body}" |
-                jq empty >/dev/null 2>&1; then
+                jq empty 2>/dev/null; then
 
                 print_error \
                     "Réponse JSON invalide de Forgejo."
                 return 1
             fi
 
-            forgejo_token_generated="$(
+            forgejo_token="$(
                 printf '%s' "${token_http_body}" |
                     jq -r '.sha1 // .token // empty'
             )"
 
-            if [[ -z "${forgejo_token_generated}" ]]; then
+            if [[ -z "${forgejo_token}" ]]; then
                 print_error \
                     "Forgejo n'a retourné aucun token exploitable."
                 return 1
             fi
 
-            forgejo_token="${forgejo_token_generated}"
-            unset forgejo_token_generated
-
-            # ------------------------------------------------
-            # Persistance
-            # ------------------------------------------------
+            # ==================================================
+            # Étape 8 : Persistance locale
+            # ==================================================
 
             if ! mkdir -p "${project_path}/config"; then
                 print_error \
                     "Impossible de créer le répertoire config."
-                unset forgejo_token
                 return 1
             fi
 
             username_write_file="$(
                 mktemp "${project_path}/config/.forgejo.username.XXXXXX"
             )" || {
-                unset forgejo_token
+                print_error \
+                    "Impossible de créer le fichier temporaire username."
                 return 1
             }
 
             chmod 600 "${username_write_file}" || {
+                print_error \
+                    "Impossible de sécuriser le fichier username."
                 rm -f "${username_write_file}"
-                unset forgejo_token
                 return 1
             }
 
             if ! printf '%s' "${forgejo_username}" \
                 > "${username_write_file}"; then
 
+                print_error \
+                    "Impossible d'écrire l'identifiant Forgejo."
                 rm -f "${username_write_file}"
-                unset forgejo_token
                 return 1
             fi
 
             if ! mv "${username_write_file}" "${username_file}"; then
+                print_error \
+                    "Impossible d'enregistrer l'identifiant Forgejo."
                 rm -f "${username_write_file}"
-                unset forgejo_token
                 return 1
             fi
 
@@ -1153,44 +1347,74 @@ forgejo_ensure_credentials() {
             token_write_file="$(
                 mktemp "${project_path}/config/.forgejo.token.XXXXXX"
             )" || {
-                rm -f "${username_file}"
-                unset forgejo_token
+                print_error \
+                    "Impossible de créer le fichier temporaire token."
                 return 1
             }
 
             chmod 600 "${token_write_file}" || {
+                print_error \
+                    "Impossible de sécuriser le fichier token."
                 rm -f "${token_write_file}"
-                rm -f "${username_file}"
-                unset forgejo_token
                 return 1
             }
 
             if ! printf '%s' "${forgejo_token}" \
                 > "${token_write_file}"; then
 
+                print_error \
+                    "Impossible d'écrire le token Forgejo."
                 rm -f "${token_write_file}"
-                rm -f "${username_file}"
-                unset forgejo_token
                 return 1
             fi
 
             if ! mv "${token_write_file}" "${token_file}"; then
+                print_error \
+                    "Impossible d'enregistrer le token Forgejo."
                 rm -f "${token_write_file}"
-                rm -f "${username_file}"
-                unset forgejo_token
                 return 1
             fi
 
             chmod 600 "${token_file}"
 
-            unset forgejo_token
+            final_token_perms="$(
+                stat -c %a "${token_file}" 2>/dev/null
+            )"
+
+            final_username_perms="$(
+                stat -c %a "${username_file}" 2>/dev/null
+            )"
+
+            if [[ "${final_token_perms}" != "600" ]]; then
+                print_error \
+                    "Permissions invalides sur ${token_file} : ${final_token_perms}"
+                rm -f "${token_file}"
+                return 1
+            fi
+
+            if [[ "${final_username_perms}" != "600" ]]; then
+                print_error \
+                    "Permissions invalides sur ${username_file} : ${final_username_perms}"
+                rm -f "${username_file}" "${token_file}"
+                return 1
+            fi
 
             print_success \
-                "Credentials Forgejo enregistrés."
+                "Token Forgejo enregistré dans ${token_file}"
 
-            # ------------------------------------------------
-            # Validation finale
-            # ------------------------------------------------
+            print_success \
+                "Identifiant Forgejo enregistré dans ${username_file}"
+
+            # ==================================================
+            # Étape 9 : Validation du nouveau token
+            # ==================================================
+
+            echo ""
+            print_title "Validation du nouveau token Forgejo"
+            echo ""
+
+            print_info \
+                "Vérification du token auprès de l'API Forgejo..."
 
             credentials_rc=0
 
@@ -1216,8 +1440,6 @@ forgejo_ensure_credentials() {
                     ;;
             esac
 
-            rm -f "${token_file}" "${username_file}"
-
             return 1
             ;;
 
@@ -1228,7 +1450,6 @@ forgejo_ensure_credentials() {
             ;;
     esac
 }
-
 
 # ==========================================================
 # Git fetch authentifié
@@ -1243,7 +1464,7 @@ forgejo_git_fetch() {
         return 1
     fi
 
-    if ! forgejo_ensure_credentials "${project_path}"; then
+    if ! _forgejo_ensure_credentials "${project_path}"; then
         return 1
     fi
 
@@ -1281,7 +1502,7 @@ forgejo_git_push() {
         return 1
     fi
 
-    if ! forgejo_ensure_credentials "${project_path}"; then
+    if ! _forgejo_ensure_credentials "${project_path}"; then
         print_error \
             "forgejo_git_push : impossible d'initialiser les credentials Forgejo."
         return 1
