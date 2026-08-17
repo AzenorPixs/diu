@@ -58,7 +58,7 @@ HirYcUOcq8ENj3Nc/wdVEE9PfxbX+9toalk9wboJ
 
 # VERSIONS
 
-export VERSION=16.07.2026
+export VERSION=2026.08.12.03.08
 
 export VERSION_ALIAS=16.07.2026
 
@@ -166,7 +166,7 @@ export KERNEL_LAST=7.0.14-11-pve
 
 export KEY_SSH_ADMIN="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC+FSHEVC5ZRvwkRiG8zBFRsJ5bRVya0/mp6NR5d8Owl root@pixs.fr"
 
-export KEY_SSH_ACME="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEQrvNHkuQ6UaYMV3sToUNDE9UY+ICWOqH4xwXhMkBA9 root@fw1.pixs.fr"export LOG_ROTATE=1
+export KEY_SSH_ACME="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEQrvNHkuQ6UaYMV3sToUNDE9UY+ICWOqH4xwXhMkBA9 root@fw1.pixs.fr"
 
 export LOG_ROTATE=1
 
@@ -292,8 +292,6 @@ export AMULE=1
 
 export APACHE2=0
 
-export CERTBOT=0
-
 export CROWDSEC_AGENT=0  # ON LAPI cscli lapi register -u  http://10.25.106.1:8080 --machine FW-CHN ; On FW-CHN cscli machines validate SIEM
 
 export CROWDSEC_BOUNCER=0  # cscli bouncers add wxyz on LAPI (REGISTER API KEY AND SAVE IN /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml)
@@ -326,7 +324,15 @@ export DOCKER_CONTAINERDIO_FIXED_VERSION=1.7.28-0~debian.13~trixie
 
 export DOCKER_IMAGE_OPENCODE="ghcr.io/anomalyco/opencode:latest"
 
+export DOCKER_IMAGE_OPENCODE_UPDATE_POLICY="check"
+
+export DOCKER_IMAGE_HERMES="nousresearch/hermes-agent:latest"
+
+export DOCKER_IMAGE_HERMES_UPDATE_POLICY="check" # never, check ou always
+
 export DOCKER_IMAGE_UPDATE_POLICY="check" # never, check ou always
+
+export DOCKER_IMAGE_UPDATED=0 # Cette variable est réinitialisée à 0 à chaque appel. Ca valeur n'a aucune importance
 
 export DOCKER_STACK_DEVOPS=1
 
@@ -366,6 +372,38 @@ export DOCKER_PORTAINER_STACK_NEXTCLOUD_UPGRADE=0
 
 export DOCKER_TREE_HOME=0
 
+export ENV_HUMAN_USER=ade
+
+export ENV_IA=1
+
+export ENV_IA_DOCKER_ROOTLESS=1
+
+export ENV_IA_GROUP=labia
+
+export ENV_IA_HERMES=1
+
+export ENV_IA_USER=ia
+
+export ENV_IA_PASSWORD=1AQ6HvQSR9HQKM0EqHQBHY
+
+export ENV_IA_HERMES_API_ENABLED=1
+
+export ENV_IA_HERMES_API_HOST="0.0.0.0"
+
+export ENV_IA_HERMES_API_PORT=8642
+
+export ENV_IA_HERMES_MAX_ITERATIONS=500
+
+export ENV_IA_HERMES_MODEL="deepseek-v4-flash"
+
+export ENV_IA_HERMES_REDACT_SECRETS=1
+
+export ENV_IA_HERMES_TIMEZONE="Europe/Paris"
+
+export ENV_IA_HERMES_WRITE_SAFE_ROOT="/opt/data"
+
+export ENV_IA_HERMES_YOLO=0
+
 export FASTFETCH=1
 
 export GO=1
@@ -379,6 +417,8 @@ export MONGODB=0
 export MONGODB_VERSION=7 # 4.4/5/6/7/8
 
 export NODEJS=1
+
+export NODEJS_SERIES="24"
 
 export OMADA=0
 
