@@ -17,10 +17,13 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/lib/git-auth.sh"
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
+. "$BASH_SCRIPT_PATH/lib/git.sh"
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
-. "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
+. "$BASH_SCRIPT_PATH/modules/diu/update.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/cicd.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/forgejo-release.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
 
 # Creer l'arborescence.
 mkdir -p "$BASH_SCRIPT_PATH/config"
@@ -1598,6 +1601,14 @@ dispatch_arguments() {
             manage_project_action "$@"
             ;;
 
+        update)
+            update_diu
+            ;;
+
+        version)
+            diu_version
+            ;;
+
         help|--help|-h)
             display_usage
             ;;
@@ -1620,63 +1631,54 @@ display_usage() {
 
 Utilisation :
 
-  rid
-      Exécute normalement l'installation Debian.
+  rid																→  Exécute normalement l'installation Debian.
 
-  rid ia configure hm                                                   →  Configure Agent Hermès
-  rid ia install hm                                                     →  Install Agent Hermes
-  rid ia docker ps                                                      →  Execute un docker PS dans l'environnement IA (rootless)                                                         
-  rit ia start hm                                                       →  Start Agent Hermes
-  rid ia stop hm                                                        →  Stop Agent Hermes
-  rid ia update hm                                                      →  Update Agent Hermes
-  rid ia uninstall hm                                                   →  Uninstall Agent Hermes
+  rid ia configure hm                                               →  Configure Agent Hermès
+  rid ia install hm                                                 →  Install Agent Hermes
+  rid ia docker ps                                                  →  Execute un docker PS dans l'environnement IA (rootless)                                                         
+  rit ia start hm                                                   →  Start Agent Hermes
+  rid ia stop hm                                                    →  Stop Agent Hermes
+  rid ia update hm                                                  →  Update Agent Hermes
+  rid ia uninstall hm                                               →  Uninstall Agent Hermes
 
-  rid docker root check-containers                                      →   Effectue une analyse de tous les containers Up dans l'environnements Docker Rootfull  
-  rid docker root diag <USER>                                           →   Effectue un diagnostic dans l'environnement Docker Rootfull de l'utilisateur <USER>  
-  rid docker root test <USER>                                           →   Teste l'état de l'environnement Docker Rootfull de l'utilisateur <USER>
+  rid docker root check-containers                                  →   Analyse containers Up dans l'environnements Docker  
+  rid docker root diag <USER>                                       →   Diagnostic dans l'environnement <USER>  Docker  
+  rid docker root test <USER>                                       →   Teste l'état de l'environnement Docker de l'utilisateur <USER>
+  rid docker rootless analyse <USER>                                →   Analyse l'état de l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless configure <USER>                              →   Configure l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless diag <USER>                                   →   Effectue un diagnostic dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless exec <USER> <CONTAINER>                       →   Exécute une commande dans l'environnement Docker Rootless de l'utilisateur <USER> pour le container <CONTAINER>
+  rid docker rootless inspect <USER> <CONTAINER>                    →   Inspecte le container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless log <USER> <CONTAINER>                        →   Affiche les journaux du container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless ps <USER>                                     →   Affiche la liste des des container Up dans l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless test <USER>                                   →   Teste l'état de l'environnement Docker Rootless de l'utilisateur <USER>
+  rid docker rootless unconfigure <USER>                            →   Déconfigure Docker Rootless et restaure l'environnement Docker Rootfull de l'utilisateur <USER>
 
-  rid docker rootless analyse <USER>                                    →   Analyse l'état de l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless configure <USER>                                  →   Configure l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless diag <USER>                                       →   Effectue un diagnostic dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless exec <USER> <CONTAINER>                           →   Exécute une commande dans l'environnement Docker Rootless de l'utilisateur <USER> pour le container <CONTAINER>
-  rid docker rootless inspect <USER> <CONTAINER>                        →   Inspecte le container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless log <USER> <CONTAINER>                            →   Affiche les journaux du container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless ps <USER>                                         →   Affiche la liste des des container Up dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless test <USER>                                       →   Teste l'état de l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless unconfigure <USER>                                →   Déconfigure Docker Rootless et restaure l'environnement Docker Rootfull de l'utilisateur <USER>
+  rid os validate <ID Projet"> <"Nom de la Spec">					→  Analyse la Spec la commande openspec validate "Nom de la Spec" --type spec --stric dans le projet //home/devops/datas/"ID Projet".
+  rid proj deb <ID Projet>                                          →  Construit le paquet Debian à partir du projet /home/devops/datas/"ID Projet" et dépose l'artefact dans dist/.
+  rid proj bash <ID Projet> <Nom du Projet>                         →  Crée un nouveau projet BASH nomé <Nom du Projet> dans le répertoire /home/<DEVOPS USER>/datas/<ID Projet>.
+  rid proj del <ID Projet>                                          →  Supprime le projet /home/devops/datas/<ID Projet> après confirmation.
+  rid proj gita <ID Projet> <Nom du Projet>                         →  Analyse du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
+  rid proj gitc <ID Projet> <Nom du Projet> <Nom du Commit>         →  Commit vers le dépôt Git local pour projet /home/devops/datas/"<ID Projet> avec comme nom de commit <Nom du Commit>.
+  rid proj giti <ID Projet> <Nom du Projet>                         →  Initialisation du dépôt Git local dans le projet /home/devops/datas/<ID Projet>.
+  rid proj gitp <ID Projet> <Nom du Projet>                         →  Push vers le dépôt Git distant le dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
+  rid proj gits <ID Projet> <Nom du Projet>                         →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
+  rid proj ocro <ID Projet>											→  Démarre un Docker OpenCode en lecture seul dans le projet /home/devops/datas/"ID Projet".
+  rid proj ocrw <ID Projet>											→  Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
+  rid proj rel <ID Projet>											→  Publie la Release Forgejo à partir du paquet Debian dans dist/.
 
-  rid os validate <ID Projet"> <"Nom de la Spec">
-      Analyse la Spec la commande openspec validate "Nom de la Spec" --type spec --stric dans le projet //home/devops/datas/"ID Projet".
+  rid update														→  Mise à jour totale
+  rid update diu												    →  Mise à jour du DIU
 
-  rid proj deb <ID Projet">                                             →  Construit le paquet Debian à partir du projet /home/devops/datas/"ID Projet" et dépose l'artefact dans dist/.
-  rid proj bash <ID Projet"> <Nom du Projet>                            →  Crée un nouveau projet BASH nomé <Nom du Projet> dans le répertoire /home/<DEVOPS USER>/datas/<ID Projet>.
-  rid proj del <ID Projet">                                             →  Supprime le projet /home/devops/datas/<ID Projet> après confirmation.
-  rid proj gita <ID Projet"> <Nom du Projet>                            →  Analyse du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj gitc <ID Projet"> <Nom du Projet> <Nom du Commit>            →  Commit vers le dépôt Git local pour projet /home/devops/datas/"<ID Projet> avec comme nom de commit <Nom du Commit>.
-  rid proj giti <ID Projet"> <Nom du Projet>                            →  Initialisation du dépôt Git local dans le projet /home/devops/datas/<ID Projet>.
-  rid proj gitp <ID Projet"> <Nom du Projet>                            →  Push vers le dépôt Git distant le dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj gits <ID Projet"> <Nom du Projet>                            →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-
-   rid proj ocro "ID Projet"
-      Démarre un Docker OpenCode en lecture seul dans le projet /home/devops/datas/"ID Projet".
-
-   rid proj ocrw "ID Projet"
-      Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
-
-
-  rid proj rel "ID Projet"
-      Publie une Release Forgejo à partir du paquet Debian dans dist/.
-
+  ridt proj cicd <ID Projet> <Nom du Projet> <Nom du Commit>		→  Flux CI/CD Git local --> Git Distant --> Deb --> Publication
 
 Structure générale :
 
-  rid <classe> <action> <variable>
+  rid <classe> <action> <subaction> <variable>
 
-Arguments actuellement disponibles :
+Classe actuellement disponibles :
 
-  Classe :    proj
-  Actions :   bash | del | deb | gita | gitc | giti | gitp | gits | rel
-  Variable :  myprojet
+  Classe :  ia | docker | proj | update
 
 EOF
 }
@@ -3200,322 +3202,158 @@ git_init() {
 }
 
 git_push() {
-    local project_id="$1"
-    local project_name="$2"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-
+    local project_path="${BASH_SCRIPT_PATH}"
+    local current_branch=""
     local remote_name="origin"
     local remote_url=""
-    local current_branch=""
-    local upstream_branch=""
-    local forgejo_user=""
-    local forgejo_server="forgejo.pixs.fr"
+    local upstream=""
     local confirmation=""
-    local remote_created="0"
+    local push_rc=0
 
-    echo ""
-    echo "=============================================="
-    echo " Préparation FORGEJO du projet ${project_name}"
-    echo "=============================================="
-    echo ""
+    print_title "Push Git du projet ${PROJECT_NAME:-DIU}"
 
-    # ----------------------------------------------------------
-    # Vérification des paramètres
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Vérification du projet
+    # ==========================================================
 
-    if [[ -z "${project_id}" || -z "${project_name}" ]]; then
-        print_error "Usage : git_push <project_id> <project_name>"
+    if [[ -z "${project_path}" ]]; then
+        print_error "git_push : BASH_SCRIPT_PATH est vide."
         return 1
     fi
-
-    # ----------------------------------------------------------
-    # Vérification de l'utilisateur DevOps
-    # ----------------------------------------------------------
-
-    check_devops_user
-
-    # ----------------------------------------------------------
-    # Vérification du projet
-    # ----------------------------------------------------------
 
     if [[ ! -d "${project_path}" ]]; then
+        print_error "Le projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if [[ -z "${ENV_DEVOPS_USER}" ]]; then
+        print_error "git_push : ENV_DEVOPS_USER est vide."
+        return 1
+    fi
+
+    if ! id "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
         print_error \
-            "Le répertoire du projet n'existe pas : ${project_path}"
+            "L'utilisateur Git '${ENV_DEVOPS_USER}' n'existe pas."
         return 1
     fi
 
-    # ----------------------------------------------------------
-    # Vérification de Git
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Vérification dépôt Git
+    # ==========================================================
 
-    if ! command -v git >/dev/null 2>&1; then
-        print_error "Git n'est pas installé."
-        return 1
-    fi
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git --version >/dev/null 2>&1; then
-
-        print_error \
-            "Git n'est pas accessible pour l'utilisateur ${DEVOPS_USER}."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Vérification des droits d'accès
-    # ----------------------------------------------------------
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        test -r "${project_path}"; then
+    if ! sudo -u "${ENV_DEVOPS_USER}" \
+        git -C "${project_path}" rev-parse --git-dir >/dev/null 2>&1; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
+            "Le projet n'est pas un dépôt Git pour ${ENV_DEVOPS_USER} : ${project_path}"
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        test -w "${project_path}"; then
-
-        print_error \
-            "${DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Vérification du dépôt Git
-    # ----------------------------------------------------------
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" rev-parse \
-        --is-inside-work-tree >/dev/null 2>&1; then
-
-        print_error \
-            "Aucun dépôt Git initialisé."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Vérification de la présence d'un commit
-    # ----------------------------------------------------------
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" rev-parse \
-        --verify HEAD >/dev/null 2>&1; then
-
-        print_error \
-            "Aucun commit local n'est disponible pour le push."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Détermination de la branche courante
-    # ----------------------------------------------------------
-
-    current_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" branch \
-            --show-current
-    )"
-
-    if [[ -z "${current_branch}" ]]; then
-        print_error \
-            "Impossible de déterminer la branche Git courante."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Vérification / préparation du dépôt distant
-    # ----------------------------------------------------------
-
-    if runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" remote |
-        grep -qx "${remote_name}"; then
-
-        # ------------------------------------------------------
-        # Origin existe déjà
-        # ------------------------------------------------------
-
-        remote_url="$(
-            runuser -u "${DEVOPS_USER}" -- \
-                git -C "${project_path}" remote \
-                get-url "${remote_name}"
-        )"
-
-        if [[ -z "${remote_url}" ]]; then
-            print_error \
-                "Impossible de déterminer l'URL du dépôt distant '${remote_name}'."
-            return 1
-        fi
-
-        print_info \
-            "Le dépôt distant '${remote_name}' est déjà configuré."
-
-    else
-
-        # ------------------------------------------------------
-        # Première configuration Forgejo
-        # ------------------------------------------------------
-
-        print_title "Configuration Forgejo"
-
-        while [[ -z "${forgejo_user}" ]]; do
-            read -r -p "Utilisateur Forgejo : " forgejo_user
-
-            if [[ -z "${forgejo_user}" ]]; then
-                print_error \
-                    "L'utilisateur Forgejo ne peut pas être vide."
-            fi
-        done
-
-        echo ""
-
-        read -r -p \
-            "Serveur Forgejo [${forgejo_server}] : " \
-            forgejo_server_input
-
-        if [[ -n "${forgejo_server_input}" ]]; then
-            forgejo_server="${forgejo_server_input}"
-        fi
-
-        remote_url="https://${forgejo_server}/${forgejo_user}/${project_id}.git"
-
-        echo ""
-        echo "Configuration du dépôt distant :"
-        echo "  Serveur     : ${forgejo_server}"
-        echo "  Utilisateur : ${forgejo_user}"
-        echo "  Projet      : ${project_id}"
-        echo "  Remote      : ${remote_name}"
-        echo "  URL         : ${remote_url}"
-        echo ""
-
-        read -r -p \
-            "Configurer ce dépôt Forgejo ? [o/N] : " \
-            confirmation
-
-        case "${confirmation}" in
-            o|O|oui|OUI|y|Y|yes|YES)
-                ;;
-            *)
-                print_info \
-                    "Configuration Forgejo annulée."
-                return 0
-                ;;
-        esac
-
-        # ------------------------------------------------------
-        # Ajout du dépôt distant
-        # ------------------------------------------------------
-
-        print_title "Configuration du dépôt Git distant"
-
-        if ! runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" remote add \
-            "${remote_name}" "${remote_url}"; then
-
-            print_error \
-                "Échec de la configuration du dépôt distant ${remote_name}."
-            return 1
-        fi
-
-        remote_created="1"
-
-        print_success \
-            "Dépôt distant '${remote_name}' configuré."
-    fi
-
-    # ----------------------------------------------------------
-    # Vérification du dépôt distant
-    # ----------------------------------------------------------
-
-    print_title "git remote -v"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" remote -v; then
-
-        print_error \
-            "Impossible d'afficher les dépôts distants."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Informations avant push
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Dépôt Git
+    # ==========================================================
 
     print_title "Dépôt Git"
 
-    echo "Projet          : ${project_name}"
-    echo "Répertoire      : ${project_path}"
-    echo "Utilisateur     : ${DEVOPS_USER}"
-    echo "Branche locale  : ${current_branch}"
-    echo "Remote          : ${remote_name}"
-    echo "URL distante    : ${remote_url}"
-    echo ""
+    current_branch="$(
+        sudo -u "${ENV_DEVOPS_USER}" \
+            git -C "${project_path}" branch --show-current 2>/dev/null
+    )"
 
-    # ----------------------------------------------------------
-    # État du dépôt local
-    # ----------------------------------------------------------
+    if [[ -z "${current_branch}" ]]; then
+        print_error "Impossible de déterminer la branche Git courante."
+        return 1
+    fi
+
+    remote_url="$(
+        sudo -u "${ENV_DEVOPS_USER}" \
+            git -C "${project_path}" remote get-url "${remote_name}" 2>/dev/null
+    )"
+
+    if [[ -z "${remote_url}" ]]; then
+        print_error "Le remote '${remote_name}' n'est pas configuré."
+        return 1
+    fi
+
+    printf '%-18s : %s\n' "Projet" "${PROJECT_NAME:-DIU}"
+    printf '%-18s : %s\n' "Répertoire" "${project_path}"
+    printf '%-18s : %s\n' "Utilisateur" "${ENV_DEVOPS_USER}"
+    printf '%-18s : %s\n' "Branche locale" "${current_branch}"
+    printf '%-18s : %s\n' "Remote" "${remote_name}"
+    printf '%-18s : %s\n' "URL distante" "${remote_url}"
+
+    # ==========================================================
+    # git status
+    # ==========================================================
 
     print_title "git status"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! sudo -u "${ENV_DEVOPS_USER}" \
         git -C "${project_path}" status; then
 
-        print_error \
-            "Impossible d'afficher l'état du dépôt Git."
+        print_error "Impossible d'obtenir l'état Git du projet."
         return 1
     fi
 
-    # ----------------------------------------------------------
-    # Historique local
-    # ----------------------------------------------------------
+    # ==========================================================
+    # git log
+    # ==========================================================
 
     print_title "git log --oneline"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" log \
-        --oneline \
-        --decorate \
-        -5; then
+    if ! sudo -u "${ENV_DEVOPS_USER}" \
+        git -C "${project_path}" log --oneline -10; then
 
-        print_error \
-            "Impossible d'afficher l'historique Git."
+        print_error "Impossible de lire l'historique Git."
         return 1
     fi
 
-    # ----------------------------------------------------------
-    # Vérification de la branche de suivi
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Credentials Forgejo
+    # ==========================================================
 
-    upstream_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" rev-parse \
-            --abbrev-ref \
-            --symbolic-full-name \
-            '@{upstream}' \
-            2>/dev/null || true
-    )"
-
-    echo ""
-
-    if [[ -z "${upstream_branch}" ]]; then
-        print_info \
-            "Aucune branche distante de suivi n'est encore configurée."
-    else
-        print_info \
-            "Branche distante suivie : ${upstream_branch}"
+    if ! _forgejo_ensure_credentials "${project_path}"; then
+        print_error "Impossible d'initialiser les credentials Forgejo."
+        return 1
     fi
 
-    # ----------------------------------------------------------
-    # Confirmation du push
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Branche distante de suivi
+    # ==========================================================
 
-    echo ""
-    echo "Le dépôt local va être envoyé vers :"
-    echo "  ${remote_url}"
-    echo ""
-    echo "Branche : ${current_branch}"
-    echo ""
+	upstream=""
 
+	if sudo -u "${ENV_DEVOPS_USER}" \
+		git -C "${project_path}" \
+		rev-parse --verify \
+		"${current_branch}@{upstream}" >/dev/null 2>&1; then
+
+		upstream="$(
+			sudo -u "${ENV_DEVOPS_USER}" \
+				git -C "${project_path}" \
+				rev-parse --abbrev-ref \
+				--symbolic-full-name "${current_branch}@{upstream}" \
+				2>/dev/null
+		)"
+	fi
+
+    if [[ -z "${upstream}" ]]; then
+        print_info "Aucune branche distante de suivi n'est encore configurée."
+
+        printf '\n'
+        print_info "Le dépôt local va être envoyé vers :"
+        printf '  %s\n' "${remote_url}"
+        printf '\n'
+        printf 'Branche : %s\n' "${current_branch}"
+    else
+        print_info "Branche distante de suivi : ${upstream}"
+    fi
+
+    # ==========================================================
+    # Confirmation
+    # ==========================================================
+
+    printf '\n'
     read -r -p "Effectuer le push ? [o/N] : " confirmation
 
     case "${confirmation}" in
@@ -3523,108 +3361,44 @@ git_push() {
             ;;
         *)
             print_info "Push annulé."
-
-            if [[ "${remote_created}" == "1" ]]; then
-                print_info \
-                    "Le dépôt distant '${remote_name}' reste configuré localement."
-            fi
-
             return 0
             ;;
     esac
 
-    # ----------------------------------------------------------
-    # Push authentifié via forgejo-auth
-    # ----------------------------------------------------------
+    # ==========================================================
+    # Push vers Forgejo
+    # ==========================================================
 
     print_title "Push vers Forgejo"
 
-    local push_rc=0
-
-    if [[ -z "${upstream_branch}" ]]; then
+    if [[ -z "${upstream}" ]]; then
 
         print_info \
             "Premier push : création de la branche distante et de son suivi."
 
-        forgejo_git_push "${project_path}" \
+        forgejo_git_push \
+            "${project_path}" \
             -u "${remote_name}" "${current_branch}" || push_rc=$?
-
-        if [[ "${push_rc}" -ne 0 ]]; then
-            print_error "Échec du premier push vers Forgejo (code ${push_rc})."
-            return "${push_rc}"
-        fi
 
     else
 
         print_info \
-            "Push vers la branche distante ${upstream_branch}."
+            "Push de la branche ${current_branch} vers ${upstream}."
 
-        forgejo_git_push "${project_path}" || push_rc=$?
+        forgejo_git_push \
+            "${project_path}" || push_rc=$?
 
-        if [[ "${push_rc}" -ne 0 ]]; then
-            print_error "Échec du push vers Forgejo (code ${push_rc})."
-            return "${push_rc}"
-        fi
     fi
 
-    # ----------------------------------------------------------
-    # Vérification de la branche de suivi
-    # ----------------------------------------------------------
-
-    upstream_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" rev-parse \
-            --abbrev-ref \
-            --symbolic-full-name \
-            '@{upstream}' \
-            2>/dev/null || true
-    )"
-
-    # ----------------------------------------------------------
-    # Vérifications finales
-    # ----------------------------------------------------------
-
-    print_title "Vérification finale"
-
-    echo "Remote          : ${remote_name}"
-    echo "URL distante    : ${remote_url}"
-    echo "Branche locale  : ${current_branch}"
-
-    if [[ -n "${upstream_branch}" ]]; then
-        echo "Branche suivie  : ${upstream_branch}"
-    else
-        echo "Branche suivie  : aucune"
-    fi
-
-    echo ""
-
-    print_title "git status"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" status; then
-
+    if [[ "${push_rc}" -ne 0 ]]; then
         print_error \
-            "Impossible d'afficher l'état final du dépôt Git."
-        return 1
+            "Échec du push vers Forgejo (code ${push_rc})."
+        return "${push_rc}"
     fi
 
-    print_title "git log --oneline"
+    print_success "Push Git terminé avec succès."
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" log \
-        --oneline \
-        --decorate \
-        -5; then
-
-        print_error \
-            "Impossible d'afficher l'historique Git."
-        return 1
-    fi
-
-    echo ""
-
-    print_success \
-        "Push Git effectué avec succès vers Forgejo par ${DEVOPS_USER}."
+    return 0
 }
 
 git_status() {
@@ -4621,9 +4395,16 @@ manage_project_action() {
     local action="${1:-}"
     local project_id="${2:-}"
     local project_name="${3:-}"
-    local other_info="${4:-}"
+    local commit_name="${4:-}"
 
     case "$action" in
+
+        cicd)
+            cicd_project \
+                "$project_id" \
+                "$project_name" \
+                "$commit_name"
+            ;;
 
         del)
             delete_project \
@@ -4647,7 +4428,7 @@ manage_project_action() {
             git_commit \
                 "$project_id" \
                 "$project_name" \
-                "$other_info"
+                "$commit_name"
             ;;
 
         giti)
@@ -4966,7 +4747,6 @@ then
 	fi
 
 fi
-
 
 ### APT ###
 
@@ -8319,7 +8099,7 @@ then
 	echo '}' >> /etc/docker/daemon.json
 	echo "DOCKER CONFIGURED ✅"
 
-	DOCKER_COMPOSE_LAST_VERSION=`git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/docker/compose.git | sed -r '/v2|\{\}/d' | tail --lines=1 | cut --delimiter='/' --fields=3`
+	DOCKER_COMPOSE_LAST_VERSION=`git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/docker/compose.git | sed -r '/v2|v5\.5|\{\}/d' | tail --lines=1 | cut --delimiter='/' --fields=3`
 	if test -f /usr/local/bin/docker-compose ; then DOCKER_COMPOSE_VERSION=`docker-compose --version | sed -e 's/.* //'` ; else DOCKER_COMPOSE_VERSION=0 ; fi
 
 	if [ "$DOCKER_COMPOSE_VERSION" = "$DOCKER_COMPOSE_LAST_VERSION" ]
