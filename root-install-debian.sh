@@ -1631,8 +1631,7 @@ display_usage() {
 
 Utilisation :
 
-  rid
-      Exécute normalement l'installation Debian.
+  rid																→  Exécute normalement l'installation Debian.
 
   rid ia configure hm                                               →  Configure Agent Hermès
   rid ia install hm                                                 →  Install Agent Hermes
@@ -1642,9 +1641,9 @@ Utilisation :
   rid ia update hm                                                  →  Update Agent Hermes
   rid ia uninstall hm                                               →  Uninstall Agent Hermes
 
-  rid docker root check-containers                                  →   Effectue une analyse de tous les containers Up dans l'environnements Docker Rootfull  
-  rid docker root diag <USER>                                       →   Effectue un diagnostic dans l'environnement Docker Rootfull de l'utilisateur <USER>  
-  rid docker root test <USER>                                       →   Teste l'état de l'environnement Docker Rootfull de l'utilisateur <USER>
+  rid docker root check-containers                                  →   Analyse containers Up dans l'environnements Docker  
+  rid docker root diag <USER>                                       →   Diagnostic dans l'environnement <USER>  Docker  
+  rid docker root test <USER>                                       →   Teste l'état de l'environnement Docker de l'utilisateur <USER>
   rid docker rootless analyse <USER>                                →   Analyse l'état de l'environnement Docker Rootless de l'utilisateur <USER>
   rid docker rootless configure <USER>                              →   Configure l'environnement Docker Rootless de l'utilisateur <USER>
   rid docker rootless diag <USER>                                   →   Effectue un diagnostic dans l'environnement Docker Rootless de l'utilisateur <USER>
@@ -1668,16 +1667,18 @@ Utilisation :
   rid proj ocrw <ID Projet>											→  Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
   rid proj rel <ID Projet>											→  Publie la Release Forgejo à partir du paquet Debian dans dist/.
 
+  rid update														→  Mise à jour totale
+  rid update diu												    →  Mise à jour du DIU
+
+  ridt proj cicd <ID Projet> <Nom du Projet> <Nom du Commit>		→  Flux CI/CD Git local --> Git Distant --> Deb --> Publication
 
 Structure générale :
 
-  rid <classe> <action> <variable>
+  rid <classe> <action> <subaction> <variable>
 
-Arguments actuellement disponibles :
+Classe actuellement disponibles :
 
-  Classe :    proj
-  Actions :   bash | del | deb | gita | gitc | giti | gitp | gits | rel
-  Variable :  myprojet
+  Classe :  ia | docker | proj | update
 
 EOF
 }
