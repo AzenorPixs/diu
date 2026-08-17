@@ -17,8 +17,10 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/lib/git-auth.sh"
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
+. "$BASH_SCRIPT_PATH/lib/git.sh"
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
+. "$BASH_SCRIPT_PATH/modules/diu/update.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/cicd.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/forgejo-release.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/packaging.sh"
@@ -1597,6 +1599,14 @@ dispatch_arguments() {
         proj)
             shift
             manage_project_action "$@"
+            ;;
+
+        update)
+            update_diu
+            ;;
+
+        version)
+            diu_version
             ;;
 
         help|--help|-h)
