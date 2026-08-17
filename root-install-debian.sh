@@ -8614,7 +8614,7 @@ then
 	install -d -o "$ENV_IA_USER" -g "$ENV_IA_GROUP" -m 2770 "/home/$ENV_IA_USER/download" "/home/$ENV_IA_USER/tools"
 
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER
-  find /home/$ENV_IA_USER -mindepth 1 -type d -exec chmod 2770 {} +
+  find /home/$ENV_IA_USER -mindepth 0 -type d -exec chmod 2770 {} +
   find /home/$ENV_IA_USER -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/hermes
@@ -8629,8 +8629,6 @@ then
   find /home/$ENV_IA_USER/tools -mindepth 0 -type d -exec chmod 2770 {} + 
   find /home/$ENV_IA_USER/tools -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER/tools -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
-
-  chmod 2770 /home/$ENV_IA_USER
 
 fi
 
@@ -9683,6 +9681,8 @@ then
 	echo "alias dspa='docker system prune -f -a --volumes'" >> /root/.zshrc
 	echo "alias dup='su -c \"docker-compose -f /home/docker/proxy/docker-compose.yml up -d\" - docker'" >> /root/.zshrc
 	echo "alias dvls='docker volume ls'" >> /root/.zshrc
+	echo "alias hermes='docker exec -it hermes hermes --tui'" >> /root/.zshrc
+	echo "alias hmb='docker exec -it hermes bash'" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# EXIT #" >> /root/.zshrc
