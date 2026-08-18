@@ -3947,10 +3947,10 @@ launch_ocro() {
     fi
 
     ensure_docker_image \
-        "${DOCKER_IMAGE_OPENCODE}" \
-        "${DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
+        "${ENV_DOCKER_IMAGE_OPENCODE}" \
+        "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
-    su - "${DEVOPS_USER}" -c "docker run --rm -it \
+    su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
       --name ${project_id}-opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
@@ -3958,8 +3958,8 @@ launch_ocro() {
       --pids-limit 256 \
       --memory 2g \
       --cpus 2 \
-      -e OPENCODE_UID=$(id -u "${DEVOPS_USER}") \
-      -e OPENCODE_GID=$(id -g "${DEVOPS_USER}") \
+      -e OPENCODE_UID=$(id -u "${ENV_DEVOPS_USER}") \
+      -e OPENCODE_GID=$(id -g "${ENV_DEVOPS_USER}") \
       -e HOME=/home/opencode \
       -e XDG_CACHE_HOME=/home/opencode/.cache \
       -e XDG_CONFIG_HOME=/home/opencode/.config \
@@ -3996,10 +3996,10 @@ launch_ocrw() {
     fi
 
     ensure_docker_image \
-        "${DOCKER_IMAGE_OPENCODE}" \
-        "${DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
+        "${ENV_DOCKER_IMAGE_OPENCODE}" \
+        "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
-    su - "${DEVOPS_USER}" -c "docker run --rm -it \
+    su - "${ENV_ENV_DEVOPS_USER}" -c "docker run --rm -it \
       --name ${project_id}-opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
@@ -4007,8 +4007,8 @@ launch_ocrw() {
       --pids-limit 256 \
       --memory 2g \
       --cpus 2 \
-      -e OPENCODE_UID=$(id -u "${DEVOPS_USER}") \
-      -e OPENCODE_GID=$(id -g "${DEVOPS_USER}") \
+      -e OPENCODE_UID=$(id -u "${ENV_DEVOPS_USER}") \
+      -e OPENCODE_GID=$(id -g "${ENV_DEVOPS_USER}") \
       -e HOME=/home/opencode \
       -e XDG_CACHE_HOME=/home/opencode/.cache \
       -e XDG_CONFIG_HOME=/home/opencode/.config \
