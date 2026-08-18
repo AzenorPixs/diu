@@ -30,7 +30,7 @@ variable_config_file="/root/diu/config/${scope}.env"
 variable_generator() {
 
     # Génération de la valeur de DIU_AUTOMATIC_UPDATE
-    echo "1"
+    echo "${default_value}"
 }
 
 
