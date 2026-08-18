@@ -56,10 +56,6 @@ if [[ "${state}" == "ENABLE" ]]; then
 
         fi
 
-    else
-
-        echo "DIU_AUTOMATIC_UPDATE déjà existante"
-
     fi
 
 else
