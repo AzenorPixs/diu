@@ -58,6 +58,9 @@ _hermes_dir() {
     echo "/home/${ENV_IA_USER}/hermes"
 }
 
+_hermes_dir_data_cont_initd() {
+    echo "/home/${ENV_IA_USER}/hermes/data/cont-init.d"
+}
 
 _hermes_env_file() {
     echo "$(_hermes_dir)/.env"
@@ -66,6 +69,10 @@ _hermes_env_file() {
 
 _hermes_compose_file() {
     echo "$(_hermes_dir)/compose.yml"
+}
+
+_10_tune_hermes() {
+    echo "$(_hermes_dir)/data/cont-init.d/10_tune_hermes"
 }
 
 
@@ -78,7 +85,7 @@ _hermes_data_dir() {
 # DOCKER ROOTFUL
 # ==========================================================
 
-# ----------------------------------------------------------
+# ------------------10_tune_hermes----------------------------------------
 # Vérification de Docker Rootful
 # ----------------------------------------------------------
 #
@@ -135,7 +142,6 @@ _hermes_compose() {
     docker compose -f compose.yml "$@"
 }
 
-
 # ==========================================================
 # DETECTION INSTALLATION
 # ==========================================================
@@ -152,7 +158,6 @@ is_agent_hermes_installed() {
     _hermes_compose ps --status running 2>/dev/null |
         grep -q hermes
 }
-
 
 # ==========================================================
 # GENERATION .ENV
@@ -524,7 +529,7 @@ EOF
 }
 
 # ==========================================================
-# GENERATION COMPOSE
+# GENERATION COMPOSE / 
 # ==========================================================
 
 _hermes_generate_compose() {
@@ -644,6 +649,7 @@ services:
     volumes:
 
       - /home/${ENV_IA_USER}/hermes/data:/opt/data
+      - /home/${ENV_IA_USER}/hermes/data/cont-init.d/10_tune_hermes:/etc/cont-init.d/10_tune_hermes:ro
       - /home/${ENV_IA_USER}/download:/opt/download
       - /home/${ENV_IA_USER}/tools:/opt/tools
       - /home/${ENV_DEVOPS_USER}/datas/diu:/projets/diu:ro
@@ -689,6 +695,25 @@ EOF
     chmod 0660 "$compose_file"
 
     echo "✓ compose.yml généré"
+}
+
+_hermes_generate_10_tune() {
+          tune_file="$(_10_tune_hermes)"
+          # dossier parent créé si absent (idempotent)
+          mkdir -p "$(_hermes_dir_data_cont_initd)"
+          # écrit le script seulement s'il n'existe pas encore
+          if [ ! -f "$tune_file" ]; then
+              cat > "$tune_file" <<'EOF'
+#!/bin/sh
+# 10_tune_hermes — Exécuté à chaque démarrage du conteneur Hermes
+command -v tmux >/dev/null 2>&1 || {
+    apt-get update >/dev/null 2>&1
+    apt-get install -y nano tmux >/dev/null 2>&1
+}
+EOF
+    fi
+          # bit exécutable forcé à chaque appel (idempotent)
+          chmod +x "$tune_file"
 }
 
 # ==========================================================
@@ -771,10 +796,11 @@ configure_agent_hermes() {
 
     _hermes_generate_compose
 
+    _hermes_generate_10_tune
+
     echo ""
     echo "✓ CONFIGURATION HERMES TERMINÉE"
 }
-
 
 # ==========================================================
 # INSTALL
