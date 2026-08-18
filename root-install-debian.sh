@@ -3951,8 +3951,8 @@ launch_ocro() {
         "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
-      --hostname ${project_id}-opencode \
-      --name ${project_id}-opencode \
+      --hostname opencode \
+      --name opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
       --security-opt no-new-privileges:true \
@@ -4001,8 +4001,8 @@ launch_ocrw() {
         "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
-      --hostname ${project_id}-opencode \
-      --name ${project_id}-opencode \
+      --hostname opencode \
+      --name opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
       --security-opt no-new-privileges:true \
