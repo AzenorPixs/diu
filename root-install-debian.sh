@@ -12,7 +12,7 @@ set -Eeuo pipefail
 
 # Le chemin où je me trouve est
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
-. "$BASH_SCRIPT_PATH/variables.sh"
+. "/root/diu/variables.sh"
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
 . "$BASH_SCRIPT_PATH/lib/git-auth.sh"
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
@@ -29,10 +29,11 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 mkdir -p "$BASH_SCRIPT_PATH/config"
 mkdir -p "$BASH_SCRIPT_PATH/deb"
 
-# Génération des Variables
+# Chargement de la configuration
+load_config
 
-# Chargement des variables
-load_environments_config
+# Génération de la configuration
+
 
 # Vérifier qu'on est root
 if [ "$EUID" -ne 0 ]; then
@@ -1638,34 +1639,34 @@ Utilisation :
   rid ia docker ps                                                  →  Execute un docker PS dans l'environnement IA (rootless)                                                         
   rit ia start hm                                                   →  Start Agent Hermes
   rid ia stop hm                                                    →  Stop Agent Hermes
-  rid ia update hm                                                  →  Update Agent Hermes
+  rid ia update hm                                                  →  Mise à jour Agent Hermes
   rid ia uninstall hm                                               →  Uninstall Agent Hermes
+  rid proj ocro <ID Projet>											→  Démarre un Docker OpenCode en lecture seul dans le projet /home/devops/datas/"ID Projet".
+  rid proj ocrw <ID Projet>											→  Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
 
-  rid docker root check-containers                                  →   Analyse containers Up dans l'environnements Docker  
-  rid docker root diag <USER>                                       →   Diagnostic dans l'environnement <USER>  Docker  
-  rid docker root test <USER>                                       →   Teste l'état de l'environnement Docker de l'utilisateur <USER>
-  rid docker rootless analyse <USER>                                →   Analyse l'état de l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless configure <USER>                              →   Configure l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless diag <USER>                                   →   Effectue un diagnostic dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless exec <USER> <CONTAINER>                       →   Exécute une commande dans l'environnement Docker Rootless de l'utilisateur <USER> pour le container <CONTAINER>
-  rid docker rootless inspect <USER> <CONTAINER>                    →   Inspecte le container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless log <USER> <CONTAINER>                        →   Affiche les journaux du container <CONTAINER> dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless ps <USER>                                     →   Affiche la liste des des container Up dans l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless test <USER>                                   →   Teste l'état de l'environnement Docker Rootless de l'utilisateur <USER>
-  rid docker rootless unconfigure <USER>                            →   Déconfigure Docker Rootless et restaure l'environnement Docker Rootfull de l'utilisateur <USER>
+  rid docker root check-containers                                  →   Vérification des containers Docker Up
+  rid docker root diag <USER>                                       →   Diagnostic Docker pour <USER>  
+  rid docker root test <USER>                                       →   Teste l'état Docker pour <USER>
+  rid docker rootless analyse <USER>                                →   Analyse l'état Docker Rootless pour <USER>
+  rid docker rootless configure <USER>                              →   Configure Docker Rootless pour <USER>
+  rid docker rootless diag <USER>                                   →   Diagnostic Docker Rootless pour <USER>
+  rid docker rootless exec <USER> <CONTAINER>                       →   Exécute une commande Docker Rootless pour <USER> dans <CONTAINER>
+  rid docker rootless inspect <USER> <CONTAINER>                    →   Inspecte le containers <CONTAINER> Docker Rootless pour <USER>
+  rid docker rootless log <USER> <CONTAINER>                        →   Journaux du container <CONTAINER> Docker Rootless pour <USER>
+  rid docker rootless ps <USER>                                     →   Liste des des container Up Docker Rootless pour <USER>
+  rid docker rootless test <USER>                                   →   Teste Docker Rootless pour <USER>
+  rid docker rootless unconfigure <USER>                            →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
 
-  rid os validate <ID Projet"> <"Nom de la Spec">					→  Analyse la Spec la commande openspec validate "Nom de la Spec" --type spec --stric dans le projet //home/devops/datas/"ID Projet".
-  rid proj deb <ID Projet>                                          →  Construit le paquet Debian à partir du projet /home/devops/datas/"ID Projet" et dépose l'artefact dans dist/.
-  rid proj bash <ID Projet> <Nom du Projet>                         →  Crée un nouveau projet BASH nomé <Nom du Projet> dans le répertoire /home/<DEVOPS USER>/datas/<ID Projet>.
-  rid proj del <ID Projet>                                          →  Supprime le projet /home/devops/datas/<ID Projet> après confirmation.
-  rid proj gita <ID Projet> <Nom du Projet>                         →  Analyse du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj gitc <ID Projet> <Nom du Projet> <Nom du Commit>         →  Commit vers le dépôt Git local pour projet /home/devops/datas/"<ID Projet> avec comme nom de commit <Nom du Commit>.
+  rid os validate <ID Projet> <Spec>								→  Valide la <Spec> validate pour le <Projet>.
+  rid proj deb <ID Projet>                                          →  Construit le paquet Debian pour le <Projet> et le met dans dist/.
+  rid proj bash <ID Projet> <Nom du Projet>                         →  Crée projet BASH <Nom du Projet> dans /home/<DEVOPS USER>/datas/<ID Projet>
+  rid proj del <ID Projet>                                          →  Supprime le projet dans /home/<DEVOPS USER>/datas/<ID Projet>
+  rid proj gita <ID Projet> <Nom du Projet>                         →  Analyse le dépôt Git local dans /home/<DEVOPS USER>/datas/<ID Projet>
+  rid proj gitc <ID Projet> <Nom du Projet> <Nom du Commit>         →  Commit vers le dépôt Git local pour projet /home/devops/datas/"<ID Projet>
   rid proj giti <ID Projet> <Nom du Projet>                         →  Initialisation du dépôt Git local dans le projet /home/devops/datas/<ID Projet>.
   rid proj gitp <ID Projet> <Nom du Projet>                         →  Push vers le dépôt Git distant le dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
   rid proj gits <ID Projet> <Nom du Projet>                         →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj ocro <ID Projet>											→  Démarre un Docker OpenCode en lecture seul dans le projet /home/devops/datas/"ID Projet".
-  rid proj ocrw <ID Projet>											→  Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
-  rid proj rel <ID Projet>											→  Publie la Release Forgejo à partir du paquet Debian dans dist/.
+  rid proj rel <ID Projet>											→  Publie la Release sur le dépôt Git distant à partir du paquet Debian dans dist/.
 
   rid update														→  Mise à jour totale
   rid update diu												    →  Mise à jour du DIU
@@ -9637,6 +9638,13 @@ then
 	echo "alias co='command -v '" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
+	echo "# DIU #" >> /root/.zshrc
+	echo "alias cicd='ridt proj cicd'" >> /root/.zshrc
+	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
+	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
+	echo "alias ridu='rid update'" >> /root/.zshrc
+
+	echo "" >> /root/.zshrc
 	echo "# DF #" >> /root/.zshrc
 	echo "alias dfh='df -h'" >> /root/.zshrc
 
@@ -9866,17 +9874,6 @@ then
 	echo "" >> /root/.zshrc
 	echo "# Commande PYTHON #" >> /root/.zshrc
 	echo "alias pv=' python3 -m pip --version'" >> /root/.zshrc
-
-	echo "" >> /root/.zshrc
-	echo "# ROOT SCRIPT PIXS #" >> /root/.zshrc
-	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
-	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
-	echo "alias riidjd='/root/root-install-init-django-dev.sh'" >> /root/.zshrc
-	echo "alias riidjp='/root/root-install-init-django-prod.sh'" >> /root/.zshrc
-	echo "alias riim='/root/root-install-init-monero.sh'" >> /root/.zshrc
-	echo "alias riip='/root/root-install-init-p2pool.sh'" >> /root/.zshrc
-	echo "alias riix='/root/root-install-init-xmrig.sh'" >> /root/.zshrc
-	echo "alias riw='/root/root-install-wazuh-step-by-step-single-node.sh'" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# Commande SESH #" >> /root/.zshrc
