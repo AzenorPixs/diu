@@ -59,4 +59,19 @@ if [[ "${state}" == "ENABLE" ]]; then
 
     fi
 
+else
+
+    # Suppression de la variable de l'environnement courant
+    unset DIU_AUTOMATIC_UPDATE
+
+    # Suppression de la déclaration persistante
+    # dans le fichier de configuration du scope.
+    if [[ -f "config/${scope}.env" ]]; then
+
+        sed -i \
+            '/^export DIU_AUTOMATIC_UPDATE=/d' \
+            "config/${scope}.env"
+
+    fi
+
 fi
