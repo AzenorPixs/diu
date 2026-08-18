@@ -3999,7 +3999,7 @@ launch_ocrw() {
         "${ENV_DOCKER_IMAGE_OPENCODE}" \
         "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
-    su - "${ENV_ENV_DEVOPS_USER}" -c "docker run --rm -it \
+    su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
       --name ${project_id}-opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
