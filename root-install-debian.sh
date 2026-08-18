@@ -3951,6 +3951,7 @@ launch_ocro() {
         "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
+      --hostname ${project_id}-opencode \
       --name ${project_id}-opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
@@ -4000,6 +4001,7 @@ launch_ocrw() {
         "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
 
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
+      --hostname ${project_id}-opencode \
       --name ${project_id}-opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
@@ -7274,7 +7276,7 @@ then
 EOF
   fi
 
-	if dpkg -s build-essential &>/dev/null
+	if dpkg -s direnv &>/dev/null
 	then
 
 		echo "PREREQUISITES FOR DEVOPS IS OK ✅"
@@ -7282,7 +7284,7 @@ EOF
 	else
 
 		echo "🔧 INSTALL PREREQUISITES FOR DEVOPS"
-		apt install build-essential curl wget -y
+		apt install build-essential curl direnv wget -y
 
 	fi
 
