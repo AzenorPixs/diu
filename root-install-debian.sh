@@ -3972,7 +3972,8 @@ launch_ocro() {
       -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
       -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
-      -v /home/devops/datas/${project_id}:/workspace:ro \
+      -p 4096:4096 \
+	  -v /home/devops/datas/${project_id}:/workspace:ro \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
@@ -4022,6 +4023,7 @@ launch_ocrw() {
       -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
       -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
+	  -p 4096:4096 \
       -v /home/devops/datas/${project_id}:/workspace:rw \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
