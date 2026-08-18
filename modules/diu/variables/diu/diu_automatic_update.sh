@@ -17,7 +17,10 @@ state="ENABLE"
 scope="diu"
 
 # Valeur par défaut
-default_value="1"
+default_value=1
+
+# Fichier de configuration du scope
+variable_config_file="/root/diu/config/${scope}.env"
 
 
 # ============================================================
@@ -43,9 +46,9 @@ if [[ "${state}" == "ENABLE" ]]; then
 
             export DIU_AUTOMATIC_UPDATE="${default_value}"
 
-            # Enregistrement dans config/diu.env
+            # Enregistrement dans le fichier de configuration
             echo "export DIU_AUTOMATIC_UPDATE=${default_value}" \
-                >> "config/${scope}.env"
+                >> "${variable_config_file}"
 
         else
 
@@ -65,12 +68,11 @@ else
     unset DIU_AUTOMATIC_UPDATE
 
     # Suppression de la déclaration persistante
-    # dans le fichier de configuration du scope.
-    if [[ -f "config/${scope}.env" ]]; then
+    if [[ -f "${variable_config_file}" ]]; then
 
         sed -i \
             '/^export DIU_AUTOMATIC_UPDATE=/d' \
-            "config/${scope}.env"
+            "${variable_config_file}"
 
     fi
 
