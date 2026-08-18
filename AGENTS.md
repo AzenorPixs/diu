@@ -1,11 +1,9 @@
 AGENTS.md
-Debian Installeur Unifié (DIU)}
-
-Ce fichier est généré à l'initialisation du projet par le DIU.
+DIU
 
 ## Variables utilisées :
 
-Debian Installeur Unifié (DIU)} : nom du projet ;
+DIU : nom du projet ;
 /workspace : chemin racine du projet.
 
 ## Préambule
@@ -37,31 +35,37 @@ Toute amélioration non demandée doit être proposée séparément.
 
 ## Objectif
 
-L'objectif du projet est de produire un installeur Debian unifié :
+Établir un projet de développement, pour l'évolution et la maintenance du DIU.
 
-reproductible ;
-maintenable ;
-documenté ;
-spécifié avec OpenSpec ;
-versionné avec Git ;
-assisté par OpenCode.
+L'objectif détaillé du projet est définis dans le fichier PROJET.md :
+
+les agents respecteront les règles suivantes :
+
+Reproductible
+Maintenable
+Documenté
+Spécifié avec OpenSpec
+Versionné avec Git
+Assisté par OpenCode et Hermes
 
 Toutes les décisions doivent privilégier ces objectifs.
 
 ## Rôle du projet
 
-Le projet Debian Installeur Unifié (DIU)} est développé selon une approche progressive, documentée et reproductible.
+Le projet DIU est développé selon une approche progressive, documentée et reproductible.
 
 Les agents de codage doivent préserver le comportement existant tout en respectant les spécifications validées.
 
 ## Portée
 
 AGENTS.md ;
+PROJET.md ;
+VARIABLES.md ;
 les spécifications présentes dans openspec/ ;
 les conventions du projet ;
 Les règles définies dans ce fichier s'appliquent à l'ensemble du projet.
 
-Un fichier AGENTS.md situé dans un sous-répertoire peut être utilisé lorsque OpenCode est lancé depuis ce sous-répertoire,
+Un fichier AGENTS.md situé dans un sous-répertoire peut être utilisé lorsque l'agent est lancé depuis ce sous-répertoire,
 ou lorsqu’il est explicitement chargé dans les instructions.
 
 Il ne doit pas être considéré comme complétant automatiquement le fichier AGENTS.md racine.
@@ -89,6 +93,8 @@ Toute écriture en dehors de cette arborescence nécessite une validation explic
 Avant toute intervention, les agents doivent lire dans l'ordre :
 
 AGENTS.md ;
+PROJET.md ;
+VARIABLES.md ;
 les spécifications présentes dans openspec/ ;
 les conventions du projet ;
 le code et la documentation concernés.
@@ -230,8 +236,10 @@ Cette règle ne s'applique pas aux fichiers générés et versionnés suivants :
 
 .gitignore
 AGENTS.md
+PROJET.md
 LICENSE
 README.md
+VARIABLES.md
 .opencode/commands/
 .opencode/skills/
 .opencode/config/opencode.json
@@ -293,7 +301,7 @@ credentials.json
 credentials.yaml
 id_rsa
 id_ed25519
-env/Debian Installer Unifié (DIU)
+env/
 logs/
 node_modules/
 openspec/.cache/
@@ -309,7 +317,7 @@ openspec/logs/
 secrets.json
 secrets.yaml
 tmp/
-venv/Debian Installer Unifié (DIU)
+venv/
 
 ## Sources incluses et protégées
 
@@ -320,7 +328,9 @@ Les agents peuvent consulter les éléments suivants pour les besoins techniques
 .gitignore
 AGENTS.md
 LICENSE
+PROJET.md
 README.md
+VARIABLES.md
 .opencode/commands/
 .opencode/config/opencode.json
 .opencode/skills/
@@ -333,7 +343,7 @@ reports/
 
 Ces éléments ne constituent pas nécessairement une source de vérité fonctionnelle.
 
-Leur modification nécessite une demande ou une validatiDebian Installer Unifié (DIU)on explicite portant sur :
+Leur modification nécessite une demande ou une validation explicite portant sur :
 
 OpenCode ;
 OpenSpec ;
@@ -444,11 +454,7 @@ Les fonctionnalités spécifiques à une version récente de Bash ne doivent êt
 
 Les scripts doivent pouvoir être analysés avec :
 
-bash -n
-
-et, lorsque l'outil est disponible :
-
-shellcheck
+bash -n et shellcheck
 
 Les scripts doivent être robustes.
 
@@ -485,6 +491,8 @@ Les variables à portée locale seront notées en minuscule.
 Le sepérateur entre deux mots dans une variable sera toujours le caractères _ (underscore).
 
 Les nouvelles variables seront exprimées en anglais.
+
+Le fichier VARIABLES.md décrit le workflow de chargement des variables, de généréation des variables, et de tri des variables.
 
 ## Chemins
 
@@ -622,11 +630,7 @@ Lorsqu'un mécanisme de test existe, les agents doivent l'exécuter avant toute 
 
 Pour les scripts Bash, les vérifications minimales sont :
 
-bash -n
-
-et, lorsque disponible :
-
-shellcheck
+bash -n et shellcheck
 
 Avant toute proposition de validation, les agents doivent vérifier :
 
