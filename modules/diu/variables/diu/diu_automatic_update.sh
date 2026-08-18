@@ -44,7 +44,7 @@ if [[ "${state}" == "ENABLE" ]]; then
             export DIU_AUTOMATIC_UPDATE="${default_value}"
 
             # Enregistrement dans config/diu.env
-            echo "export DIU_AUTOMATIC_UPDATE=\"${default_value}\"" \
+            echo "export DIU_AUTOMATIC_UPDATE=${default_value}" \
                 >> "config/${scope}.env"
 
         else
