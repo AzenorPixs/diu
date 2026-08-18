@@ -1,7 +1,7 @@
 VARIABLES.md
 
 
-Les VARIABLES GLOBALES sont définit par leur : 
+Les VARIABLES GLOBALES sont définit par leurs attributs : 
 
 Configuration : STATIC / DYNAMIC
 
@@ -13,7 +13,9 @@ Valeur par défault :
 
 Fonction de génération : (Pour les VARIABLES GLOBALES DYNAMIC)
 
+
 En fin de génération des variables STATIC et DYNAMIC les fichiers variables de chaque scope dans le dossier config seront retriés par ordre alphabétique.
+
 
 Les VARIABLES GLOBALES sont générés par deux mécanismes.
 
@@ -39,7 +41,7 @@ Les VARIABLES GLOBALES sont générés par deux mécanismes.
 
 Dans le cas d'une variable DYNAMIC une fonction sera lié à cette VARIABLE pour sa génération.
 
-Une valeur par défault sera attribuée si la fonction de génération échoue
+Une valeur par défault sera attribuée si la fonction de génération échoue.
 
 Les attributs d'une VARIABLE seront déclarés par un fichier unique en nom_de_la_variable.sh placé dans le dossier modules/diu/variables/{scope de la variables}
 

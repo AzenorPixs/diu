@@ -60,6 +60,7 @@ Les agents de codage doivent préserver le comportement existant tout en respect
 
 AGENTS.md ;
 PROJET.md ;
+VARIABLES.md ;
 les spécifications présentes dans openspec/ ;
 les conventions du projet ;
 Les règles définies dans ce fichier s'appliquent à l'ensemble du projet.
@@ -93,6 +94,7 @@ Avant toute intervention, les agents doivent lire dans l'ordre :
 
 AGENTS.md ;
 PROJET.md ;
+VARIABLES.md ;
 les spécifications présentes dans openspec/ ;
 les conventions du projet ;
 le code et la documentation concernés.
@@ -237,6 +239,7 @@ AGENTS.md
 PROJET.md
 LICENSE
 README.md
+VARIABLES.md
 .opencode/commands/
 .opencode/skills/
 .opencode/config/opencode.json
@@ -327,6 +330,7 @@ AGENTS.md
 LICENSE
 PROJET.md
 README.md
+VARIABLES.md
 .opencode/commands/
 .opencode/config/opencode.json
 .opencode/skills/
@@ -487,6 +491,8 @@ Les variables à portée locale seront notées en minuscule.
 Le sepérateur entre deux mots dans une variable sera toujours le caractères _ (underscore).
 
 Les nouvelles variables seront exprimées en anglais.
+
+Le fichier VARIABLES.md décrit le workflow de chargement des variables, de généréation des variables, et de tri des variables.
 
 ## Chemins
 
