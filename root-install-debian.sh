@@ -4063,12 +4063,12 @@ manage_devops_action() {
     esac
 }
 
-manage_devops_openspec_action() {
-    local action_2="$1"
-    local project_id="$2"
-    local spec_name="$3"
+manage_openspec_action() {
+    local action="${1:-}"
+    local project_id="${2:-}"
+    local spec_name="${3:-}"
 
-    case "$action_2" in
+    case "$action" in
         list)
             devops_openspec_list "$project_id"
             ;;
@@ -4080,6 +4080,9 @@ manage_devops_openspec_action() {
             ;;
         vs)
             devops_openspec_validate_spec "$project_id" "$spec_name"
+            ;;
+        temp)
+            devops_openspec_templates "$project_id"
             ;;
         view)
             devops_openspec_view "$project_id"
@@ -4502,9 +4505,8 @@ devops_openspec_show() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec show"
-
-    exit 0
+    su - "$DEVOPS_USER" -c \
+        "cd '$project_path' && openspec spec list"
 }
 
 devops_openspec_validate_change() {
@@ -4523,6 +4525,15 @@ devops_openspec_validate_spec() {
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type spec --strict"
+
+    exit 0
+}
+
+devops_openspec_templates() {
+    local project_id="$1"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+
+    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec templates"
 
     exit 0
 }
@@ -7273,6 +7284,10 @@ then
 **/*.tmp
 **/*~
 **/.DS_Store
+
+# Secrets
+**/*.token
+**/*.username
 EOF
   fi
 
