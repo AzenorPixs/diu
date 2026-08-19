@@ -7272,7 +7272,7 @@ then
 **/.git/
 
 # Données OpenCode
-**/.opencode/
+**/.opencode/cache/
 
 # Cache OpenSpec
 **/openspec/.cache/
