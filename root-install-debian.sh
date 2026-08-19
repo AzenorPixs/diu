@@ -7273,6 +7273,10 @@ then
 **/*.tmp
 **/*~
 **/.DS_Store
+
+# Secrets
+**/*.token
+**/*.username
 EOF
   fi
 
