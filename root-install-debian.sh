@@ -3984,7 +3984,7 @@ launch_ocro() {
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
       -c 'apk add --no-cache bash git docker docker-cli-compose nodejs npm shellcheck su-exec && \
-          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
+			exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
 }
 
 launch_ocrw() {
@@ -4012,6 +4012,7 @@ launch_ocrw() {
       --pids-limit 256 \
       --memory 2g \
       --cpus 2 \
+      --group-add $(stat -c '%g' /var/run/docker.sock) \
       -e OPENCODE_UID=$(id -u "${ENV_DEVOPS_USER}") \
       -e OPENCODE_GID=$(id -g "${ENV_DEVOPS_USER}") \
       -e HOME=/home/opencode \
@@ -4026,6 +4027,7 @@ launch_ocrw() {
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
       -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
 	  -p 4096:4096 \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
       -v /home/devops/datas/${project_id}:/workspace:rw \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
@@ -4034,8 +4036,8 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash docker docker-cli-compose git nodejs npm shellcheck su-exec &&
-          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
+      -c 'apk add --no-cache bash docker docker-cli-compose git nodejs npm shellcheck su-exec && \
+			exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
 }
 
 manage_devops_action() {
