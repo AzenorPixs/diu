@@ -3979,7 +3979,7 @@ launch_ocro() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec && \
+      -c 'apk add --no-cache bash git docker docker-cli-compose nodejs npm shellcheck su-exec && \
           exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
 }
 
@@ -4030,7 +4030,7 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec &&
+      -c 'apk add --no-cache bash docker docker-cli-compose git nodejs npm shellcheck su-exec &&
           exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
 }
 
