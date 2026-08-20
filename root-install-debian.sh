@@ -4794,6 +4794,8 @@ then
 	# unlink /etc/localtime
 	# ln -s /usr/share/timezone/$TIME_ZONE /etc/localtime
 
+	install -d -m 0755 /usr/share/keyrings
+
 	if [ -f /etc/apt/sources.list ]
 	then
 
@@ -4887,9 +4889,11 @@ EOF
 
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
-		echo "🔧 CONFIGURE APT REPOSITORY FUSION DIRECTORY"
-		install -d -m 0755 /usr/share/keyrings
-		gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86
+		if gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+			:
+		else
+			return 1
+		fi
 		gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg
 		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
 
