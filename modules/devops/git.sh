@@ -119,7 +119,7 @@ cicd_project_diu() {
 
     print_title "Étape 4/4 — Publication de la Release Forgejo"
 
-    if ! publish_release \
+    if ! publish_release_diu \
         "${project_id}"; then
 
         print_error "Échec de la publication de la Release Forgejo."
