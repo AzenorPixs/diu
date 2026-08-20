@@ -4025,6 +4025,7 @@ launch_ocrw() {
       -e OPENCODE_GID=${opencode_gid} \
       -e DOCKER_GID=${docker_gid} \
       -e HOME=/home/opencode \
+      -e DOCKER_CONFIG=/tmp/docker-config \
       -e XDG_CACHE_HOME=/home/opencode/.cache \
       -e XDG_CONFIG_HOME=/home/opencode/.config \
       -e XDG_DATA_HOME=/home/opencode/.local/share \
@@ -4882,6 +4883,29 @@ Suites: trixie
 Components: stable
 Signed-By: /usr/share/keyrings/docker-archive-keyring.gpg
 EOF
+	fi
+
+	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
+
+		echo "🔧 CONFIGURE APT REPOSITORY FUSION DIRECTORY"
+		install -d -m 0755 /usr/share/keyrings
+		curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
+
+		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
+Types: deb
+URIs: https://public.fusiondirectory.org/debian/fusiondirectory-tools
+Suites: bullseye
+Components: main
+Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
+EOF
+
+	else
+
+		if [[ -f "/usr/share/keyrings/fd-archive-keyring.gpg" || -f "/etc/apt/sources.list.d/fd.sources" ]]; then
+			echo "🔧 UNCONFIGURE APT REPOSITORY FUSION DIRECTORY"
+			rm -f "/usr/share/keyrings/fd-archive-keyring.gpg" "/etc/apt/sources.list.d/fd.sources"
+		fi
+
 	fi
 
 	if [ $DRIVERS_NVIDIA == "1" ]
