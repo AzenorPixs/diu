@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Fonctions de construction du paquet Debian DIU
 
-build_deb() {
-    local project_id="$1"
+build_deb_diu() {
+    local project_id="diu"
     local project_path=""
     local staging_dir=""
     local build_dir=""

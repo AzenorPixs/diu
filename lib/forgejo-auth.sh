@@ -19,10 +19,6 @@
 #   forgejo_api_post_json
 #   forgejo_api_upload
 
-. "$BASH_SCRIPT_PATH/lib/logging.sh"
-. "$BASH_SCRIPT_PATH/lib/git-auth.sh"
-
-
 # ==========================================================
 # Résolution du remote Forgejo
 # ==========================================================
