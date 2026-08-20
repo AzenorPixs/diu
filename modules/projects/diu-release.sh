@@ -1,35 +1,22 @@
 #!/usr/bin/env bash
-# Publication d'une Release Forgejo à partir du paquet Debian DIU
-#
-# Authentification :
-#   forgejo-auth.sh est l'unique fournisseur de credentials Forgejo.
-#
-# Flux :
-#   1. Vérification des prérequis
-#   2. Validation du projet
-#   3. Sélection du paquet Debian
-#   4. Validation des métadonnées
-#   5. Résolution du remote Forgejo
-#   6. Validation / initialisation des credentials
-#   7. Synchronisation Git
-#   8. Vérification tag / release
-#   9. Création du tag
-#  10. Création de la Release
-#  11. Upload du paquet
-#
-# Le token utilisé ici est exactement celui utilisé par git push.
-#
-# Endpoints Forgejo :
-#   GET  /api/v1/repos/{owner}/{repo}/tags/{tag}
-#   POST /api/v1/repos/{owner}/{repo}/tags
-#   GET  /api/v1/repos/{owner}/{repo}/releases/tags/{tag}
-#   POST /api/v1/repos/{owner}/{repo}/releases
-#   POST /api/v1/repos/{owner}/{repo}/releases/{id}/assets
 
-publish_release() {
+publish_release_diu() {
+    local project_id="diu"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
 
-    local project_id="${1:-}"
-    local project_path=""
+    local project_name=""
+    local local_default_branch=""
+
+    local remote_git_type=""
+    local remote_base_url=""
+    local remote_owner=""
+    local remote_repository=""
+    local remote_name=""
+    local remote_default_branch=""
+    local remote_url=""
+    local configured_remote_url=""
+    local remote_branch_ref=""
 
     local deb_file=""
     local deb_filename=""
@@ -38,42 +25,34 @@ publish_release() {
     local package_name=""
     local package_version=""
 
-    local forgejo_host=""
-    local forgejo_base=""
-    local forgejo_owner=""
-    local forgejo_repo=""
     local forgejo_username=""
     local forgejo_token=""
 
     local current_branch=""
     local head_sha=""
-    local origin_main_sha=""
+    local remote_branch_sha=""
     local head_message=""
 
     local tag_name=""
     local release_id=""
+    local release_notes=""
+
+    local api_response=""
+    local http_code=""
+    local http_body=""
+    local error_msg=""
+
+    local upload_auth_file=""
+    local upload_response=""
+    local upload_code=""
+    local upload_body=""
+    local upload_rc=0
 
     local -a missing_tools=()
     local -a dist_files=()
 
-    # ==========================================================
     # Fonction locale d'appel API Forgejo
-    # ==========================================================
-    #
-    # Usage :
-    #
-    #   _forgejo_release_api METHOD URL [DATA]
-    #
-    # Retour :
-    #   stdout = réponse HTTP complète avec code sur dernière ligne
-    #
-    # Le token n'est jamais placé directement dans la ligne de
-    # commande curl. Un fichier de configuration temporaire
-    # sécurisé est utilisé.
-    #
-
     _forgejo_release_api() {
-
         local method="${1:-GET}"
         local url="${2:-}"
         local data="${3:-}"
@@ -100,8 +79,10 @@ publish_release() {
             return 1
         fi
 
-        if ! printf 'header = "Authorization: token %s"\n' \
-            "${forgejo_token}" > "${auth_file}"; then
+        if ! printf \
+            'header = "Authorization: token %s"\n' \
+            "${forgejo_token}" \
+            > "${auth_file}"; then
 
             print_error \
                 "_forgejo_release_api : impossible d'écrire les credentials."
@@ -156,28 +137,19 @@ publish_release() {
         return 0
     }
 
-    # ==========================================================
     # Fonction locale d'extraction du code HTTP
-    # ==========================================================
-
     _forgejo_release_http_code() {
         local response="${1:-}"
         printf '%s' "${response##*$'\n'}"
     }
 
-    # ==========================================================
     # Fonction locale d'extraction du body
-    # ==========================================================
-
     _forgejo_release_http_body() {
         local response="${1:-}"
         printf '%s' "${response%$'\n'*}"
     }
 
-    # ==========================================================
-    # Étape 1 — Prérequis
-    # ==========================================================
-
+    # Étape 1 - Vérification des prérequis
     print_title "Étape 1/11 — Vérification des prérequis"
 
     if ! command -v git >/dev/null 2>&1; then
@@ -201,30 +173,195 @@ publish_release() {
     fi
 
     if [[ ${#missing_tools[@]} -gt 0 ]]; then
-        print_error "Outils manquants : ${missing_tools[*]}"
+        print_error \
+            "Outils manquants : ${missing_tools[*]}"
         return 1
     fi
 
-    print_success "Tous les prérequis sont disponibles."
+    if ! check_devops_user; then
+        print_error \
+            "L'utilisateur DevOps n'est pas disponible."
+        return 1
+    fi
 
-    # ==========================================================
-    # Étape 2 — Validation du projet
-    # ==========================================================
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git --version >/dev/null 2>&1; then
 
+        print_error \
+            "Git n'est pas accessible pour ${DEVOPS_USER}."
+        return 1
+    fi
+
+    print_success \
+        "Tous les prérequis sont disponibles."
+
+    # Étape 2 - Validation du projet
     print_title "Étape 2/11 — Validation du projet"
 
-    if [[ -z "${project_id}" ]]; then
-        print_error "Usage : publish_release <project_id>"
-        return 1
-    fi
-
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-
     if [[ ! -d "${project_path}" ]]; then
-        print_error "Projet introuvable : ${project_path}"
+        print_error \
+            "Projet introuvable : ${project_path}"
         return 1
     fi
 
+    # Chargement de project.env
+    if [[ ! -f "${project_env}" ]]; then
+        print_info \
+            "Le fichier project.env est absent pour le projet ${project_id}."
+
+        if ! git_update "${project_id}"; then
+            print_error \
+                "Impossible d'initialiser la configuration du projet."
+            return 1
+        fi
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_error \
+            "Le fichier project.env est toujours absent : ${project_env}"
+        return 1
+    fi
+
+    # Nettoyage des variables susceptibles d'être déjà présentes
+    unset \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        PROJECT_DOCKERED \
+        LOCAL_DEFAULT_BRANCH \
+        GIT_USER_NAME \
+        GIT_USER_EMAIL \
+        REMOTE_GIT_TYPE \
+        REMOTE_BASE_URL \
+        REMOTE_OWNER \
+        REMOTE_REPOSITORY \
+        REMOTE_NAME \
+        REMOTE_DEFAULT_BRANCH
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    # Vérification des variables essentielles
+    if [[ \
+        -z "${PROJECT_ID:-}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${LOCAL_DEFAULT_BRANCH:-}" ||
+        -z "${REMOTE_GIT_TYPE:-}" ||
+        -z "${REMOTE_BASE_URL:-}" ||
+        -z "${REMOTE_OWNER:-}" ||
+        -z "${REMOTE_REPOSITORY:-}" ||
+        -z "${REMOTE_NAME:-}" ||
+        -z "${REMOTE_DEFAULT_BRANCH:-}" \
+    ]]; then
+
+        print_info \
+            "La configuration du projet est incomplète."
+
+        if ! git_update "${project_id}"; then
+            print_error \
+                "Impossible de mettre à jour la configuration du projet."
+            return 1
+        fi
+
+        # Recharge project.env après git_update
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            LOCAL_DEFAULT_BRANCH \
+            GIT_USER_NAME \
+            GIT_USER_EMAIL \
+            REMOTE_GIT_TYPE \
+            REMOTE_BASE_URL \
+            REMOTE_OWNER \
+            REMOTE_REPOSITORY \
+            REMOTE_NAME \
+            REMOTE_DEFAULT_BRANCH
+
+        # shellcheck disable=SC1090
+        source "${project_env}"
+    fi
+
+    # Vérification finale des variables essentielles
+    if [[ "${PROJECT_ID:-}" != "${project_id}" ]]; then
+        print_error \
+            "PROJECT_ID '${PROJECT_ID:-}' ne correspond pas au projet '${project_id}'."
+        return 1
+    fi
+
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        print_error \
+            "PROJECT_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${LOCAL_DEFAULT_BRANCH:-}" ]]; then
+        print_error \
+            "LOCAL_DEFAULT_BRANCH n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_GIT_TYPE:-}" ]]; then
+        print_error \
+            "REMOTE_GIT_TYPE n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_BASE_URL:-}" ]]; then
+        print_error \
+            "REMOTE_BASE_URL n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_OWNER:-}" ]]; then
+        print_error \
+            "REMOTE_OWNER n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_REPOSITORY:-}" ]]; then
+        print_error \
+            "REMOTE_REPOSITORY n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_NAME:-}" ]]; then
+        print_error \
+            "REMOTE_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_DEFAULT_BRANCH:-}" ]]; then
+        print_error \
+            "REMOTE_DEFAULT_BRANCH n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Affectation locale de la configuration du projet
+    project_name="${PROJECT_NAME}"
+    local_default_branch="${LOCAL_DEFAULT_BRANCH}"
+
+    remote_git_type="${REMOTE_GIT_TYPE}"
+    remote_base_url="${REMOTE_BASE_URL%/}"
+    remote_owner="${REMOTE_OWNER}"
+    remote_repository="${REMOTE_REPOSITORY}"
+    remote_name="${REMOTE_NAME}"
+    remote_default_branch="${REMOTE_DEFAULT_BRANCH}"
+
+    remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
+    remote_branch_ref="${remote_name}/${remote_default_branch}"
+
+    # Vérification du type de dépôt distant
+    if [[ "${remote_git_type}" != "forgejo" ]]; then
+        print_error \
+            "publish_release_diu nécessite un dépôt Forgejo."
+        print_error \
+            "REMOTE_GIT_TYPE actuel : ${remote_git_type}"
+        return 1
+    fi
+
+    # Vérification du dépôt Git local
     if ! runuser -u "${DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
@@ -234,18 +371,63 @@ publish_release() {
         return 1
     fi
 
+    # Vérification du remote Git réel
+    configured_remote_url=""
+
+    if configured_remote_url="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            remote get-url "${remote_name}" 2>/dev/null
+    )"; then
+        :
+    fi
+
+    if [[ -z "${configured_remote_url}" ]]; then
+        print_error \
+            "Le dépôt distant '${remote_name}' n'est pas configuré."
+        return 1
+    fi
+
+    if [[ "${configured_remote_url}" != "${remote_url}" ]]; then
+        print_error \
+            "L'URL Git configurée ne correspond pas à project.env."
+
+        printf '%-22s : %s\n' \
+            "URL configurée" "${configured_remote_url}"
+
+        printf '%-22s : %s\n' \
+            "URL déclarée" "${remote_url}"
+
+        return 1
+    fi
+
     if [[ ! -d "${project_path}/dist" ]]; then
         print_error \
             "Répertoire dist/ introuvable : ${project_path}/dist"
         return 1
     fi
 
-    print_success "Projet validé : ${project_path}"
+    printf '%-22s : %s\n' \
+        "Projet" "${project_name}"
+    printf '%-22s : %s\n' \
+        "ID projet" "${project_id}"
+    printf '%-22s : %s\n' \
+        "Répertoire" "${project_path}"
+    printf '%-22s : %s\n' \
+        "Type distant" "${remote_git_type}"
+    printf '%-22s : %s\n' \
+        "Dépôt distant" "${remote_name}"
+    printf '%-22s : %s\n' \
+        "URL distante" "${remote_url}"
+    printf '%-22s : %s\n' \
+        "Branche locale" "${local_default_branch}"
+    printf '%-22s : %s\n' \
+        "Branche distante" "${remote_branch_ref}"
 
-    # ==========================================================
-    # Étape 3 — Sélection du paquet
-    # ==========================================================
+    print_success \
+        "Projet validé : ${project_path}"
 
+    # Étape 3 - Sélection du paquet Debian
     print_title "Étape 3/11 — Sélection du paquet Debian"
 
     while IFS= read -r -d '' file; do
@@ -254,23 +436,23 @@ publish_release() {
         find "${project_path}/dist" \
             -maxdepth 1 \
             -type f \
-            -name "diu_*_all.deb" \
+            -name "${project_id}_*_all.deb" \
             -print0 \
             2>/dev/null
     )
 
     if [[ ${#dist_files[@]} -eq 0 ]]; then
         print_error \
-            "Aucun paquet diu_*_all.deb trouvé dans ${project_path}/dist/"
+            "Aucun paquet ${project_id}_*_all.deb trouvé dans ${project_path}/dist/"
         return 1
     fi
 
     if [[ ${#dist_files[@]} -gt 1 ]]; then
         print_error \
-            "Plusieurs paquets diu_*_all.deb sont présents :"
+            "Plusieurs paquets ${project_id}_*_all.deb sont présents :"
 
         for deb_file in "${dist_files[@]}"; do
-            echo "  $(basename "${deb_file}")"
+            printf '  %s\n' "$(basename "${deb_file}")"
         done
 
         print_error \
@@ -284,10 +466,7 @@ publish_release() {
     print_success \
         "Paquet sélectionné : ${deb_filename}"
 
-    # ==========================================================
-    # Étape 4 — Métadonnées Debian
-    # ==========================================================
-
+    # Étape 4 - Vérification des métadonnées Debian
     print_title "Étape 4/11 — Vérification des métadonnées Debian"
 
     package_name="$(
@@ -306,9 +485,9 @@ publish_release() {
             2>/dev/null
     )"
 
-    if [[ "${package_name}" != "diu" ]]; then
+    if [[ "${package_name}" != "${project_id}" ]]; then
         print_error \
-            "Nom de paquet invalide : '${package_name}' (attendu : diu)"
+            "Nom de paquet invalide : '${package_name}' (attendu : ${project_id})"
         return 1
     fi
 
@@ -320,13 +499,13 @@ publish_release() {
 
     deb_version="${package_version}"
 
-    if [[ "${deb_filename}" != "diu_${deb_version}_all.deb" ]]; then
+    if [[ "${deb_filename}" != "${project_id}_${deb_version}_all.deb" ]]; then
         print_error \
             "Incohérence entre le nom du fichier et la version Debian."
         print_error \
-            "Fichier   : ${deb_filename}"
+            "Fichier : ${deb_filename}"
         print_error \
-            "Version   : ${deb_version}"
+            "Version : ${deb_version}"
         return 1
     fi
 
@@ -335,37 +514,20 @@ publish_release() {
 
     tag_name="v${deb_version}"
 
-    # ==========================================================
-    # Étape 5 — Résolution Forgejo
-    # ==========================================================
+    # Étape 5 - Validation du dépôt Forgejo
+    print_title "Étape 5/11 — Validation du dépôt Forgejo"
 
-    print_title "Étape 5/11 — Résolution du dépôt Forgejo"
+    print_success \
+        "Forgejo : ${remote_base_url}"
+    print_success \
+        "Owner   : ${remote_owner}"
+    print_success \
+        "Repo    : ${remote_repository}"
+    print_success \
+        "Remote  : ${remote_name}"
 
-    if ! _forgejo_resolve_remote "${project_path}"; then
-        return 1
-    fi
-
-    print_success "Forgejo : ${forgejo_base}"
-    print_success "Owner   : ${forgejo_owner}"
-    print_success "Repo    : ${forgejo_repo}"
-
-    # ==========================================================
-    # Étape 6 — Authentification Forgejo
-    # ==========================================================
-
+    # Étape 6 - Authentification Forgejo
     print_title "Étape 6/11 — Authentification Forgejo"
-
-    #
-    # IMPORTANT :
-    #
-    # Aucun accès direct à config/forgejo.token ici.
-    #
-    # forgejo_ensure_credentials() :
-    #   - vérifie les credentials existants ;
-    #   - les régénère si nécessaire ;
-    #   - valide réellement le token ;
-    #   - garantit les permissions 600.
-    #
 
     if ! _forgejo_ensure_credentials "${project_path}"; then
         print_error \
@@ -384,10 +546,7 @@ publish_release() {
     print_success \
         "Credentials Forgejo disponibles."
 
-    # ==========================================================
-    # Étape 7 — Synchronisation Git
-    # ==========================================================
-
+    # Étape 7 - Vérification de la synchronisation Git
     print_title "Étape 7/11 — Vérification de la synchronisation Git"
 
     if ! forgejo_git_fetch "${project_path}"; then
@@ -397,7 +556,7 @@ publish_release() {
     fi
 
     print_success \
-        "git fetch origin authentifié effectué."
+        "git fetch ${remote_name} authentifié effectué."
 
     current_branch="$(
         runuser -u "${DEVOPS_USER}" -- \
@@ -406,18 +565,19 @@ publish_release() {
             2>/dev/null
     )"
 
-    if [[ "${current_branch}" != "main" ]]; then
+    if [[ "${current_branch}" != "${local_default_branch}" ]]; then
         print_error \
-            "La branche courante est '${current_branch}' (attendu : main)."
+            "La branche courante est '${current_branch}' (attendu : ${local_default_branch})."
         return 1
     fi
 
     if ! runuser -u "${DEVOPS_USER}" -- \
         git -C "${project_path}" \
-        rev-parse --verify origin/main >/dev/null 2>&1; then
+        rev-parse --verify \
+        "${remote_branch_ref}" >/dev/null 2>&1; then
 
         print_error \
-            "La branche distante origin/main n'existe pas."
+            "La branche distante ${remote_branch_ref} n'existe pas."
         return 1
     fi
 
@@ -428,31 +588,32 @@ publish_release() {
             2>/dev/null
     )"
 
-    origin_main_sha="$(
+    remote_branch_sha="$(
         runuser -u "${DEVOPS_USER}" -- \
             git -C "${project_path}" \
-            rev-parse origin/main \
+            rev-parse "${remote_branch_ref}" \
             2>/dev/null
     )"
 
-    if [[ -z "${head_sha}" || -z "${origin_main_sha}" ]]; then
+    if [[ -z "${head_sha}" || -z "${remote_branch_sha}" ]]; then
         print_error \
             "Impossible de déterminer l'état Git."
         return 1
     fi
 
-    if [[ "${head_sha}" != "${origin_main_sha}" ]]; then
+    if [[ "${head_sha}" != "${remote_branch_sha}" ]]; then
         print_error \
-            "Le dépôt local n'est pas synchronisé avec origin/main."
+            "Le dépôt local n'est pas synchronisé avec ${remote_branch_ref}."
 
         print_error \
-            "HEAD         : ${head_sha:0:12}"
+            "HEAD                  : ${head_sha:0:12}"
 
         print_error \
-            "origin/main  : ${origin_main_sha:0:12}"
+            "${remote_branch_ref} : ${remote_branch_sha:0:12}"
 
         print_error \
             "Effectuez d'abord le git push."
+
         return 1
     fi
 
@@ -465,28 +626,17 @@ publish_release() {
     )"
 
     print_success \
-        "HEAD == origin/main (${head_sha:0:12})"
+        "HEAD == ${remote_branch_ref} (${head_sha:0:12})"
 
-    # ==========================================================
-    # Étape 8 — Vérification tag / Release
-    # ==========================================================
-
+    # Étape 8 - Vérification du tag et de la Release
     print_title \
         "Étape 8/11 — Vérification du tag ${tag_name} et de la Release"
 
-    local api_response=""
-    local http_code=""
-    local http_body=""
-    local error_msg=""
-
-    # ----------------------------------------------------------
-    # Tag
-    # ----------------------------------------------------------
-
+    # Vérification du tag
     api_response="$(
         _forgejo_release_api \
             GET \
-            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/tags/${tag_name}"
+            "${remote_base_url}/api/v1/repos/${remote_owner}/${remote_repository}/tags/${tag_name}"
     )" || {
         return 1
     }
@@ -531,8 +681,9 @@ publish_release() {
         *)
             error_msg="$(
                 printf '%s' "${http_body}" |
-                    jq -r '.message // "erreur inconnue"' \
-                    2>/dev/null
+                    jq -r \
+                        '.message // "erreur inconnue"' \
+                        2>/dev/null
             )"
 
             print_error \
@@ -543,14 +694,11 @@ publish_release() {
             ;;
     esac
 
-    # ----------------------------------------------------------
-    # Release
-    # ----------------------------------------------------------
-
+    # Vérification de la Release
     api_response="$(
         _forgejo_release_api \
             GET \
-            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases/tags/${tag_name}"
+            "${remote_base_url}/api/v1/repos/${remote_owner}/${remote_repository}/releases/tags/${tag_name}"
     )" || {
         return 1
     }
@@ -593,8 +741,9 @@ publish_release() {
         *)
             error_msg="$(
                 printf '%s' "${http_body}" |
-                    jq -r '.message // "erreur inconnue"' \
-                    2>/dev/null
+                    jq -r \
+                        '.message // "erreur inconnue"' \
+                        2>/dev/null
             )"
 
             print_error \
@@ -605,17 +754,14 @@ publish_release() {
             ;;
     esac
 
-    # ==========================================================
-    # Étape 9 — Création du tag
-    # ==========================================================
-
+    # Étape 9 - Création du tag
     print_title \
         "Étape 9/11 — Création du tag ${tag_name}"
 
     api_response="$(
         _forgejo_release_api \
             POST \
-            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/tags" \
+            "${remote_base_url}/api/v1/repos/${remote_owner}/${remote_repository}/tags" \
             "$(jq -n \
                 --arg tag_name "${tag_name}" \
                 --arg target "${head_sha}" \
@@ -638,12 +784,14 @@ publish_release() {
         _forgejo_release_http_body "${api_response}"
     )"
 
-    if [[ "${http_code}" -lt 200 || "${http_code}" -ge 300 ]]; then
+    if [[ "${http_code}" -lt 200 ||
+          "${http_code}" -ge 300 ]]; then
 
         error_msg="$(
             printf '%s' "${http_body}" |
-                jq -r '.message // "erreur inconnue"' \
-                2>/dev/null
+                jq -r \
+                    '.message // "erreur inconnue"' \
+                    2>/dev/null
         )"
 
         print_error \
@@ -658,14 +806,9 @@ publish_release() {
     print_success \
         "Tag ${tag_name} créé sur ${head_sha:0:12}."
 
-    # ==========================================================
-    # Étape 10 — Création de la Release
-    # ==========================================================
-
+    # Étape 10 - Création de la Release
     print_title \
-        "Étape 10/11 — Création de la Release DIU ${deb_version}"
-
-    local release_notes=""
+        "Étape 10/11 — Création de la Release ${project_name} ${deb_version}"
 
     release_notes="$(
         printf \
@@ -678,7 +821,7 @@ publish_release() {
     api_response="$(
         _forgejo_release_api \
             POST \
-            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases" \
+            "${remote_base_url}/api/v1/repos/${remote_owner}/${remote_repository}/releases" \
             "$(jq -n \
                 --arg tag_name "${tag_name}" \
                 --arg name "DIU ${deb_version}" \
@@ -701,12 +844,14 @@ publish_release() {
         _forgejo_release_http_body "${api_response}"
     )"
 
-    if [[ "${http_code}" -lt 200 || "${http_code}" -ge 300 ]]; then
+    if [[ "${http_code}" -lt 200 ||
+          "${http_code}" -ge 300 ]]; then
 
         error_msg="$(
             printf '%s' "${http_body}" |
-                jq -r '.message // "erreur inconnue"' \
-                2>/dev/null
+                jq -r \
+                    '.message // "erreur inconnue"' \
+                    2>/dev/null
         )"
 
         print_error \
@@ -717,6 +862,7 @@ publish_release() {
 
         print_error \
             "Le tag ${tag_name} existe désormais."
+
         print_error \
             "Aucun rollback automatique n'est effectué."
 
@@ -754,23 +900,9 @@ publish_release() {
     print_success \
         "Release créée : DIU ${deb_version} (ID ${release_id})."
 
-    # ==========================================================
-    # Étape 11 — Upload du paquet
-    # ==========================================================
-
+    # Étape 11 - Upload du paquet
     print_title \
         "Étape 11/11 — Upload du paquet ${deb_filename}"
-
-    #
-    # Ici on utilise volontairement un appel curl dédié car
-    # l'upload multipart/form-data n'est pas un appel JSON.
-    #
-
-    local upload_auth_file=""
-    local upload_response=""
-    local upload_code=""
-    local upload_body=""
-    local upload_rc=0
 
     upload_auth_file="$(mktemp)" || {
         print_error \
@@ -802,22 +934,18 @@ publish_release() {
             --config "${upload_auth_file}" \
             -X POST \
             -F "attachment=@${deb_file}" \
-            "${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}/releases/${release_id}/assets" \
+            "${remote_base_url}/api/v1/repos/${remote_owner}/${remote_repository}/releases/${release_id}/assets" \
             2>/dev/null
     )"; then
 
         upload_rc=0
-
     else
-
         upload_rc=$?
-
     fi
 
     rm -f "${upload_auth_file}"
 
     if [[ "${upload_rc}" -ne 0 ]]; then
-
         print_error \
             "Échec réseau lors de l'upload de l'asset."
         print_error \
@@ -826,7 +954,6 @@ publish_release() {
             "La Release reste visible mais incomplète."
         print_error \
             "Aucun rollback automatique."
-
         return 1
     fi
 
@@ -843,8 +970,9 @@ publish_release() {
 
         error_msg="$(
             printf '%s' "${upload_body}" |
-                jq -r '.message // "erreur inconnue"' \
-                2>/dev/null
+                jq -r \
+                    '.message // "erreur inconnue"' \
+                    2>/dev/null
         )"
 
         print_error \
@@ -855,6 +983,7 @@ publish_release() {
 
         print_error \
             "La Release reste visible mais incomplète."
+
         print_error \
             "Aucun rollback automatique."
 
@@ -876,28 +1005,21 @@ publish_release() {
     print_success \
         "Asset uploadé : ${deb_filename}"
 
-    echo ""
-
-    print_success \
-        "=============================================="
+    printf '\n'
 
     print_success \
         "Release DIU ${deb_version} publiée avec succès."
 
-    print_success \
-        "Tag     : ${tag_name}"
-
-    print_success \
-        "Commit  : ${head_sha:0:12}"
-
-    print_success \
-        "Release : ${release_id}"
-
-    print_success \
-        "Asset   : ${deb_filename}"
-
-    print_success \
-        "=============================================="
+    printf '%-12s : %s\n' \
+        "Projet" "${project_name}"
+    printf '%-12s : %s\n' \
+        "Tag" "${tag_name}"
+    printf '%-12s : %s\n' \
+        "Commit" "${head_sha:0:12}"
+    printf '%-12s : %s\n' \
+        "Release" "${release_id}"
+    printf '%-12s : %s\n' \
+        "Asset" "${deb_filename}"
 
     return 0
 }
