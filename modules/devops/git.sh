@@ -106,7 +106,7 @@ cicd_project_diu() {
 
     print_title "Étape 3/4 — Build du paquet Debian"
 
-    if ! build_deb \
+    if ! build_deb_diu \
         "${project_id}"; then
 
         print_error "Échec de la construction du paquet Debian."
