@@ -415,7 +415,7 @@ EOF
 		},
 		"plan": {
 		  "mode": "primary",
-		  "model": "openrouter/xiaomi/mimo-v2.5-pro"
+		  "mo je serais plutôt pour exclure dist/*.deb de Git. Les .deb sont des artefacts de build/release, pas des sources.del": "openrouter/xiaomi/mimo-v2.5-pro"
 		},
 		"code-reviewer": {
 		  "mode": "subagent",
@@ -431,18 +431,22 @@ EOF
 			"*": "deny",
 			"awk": "ask",
 			"awk *": "ask",
-      "bash /tmp/opencode/*": "ask",
-      "bash -n *": "allow",
-      "cat": "allow",
-      "cat *": "allow",
-      "chmod": "ask",
-      "chmod *": "ask",
-      "command -v": "allow",
-      "command -v *": "allow",
-      "cp": "ask",
-      "cp *": "ask",
-      "diff": "allow",
-      "diff *": "allow",
+			"bash /tmp/opencode/*": "ask",
+			"bash -n *": "allow",
+			"cat": "allow",
+			"cat *": "allow",
+			"chmod": "ask",
+			"chmod *": "ask",
+			"command -v": "allow",
+			"command -v *": "allow",
+			"cp": "ask",
+			"cp *": "ask",
+			"diff": "allow",
+			"diff *": "allow",
+			"docker": "ask",
+			"docker *": "ask",
+			"docker-compose": "ask",
+			"docker-compose *": "ask",
 			"find *": "ask",
 			"file *": "ask",
 			"git add": "ask",
@@ -488,35 +492,35 @@ EOF
 			"grep": "allow",
 			"grep *": "allow",
 			"glob": "allow",
-      "head": "allow",
-      "head *": "allow",
+			"head": "allow",
+			"head *": "allow",
 			"ls": "allow",
 			"ls *": "allow",
 			"lsp": "allow",
-      "mkdir": "allow",
-      "mkdir *": "allow",
-      "mv": "ask",
-      "mv *": "ask",
-      "openspec": "ask",
-      "openspec *": "ask",
-      "openspec archive *": "ask",
-      "openspec status *": "allow",
-      "openspec instructions *": "ask",
-      "openspec instructions apply *": "allow",
-      "openspec instructions design *": "allow",
-      "openspec instructions proposal *": "allow",
-      "openspec instructions specs *": "allow",
-      "openspec instructions tasks *": "allow",
-      "openspec list": "allow",
-      "openspec list *": "allow",
-      "openspec show": "allow",
-      "openspec show *": "allow",
-      "openspec status": "allow",
-      "openspec status *": "allow",
-      "openspec view": "allow",
-      "openspec view *": "allow",
-      "openspec validate": "allow",
-      "openspec validate *": "allow",
+			"mkdir": "allow",
+			"mkdir *": "allow",
+			"mv": "ask",
+			"mv *": "ask",
+			"openspec": "ask",
+			"openspec *": "ask",
+			"openspec archive *": "ask",
+			"openspec status *": "allow",
+			"openspec instructions *": "ask",
+			"openspec instructions apply *": "allow",
+			"openspec instructions design *": "allow",
+			"openspec instructions proposal *": "allow",
+			"openspec instructions specs *": "allow",
+			"openspec instructions tasks *": "allow",
+			"openspec list": "allow",
+			"openspec list *": "allow",
+			"openspec show": "allow",
+			"openspec show *": "allow",
+			"openspec status": "allow",
+			"openspec status *": "allow",
+			"openspec view": "allow",
+			"openspec view *": "allow",
+			"openspec validate": "allow",
+			"openspec validate *": "allow",
 			"pwd": "allow",
 			"rm": "ask",
 			"rm *": "ask",
@@ -524,16 +528,16 @@ EOF
 			"sed *": "ask",
 			"shellcheck": "allow",
 			"shellcheck *": "allow",
-      "tail": "allow",
-      "tail *": "allow",
-      "touch": "ask",
-      "touch *": "ask",
+			"tail": "allow",
+			"tail *": "allow",
+			"touch": "ask",
+			"touch *": "ask",
 			"tree": "ask",
 			"tree *": "ask",
-      "wc": "allow",
-      "wc *": "allow",
-      "which": "allow",
-      "which *": "allow"
+			"wc": "allow",
+			"wc *": "allow",
+			"which": "allow",
+			"which *": "allow"
 		},
 		"edit": {
 			"*": "ask",
@@ -3979,8 +3983,8 @@ launch_ocro() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec && \
-          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
+      -c 'apk add --no-cache bash git docker docker-cli-compose nodejs npm shellcheck su-exec && \
+			exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
 }
 
 launch_ocrw() {
@@ -3988,6 +3992,14 @@ launch_ocrw() {
     local project_name="$2"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local confirmation
+
+    local opencode_uid
+    local opencode_gid
+    local docker_gid
+
+    opencode_uid="$(id -u "${ENV_DEVOPS_USER}")"
+    opencode_gid="$(id -g "${ENV_DEVOPS_USER}")"
+    docker_gid="$(stat -c '%g' /var/run/docker.sock)"
 
     if [[ ! -e "$project_path/.opencode/share" ]]; then
         echo "❌ Le projet n'existe pas :"
@@ -3997,7 +4009,7 @@ launch_ocrw() {
 
     ensure_docker_image \
         "${ENV_DOCKER_IMAGE_OPENCODE}" \
-        "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
+        "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}" || return 1
 
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
       --hostname opencode \
@@ -4008,9 +4020,12 @@ launch_ocrw() {
       --pids-limit 256 \
       --memory 2g \
       --cpus 2 \
-      -e OPENCODE_UID=$(id -u "${ENV_DEVOPS_USER}") \
-      -e OPENCODE_GID=$(id -g "${ENV_DEVOPS_USER}") \
+      --group-add ${docker_gid} \
+      -e OPENCODE_UID=${opencode_uid} \
+      -e OPENCODE_GID=${opencode_gid} \
+      -e DOCKER_GID=${docker_gid} \
       -e HOME=/home/opencode \
+      -e DOCKER_CONFIG=/tmp/docker-config \
       -e XDG_CACHE_HOME=/home/opencode/.cache \
       -e XDG_CONFIG_HOME=/home/opencode/.config \
       -e XDG_DATA_HOME=/home/opencode/.local/share \
@@ -4021,7 +4036,8 @@ launch_ocrw() {
       -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
       -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
-	  -p 4096:4096 \
+      -p 4096:4096 \
+      -v /var/run/docker.sock:/var/run/docker.sock \
       -v /home/devops/datas/${project_id}:/workspace:rw \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
@@ -4030,8 +4046,13 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash git nodejs npm shellcheck su-exec &&
-          exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
+      -c 'apk add --no-cache bash docker docker-cli-compose git nodejs npm shellcheck util-linux && \
+          exec setpriv \
+            --reuid=\"\$OPENCODE_UID\" \
+            --regid=\"\$OPENCODE_GID\" \
+            --groups=\"\$DOCKER_GID\" \
+            -- \
+            opencode --hostname 0.0.0.0 --port 4096'"
 }
 
 manage_devops_action() {
@@ -4773,6 +4794,8 @@ then
 	# unlink /etc/localtime
 	# ln -s /usr/share/timezone/$TIME_ZONE /etc/localtime
 
+	install -d -m 0755 /usr/share/keyrings
+
 	if [ -f /etc/apt/sources.list ]
 	then
 
@@ -4862,6 +4885,33 @@ Suites: trixie
 Components: stable
 Signed-By: /usr/share/keyrings/docker-archive-keyring.gpg
 EOF
+	fi
+
+	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
+
+		if gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+			:
+		else
+			return 1
+		fi
+		gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg
+		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
+
+		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
+Types: deb
+URIs: https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release
+Suites: bullseye
+Components: main
+Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
+EOF
+
+	else
+
+		if [[ -f "/usr/share/keyrings/fd-archive-keyring.gpg" || -f "/etc/apt/sources.list.d/fd.sources" ]]; then
+			echo "🔧 UNCONFIGURE APT REPOSITORY FUSION DIRECTORY"
+			rm -f "/usr/share/keyrings/fd-archive-keyring.gpg" "/etc/apt/sources.list.d/fd.sources"
+		fi
+
 	fi
 
 	if [ $DRIVERS_NVIDIA == "1" ]
