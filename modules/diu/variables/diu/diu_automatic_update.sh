@@ -22,6 +22,8 @@ default_value=1
 # Fichier de configuration du scope
 variable_config_file="/root/diu/config/${scope}.env"
 
+# echo "🔧 CHECK VARIABLE GLOABAL DIU_AUTOMATIC_UPDATE"
+
 
 # ============================================================
 # Génération de la variable
@@ -47,6 +49,7 @@ if [[ "${state}" == "ENABLE" ]]; then
             export DIU_AUTOMATIC_UPDATE="${default_value}"
 
             # Enregistrement dans le fichier de configuration
+            echo "🔧 INITIALIATION VARIABLE GLOABAL DIU_AUTOMATIC_UPDATE"
             echo "export DIU_AUTOMATIC_UPDATE=${default_value}" \
                 >> "${variable_config_file}"
 
