@@ -4889,7 +4889,9 @@ EOF
 
 		echo "🔧 CONFIGURE APT REPOSITORY FUSION DIRECTORY"
 		install -d -m 0755 /usr/share/keyrings
-		curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
+		gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86
+		gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg
+		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
 
 		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
 Types: deb
