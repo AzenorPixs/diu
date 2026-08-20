@@ -3993,6 +3993,14 @@ launch_ocrw() {
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local confirmation
 
+    local opencode_uid
+    local opencode_gid
+    local docker_gid
+
+    opencode_uid="$(id -u "${ENV_DEVOPS_USER}")"
+    opencode_gid="$(id -g "${ENV_DEVOPS_USER}")"
+    docker_gid="$(stat -c '%g' /var/run/docker.sock)"
+
     if [[ ! -e "$project_path/.opencode/share" ]]; then
         echo "❌ Le projet n'existe pas :"
         echo "   $project_path/.opencode/share"
@@ -4001,7 +4009,7 @@ launch_ocrw() {
 
     ensure_docker_image \
         "${ENV_DOCKER_IMAGE_OPENCODE}" \
-        "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}"  || return 1
+        "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}" || return 1
 
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
       --hostname opencode \
@@ -4012,9 +4020,10 @@ launch_ocrw() {
       --pids-limit 256 \
       --memory 2g \
       --cpus 2 \
-      --group-add $(stat -c '%g' /var/run/docker.sock) \
-      -e OPENCODE_UID=$(id -u "${ENV_DEVOPS_USER}") \
-      -e OPENCODE_GID=$(id -g "${ENV_DEVOPS_USER}") \
+      --group-add ${docker_gid} \
+      -e OPENCODE_UID=${opencode_uid} \
+      -e OPENCODE_GID=${opencode_gid} \
+      -e DOCKER_GID=${docker_gid} \
       -e HOME=/home/opencode \
       -e XDG_CACHE_HOME=/home/opencode/.cache \
       -e XDG_CONFIG_HOME=/home/opencode/.config \
@@ -4026,8 +4035,8 @@ launch_ocrw() {
       -e OPENCODE_DISABLE_DEFAULT_PLUGINS=false \
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
       -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
-	  -p 4096:4096 \
-	  -v /var/run/docker.sock:/var/run/docker.sock \
+      -p 4096:4096 \
+      -v /var/run/docker.sock:/var/run/docker.sock \
       -v /home/devops/datas/${project_id}:/workspace:rw \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
@@ -4036,8 +4045,13 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash docker docker-cli-compose git nodejs npm shellcheck su-exec && \
-			exec su-exec \"\$OPENCODE_UID:\$OPENCODE_GID\" opencode --hostname 0.0.0.0 --port 4096'"
+      -c 'apk add --no-cache bash docker docker-cli-compose git nodejs npm shellcheck util-linux && \
+          exec setpriv \
+            --reuid=\"\$OPENCODE_UID\" \
+            --regid=\"\$OPENCODE_GID\" \
+            --groups=\"\$DOCKER_GID\" \
+            -- \
+            opencode --hostname 0.0.0.0 --port 4096'"
 }
 
 manage_devops_action() {
