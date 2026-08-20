@@ -119,7 +119,7 @@ config_load_system() {
 
 config_generator() {
 
-    local variables_directory="/root/diu/modules/diu/variables"
+    local variables_directory="${BASH_SCRIPT_PATH}/modules/diu/variables"
 
     [[ -d "${variables_directory}" ]] || return 0
 
