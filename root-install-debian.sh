@@ -2626,11 +2626,12 @@ manage_project_action() {
 
     local action="${1:-}"
     local project_id="${2:-}"
-    local commit_name="${3:-}"
+    local commit_name=""
 
     case "$action" in
 
         cicd)
+            commit_name="${2:-}"
             cicd_project_diu \
                 "$commit_name"
             ;;
@@ -2652,6 +2653,7 @@ manage_project_action() {
 
         gitc)
             git_commit \
+                commit_name="${3:-}"
                 "$project_id" \
                 "$commit_name"
             ;;

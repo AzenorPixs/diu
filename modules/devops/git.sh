@@ -6,8 +6,10 @@
 
 cicd_project_diu() {
 
-    local commit_name="${1:-}"
+    local project_id="diu"
     local project_path=""
+    local project_name="Debian Installer Unifié"
+    local commit_name="${1:-}"
 
     # ==========================================================
     # Validation des arguments
@@ -38,7 +40,8 @@ cicd_project_diu() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
 
     if [[ ! -d "${project_path}" ]]; then
         print_error "Projet introuvable : ${project_path}"
