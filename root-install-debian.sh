@@ -2651,12 +2651,12 @@ manage_project_action() {
                 "$project_id"
             ;;
 
-        gitc)
-            git_commit \
-                commit_name="${3:-}"
-                "$project_id" \
-                "$commit_name"
-            ;;
+		gitc)
+			commit_name="${3:-}"
+			git_commit \
+				"$project_id" \
+				"$commit_name"
+			;;
 
         giti)
             git_init \
