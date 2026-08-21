@@ -480,16 +480,16 @@ EOF
 	"default_agent": "plan",
 	"agent": {
 		"build": {
-		  "mode": "primary",
-		  "model": "openrouter/xiaomi/mimo-v2.5"
+			"mode": "primary",
+			"model": "openrouter/xiaomi/mimo-v2.5"
 		},
 		"plan": {
-		  "mode": "primary",
-		  "mo je serais plutôt pour exclure dist/*.deb de Git. Les .deb sont des artefacts de build/release, pas des sources.del": "openrouter/xiaomi/mimo-v2.5-pro"
+			"mode": "primary",
+			"model": "openrouter/xiaomi/mimo-v2.5-pro"
 		},
 		"code-reviewer": {
-		  "mode": "subagent",
-		  "model": "openrouter/deepseek/deepseek-v4-pro"
+			"mode": "subagent",
+			"model": "openrouter/deepseek/deepseek-v4-pro"
 		}
 	},
 	"share": "disabled",
@@ -497,6 +497,10 @@ EOF
 	"autoupdate": false,
 	"permission": {
 		"*": "ask",
+		"skill": {
+			"*": "ask",
+			"openspec-*": "allow"
+		},
 		"bash": {
 			"*": "deny",
 			"awk": "ask",
@@ -517,6 +521,7 @@ EOF
 			"docker *": "ask",
 			"docker-compose": "ask",
 			"docker-compose *": "ask",
+			"echo *": "ask",
 			"find *": "ask",
 			"file *": "ask",
 			"git add": "ask",
@@ -564,6 +569,8 @@ EOF
 			"glob": "allow",
 			"head": "allow",
 			"head *": "allow",
+			"id": "allow",
+			"id *": "allow",
 			"ls": "allow",
 			"ls *": "allow",
 			"lsp": "allow",
@@ -662,13 +669,13 @@ EOF
 			"tmp/**": "deny",
 			"venv/**": "deny"
 		},
-    "external_directory": {
-      "*": "deny",
-      "/tmp/opencode/**": "allow"
-    },
+		"external_directory": {
+			"*": "deny",
+			"/tmp/opencode/**": "allow"
+		},
 		"glob": "allow",
 		"grep": "allow",
-		"lsp": "allow",	
+		"lsp": "allow",
 		"question": "allow",
 		"read": {
 			"*": "allow",
@@ -3091,6 +3098,12 @@ EOF
 		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
 Types: deb
 URIs: https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release
+Suites: bullseye
+Components: main
+Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
+
+Types: deb
+URIs: https://public.fusiondirectory.org/debian/fusiondirectory-tools
 Suites: bullseye
 Components: main
 Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
