@@ -1,31 +1,32 @@
 #!/usr/bin/env bash
-# Provider d'authentification et d'accès Forgejo
-#
-# Responsabilités :
-#   - résolution du remote Forgejo
-#   - gestion des credentials locaux
-#   - validation du token Forgejo
-#   - git fetch/push HTTPS authentifié
-#   - appels API Forgejo authentifiés
-#
-# Credentials :
-#   config/forgejo.username
-#   config/forgejo.token
-#
-# Les credentials doivent être en permissions 600.
-#
-# API :
-#   forgejo_api_get
-#   forgejo_api_post_json
-#   forgejo_api_upload
-
-# ==========================================================
-# Résolution du remote Forgejo
-# ==========================================================
 
 _forgejo_resolve_remote() {
-    local project_path="${1:-}"
 
+    # Provider d'authentification et d'accès Forgejo
+    #
+    # Responsabilités :
+    #   - résolution du remote Forgejo
+    #   - gestion des credentials locaux
+    #   - validation du token Forgejo
+    #   - git fetch/push HTTPS authentifié
+    #   - appels API Forgejo authentifiés
+    #
+    # Credentials :
+    #   config/forgejo.username
+    #   config/forgejo.token
+    #
+    # Les credentials doivent être en permissions 600.
+    #
+    # API :
+    #   forgejo_api_get
+    #   forgejo_api_post_json
+    #   forgejo_api_upload
+
+    # ==========================================================
+    # Résolution du remote Forgejo
+    # ==========================================================
+
+    local project_path="${1:-}"
     local remote_url=""
     local url_path=""
     local authority=""
@@ -109,11 +110,7 @@ _forgejo_resolve_remote() {
     return 0
 }
 
-
-# ==========================================================
 # Lecture du username
-# ==========================================================
-
 _forgejo_read_username() {
     local project_path="${1:-}"
     local username_file="${project_path}/config/forgejo.username"
@@ -147,11 +144,7 @@ _forgejo_read_username() {
     return 0
 }
 
-
-# ==========================================================
 # Lecture du token
-# ==========================================================
-
 _forgejo_read_token() {
     local project_path="${1:-}"
     local token_file="${project_path}/config/forgejo.token"
@@ -185,13 +178,8 @@ _forgejo_read_token() {
     return 0
 }
 
-
-# ==========================================================
 # Création d'un fichier curl temporaire contenant le token
-#
 # Le token n'est jamais placé dans les arguments de curl.
-# ==========================================================
-
 _forgejo_create_api_curl_config() {
     local token="${1:-}"
     local config_file=""
@@ -227,13 +215,8 @@ _forgejo_create_api_curl_config() {
     printf '%s' "${config_file}"
 }
 
-
-# ==========================================================
 # Préparation du contexte Forgejo
-#
 # Cette fonction est utilisée par les opérations Git et API.
-# ==========================================================
-
 _forgejo_prepare_context() {
     local project_path="${1:-}"
 
@@ -263,31 +246,31 @@ _forgejo_prepare_context() {
     return 0
 }
 
-
-# ==========================================================
-# Requête API Forgejo générique
-#
-# Usage :
-#
-#   _forgejo_api_request \
-#       <project_path> \
-#       <method> \
-#       <endpoint> \
-#       [json_payload] \
-#       [upload_file]
-#
-# stdout :
-#   <body>
-#   <HTTP code>
-#
-# return 0 :
-#   curl a obtenu une réponse HTTP
-#
-# return != 0 :
-#   erreur réseau / préparation de requête
-# ==========================================================
-
 _forgejo_api_request() {
+
+    # ==========================================================
+    # Requête API Forgejo générique
+    #
+    # Usage :
+    #
+    #   _forgejo_api_request \
+    #       <project_path> \
+    #       <method> \
+    #       <endpoint> \
+    #       [json_payload] \
+    #       [upload_file]
+    #
+    # stdout :
+    #   <body>
+    #   <HTTP code>
+    #
+    # return 0 :
+    #   curl a obtenu une réponse HTTP
+    #
+    # return != 0 :
+    #   erreur réseau / préparation de requête
+    # ==========================================================
+
     local project_path="${1:-}"
     local method="${2:-}"
     local endpoint="${3:-}"
@@ -402,13 +385,8 @@ _forgejo_api_request() {
     return 0
 }
 
-
-# ==========================================================
 # API GET
-#
 # forgejo_api_get <project_path> <endpoint>
-# ==========================================================
-
 forgejo_api_get() {
     local project_path="${1:-}"
     local endpoint="${2:-}"
@@ -429,13 +407,8 @@ forgejo_api_get() {
         "${endpoint}"
 }
 
-
-# ==========================================================
 # API POST JSON
-#
 # forgejo_api_post_json <project_path> <endpoint> <payload>
-# ==========================================================
-
 forgejo_api_post_json() {
     local project_path="${1:-}"
     local endpoint="${2:-}"
@@ -469,13 +442,8 @@ forgejo_api_post_json() {
         "${payload}"
 }
 
-
-# ==========================================================
 # API upload
-#
 # forgejo_api_upload <project_path> <endpoint> <file>
-# ==========================================================
-
 forgejo_api_upload() {
     local project_path="${1:-}"
     local endpoint="${2:-}"
@@ -516,24 +484,24 @@ forgejo_api_upload() {
         "${file}"
 }
 
-
-# ==========================================================
-# Validation réelle du token Forgejo
-#
-# Première vérification :
-#
-#   GET /api/v1/user
-#
-# Cette vérification ne dépend donc pas de l'existence
-# du repository.
-#
-# Retour :
-#   0 = token valide
-#   2 = token invalide / accès refusé
-#   1 = erreur technique
-# ==========================================================
-
 _forgejo_validate_credentials() {
+
+    # ==========================================================
+    # Validation réelle du token Forgejo
+    #
+    # Première vérification :
+    #
+    #   GET /api/v1/user
+    #
+    # Cette vérification ne dépend donc pas de l'existence
+    # du repository.
+    #
+    # Retour :
+    #   0 = token valide
+    #   2 = token invalide / accès refusé
+    #   1 = erreur technique
+    # ==========================================================
+
     local project_path="${1:-}"
 
     local http_code=""
@@ -752,19 +720,20 @@ _forgejo_validate_credentials() {
     esac
 }
 
-# ==========================================================
-# Validation / initialisation des credentials
-#
-# Cette fonction conserve le principe actuel :
-#
-#   credentials valides → OK
-#   credentials invalides → reconfiguration
-#   credentials absents → configuration
-#
-# La génération automatique du token est conservée.
-# ==========================================================
-
 _forgejo_ensure_credentials() {
+
+    # ==========================================================
+    # Validation / initialisation des credentials
+    #
+    # Cette fonction conserve le principe actuel :
+    #
+    #   credentials valides → OK
+    #   credentials invalides → reconfiguration
+    #   credentials absents → configuration
+    #
+    # La génération automatique du token est conservée.
+    # ==========================================================
+
     local project_path="${1:-}"
 
     local forgejo_host=""
@@ -1447,10 +1416,7 @@ _forgejo_ensure_credentials() {
     esac
 }
 
-# ==========================================================
 # Git fetch authentifié
-# ==========================================================
-
 forgejo_git_fetch() {
     local project_path="${1:-}"
 
@@ -1479,13 +1445,8 @@ forgejo_git_fetch() {
         fetch origin
 }
 
-
-# ==========================================================
 # Git push authentifié
-#
 # forgejo_git_push <project_path> [push_args...]
-# ==========================================================
-
 forgejo_git_push() {
     local project_path="${1:-}"
     shift || true
