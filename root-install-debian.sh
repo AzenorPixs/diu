@@ -3107,6 +3107,12 @@ URIs: https://public.fusiondirectory.org/debian/fusiondirectory-tools
 Suites: bullseye
 Components: main
 Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
+
+Types: deb
+URIs: https://public.fusiondirectory.org/debian/fusiondirectory-integrator
+Suites: bullseye
+Components: main
+Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
 EOF
 
 	else
