@@ -253,42 +253,44 @@ Utilisation :
 
   rid																→  Exécute normalement l'installation Debian.
 
-  rid ia configure hm                                               →  Configure Agent Hermès
-  rid ia install hm                                                 →  Install Agent Hermes
-  rid ia docker ps                                                  →  Execute un docker PS dans l'environnement IA (rootless)                                                         
-  rit ia start hm                                                   →  Start Agent Hermes
-  rid ia stop hm                                                    →  Stop Agent Hermes
-  rid ia update hm                                                  →  Mise à jour Agent Hermes
-  rid ia uninstall hm                                               →  Uninstall Agent Hermes
-  rid proj ocro <ID Projet>											→  Démarre OpenCode en RO dans le projet <ID Projet>.
-  rid proj ocrw <ID Projet>											→  Démarre OpenCode en RW dans le projet <ID Projet>.
+  rid ia configure hm                                       →  Configure Agent Hermès
+  rid ia install hm                                         →  Install Agent Hermes
+  rid ia docker ps                                          →  Execute un docker PS dans l'environnement IA (rootless)                                                         
+  rit ia start hm                                           →  Start Agent Hermes
+  rid ia stop hm                                            →  Stop Agent Hermes
+  rid ia update hm                                          →  Mise à jour Agent Hermes
+  rid ia uninstall hm                                       →  Uninstall Agent Hermes
+  rid proj ocro <ID Projet>											            →  Démarre OpenCode en RO dans le projet <ID Projet>.
+  rid proj ocrw <ID Projet>											            →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
-  rid docker root check-containers                                  →   Vérification des containers Docker Up
-  rid docker root diag <USER>                                       →   Diagnostic Docker pour <USER>  
-  rid docker root test <USER>                                       →   Teste l'état Docker pour <USER>
-  rid docker rootless analyse <USER>                                →   Analyse l'état Docker Rootless pour <USER>
-  rid docker rootless configure <USER>                              →   Configure Docker Rootless pour <USER>
-  rid docker rootless diag <USER>                                   →   Diagnostic Docker Rootless pour <USER>
-  rid docker rootless exec <USER> <CONTAINER>                       →   Exécute une commande Docker Rootless pour <USER> dans <CONTAINER>
-  rid docker rootless inspect <USER> <CONTAINER>                    →   Inspecte le containers <CONTAINER> Docker Rootless pour <USER>
-  rid docker rootless log <USER> <CONTAINER>                        →   Journaux du container <CONTAINER> Docker Rootless pour <USER>
-  rid docker rootless ps <USER>                                     →   Liste des des container Up Docker Rootless pour <USER>
-  rid docker rootless test <USER>                                   →   Teste Docker Rootless pour <USER>
-  rid docker rootless unconfigure <USER>                            →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
+  rid docker root check-containers                          →   Vérification des containers Docker Up
+  rid docker root diag <USER>                               →   Diagnostic Docker pour <USER>  
+  rid docker root test <USER>                               →   Teste l'état Docker pour <USER>
+  rid docker rootless analyse <USER>                        →   Analyse l'état Docker Rootless pour <USER>
+  rid docker rootless configure <USER>                      →   Configure Docker Rootless pour <USER>
+  rid docker rootless diag <USER>                           →   Diagnostic Docker Rootless pour <USER>
+  rid docker rootless exec <USER> <CONTAINER>               →   Exécute une commande Docker Rootless pour <USER> dans <CONTAINER>
+  rid docker rootless inspect <USER> <CONTAINER>            →   Inspecte le containers <CONTAINER> Docker Rootless pour <USER>
+  rid docker rootless log <USER> <CONTAINER>                →   Journaux du container <CONTAINER> Docker Rootless pour <USER>
+  rid docker rootless ps <USER>                             →   Liste des des container Up Docker Rootless pour <USER>
+  rid docker rootless test <USER>                           →   Teste Docker Rootless pour <USER>
+  rid docker rootless unconfigure <USER>                    →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
 
-  rid os validate <ID Projet> <Spec>								→  Valide la <Spec> validate pour le <Projet>.
-  rid proj deb				                                        →  Construit le paquet Debian DIU dans dist/.
+  rid os validate <ID Projet> <Spec>								        →  Valide la <Spec> validate pour le <Projet>.
+  rid proj deb				                                      →  Construit le paquet Debian DIU dans dist/.
   rid proj bash <ID Projet>					                        →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
-  rid proj del <ID Projet>                                          →  Supprime le projet <ID Projet>
-  rid proj dockerb <ID Projet>				                        →  Construit le docker <ID Projet> à partir de <Docker File>
-  rid proj gita <ID Projet>											→  Analyse le Git local pour le projet <ID Projet>
+  rid proj del <ID Projet>                                  →  Supprime le projet <ID Projet>
+  rid proj dockerb <ID Projet>				                      →  Construit le docker <ID Projet> à partir de <Docker File>
+  rid proj findads <ID Projet>											        →  cherche et supprime les motifs *sync-conflict* dans le projet <ID Projet>
+  rid proj finds <ID Projet>											          →  cherche les motifs *sync-conflict* dans le projet <ID Projet>
+  rid proj gita <ID Projet>											            →  Analyse le Git local pour le projet <ID Projet>
   rid proj gitc <ID Projet> <Nom du Commit>         				→  Commit vers le dépôt Git local pour projet "<ID Projet>
   rid proj giti <ID Projet>					                        →  Initialisation du dépôt Git local dans le projet <ID Projet>.
   rid proj gitp <ID Projet>					                        →  Push le Git local vers un Git distant pour le projet <ID Projet>.
   rid proj gitpdiu <ID Projet>					                    →  Push l'image docker sur le Git Distant pour le DIU.
-  rid proj gitpdr <ID Projet>					                    →  Push l'image docker sur le Git Distant pour <ID Projet>.
+  rid proj gitpdr <ID Projet>					                      →  Push l'image docker sur le Git Distant pour <ID Projet>.
   rid proj gits <ID Projet>					                        →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj rel														→  Publie la Release sur le dépôt Git distant à partir du paquet Debian dans dist/.
+  rid proj rel														                  →  Publie le DIU sur le Git distant à partir du Deb dans dist/.
 
   rid update														→  Mise à jour totale
   rid update diu												    →  Mise à jour du DIU
@@ -1214,27 +1216,38 @@ manage_project_action() {
                 "$project_id"
             ;;
 
-		dockerb)
-			dockerfile_name="${3:-dockerfile}"
-			proj_docker_build \
-				"$project_id" \
-				"$dockerfile_name"
-			;;
+        dockerb)
+          dockerfile_name="${3:-dockerfile}"
+          proj_docker_build \
+            "$project_id" \
+            "$dockerfile_name"
+          ;;
+
+        finds)
+            proj_find_sync \
+                "$project_id"
+            ;;
+
+        findads)
+            proj_find_and_delete_sync \
+                "$project_id"
+            ;;
+
 
         gita)
             git_analyse \
                 "$project_id"
             ;;
 
-		gitc)
-			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
-			commit_name="${3:-${commit_timestamp}}"
-			commit_tag="${4:-v${commit_timestamp}}"
-			git_commit \
-				"$project_id" \
-				"$commit_name" \
-				"$commit_tag"
-			;;
+        gitc)
+          commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+          commit_name="${3:-${commit_timestamp}}"
+          commit_tag="${4:-v${commit_timestamp}}"
+          git_commit \
+            "$project_id" \
+            "$commit_name" \
+            "$commit_tag"
+          ;;
 
         giti)
             git_init \
