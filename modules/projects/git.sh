@@ -2127,6 +2127,9 @@ git_push_docker_release() {
     local remote_image_version
     local remote_image_latest
 
+    local forgejo_username=""
+    local forgejo_token=""
+
     # --------------------------------------------------------
     # Vérification des arguments
     # --------------------------------------------------------
@@ -2234,6 +2237,16 @@ git_push_docker_release() {
     # Affichage
     # --------------------------------------------------------
 
+	if ! _forgejo_read_username "${project_dir}"; then
+		echo "❌ Impossible de lire le nom d'utilisateur Forgejo."
+		return 1
+	fi
+
+	if ! _forgejo_read_token "${project_dir}"; then
+		echo "❌ Impossible de lire le token Forgejo."
+		return 1
+	fi
+
     echo
     echo "=========================================================="
     echo " Publication Release Docker"
@@ -2248,6 +2261,8 @@ git_push_docker_release() {
     echo "Release        : ${remote_image_version}"
     echo "Latest         : ${remote_image_latest}"
     echo
+	echo "Utilisateur Forgejo : ${forgejo_username}"
+	echo "Owner cible          : ${REMOTE_OWNER}"
 
     # --------------------------------------------------------
     # Création du tag Docker versionné
@@ -2274,6 +2289,50 @@ git_push_docker_release() {
         echo "❌ Échec du tag Docker latest."
         return 1
     fi
+
+    # --------------------------------------------------------
+    # Authentification Forgejo
+    # --------------------------------------------------------
+
+    echo
+    echo "=========================================================="
+    echo " Authentification Docker Forgejo"
+    echo "=========================================================="
+    echo
+
+    if ! _forgejo_read_username "${project_dir}"; then
+        echo "❌ Impossible de lire le nom d'utilisateur Forgejo."
+        return 1
+    fi
+
+    if ! _forgejo_read_token "${project_dir}"; then
+        echo "❌ Impossible de lire le token Forgejo."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_username}" ]]; then
+        echo "❌ Nom d'utilisateur Forgejo vide."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_token}" ]]; then
+        echo "❌ Token Forgejo vide."
+        return 1
+    fi
+
+    if ! printf '%s' "${forgejo_token}" | \
+        runuser -u "${DEVOPS_USER}" -- \
+            docker login \
+                "${remote_registry}" \
+                --username "${forgejo_username}" \
+                --password-stdin
+    then
+        echo "❌ Échec de l'authentification Docker auprès de ${remote_registry}."
+        return 1
+    fi
+
+    echo
+    echo "✅ Authentification Docker Forgejo réussie."
 
     # --------------------------------------------------------
     # Publication versionnée
