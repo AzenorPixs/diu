@@ -1156,7 +1156,7 @@ _forgejo_ensure_credentials() {
                 "Nom du token : diu-publish"
 
             print_info \
-                "Scope demandé : write:repository"
+                "Scope demandé : write:repository write:package"
 
             print_info \
                 "Création du token en cours..."
@@ -1169,9 +1169,10 @@ _forgejo_ensure_credentials() {
                     -H "Content-Type: application/json" \
                     -d '{
                         "name": "diu-publish",
-                        "scopes": [
-                            "write:repository"
-                        ]
+						"scopes": [
+							"write:repository",
+							"write:package"
+						]
                     }' \
                     "${forgejo_base}/api/v1/users/${forgejo_user}/tokens" \
                     2>/dev/null
