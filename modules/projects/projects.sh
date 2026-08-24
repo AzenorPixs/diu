@@ -1434,43 +1434,145 @@ EOF
 
 delete_project() {
     local project_id="$1"
-    local project_name="$2"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-    local confirmation
+    local project_env="${project_path}/project.env"
 
-    echo ""
-    echo "=============================================="
-    echo " Suppression du projet ${project_name}"
-    echo "=============================================="
-    echo ""
+    local project_name=""
+    local confirmation=""
 
-    if [[ ! -e "$project_path" ]]; then
-        echo "❌ Le projet n'existe pas :"
-        echo "   $project_path"
-        exit 1
+    # Vérification des paramètres
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : delete_project <project_id>"
+        return 1
     fi
 
-    echo "⚠️  Cette opération supprimera définitivement :"
-    echo ""
-    echo "   $project_path"
-    echo ""
+    # Vérification du projet
+    if [[ ! -e "${project_path}" ]]; then
+        print_error \
+            "Le projet n'existe pas : ${project_path}"
+        return 1
+    fi
 
+    # Valeur de secours
+    project_name="${project_id}"
+
+    # Chargement éventuel de project.env
+    if [[ -f "${project_env}" ]]; then
+
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            LOCAL_DEFAULT_BRANCH \
+            GIT_USER_NAME \
+            GIT_USER_EMAIL \
+            REMOTE_GIT_TYPE \
+            REMOTE_BASE_URL \
+            REMOTE_OWNER \
+            REMOTE_REPOSITORY \
+            REMOTE_NAME \
+            REMOTE_DEFAULT_BRANCH \
+            REMOTE_CLONE_GIT_TYPE \
+            REMOTE_CLONE_BASE_URL \
+            REMOTE_CLONE_OWNER \
+            REMOTE_CLONE_REPOSITORY \
+            REMOTE_CLONE_NAME \
+            REMOTE_CLONE_DEFAULT_BRANCH
+
+        # shellcheck disable=SC1090
+        source "${project_env}"
+
+        # Vérification de cohérence du PROJECT_ID
+        if [[ -n "${PROJECT_ID:-}" ]] && \
+           [[ "${PROJECT_ID}" != "${project_id}" ]]; then
+
+            print_error \
+                "PROJECT_ID '${PROJECT_ID}' ne correspond pas au projet '${project_id}'."
+            return 1
+        fi
+
+        # Récupération du nom du projet
+        if [[ -n "${PROJECT_NAME:-}" ]]; then
+            project_name="${PROJECT_NAME}"
+        fi
+    else
+        print_info \
+            "Aucun fichier project.env trouvé pour le projet ${project_id}."
+    fi
+
+    # Résumé
+    print_title \
+        "Suppression du projet ${project_name}"
+
+    printf '%-24s : %s\n' \
+        "PROJECT_ID" "${project_id}"
+
+    printf '%-24s : %s\n' \
+        "PROJECT_NAME" "${project_name}"
+
+    printf '%-24s : %s\n' \
+        "Répertoire" "${project_path}"
+
+    printf '\n'
+
+    print_info \
+        "Cette opération supprimera définitivement : ${project_path}"
+
+    printf '\n'
+
+    # Affichage de l'arborescence
     if command -v tree >/dev/null 2>&1; then
-        tree -a -L 2 "$project_path"
-        echo ""
+        tree -a -L 2 "${project_path}"
+        printf '\n'
     fi
 
-    read -r -p "Saisir exactement 'YES' pour confirmer : " confirmation
+    # Confirmation explicite
+    read -r -p \
+        "Saisir exactement 'YES' pour confirmer : " confirmation
 
-    if [[ "$confirmation" != "YES" ]]; then
-        echo ""
-        echo "Suppression annulée."
-        exit 0
+    if [[ "${confirmation}" != "YES" ]]; then
+        printf '\n'
+
+        print_info \
+            "Suppression annulée."
+
+        return 0
     fi
 
-    rm -rf --one-file-system -- "$project_path"
+    # Vérification de sécurité supplémentaire
+    if [[ \
+        -z "${project_path}" ||
+        "${project_path}" == "/" ||
+        "${project_path}" == "${DEVOPS_PROJECTS_ROOT}" \
+    ]]; then
 
-    echo ""
-    echo "✅ Projet ${project_name} supprimé :"
-    echo "   $project_path"
+        print_error \
+            "Chemin de suppression invalide ou dangereux : ${project_path}"
+        return 1
+    fi
+
+    # Suppression du projet
+    if ! rm -rf \
+        --one-file-system \
+        -- "${project_path}"; then
+
+        print_error \
+            "Échec de la suppression du projet ${project_name}."
+        return 1
+    fi
+
+    # Vérification finale
+    if [[ -e "${project_path}" ]]; then
+        print_error \
+            "Le répertoire existe toujours après suppression : ${project_path}"
+        return 1
+    fi
+
+    printf '\n'
+
+    print_success \
+        "Projet ${project_name} supprimé : ${project_path}"
+
+    return 0
 }
