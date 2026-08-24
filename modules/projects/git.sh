@@ -135,6 +135,200 @@ cicd_project_diu() {
     return 0
 }
 
+cicd_project_docker_release() {
+
+    local project_id="${1:-}"
+    local commit_name="${2:-}"
+    local commit_tag="${3:-}"
+
+    local project_path=""
+    local project_env=""
+    local project_name=""
+
+    # ==========================================================
+    # Validation des arguments
+    # ==========================================================
+
+    if [[ \
+        -z "${project_id}" ||
+        -z "${commit_name}" ||
+        -z "${commit_tag}" \
+    ]]; then
+
+        print_error \
+            "Usage : cicd_project_docker_release <PROJECT_ID> <COMMIT_NAME> <COMMIT_TAG>"
+        return 1
+    fi
+
+    # ==========================================================
+    # Définition des chemins
+    # ==========================================================
+
+    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_path}/project.env"
+
+    # ==========================================================
+    # Vérification du projet
+    # ==========================================================
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error \
+            "Projet introuvable : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_error \
+            "Fichier project.env introuvable : ${project_env}"
+        return 1
+    fi
+
+    # ==========================================================
+    # Chargement de project.env
+    # ==========================================================
+
+    unset \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        PROJECT_DOCKERED \
+        LOCAL_DEFAULT_BRANCH \
+        GIT_USER_NAME \
+        GIT_USER_EMAIL \
+        REMOTE_GIT_TYPE \
+        REMOTE_BASE_URL \
+        REMOTE_OWNER \
+        REMOTE_REPOSITORY \
+        REMOTE_NAME \
+        REMOTE_DEFAULT_BRANCH
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    # ==========================================================
+    # Vérification de la configuration du projet
+    # ==========================================================
+
+    if [[ -z "${PROJECT_ID:-}" ]]; then
+        print_error \
+            "PROJECT_ID n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ "${PROJECT_ID}" != "${project_id}" ]]; then
+        print_error \
+            "PROJECT_ID '${PROJECT_ID}' ne correspond pas au projet '${project_id}'."
+        return 1
+    fi
+
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        print_error \
+            "PROJECT_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ "${PROJECT_DOCKERED:-No}" != "Yes" ]]; then
+        print_error \
+            "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+        return 1
+    fi
+
+    project_name="${PROJECT_NAME}"
+
+    # ==========================================================
+    # Affichage
+    # ==========================================================
+
+    print_title \
+        "CI/CD Docker Release du projet ${project_name}"
+
+    print_info \
+        "Projet       : ${project_name}"
+
+    print_info \
+        "ID Projet    : ${project_id}"
+
+    print_info \
+        "Répertoire   : ${project_path}"
+
+    print_info \
+        "Commit       : ${commit_name}"
+
+    print_info \
+        "Tag          : ${commit_tag}"
+
+    # ==========================================================
+    # Étape 1 — Commit Git
+    # ==========================================================
+
+    print_title \
+        "Étape 1/4 — Commit Git"
+
+    if ! git_commit \
+        "${project_id}" \
+        "${commit_name}" \
+        "${commit_tag}"; then
+
+        print_error \
+            "Échec du commit Git."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 2 — Push Git
+    # ==========================================================
+
+    print_title \
+        "Étape 2/4 — Push Git"
+
+    if ! git_push \
+        "${project_id}"; then
+
+        print_error \
+            "Échec du push Git."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 3 — Build Docker
+    # ==========================================================
+
+    print_title \
+        "Étape 3/4 — Build de l'image Docker"
+
+    if ! proj_docker_build \
+        "${project_id}"; then
+
+        print_error \
+            "Échec de la construction de l'image Docker."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 4 — Publication Release Docker
+    # ==========================================================
+
+    print_title \
+        "Étape 4/4 — Publication de la Release Docker"
+
+    if ! git_push_docker_release \
+        "${project_id}"; then
+
+        print_error \
+            "Échec de la publication de la Release Docker."
+        return 1
+    fi
+
+    # ==========================================================
+    # Succès
+    # ==========================================================
+
+    print_success \
+        "CI/CD Docker Release du projet ${project_name} terminé avec succès."
+
+    return 0
+}
+
 git_analyse() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"

@@ -1721,8 +1721,8 @@ Utilisation :
   rid ia stop hm                                                    →  Stop Agent Hermes
   rid ia update hm                                                  →  Mise à jour Agent Hermes
   rid ia uninstall hm                                               →  Uninstall Agent Hermes
-  rid proj ocro <ID Projet>											→  Démarre un Docker OpenCode en lecture seul dans le projet /home/devops/datas/"ID Projet".
-  rid proj ocrw <ID Projet>											→  Démarre un Docker OpenCode en écriture dans le projet /home/devops/datas/"ID Projet".
+  rid proj ocro <ID Projet>											→  Démarre OpenCode en RO dans le projet <ID Projet>.
+  rid proj ocrw <ID Projet>											→  Démarre OpenCode en RW dans le projet <ID Projet>.
 
   rid docker root check-containers                                  →   Vérification des containers Docker Up
   rid docker root diag <USER>                                       →   Diagnostic Docker pour <USER>  
@@ -1738,20 +1738,24 @@ Utilisation :
   rid docker rootless unconfigure <USER>                            →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
 
   rid os validate <ID Projet> <Spec>								→  Valide la <Spec> validate pour le <Projet>.
-  rid proj deb <ID Projet>                                          →  Construit le paquet Debian pour le <Projet> et le met dans dist/.
-  rid proj bash <ID Projet> <Nom du Projet>                         →  Crée projet BASH <Nom du Projet> dans /home/<DEVOPS USER>/datas/<ID Projet>
-  rid proj del <ID Projet>                                          →  Supprime le projet dans /home/<DEVOPS USER>/datas/<ID Projet>
-  rid proj gita <ID Projet> <Nom du Projet>                         →  Analyse le dépôt Git local dans /home/<DEVOPS USER>/datas/<ID Projet>
-  rid proj gitc <ID Projet> <Nom du Projet> <Nom du Commit>         →  Commit vers le dépôt Git local pour projet /home/devops/datas/"<ID Projet>
-  rid proj giti <ID Projet> <Nom du Projet>                         →  Initialisation du dépôt Git local dans le projet /home/devops/datas/<ID Projet>.
-  rid proj gitp <ID Projet> <Nom du Projet>                         →  Push vers le dépôt Git distant le dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj gits <ID Projet> <Nom du Projet>                         →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj rel <ID Projet>											→  Publie la Release sur le dépôt Git distant à partir du paquet Debian dans dist/.
+  rid proj deb				                                        →  Construit le paquet Debian DIU dans dist/.
+  rid proj bash <ID Projet>					                        →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
+  rid proj del <ID Projet>                                          →  Supprime le projet <ID Projet>
+  rid proj dockerb <ID Projet>				                        →  Construit le docker <ID Projet> à partir de <Docker File>
+  rid proj gita <ID Projet>											→  Analyse le Git local pour le projet <ID Projet>
+  rid proj gitc <ID Projet> <Nom du Commit>         				→  Commit vers le dépôt Git local pour projet "<ID Projet>
+  rid proj giti <ID Projet>					                        →  Initialisation du dépôt Git local dans le projet <ID Projet>.
+  rid proj gitp <ID Projet>					                        →  Push le Git local vers un Git distant pour le projet <ID Projet>.
+  rid proj gitpdiu <ID Projet>					                    →  Push l'image docker sur le Git Distant pour le DIU.
+  rid proj gitpdr <ID Projet>					                    →  Push l'image docker sur le Git Distant pour <ID Projet>.
+  rid proj gits <ID Projet>					                        →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
+  rid proj rel														→  Publie la Release sur le dépôt Git distant à partir du paquet Debian dans dist/.
 
   rid update														→  Mise à jour totale
   rid update diu												    →  Mise à jour du DIU
 
-  ridt proj cicd <ID Projet> <Nom du Projet> <Nom du Commit>		→  Flux CI/CD Git local --> Git Distant --> Deb --> Publication
+  ridt proj cicddiu													→ Flux CI/CD pour le DIU
+  ridt proj cicddr													→ Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
 
 Structure générale :
 
@@ -2641,11 +2645,22 @@ manage_project_action() {
 
     case "$action" in
 
-        cicd)
+        cicddiu)
 			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
             commit_name="${2:-${commit_timestamp}}"
             commit_tag="${3:-v${commit_timestamp}}"
             cicd_project_diu \
+				"$commit_name" \
+				"$commit_tag"
+            ;;
+
+
+        cicddr)
+			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+            commit_name="${3:-${commit_timestamp}}"
+            commit_tag="${4:-v${commit_timestamp}}"
+            cicd_project_docker_release \
+				"$project_id" \
 				"$commit_name" \
 				"$commit_tag"
             ;;
@@ -2692,6 +2707,10 @@ manage_project_action() {
                 "$project_id"
             ;;
 
+        gitpdiu)
+            publish_release_diu
+            ;;
+
         gitpdr)
             git_push_docker_release \
                 "$project_id"
@@ -2718,10 +2737,6 @@ manage_project_action() {
 
         deb)
             build_deb_diu
-            ;;
-
-        rel)
-            publish_release_diu
             ;;
 
         *)
@@ -7938,7 +7953,8 @@ then
 
 	echo "" >> /root/.zshrc
 	echo "# DIU #" >> /root/.zshrc
-	echo "alias rcicd='ridt proj cicd'" >> /root/.zshrc
+	echo "alias rcicdiu='ridt proj cicddiu'" >> /root/.zshrc
+	echo "alias rcicdr='ridt proj cicddr'" >> /root/.zshrc
 	echo "alias rido='rid proj ocrw'" >> /root/.zshrc
 	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
 	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
