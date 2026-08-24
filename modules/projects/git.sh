@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-# Gestion Git du DIU
+# Gestion Git au sein des projets géré par le DIU
 
-# Flux DIU CI/CD 
-
+# Flux CI/CD DIU
 cicd_project_diu() {
 
     local project_id="diu"
     local project_path=""
     local project_name="Debian Installer Unifié"
     local commit_name="${1:-}"
+    local commit_tag="${2:-}"
 
     # ==========================================================
     # Validation des arguments
@@ -81,7 +81,8 @@ cicd_project_diu() {
 
     if ! git_commit \
         "${project_id}" \
-        "${commit_name}"; then
+        "${commit_name}" \
+        "${commit_tag}"; then
 
         print_error "Échec du commit Git."
         return 1
@@ -106,8 +107,7 @@ cicd_project_diu() {
 
     print_title "Étape 3/4 — Build du paquet Debian"
 
-    if ! build_deb_diu \
-        "${project_id}"; then
+    if ! build_deb_diu ; then
 
         print_error "Échec de la construction du paquet Debian."
         return 1
@@ -119,8 +119,7 @@ cicd_project_diu() {
 
     print_title "Étape 4/4 — Publication de la Release Forgejo"
 
-    if ! publish_release_diu \
-        "${project_id}"; then
+    if ! publish_release_diu ; then
 
         print_error "Échec de la publication de la Release Forgejo."
         return 1
@@ -131,6 +130,201 @@ cicd_project_diu() {
     # ==========================================================
 
     print_success "CI/CD du projet ${project_name} terminé avec succès."
+
+    return 0
+}
+
+# Flux CI/CD pour les images Docker des projets géré par le DIU
+cicd_project_docker_release() {
+
+    local project_id="${1:-}"
+    local commit_name="${2:-}"
+    local commit_tag="${3:-}"
+
+    local project_path=""
+    local project_env=""
+    local project_name=""
+
+    # ==========================================================
+    # Validation des arguments
+    # ==========================================================
+
+    if [[ \
+        -z "${project_id}" ||
+        -z "${commit_name}" ||
+        -z "${commit_tag}" \
+    ]]; then
+
+        print_error \
+            "Usage : cicd_project_docker_release <PROJECT_ID> <COMMIT_NAME> <COMMIT_TAG>"
+        return 1
+    fi
+
+    # ==========================================================
+    # Définition des chemins
+    # ==========================================================
+
+    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_path}/project.env"
+
+    # ==========================================================
+    # Vérification du projet
+    # ==========================================================
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error \
+            "Projet introuvable : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_error \
+            "Fichier project.env introuvable : ${project_env}"
+        return 1
+    fi
+
+    # ==========================================================
+    # Chargement de project.env
+    # ==========================================================
+
+    unset \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        PROJECT_DOCKERED \
+        LOCAL_DEFAULT_BRANCH \
+        GIT_USER_NAME \
+        GIT_USER_EMAIL \
+        REMOTE_GIT_TYPE \
+        REMOTE_BASE_URL \
+        REMOTE_OWNER \
+        REMOTE_REPOSITORY \
+        REMOTE_NAME \
+        REMOTE_DEFAULT_BRANCH
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    # ==========================================================
+    # Vérification de la configuration du projet
+    # ==========================================================
+
+    if [[ -z "${PROJECT_ID:-}" ]]; then
+        print_error \
+            "PROJECT_ID n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ "${PROJECT_ID}" != "${project_id}" ]]; then
+        print_error \
+            "PROJECT_ID '${PROJECT_ID}' ne correspond pas au projet '${project_id}'."
+        return 1
+    fi
+
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        print_error \
+            "PROJECT_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ "${PROJECT_DOCKERED:-No}" != "Yes" ]]; then
+        print_error \
+            "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+        return 1
+    fi
+
+    project_name="${PROJECT_NAME}"
+
+    # ==========================================================
+    # Affichage
+    # ==========================================================
+
+    print_title \
+        "CI/CD Docker Release du projet ${project_name}"
+
+    print_info \
+        "Projet       : ${project_name}"
+
+    print_info \
+        "ID Projet    : ${project_id}"
+
+    print_info \
+        "Répertoire   : ${project_path}"
+
+    print_info \
+        "Commit       : ${commit_name}"
+
+    print_info \
+        "Tag          : ${commit_tag}"
+
+    # ==========================================================
+    # Étape 1 — Commit Git
+    # ==========================================================
+
+    print_title \
+        "Étape 1/4 — Commit Git"
+
+    if ! git_commit \
+        "${project_id}" \
+        "${commit_name}" \
+        "${commit_tag}"; then
+
+        print_error \
+            "Échec du commit Git."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 2 — Push Git
+    # ==========================================================
+
+    print_title \
+        "Étape 2/4 — Push Git"
+
+    if ! git_push \
+        "${project_id}"; then
+
+        print_error \
+            "Échec du push Git."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 3 — Build Docker
+    # ==========================================================
+
+    print_title \
+        "Étape 3/4 — Build de l'image Docker"
+
+    if ! proj_docker_build \
+        "${project_id}"; then
+
+        print_error \
+            "Échec de la construction de l'image Docker."
+        return 1
+    fi
+
+    # ==========================================================
+    # Étape 4 — Publication Release Docker
+    # ==========================================================
+
+    print_title \
+        "Étape 4/4 — Publication de la Release Docker"
+
+    if ! git_push_docker_release \
+        "${project_id}"; then
+
+        print_error \
+            "Échec de la publication de la Release Docker."
+        return 1
+    fi
+
+    # ==========================================================
+    # Succès
+    # ==========================================================
+
+    print_success \
+        "CI/CD Docker Release du projet ${project_name} terminé avec succès."
 
     return 0
 }
@@ -888,15 +1082,21 @@ Objet        : %s
 git_commit() {
     local project_id="$1"
     local commit_name="$2"
+    local commit_tag="$3"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
 
     # Vérification des paramètres
-    if [[ -z "${project_id}" || -z "${commit_name}" ]]; then
+    if [[ \
+        -z "${project_id}" ||
+        -z "${commit_name}" ||
+        -z "${commit_tag}" \
+    ]]; then
+
         print_error \
-            "Usage : git_commit <project_id> <commit_name>"
+            "Usage : git_commit <project_id> <commit_name> <commit_tag>"
         return 1
     fi
 
@@ -1075,6 +1275,22 @@ git_commit() {
         return 1
     fi
 
+    # Création du tag
+    print_title "Création du tag Git"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" tag \
+        -a "${commit_tag}" \
+        -m "${commit_name}"; then
+
+        print_error \
+            "Échec de la création du tag Git '${commit_tag}'."
+        return 1
+    fi
+
+    print_success \
+        "Tag Git '${commit_tag}' créé avec succès."
+
     # Vérification finale
     print_title "Historique Git"
 
@@ -1096,6 +1312,7 @@ git_commit() {
     return 0
 }
 
+# Initialise un dépôt local Git vierge pour le projet <PROJECT ID>
 git_init() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -1642,6 +1859,7 @@ git_push() {
     local remote_default_branch=""
 
     local current_branch=""
+    local current_tag=""
     local remote_url=""
     local configured_remote_url=""
     local upstream=""
@@ -1839,6 +2057,14 @@ git_push() {
         return 1
     fi
 
+    # Tag éventuel du dernier commit
+    current_tag="$(
+        runuser -u "${ENV_DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
     # Vérification / configuration du remote Git
     configured_remote_url=""
 
@@ -1900,6 +2126,14 @@ git_push() {
     printf '%-22s : %s\n' \
         "Branche distante" "${remote_default_branch}"
 
+    if [[ -n "${current_tag}" ]]; then
+        printf '%-22s : %s\n' \
+            "Tag du commit" "${current_tag}"
+    else
+        printf '%-22s : %s\n' \
+            "Tag du commit" "Aucun"
+    fi
+
     # git status
     print_title "git status"
 
@@ -1914,7 +2148,10 @@ git_push() {
     print_title "git log --oneline"
 
     if ! runuser -u "${ENV_DEVOPS_USER}" -- \
-        git -C "${project_path}" log --oneline -10; then
+        git -C "${project_path}" log \
+        --oneline \
+        --decorate \
+        -10; then
 
         print_error "Impossible de lire l'historique Git."
         return 1
@@ -1974,6 +2211,10 @@ git_push() {
             "Branche distante de suivi : ${upstream}"
     fi
 
+    if [[ -n "${current_tag}" ]]; then
+        printf 'Tag Git            : %s\n' "${current_tag}"
+    fi
+
     # Confirmation
     printf '\n'
     read -r -p "Effectuer le push ? [o/N] : " confirmation
@@ -2014,6 +2255,42 @@ git_push() {
                     "${project_path}" \
                     || push_rc=$?
             fi
+
+            # Vérification du push de la branche
+            if [[ "${push_rc}" -ne 0 ]]; then
+                print_error \
+                    "Échec du push Git distant (code ${push_rc})."
+                return "${push_rc}"
+            fi
+
+            # Push du tag associé au dernier commit
+            if [[ -n "${current_tag}" ]]; then
+
+                print_title "Push du tag Git"
+
+                print_info \
+                    "Publication du tag '${current_tag}' vers '${remote_name}'."
+
+                forgejo_git_push \
+                    "${project_path}" \
+                    "${remote_name}" \
+                    "refs/tags/${current_tag}:refs/tags/${current_tag}" \
+                    || push_rc=$?
+
+                if [[ "${push_rc}" -ne 0 ]]; then
+                    print_error \
+                        "Échec du push du tag Git '${current_tag}' (code ${push_rc})."
+                    return "${push_rc}"
+                fi
+
+                print_success \
+                    "Tag Git '${current_tag}' publié avec succès."
+
+            else
+
+                print_info \
+                    "Aucun tag associé au dernier commit : aucun tag à publier."
+            fi
             ;;
 
     esac
@@ -2026,6 +2303,436 @@ git_push() {
     fi
 
     print_success "Push Git terminé avec succès."
+
+    return 0
+}
+
+git_push_docker_release() {
+
+    local project_id="${1:-}"
+
+    local project_dir=""
+    local project_env=""
+
+    local git_tag=""
+    local git_tags_count=0
+    local docker_version=""
+
+    local local_image=""
+    local remote_registry=""
+    local remote_image_version=""
+    local remote_image_latest=""
+
+    local forgejo_username=""
+    local forgejo_token=""
+
+    local docker_config=""
+    local docker_publish_rc=0
+
+    # --------------------------------------------------------
+    # Vérification des arguments
+    # --------------------------------------------------------
+
+    if [[ -z "${project_id}" ]]; then
+        print_error \
+            "Usage : git_push_docker_release <project_id>"
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Définition des chemins
+    # --------------------------------------------------------
+
+    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_dir}/project.env"
+
+    # --------------------------------------------------------
+    # Vérification du projet
+    # --------------------------------------------------------
+
+    if [[ ! -d "${project_dir}" ]]; then
+        print_error \
+            "Projet introuvable : ${project_dir}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_error \
+            "Fichier project.env introuvable : ${project_env}"
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Chargement de project.env
+    # --------------------------------------------------------
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    # --------------------------------------------------------
+    # Vérification projet Docker
+    # --------------------------------------------------------
+
+    if [[ "${PROJECT_DOCKERED:-No}" != "Yes" ]]; then
+        print_error \
+            "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Vérification configuration distante
+    # --------------------------------------------------------
+
+    if [[ \
+        -z "${REMOTE_BASE_URL:-}" ||
+        -z "${REMOTE_OWNER:-}" ||
+        -z "${REMOTE_REPOSITORY:-}" \
+    ]]; then
+
+        print_error \
+            "Configuration distante incomplète dans project.env."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Vérification de Git
+    # --------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git --version >/dev/null 2>&1; then
+
+        print_error \
+            "Git n'est pas accessible pour ${DEVOPS_USER}."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_dir}" \
+        rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+
+        print_error \
+            "Le projet n'est pas un dépôt Git valide : ${project_dir}"
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Détermination du tag associé au dernier commit Git
+    # --------------------------------------------------------
+
+    git_tags_count="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD 2>/dev/null |
+            sed '/^[[:space:]]*$/d' |
+            wc -l
+    )"
+
+    if [[ "${git_tags_count}" -eq 0 ]]; then
+        print_error \
+            "Aucun tag Git associé au dernier commit."
+        return 1
+    fi
+
+    if [[ "${git_tags_count}" -gt 1 ]]; then
+        print_error \
+            "Plusieurs tags Git sont associés au dernier commit."
+
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD
+
+        return 1
+    fi
+
+    git_tag="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
+    if [[ -z "${git_tag}" ]]; then
+        print_error \
+            "Impossible de déterminer le tag Git du dernier commit."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Détermination de la version Docker
+    # --------------------------------------------------------
+
+    docker_version="${git_tag#v}"
+
+    if [[ -z "${docker_version}" ]]; then
+        print_error \
+            "Version Docker invalide déduite du tag Git '${git_tag}'."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Détermination des images Docker
+    # --------------------------------------------------------
+
+    local_image="${PROJECT_ID:-${project_id}}:latest"
+
+    remote_registry="${REMOTE_BASE_URL#https://}"
+    remote_registry="${remote_registry#http://}"
+    remote_registry="${remote_registry%/}"
+
+    remote_image_version="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:${docker_version}"
+    remote_image_latest="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:latest"
+
+    # --------------------------------------------------------
+    # Vérification de l'image locale
+    # --------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker image inspect "${local_image}" >/dev/null 2>&1; then
+
+        print_error \
+            "Image Docker locale introuvable : ${local_image}"
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Lecture unique des credentials Forgejo
+    # --------------------------------------------------------
+
+    if ! _forgejo_read_username "${project_dir}"; then
+        print_error \
+            "Impossible de lire le nom d'utilisateur Forgejo."
+        return 1
+    fi
+
+    if ! _forgejo_read_token "${project_dir}"; then
+        print_error \
+            "Impossible de lire le token Forgejo."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_username}" ]]; then
+        print_error \
+            "Nom d'utilisateur Forgejo vide."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_token}" ]]; then
+        print_error \
+            "Token Forgejo vide."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Affichage
+    # --------------------------------------------------------
+
+    print_title "Publication Release Docker"
+
+    printf '%-22s : %s\n' \
+        "Projet" "${PROJECT_NAME:-${project_id}}"
+
+    printf '%-22s : %s\n' \
+        "Tag Git" "${git_tag}"
+
+    printf '%-22s : %s\n' \
+        "Version Docker" "${docker_version}"
+
+    printf '%-22s : %s\n' \
+        "Image locale" "${local_image}"
+
+    printf '%-22s : %s\n' \
+        "Release" "${remote_image_version}"
+
+    printf '%-22s : %s\n' \
+        "Latest" "${remote_image_latest}"
+
+    printf '%-22s : %s\n' \
+        "Utilisateur Forgejo" "${forgejo_username}"
+
+    printf '%-22s : %s\n' \
+        "Owner cible" "${REMOTE_OWNER}"
+
+    # --------------------------------------------------------
+    # Création du tag Docker versionné
+    # --------------------------------------------------------
+
+    print_info \
+        "Création du tag Docker versionné."
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag \
+            "${local_image}" \
+            "${remote_image_version}"; then
+
+        print_error \
+            "Échec du tag Docker versionné."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Création du tag Docker latest
+    # --------------------------------------------------------
+
+    print_info \
+        "Création du tag Docker latest."
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag \
+            "${local_image}" \
+            "${remote_image_latest}"; then
+
+        print_error \
+            "Échec du tag Docker latest."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Création du DOCKER_CONFIG temporaire
+    # --------------------------------------------------------
+
+    docker_config="$(mktemp -d)" || {
+        print_error \
+            "Impossible de créer le DOCKER_CONFIG temporaire."
+        return 1
+    }
+
+    if [[ -z "${docker_config}" ]] ||
+       [[ ! -d "${docker_config}" ]]; then
+
+        print_error \
+            "DOCKER_CONFIG temporaire invalide."
+        return 1
+    fi
+
+    if ! chmod 700 "${docker_config}"; then
+        print_error \
+            "Impossible de sécuriser ${docker_config}."
+        rm -rf "${docker_config}"
+        return 1
+    fi
+
+    if ! chown \
+        "${DEVOPS_USER}:${DEVOPS_GROUP}" \
+        "${docker_config}"; then
+
+        print_error \
+            "Impossible d'attribuer ${docker_config} à ${DEVOPS_USER}."
+
+        rm -rf "${docker_config}"
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Authentification et publication
+    #
+    # Sous-shell :
+    # - trap local
+    # - DOCKER_CONFIG temporaire
+    # - nettoyage garanti sur succès ou erreur
+    # --------------------------------------------------------
+
+    docker_publish_rc=0
+
+    (
+        trap 'rm -rf "${docker_config}"' EXIT
+
+        # ----------------------------------------------------
+        # Authentification Docker Forgejo
+        # ----------------------------------------------------
+
+        print_title "Authentification Docker Forgejo"
+
+        if ! printf '%s' "${forgejo_token}" | \
+            runuser -u "${DEVOPS_USER}" -- \
+                env "DOCKER_CONFIG=${docker_config}" \
+                docker login \
+                    "${remote_registry}" \
+                    --username "${forgejo_username}" \
+                    --password-stdin; then
+
+            print_error \
+                "Échec de l'authentification Docker auprès de ${remote_registry}."
+
+            exit 1
+        fi
+
+        print_success \
+            "Authentification Docker Forgejo réussie."
+
+        # ----------------------------------------------------
+        # Publication de la version
+        # ----------------------------------------------------
+
+        print_title \
+            "Publication Docker ${docker_version}"
+
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" \
+            docker push "${remote_image_version}"; then
+
+            print_error \
+                "Échec de la publication de ${remote_image_version}."
+
+            exit 1
+        fi
+
+        print_success \
+            "Image Docker versionnée publiée."
+
+        # ----------------------------------------------------
+        # Publication latest
+        # ----------------------------------------------------
+
+        print_title \
+            "Publication Docker latest"
+
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" \
+            docker push "${remote_image_latest}"; then
+
+            print_error \
+                "Échec de la publication de ${remote_image_latest}."
+
+            exit 1
+        fi
+
+        print_success \
+            "Image Docker latest publiée."
+
+        exit 0
+
+    ) || docker_publish_rc=$?
+
+    # --------------------------------------------------------
+    # Nettoyage de la variable contenant le token
+    # --------------------------------------------------------
+
+    unset forgejo_token
+
+    # --------------------------------------------------------
+    # Vérification du résultat de publication
+    # --------------------------------------------------------
+
+    if [[ "${docker_publish_rc}" -ne 0 ]]; then
+        print_error \
+            "Échec de la publication de la Release Docker."
+        return "${docker_publish_rc}"
+    fi
+
+    # --------------------------------------------------------
+    # Résultat
+    # --------------------------------------------------------
+
+    print_success \
+        "Release Docker publiée avec succès."
+
+    printf '\n'
+
+    printf '%-22s : %s\n' \
+        "Version" "${remote_image_version}"
+
+    printf '%-22s : %s\n' \
+        "Latest" "${remote_image_latest}"
 
     return 0
 }
@@ -2343,8 +3050,10 @@ git_status() {
     return 0
 }
 
+# Génération ou mise à jour des variables du <PROJECT_ID>
 git_update() {
     local project_id="$1"
+    local update_mode="${2:-local}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
@@ -2363,14 +3072,32 @@ git_update() {
     local remote_name="origin"
     local remote_default_branch="main"
 
+    local remote_clone_git_type="github"
+    local remote_clone_base_url="https://github.com"
+    local remote_clone_owner=""
+    local remote_clone_repository=""
+    local remote_clone_name="upstream"
+    local remote_clone_default_branch="main"
+    local clone_config_present="No"
+
     local value=""
     local project_env_tmp=""
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
-        print_error "Usage : git_update <project_id>"
+        print_error "Usage : git_update <project_id> [local|clone]"
         return 1
     fi
+
+    case "${update_mode}" in
+        local|clone)
+            ;;
+        *)
+            print_error \
+                "Mode git_update invalide : ${update_mode} (attendu : local ou clone)."
+            return 1
+            ;;
+    esac
 
     # Vérification du projet
     if [[ ! -d "${project_path}" ]]; then
@@ -2398,7 +3125,13 @@ git_update() {
             REMOTE_OWNER \
             REMOTE_REPOSITORY \
             REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH
+            REMOTE_DEFAULT_BRANCH \
+            REMOTE_CLONE_GIT_TYPE \
+            REMOTE_CLONE_BASE_URL \
+            REMOTE_CLONE_OWNER \
+            REMOTE_CLONE_REPOSITORY \
+            REMOTE_CLONE_NAME \
+            REMOTE_CLONE_DEFAULT_BRANCH
 
         # shellcheck disable=SC1090
         source "${project_env}"
@@ -2417,6 +3150,28 @@ git_update() {
         remote_repository="${REMOTE_REPOSITORY:-}"
         remote_name="${REMOTE_NAME:-origin}"
         remote_default_branch="${REMOTE_DEFAULT_BRANCH:-main}"
+
+        if [[ \
+            -n "${REMOTE_CLONE_GIT_TYPE+x}" ||
+            -n "${REMOTE_CLONE_BASE_URL+x}" ||
+            -n "${REMOTE_CLONE_OWNER+x}" ||
+            -n "${REMOTE_CLONE_REPOSITORY+x}" ||
+            -n "${REMOTE_CLONE_NAME+x}" ||
+            -n "${REMOTE_CLONE_DEFAULT_BRANCH+x}" \
+        ]]; then
+            clone_config_present="Yes"
+        fi
+
+        remote_clone_git_type="${REMOTE_CLONE_GIT_TYPE:-github}"
+        remote_clone_base_url="${REMOTE_CLONE_BASE_URL:-https://github.com}"
+        remote_clone_owner="${REMOTE_CLONE_OWNER:-}"
+        remote_clone_repository="${REMOTE_CLONE_REPOSITORY:-}"
+        remote_clone_name="${REMOTE_CLONE_NAME:-upstream}"
+        remote_clone_default_branch="${REMOTE_CLONE_DEFAULT_BRANCH:-main}"
+    fi
+
+    if [[ "${update_mode}" == "clone" ]]; then
+        clone_config_present="Yes"
     fi
 
     print_title "Configuration du projet ${project_id}"
@@ -2516,7 +3271,6 @@ git_update() {
         remote_base_url="${value}"
     fi
 
-    # Suppression du / final éventuel
     remote_base_url="${remote_base_url%/}"
 
     # REMOTE_OWNER
@@ -2555,37 +3309,166 @@ git_update() {
         remote_default_branch="${value}"
     fi
 
+    # Configuration du dépôt source uniquement en mode clone
+    if [[ "${update_mode}" == "clone" ]]; then
+        printf '\n'
+
+        print_title "Configuration du dépôt distant source"
+
+        # REMOTE_CLONE_GIT_TYPE
+        value=""
+        read -r -p \
+            "REMOTE_CLONE_GIT_TYPE [${remote_clone_git_type}] : " value
+
+        if [[ -n "${value}" ]]; then
+            remote_clone_git_type="${value}"
+        fi
+
+        # REMOTE_CLONE_BASE_URL
+        value=""
+        read -r -p \
+            "REMOTE_CLONE_BASE_URL [${remote_clone_base_url}] : " value
+
+        if [[ -n "${value}" ]]; then
+            remote_clone_base_url="${value}"
+        fi
+
+        remote_clone_base_url="${remote_clone_base_url%/}"
+
+        while [[ -z "${remote_clone_base_url}" ]]; do
+            print_error "REMOTE_CLONE_BASE_URL ne peut pas être vide."
+
+            read -r -p \
+                "REMOTE_CLONE_BASE_URL : " remote_clone_base_url
+
+            remote_clone_base_url="${remote_clone_base_url%/}"
+        done
+
+        # REMOTE_CLONE_OWNER
+        value=""
+        read -r -p \
+            "REMOTE_CLONE_OWNER [${remote_clone_owner}] : " value
+
+        if [[ -n "${value}" ]]; then
+            remote_clone_owner="${value}"
+        fi
+
+        while [[ -z "${remote_clone_owner}" ]]; do
+            print_error "REMOTE_CLONE_OWNER ne peut pas être vide."
+
+            read -r -p \
+                "REMOTE_CLONE_OWNER : " remote_clone_owner
+        done
+
+        # REMOTE_CLONE_REPOSITORY
+        value=""
+        read -r -p \
+            "REMOTE_CLONE_REPOSITORY [${remote_clone_repository}] : " value
+
+        if [[ -n "${value}" ]]; then
+            remote_clone_repository="${value}"
+        fi
+
+        while [[ -z "${remote_clone_repository}" ]]; do
+            print_error "REMOTE_CLONE_REPOSITORY ne peut pas être vide."
+
+            read -r -p \
+                "REMOTE_CLONE_REPOSITORY : " remote_clone_repository
+        done
+
+        # REMOTE_CLONE_NAME
+        value=""
+        read -r -p \
+            "REMOTE_CLONE_NAME [${remote_clone_name}] : " value
+
+        if [[ -n "${value}" ]]; then
+            remote_clone_name="${value}"
+        fi
+
+        while [[ -z "${remote_clone_name}" ]]; do
+            print_error "REMOTE_CLONE_NAME ne peut pas être vide."
+
+            read -r -p \
+                "REMOTE_CLONE_NAME : " remote_clone_name
+        done
+
+        # REMOTE_CLONE_DEFAULT_BRANCH
+        value=""
+        read -r -p \
+            "REMOTE_CLONE_DEFAULT_BRANCH [${remote_clone_default_branch}] : " value
+
+        if [[ -n "${value}" ]]; then
+            remote_clone_default_branch="${value}"
+        fi
+
+        while [[ -z "${remote_clone_default_branch}" ]]; do
+            print_error \
+                "REMOTE_CLONE_DEFAULT_BRANCH ne peut pas être vide."
+
+            read -r -p \
+                "REMOTE_CLONE_DEFAULT_BRANCH : " \
+                remote_clone_default_branch
+        done
+
+        if [[ \
+            -n "${remote_name}" &&
+            "${remote_name}" == "${remote_clone_name}" \
+        ]]; then
+            print_error \
+                "REMOTE_NAME et REMOTE_CLONE_NAME doivent être différents."
+            return 1
+        fi
+    fi
+
     # Résumé
     print_title "Configuration du projet"
 
-    printf '%-24s : %s\n' "PROJECT_ID" "${project_id}"
-    printf '%-24s : %s\n' "PROJECT_NAME" "${project_name}"
-    printf '%-24s : %s\n' "PROJECT_TYPE" "${project_type}"
-    printf '%-24s : %s\n' "PROJECT_DOCKERED" "${project_dockered}"
+    printf '%-30s : %s\n' "PROJECT_ID" "${project_id}"
+    printf '%-30s : %s\n' "PROJECT_NAME" "${project_name}"
+    printf '%-30s : %s\n' "PROJECT_TYPE" "${project_type}"
+    printf '%-30s : %s\n' "PROJECT_DOCKERED" "${project_dockered}"
 
     printf '\n'
 
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "LOCAL_DEFAULT_BRANCH" "${local_default_branch}"
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "GIT_USER_NAME" "${git_user_name}"
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "GIT_USER_EMAIL" "${git_user_email}"
 
     printf '\n'
 
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "REMOTE_GIT_TYPE" "${remote_git_type}"
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "REMOTE_BASE_URL" "${remote_base_url}"
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "REMOTE_OWNER" "${remote_owner}"
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "REMOTE_REPOSITORY" "${remote_repository}"
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "REMOTE_NAME" "${remote_name}"
-    printf '%-24s : %s\n' \
+    printf '%-30s : %s\n' \
         "REMOTE_DEFAULT_BRANCH" "${remote_default_branch}"
+
+    if [[ "${clone_config_present}" == "Yes" ]]; then
+        printf '\n'
+
+        printf '%-30s : %s\n' \
+            "REMOTE_CLONE_GIT_TYPE" "${remote_clone_git_type}"
+        printf '%-30s : %s\n' \
+            "REMOTE_CLONE_BASE_URL" "${remote_clone_base_url}"
+        printf '%-30s : %s\n' \
+            "REMOTE_CLONE_OWNER" "${remote_clone_owner}"
+        printf '%-30s : %s\n' \
+            "REMOTE_CLONE_REPOSITORY" "${remote_clone_repository}"
+        printf '%-30s : %s\n' \
+            "REMOTE_CLONE_NAME" "${remote_clone_name}"
+        printf '%-30s : %s\n' \
+            "REMOTE_CLONE_DEFAULT_BRANCH" \
+            "${remote_clone_default_branch}"
+    fi
 
     # Création du fichier temporaire
     project_env_tmp="${project_env}.tmp"
@@ -2620,6 +3503,23 @@ git_update() {
             "${remote_name}"
         printf 'REMOTE_DEFAULT_BRANCH=%q\n' \
             "${remote_default_branch}"
+
+        if [[ "${clone_config_present}" == "Yes" ]]; then
+            printf '\n'
+            printf '# Git distant source du clone\n'
+            printf 'REMOTE_CLONE_GIT_TYPE=%q\n' \
+                "${remote_clone_git_type}"
+            printf 'REMOTE_CLONE_BASE_URL=%q\n' \
+                "${remote_clone_base_url}"
+            printf 'REMOTE_CLONE_OWNER=%q\n' \
+                "${remote_clone_owner}"
+            printf 'REMOTE_CLONE_REPOSITORY=%q\n' \
+                "${remote_clone_repository}"
+            printf 'REMOTE_CLONE_NAME=%q\n' \
+                "${remote_clone_name}"
+            printf 'REMOTE_CLONE_DEFAULT_BRANCH=%q\n' \
+                "${remote_clone_default_branch}"
+        fi
     } > "${project_env_tmp}"; then
 
         rm -f "${project_env_tmp}"
@@ -2659,6 +3559,697 @@ git_update() {
 
     print_success \
         "Configuration du projet enregistrée : ${project_env}"
+
+    return 0
+}
+
+# Initialise un dépôt local Git pour le projet <PROJECT ID> à partir d'un clone distant.
+git_init_clone() {
+    local project_id="$1"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+
+    local clone_tmp="${DEVOPS_PROJECTS_ROOT}/.${project_id}.clone.$$"
+    local project_env_backup="${DEVOPS_PROJECTS_ROOT}/.${project_id}.project.env.$$"
+
+    local project_name=""
+    local local_default_branch=""
+    local git_user_name=""
+    local git_user_email=""
+
+    local remote_name=""
+
+    local remote_clone_git_type=""
+    local remote_clone_base_url=""
+    local remote_clone_owner=""
+    local remote_clone_repository=""
+    local remote_clone_name=""
+    local remote_clone_default_branch=""
+    local remote_clone_url=""
+
+    local current_branch=""
+    local confirmation=""
+
+    # Vérification des paramètres
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : git_init_clone <project_id>"
+        return 1
+    fi
+
+    # Vérification de l'utilisateur DevOps
+    if ! check_devops_user; then
+        print_error \
+            "L'utilisateur DevOps n'existe pas."
+        return 1
+    fi
+
+    # Vérification du projet
+    if [[ ! -d "${project_path}" ]]; then
+        print_error \
+            "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    # Vérification de Git
+    if ! command -v git >/dev/null 2>&1; then
+        print_error \
+            "Git n'est pas installé."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git --version >/dev/null 2>&1; then
+
+        print_error \
+            "Git n'est pas accessible pour l'utilisateur ${DEVOPS_USER}."
+        return 1
+    fi
+
+    # Vérification immédiate d'un dépôt Git local existant
+    if runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" rev-parse \
+        --is-inside-work-tree >/dev/null 2>&1; then
+
+        print_info \
+            "ATTENTION : un dépôt Git local existe déjà pour le projet ${project_id}."
+
+        return 0
+    fi
+
+    # Vérification des droits sur le projet
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        test -r "${project_path}"; then
+
+        print_error \
+            "${DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        test -w "${project_path}"; then
+
+        print_error \
+            "${DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
+        return 1
+    fi
+
+    # Vérification des droits sur la racine des projets
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        test -w "${DEVOPS_PROJECTS_ROOT}"; then
+
+        print_error \
+            "${DEVOPS_USER} ne peut pas écrire dans ${DEVOPS_PROJECTS_ROOT}."
+        return 1
+    fi
+
+    # Chargement / création de project.env avec les variables de clonage
+    if [[ ! -f "${project_env}" ]]; then
+
+        print_info \
+            "Le fichier project.env est absent pour le projet ${project_id}."
+
+        if ! git_update "${project_id}" clone; then
+
+            print_error \
+                "Impossible d'initialiser la configuration Git du projet cloné."
+            return 1
+        fi
+    fi
+
+    # Vérification de project.env
+    if [[ ! -f "${project_env}" ]]; then
+
+        print_error \
+            "Le fichier project.env est toujours absent : ${project_env}"
+        return 1
+    fi
+
+    # Nettoyage des variables susceptibles d'être déjà présentes
+    unset \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        PROJECT_DOCKERED \
+        LOCAL_DEFAULT_BRANCH \
+        GIT_USER_NAME \
+        GIT_USER_EMAIL \
+        REMOTE_GIT_TYPE \
+        REMOTE_BASE_URL \
+        REMOTE_OWNER \
+        REMOTE_REPOSITORY \
+        REMOTE_NAME \
+        REMOTE_DEFAULT_BRANCH \
+        REMOTE_CLONE_GIT_TYPE \
+        REMOTE_CLONE_BASE_URL \
+        REMOTE_CLONE_OWNER \
+        REMOTE_CLONE_REPOSITORY \
+        REMOTE_CLONE_NAME \
+        REMOTE_CLONE_DEFAULT_BRANCH
+
+    # Chargement de project.env
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    # Vérification de la configuration nécessaire au clonage
+    if [[ \
+        -z "${PROJECT_ID:-}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${LOCAL_DEFAULT_BRANCH:-}" ||
+        -z "${GIT_USER_NAME:-}" ||
+        -z "${GIT_USER_EMAIL:-}" ||
+        -z "${REMOTE_CLONE_GIT_TYPE:-}" ||
+        -z "${REMOTE_CLONE_BASE_URL:-}" ||
+        -z "${REMOTE_CLONE_OWNER:-}" ||
+        -z "${REMOTE_CLONE_REPOSITORY:-}" ||
+        -z "${REMOTE_CLONE_NAME:-}" ||
+        -z "${REMOTE_CLONE_DEFAULT_BRANCH:-}" \
+    ]]; then
+
+        print_info \
+            "La configuration du projet cloné est incomplète."
+
+        if ! git_update "${project_id}" clone; then
+
+            print_error \
+                "Impossible de mettre à jour la configuration du projet cloné."
+            return 1
+        fi
+
+        # Nettoyage avant rechargement
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            LOCAL_DEFAULT_BRANCH \
+            GIT_USER_NAME \
+            GIT_USER_EMAIL \
+            REMOTE_GIT_TYPE \
+            REMOTE_BASE_URL \
+            REMOTE_OWNER \
+            REMOTE_REPOSITORY \
+            REMOTE_NAME \
+            REMOTE_DEFAULT_BRANCH \
+            REMOTE_CLONE_GIT_TYPE \
+            REMOTE_CLONE_BASE_URL \
+            REMOTE_CLONE_OWNER \
+            REMOTE_CLONE_REPOSITORY \
+            REMOTE_CLONE_NAME \
+            REMOTE_CLONE_DEFAULT_BRANCH
+
+        # Recharge project.env
+        # shellcheck disable=SC1090
+        source "${project_env}"
+    fi
+
+    # Vérification de PROJECT_ID
+    if [[ "${PROJECT_ID:-}" != "${project_id}" ]]; then
+
+        print_error \
+            "PROJECT_ID '${PROJECT_ID:-}' ne correspond pas au projet '${project_id}'."
+        return 1
+    fi
+
+    # Vérification de PROJECT_NAME
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        print_error \
+            "PROJECT_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de LOCAL_DEFAULT_BRANCH
+    if [[ -z "${LOCAL_DEFAULT_BRANCH:-}" ]]; then
+        print_error \
+            "LOCAL_DEFAULT_BRANCH n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de GIT_USER_NAME
+    if [[ -z "${GIT_USER_NAME:-}" ]]; then
+        print_error \
+            "GIT_USER_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de GIT_USER_EMAIL
+    if [[ -z "${GIT_USER_EMAIL:-}" ]]; then
+        print_error \
+            "GIT_USER_EMAIL n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de REMOTE_CLONE_GIT_TYPE
+    if [[ -z "${REMOTE_CLONE_GIT_TYPE:-}" ]]; then
+        print_error \
+            "REMOTE_CLONE_GIT_TYPE n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de REMOTE_CLONE_BASE_URL
+    if [[ -z "${REMOTE_CLONE_BASE_URL:-}" ]]; then
+        print_error \
+            "REMOTE_CLONE_BASE_URL n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de REMOTE_CLONE_OWNER
+    if [[ -z "${REMOTE_CLONE_OWNER:-}" ]]; then
+        print_error \
+            "REMOTE_CLONE_OWNER n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de REMOTE_CLONE_REPOSITORY
+    if [[ -z "${REMOTE_CLONE_REPOSITORY:-}" ]]; then
+        print_error \
+            "REMOTE_CLONE_REPOSITORY n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de REMOTE_CLONE_NAME
+    if [[ -z "${REMOTE_CLONE_NAME:-}" ]]; then
+        print_error \
+            "REMOTE_CLONE_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification de REMOTE_CLONE_DEFAULT_BRANCH
+    if [[ -z "${REMOTE_CLONE_DEFAULT_BRANCH:-}" ]]; then
+        print_error \
+            "REMOTE_CLONE_DEFAULT_BRANCH n'est pas défini dans project.env."
+        return 1
+    fi
+
+    # Vérification des noms des remotes
+    if [[ \
+        -n "${REMOTE_NAME:-}" &&
+        "${REMOTE_NAME}" == "${REMOTE_CLONE_NAME}" \
+    ]]; then
+
+        print_error \
+            "REMOTE_NAME et REMOTE_CLONE_NAME doivent être différents."
+        return 1
+    fi
+
+    # Affectation locale de la configuration
+    project_name="${PROJECT_NAME}"
+    local_default_branch="${LOCAL_DEFAULT_BRANCH}"
+    git_user_name="${GIT_USER_NAME}"
+    git_user_email="${GIT_USER_EMAIL}"
+
+    remote_name="${REMOTE_NAME:-origin}"
+
+    remote_clone_git_type="${REMOTE_CLONE_GIT_TYPE}"
+    remote_clone_base_url="${REMOTE_CLONE_BASE_URL%/}"
+    remote_clone_owner="${REMOTE_CLONE_OWNER}"
+    remote_clone_repository="${REMOTE_CLONE_REPOSITORY}"
+    remote_clone_name="${REMOTE_CLONE_NAME}"
+    remote_clone_default_branch="${REMOTE_CLONE_DEFAULT_BRANCH}"
+
+    # Construction de l'URL de clonage
+    remote_clone_url="${remote_clone_base_url}/${remote_clone_owner}/${remote_clone_repository}.git"
+
+    print_title \
+        "Clonage Git du projet ${project_name} : ${project_path}"
+
+    # Résumé de la configuration
+    print_title "Configuration du clonage Git"
+
+    printf '%-30s : %s\n' \
+        "Projet" "${project_name}"
+
+    printf '%-30s : %s\n' \
+        "ID projet" "${project_id}"
+
+    printf '%-30s : %s\n' \
+        "Répertoire" "${project_path}"
+
+    printf '%-30s : %s\n' \
+        "Utilisateur Linux" "${DEVOPS_USER}"
+
+    printf '%-30s : %s\n' \
+        "Utilisateur Git" "${git_user_name}"
+
+    printf '%-30s : %s\n' \
+        "Email Git" "${git_user_email}"
+
+    printf '%-30s : %s\n' \
+        "Branche locale" "${local_default_branch}"
+
+    printf '\n'
+
+    printf '%-30s : %s\n' \
+        "Type source" "${remote_clone_git_type}"
+
+    printf '%-30s : %s\n' \
+        "URL source" "${remote_clone_url}"
+
+    printf '%-30s : %s\n' \
+        "Remote source" "${remote_clone_name}"
+
+    printf '%-30s : %s\n' \
+        "Branche source" "${remote_clone_default_branch}"
+
+    printf '\n'
+
+    printf '%-30s : %s\n' \
+        "Remote publication réservé" "${remote_name}"
+
+    printf '\n'
+
+    print_info \
+        "Les fichiers du dépôt distant remplaceront les fichiers locaux portant le même nom."
+
+    print_info \
+        "Les fichiers locaux absents du dépôt distant seront conservés."
+
+    print_info \
+        "Le fichier project.env du DIU sera conservé."
+
+    # Confirmation
+    printf '\n'
+
+    read -r -p \
+        "Cloner et fusionner le dépôt distant ? [o/N] : " confirmation
+
+    case "${confirmation}" in
+        o|O|oui|OUI|y|Y|yes|YES)
+            ;;
+        *)
+            print_info \
+                "Clonage annulé."
+            return 0
+            ;;
+    esac
+
+    # Vérification du répertoire temporaire
+    if [[ -e "${clone_tmp}" ]]; then
+
+        print_error \
+            "Le répertoire temporaire existe déjà : ${clone_tmp}"
+        return 1
+    fi
+
+    # Vérification du fichier de sauvegarde temporaire
+    if [[ -e "${project_env_backup}" ]]; then
+
+        print_error \
+            "Le fichier temporaire existe déjà : ${project_env_backup}"
+        return 1
+    fi
+
+    # Sauvegarde de project.env
+    if ! cp -a \
+        "${project_env}" \
+        "${project_env_backup}"; then
+
+        print_error \
+            "Impossible de sauvegarder project.env."
+        return 1
+    fi
+
+    # Clonage dans un répertoire temporaire
+    print_title \
+        "Clonage du dépôt Git distant"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git clone \
+        --origin "${remote_clone_name}" \
+        --branch "${remote_clone_default_branch}" \
+        --single-branch \
+        "${remote_clone_url}" \
+        "${clone_tmp}"; then
+
+        rm -rf -- "${clone_tmp}"
+        rm -f -- "${project_env_backup}"
+
+        print_error \
+            "Échec du clonage du dépôt distant."
+        return 1
+    fi
+
+    # Fusion du clone dans le projet.
+    #
+    # Les fichiers provenant du clone sont prioritaires :
+    # lorsqu'un fichier existe déjà dans le projet,
+    # il est remplacé par celui provenant du dépôt distant.
+    #
+    # Les fichiers locaux qui n'existent pas dans le clone
+    # restent présents.
+    print_title \
+        "Fusion du dépôt cloné dans le projet"
+
+    if ! cp -a \
+        --remove-destination \
+        "${clone_tmp}/." \
+        "${project_path}/"; then
+
+        rm -rf -- "${clone_tmp}"
+
+        # Restauration de project.env
+        if [[ -f "${project_env_backup}" ]]; then
+            cp -a \
+                "${project_env_backup}" \
+                "${project_env}"
+        fi
+
+        rm -f -- "${project_env_backup}"
+
+        print_error \
+            "Impossible de fusionner le dépôt cloné dans ${project_path}."
+        return 1
+    fi
+
+    # Restauration obligatoire du project.env DIU
+    if ! cp -a \
+        "${project_env_backup}" \
+        "${project_env}"; then
+
+        rm -rf -- "${clone_tmp}"
+        rm -f -- "${project_env_backup}"
+
+        print_error \
+            "Impossible de restaurer le fichier project.env du DIU."
+        return 1
+    fi
+
+    # Suppression des éléments temporaires
+    rm -rf -- "${clone_tmp}"
+    rm -f -- "${project_env_backup}"
+
+    # Attribution des droits sur project.env
+    if ! chown \
+        "${DEVOPS_USER}:${DEVOPS_GROUP}" \
+        "${project_env}"; then
+
+        print_error \
+            "Impossible d'attribuer project.env à ${DEVOPS_USER}:${DEVOPS_GROUP}."
+        return 1
+    fi
+
+    if ! chmod 660 \
+        "${project_env}"; then
+
+        print_error \
+            "Impossible de définir les permissions de project.env."
+        return 1
+    fi
+
+    # Vérification du dépôt cloné
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" rev-parse \
+        --is-inside-work-tree >/dev/null 2>&1; then
+
+        print_error \
+            "Le dépôt cloné n'est pas exploitable dans ${project_path}."
+        return 1
+    fi
+
+    # Détermination de la branche locale
+    current_branch="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" branch --show-current
+    )"
+
+    if [[ -z "${current_branch}" ]]; then
+
+        print_error \
+            "Impossible de déterminer la branche Git locale."
+        return 1
+    fi
+
+    # Renommage éventuel de la branche locale
+    if [[ "${current_branch}" != "${local_default_branch}" ]]; then
+
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" branch \
+            -m "${local_default_branch}"; then
+
+            print_error \
+                "Impossible de renommer la branche locale en ${local_default_branch}."
+            return 1
+        fi
+    fi
+
+    # Configuration de user.name
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config --local \
+        user.name "${git_user_name}"; then
+
+        print_error \
+            "Échec de la configuration de user.name."
+        return 1
+    fi
+
+    # Configuration de user.email
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config --local \
+        user.email "${git_user_email}"; then
+
+        print_error \
+            "Échec de la configuration de user.email."
+        return 1
+    fi
+
+    # Configuration de core.fileMode
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config --local \
+        core.fileMode false; then
+
+        print_error \
+            "Échec de la configuration de core.fileMode."
+        return 1
+    fi
+
+    # Configuration de core.autocrlf
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config --local \
+        core.autocrlf false; then
+
+        print_error \
+            "Échec de la configuration de core.autocrlf."
+        return 1
+    fi
+
+    # Configuration de core.eol
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config --local \
+        core.eol lf; then
+
+        print_error \
+            "Échec de la configuration de core.eol."
+        return 1
+    fi
+
+    # Configuration de i18n.commitEncoding
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config --local \
+        i18n.commitEncoding utf-8; then
+
+        print_error \
+            "Échec de la configuration de i18n.commitEncoding."
+        return 1
+    fi
+
+    # Configuration de i18n.logOutputEncoding
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config --local \
+        i18n.logOutputEncoding utf-8; then
+
+        print_error \
+            "Échec de la configuration de i18n.logOutputEncoding."
+        return 1
+    fi
+
+    # Vérification du remote source
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url \
+        "${remote_clone_name}" >/dev/null 2>&1; then
+
+        print_error \
+            "Le remote source '${remote_clone_name}' n'est pas configuré."
+        return 1
+    fi
+
+    # Le remote de publication reste volontairement libre
+    if [[ -n "${remote_name}" ]] && \
+        runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url \
+        "${remote_name}" >/dev/null 2>&1; then
+
+        print_error \
+            "Le remote de publication '${remote_name}' existe déjà après le clonage."
+        return 1
+    fi
+
+    # Configuration Git locale
+    print_title \
+        "Configuration Git locale"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" config \
+        --list --local; then
+
+        print_error \
+            "Impossible d'afficher la configuration Git locale."
+        return 1
+    fi
+
+    # Dépôts distants
+    print_title \
+        "Dépôts Git distants"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote -v; then
+
+        print_error \
+            "Impossible d'afficher les dépôts Git distants."
+        return 1
+    fi
+
+    # Branches
+    print_title \
+        "Branches Git"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" branch -vv; then
+
+        print_error \
+            "Impossible d'afficher les branches Git."
+        return 1
+    fi
+
+    # Historique
+    print_title \
+        "Historique Git"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" log \
+        --oneline \
+        --decorate \
+        -5; then
+
+        print_error \
+            "Impossible d'afficher l'historique Git."
+        return 1
+    fi
+
+    # État du dépôt
+    print_title \
+        "État du dépôt Git"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" status --short; then
+
+        print_error \
+            "Impossible d'afficher l'état du dépôt Git."
+        return 1
+    fi
+
+    printf '\n'
+
+    print_success \
+        "Dépôt Git cloné et fusionné avec succès par ${DEVOPS_USER}."
 
     return 0
 }
@@ -2794,3 +4385,4 @@ ASKPASS_EOF
 
     return $?
 }
+
