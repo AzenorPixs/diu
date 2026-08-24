@@ -20,6 +20,7 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/find.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/diu-release.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/diu-packaging.sh"
