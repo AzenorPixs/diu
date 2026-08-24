@@ -10,6 +10,7 @@ cicd_project_diu() {
     local project_path=""
     local project_name="Debian Installer Unifié"
     local commit_name="${1:-}"
+    local commit_tag="${2:-}"
 
     # ==========================================================
     # Validation des arguments
@@ -81,7 +82,8 @@ cicd_project_diu() {
 
     if ! git_commit \
         "${project_id}" \
-        "${commit_name}"; then
+        "${commit_name}" \
+        "${commit_tag}"; then
 
         print_error "Échec du commit Git."
         return 1
@@ -106,8 +108,7 @@ cicd_project_diu() {
 
     print_title "Étape 3/4 — Build du paquet Debian"
 
-    if ! build_deb_diu \
-        "${project_id}"; then
+    if ! build_deb_diu ; then
 
         print_error "Échec de la construction du paquet Debian."
         return 1
@@ -119,8 +120,7 @@ cicd_project_diu() {
 
     print_title "Étape 4/4 — Publication de la Release Forgejo"
 
-    if ! publish_release_diu \
-        "${project_id}"; then
+    if ! publish_release_diu ; then
 
         print_error "Échec de la publication de la Release Forgejo."
         return 1
@@ -2186,18 +2186,24 @@ git_push_docker_release() {
     fi
 
     # --------------------------------------------------------
-    # Détermination de la dernière version Git
+    # Détermination du tag associé au dernier commit Git
     # --------------------------------------------------------
 
-    if ! git_tag="$(
+    git_tag="$(
         runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" describe \
-                --tags \
-                --abbrev=0 2>/dev/null
-    )"; then
-        echo "❌ Aucun tag Git local trouvé."
+            git -C "${project_dir}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
+    if [[ -z "${git_tag}" ]]; then
+        echo "❌ Aucun tag Git associé au dernier commit."
         return 1
     fi
+
+    # --------------------------------------------------------
+    # Détermination de la version Docker
+    # --------------------------------------------------------
 
     docker_version="${git_tag#v}"
 
@@ -2233,29 +2239,37 @@ git_push_docker_release() {
     echo " Publication Release Docker"
     echo "=========================================================="
     echo
-    echo "Projet        : ${PROJECT_NAME:-${project_id}}"
-    echo "Tag Git       : ${git_tag}"
-    echo "Version Docker: ${docker_version}"
+    echo "Projet         : ${PROJECT_NAME:-${project_id}}"
+    echo "Tag Git        : ${git_tag}"
+    echo "Version Docker : ${docker_version}"
     echo
-    echo "Image locale  : ${local_image}"
+    echo "Image locale   : ${local_image}"
     echo
-    echo "Release       : ${remote_image_version}"
-    echo "Latest        : ${remote_image_latest}"
+    echo "Release        : ${remote_image_version}"
+    echo "Latest         : ${remote_image_latest}"
     echo
 
     # --------------------------------------------------------
-    # Création des tags Docker
+    # Création du tag Docker versionné
     # --------------------------------------------------------
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        docker tag "${local_image}" "${remote_image_version}"
+        docker tag \
+            "${local_image}" \
+            "${remote_image_version}"
     then
         echo "❌ Échec du tag Docker versionné."
         return 1
     fi
 
+    # --------------------------------------------------------
+    # Création du tag Docker latest
+    # --------------------------------------------------------
+
     if ! runuser -u "${DEVOPS_USER}" -- \
-        docker tag "${local_image}" "${remote_image_latest}"
+        docker tag \
+            "${local_image}" \
+            "${remote_image_latest}"
     then
         echo "❌ Échec du tag Docker latest."
         return 1
@@ -2282,6 +2296,10 @@ git_push_docker_release() {
         echo "❌ Échec de la publication de ${remote_image_latest}."
         return 1
     fi
+
+    # --------------------------------------------------------
+    # Résultat
+    # --------------------------------------------------------
 
     echo
     echo "✅ Release Docker publiée."
