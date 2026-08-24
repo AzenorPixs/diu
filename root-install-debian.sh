@@ -3087,11 +3087,9 @@ EOF
 
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
-		if gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
-			:
-		else
-			return 1
-		fi
+    if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+        return 1
+    fi
 		gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg
 		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
 
