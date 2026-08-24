@@ -2642,9 +2642,12 @@ manage_project_action() {
     case "$action" in
 
         cicd)
-            commit_name="${2:-}"
+			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+            commit_name="${2:-${commit_timestamp}}"
+            commit_tag="${3:-v${commit_timestamp}}"
             cicd_project_diu \
-                "$commit_name"
+				"$commit_name" \
+				"$commit_tag"
             ;;
 
         del)
