@@ -107,14 +107,6 @@ create_project() {
     echo "Répertoire cible : $project_path"
     echo ""
 
-    if [[ -e "$project_path" ]]; then
-        echo "❌ Le projet existe déjà :"
-        echo "   $project_path"
-        echo ""
-        echo "Aucune modification n'a été effectuée."
-        exit 1
-    fi
-
     # Création des répertoires et fichiers principaux OpenSpec
     # et OpenCode en vue du premier démarrage.
     install -d -o "${DEVOPS_USER}" -g "${DEVOPS_GROUP}" -m 2770 \
