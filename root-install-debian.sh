@@ -100,6 +100,7 @@ EOF
           printf '127.0.0.1\t%s\n' "dockhand.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "dozzle.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "hawser.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
+          printf '127.0.0.1\t%s\n' "ldap.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "librespeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "myspeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "traefik.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
@@ -6284,6 +6285,8 @@ then
   su -c "mkdir -p datas/forgejo" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/g4f-cookies" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/g4f-medias" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/ldap/db" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/ldap/config" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/meilisearch" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/pgadmin" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/postgres" - $ENV_DOCKER_USER
@@ -7953,7 +7956,7 @@ then
 
 	echo "" >> /root/.zshrc
 	echo "# DIU #" >> /root/.zshrc
-	echo "alias rcicdiu='ridt proj cicddiu'" >> /root/.zshrc
+	echo "alias rcicddiu='ridt proj cicddiu'" >> /root/.zshrc
 	echo "alias rcicddr='ridt proj cicddr'" >> /root/.zshrc
 	echo "alias rido='rid proj ocrw'" >> /root/.zshrc
 	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
