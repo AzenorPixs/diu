@@ -22,12 +22,30 @@ create_project() {
         return 1
     fi
 
-    # Mise à jour de la configuration du projet
-    if ! git_update "${project_id}"; then
-        print_error \
-            "Impossible d'initialiser la configuration du projet."
-        return 1
-    fi
+	# Vérifier que le projet n'existe pas
+	if [[ -e "${project_path}" ]]; then
+		print_error "Le projet existe déjà : ${project_path}"
+		return 1
+	fi
+
+	# Créer uniquement le répertoire racine
+	if ! install -d \
+		-o "${DEVOPS_USER}" \
+		-g "${DEVOPS_GROUP}" \
+		-m 2770 \
+		"${project_path}"; then
+
+		print_error \
+			"Impossible de créer le répertoire du projet : ${project_path}"
+		return 1
+	fi
+
+	# Générer project.env
+	if ! git_update "${project_id}"; then
+		print_error \
+			"Impossible d'initialiser la configuration du projet."
+		return 1
+	fi
 
     # Vérification de project.env
     if [[ ! -f "${project_env}" ]]; then
