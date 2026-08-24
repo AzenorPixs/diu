@@ -6571,7 +6571,7 @@ then
 	echo "alias f7=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -7 -type f -name\"" >> /root/.zshrc
 	echo "alias f70=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -70 -type f -name\"" >> /root/.zshrc
 	echo "alias feg=\"find ~/.local/share/gnome-shell/extensions -maxdepth 2 -type f -name metadata.json -print\"" >> /root/.zshrc
-	echo "alias fsync=\"find \"$(pwd)\" -type f -name '*sync-conflict*'\"" >> /root/.zshrc
+	echo 'alias fsync="find \"$(pwd)\" -type f -name '\''*sync-conflict*'\''"' >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# FREE #" >> /root/.zshrc
