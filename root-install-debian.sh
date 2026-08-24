@@ -7954,7 +7954,7 @@ then
 	echo "" >> /root/.zshrc
 	echo "# DIU #" >> /root/.zshrc
 	echo "alias rcicdiu='ridt proj cicddiu'" >> /root/.zshrc
-	echo "alias rcicdr='ridt proj cicddr'" >> /root/.zshrc
+	echo "alias rcicddr='ridt proj cicddr'" >> /root/.zshrc
 	echo "alias rido='rid proj ocrw'" >> /root/.zshrc
 	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
 	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
