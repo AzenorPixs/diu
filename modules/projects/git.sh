@@ -888,15 +888,21 @@ Objet        : %s
 git_commit() {
     local project_id="$1"
     local commit_name="$2"
+    local commit_tag="$3"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
 
     # Vérification des paramètres
-    if [[ -z "${project_id}" || -z "${commit_name}" ]]; then
+    if [[ \
+        -z "${project_id}" ||
+        -z "${commit_name}" ||
+        -z "${commit_tag}" \
+    ]]; then
+
         print_error \
-            "Usage : git_commit <project_id> <commit_name>"
+            "Usage : git_commit <project_id> <commit_name> <commit_tag>"
         return 1
     fi
 
@@ -1074,6 +1080,22 @@ git_commit() {
         print_error "Échec du commit Git."
         return 1
     fi
+
+    # Création du tag
+    print_title "Création du tag Git"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" tag \
+        -a "${commit_tag}" \
+        -m "${commit_name}"; then
+
+        print_error \
+            "Échec de la création du tag Git '${commit_tag}'."
+        return 1
+    fi
+
+    print_success \
+        "Tag Git '${commit_tag}' créé avec succès."
 
     # Vérification finale
     print_title "Historique Git"
@@ -1642,6 +1664,7 @@ git_push() {
     local remote_default_branch=""
 
     local current_branch=""
+    local current_tag=""
     local remote_url=""
     local configured_remote_url=""
     local upstream=""
@@ -1839,6 +1862,14 @@ git_push() {
         return 1
     fi
 
+    # Tag éventuel du dernier commit
+    current_tag="$(
+        runuser -u "${ENV_DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
     # Vérification / configuration du remote Git
     configured_remote_url=""
 
@@ -1900,6 +1931,14 @@ git_push() {
     printf '%-22s : %s\n' \
         "Branche distante" "${remote_default_branch}"
 
+    if [[ -n "${current_tag}" ]]; then
+        printf '%-22s : %s\n' \
+            "Tag du commit" "${current_tag}"
+    else
+        printf '%-22s : %s\n' \
+            "Tag du commit" "Aucun"
+    fi
+
     # git status
     print_title "git status"
 
@@ -1914,7 +1953,10 @@ git_push() {
     print_title "git log --oneline"
 
     if ! runuser -u "${ENV_DEVOPS_USER}" -- \
-        git -C "${project_path}" log --oneline -10; then
+        git -C "${project_path}" log \
+        --oneline \
+        --decorate \
+        -10; then
 
         print_error "Impossible de lire l'historique Git."
         return 1
@@ -1974,6 +2016,10 @@ git_push() {
             "Branche distante de suivi : ${upstream}"
     fi
 
+    if [[ -n "${current_tag}" ]]; then
+        printf 'Tag Git            : %s\n' "${current_tag}"
+    fi
+
     # Confirmation
     printf '\n'
     read -r -p "Effectuer le push ? [o/N] : " confirmation
@@ -2014,6 +2060,42 @@ git_push() {
                     "${project_path}" \
                     || push_rc=$?
             fi
+
+            # Vérification du push de la branche
+            if [[ "${push_rc}" -ne 0 ]]; then
+                print_error \
+                    "Échec du push Git distant (code ${push_rc})."
+                return "${push_rc}"
+            fi
+
+            # Push du tag associé au dernier commit
+            if [[ -n "${current_tag}" ]]; then
+
+                print_title "Push du tag Git"
+
+                print_info \
+                    "Publication du tag '${current_tag}' vers '${remote_name}'."
+
+                forgejo_git_push \
+                    "${project_path}" \
+                    "${remote_name}" \
+                    "refs/tags/${current_tag}:refs/tags/${current_tag}" \
+                    || push_rc=$?
+
+                if [[ "${push_rc}" -ne 0 ]]; then
+                    print_error \
+                        "Échec du push du tag Git '${current_tag}' (code ${push_rc})."
+                    return "${push_rc}"
+                fi
+
+                print_success \
+                    "Tag Git '${current_tag}' publié avec succès."
+
+            else
+
+                print_info \
+                    "Aucun tag associé au dernier commit : aucun tag à publier."
+            fi
             ;;
 
     esac
@@ -2026,6 +2108,186 @@ git_push() {
     fi
 
     print_success "Push Git terminé avec succès."
+
+    return 0
+}
+
+git_push_docker_release() {
+
+    local project_id="${1:-}"
+
+    local project_dir
+    local project_env
+
+    local git_tag
+    local docker_version
+
+    local local_image
+    local remote_registry
+    local remote_image_version
+    local remote_image_latest
+
+    # --------------------------------------------------------
+    # Vérification des arguments
+    # --------------------------------------------------------
+
+    if [[ -z "${project_id}" ]]; then
+        echo "❌ ID du projet obligatoire."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Définition des chemins
+    # --------------------------------------------------------
+
+    project_dir="/home/${DEVOPS_USER}/datas/${project_id}"
+    project_env="${project_dir}/project.env"
+
+    # --------------------------------------------------------
+    # Vérification du projet
+    # --------------------------------------------------------
+
+    if [[ ! -d "${project_dir}" ]]; then
+        echo "❌ Projet introuvable : ${project_dir}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        echo "❌ Fichier project.env introuvable : ${project_env}"
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Chargement de project.env
+    # --------------------------------------------------------
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    # --------------------------------------------------------
+    # Vérification projet Docker
+    # --------------------------------------------------------
+
+    if [[ "${PROJECT_DOCKERED:-No}" != "Yes" ]]; then
+        echo "❌ Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Vérification configuration distante
+    # --------------------------------------------------------
+
+    if [[ -z "${REMOTE_BASE_URL:-}" ]] ||
+       [[ -z "${REMOTE_OWNER:-}" ]] ||
+       [[ -z "${REMOTE_REPOSITORY:-}" ]]; then
+
+        echo "❌ Configuration distante incomplète dans project.env."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Détermination de la dernière version Git
+    # --------------------------------------------------------
+
+    if ! git_tag="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" describe \
+                --tags \
+                --abbrev=0 2>/dev/null
+    )"; then
+        echo "❌ Aucun tag Git local trouvé."
+        return 1
+    fi
+
+    docker_version="${git_tag#v}"
+
+    # --------------------------------------------------------
+    # Images Docker
+    # --------------------------------------------------------
+
+    local_image="${PROJECT_ID:-${project_id}}:latest"
+
+    remote_registry="${REMOTE_BASE_URL#https://}"
+    remote_registry="${remote_registry#http://}"
+
+    remote_image_version="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:${docker_version}"
+    remote_image_latest="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:latest"
+
+    # --------------------------------------------------------
+    # Vérification image locale
+    # --------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker image inspect "${local_image}" >/dev/null 2>&1
+    then
+        echo "❌ Image Docker locale introuvable : ${local_image}"
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Affichage
+    # --------------------------------------------------------
+
+    echo
+    echo "=========================================================="
+    echo " Publication Release Docker"
+    echo "=========================================================="
+    echo
+    echo "Projet        : ${PROJECT_NAME:-${project_id}}"
+    echo "Tag Git       : ${git_tag}"
+    echo "Version Docker: ${docker_version}"
+    echo
+    echo "Image locale  : ${local_image}"
+    echo
+    echo "Release       : ${remote_image_version}"
+    echo "Latest        : ${remote_image_latest}"
+    echo
+
+    # --------------------------------------------------------
+    # Création des tags Docker
+    # --------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag "${local_image}" "${remote_image_version}"
+    then
+        echo "❌ Échec du tag Docker versionné."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag "${local_image}" "${remote_image_latest}"
+    then
+        echo "❌ Échec du tag Docker latest."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Publication versionnée
+    # --------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker push "${remote_image_version}"
+    then
+        echo "❌ Échec de la publication de ${remote_image_version}."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Publication latest
+    # --------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker push "${remote_image_latest}"
+    then
+        echo "❌ Échec de la publication de ${remote_image_latest}."
+        return 1
+    fi
+
+    echo
+    echo "✅ Release Docker publiée."
+    echo
+    echo "   ${remote_image_version}"
+    echo "   ${remote_image_latest}"
 
     return 0
 }
@@ -2794,3 +3056,4 @@ ASKPASS_EOF
 
     return $?
 }
+
