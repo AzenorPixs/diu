@@ -1241,6 +1241,12 @@ manage_project_action() {
                 "$project_id"
             ;;
 
+        gitic)
+            git_init_clone \
+                "$project_id"
+            ;;
+
+
         gitp)
             git_push \
                 "$project_id"
