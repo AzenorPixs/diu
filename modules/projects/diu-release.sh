@@ -33,7 +33,11 @@ publish_release_diu() {
     local remote_branch_sha=""
     local head_message=""
 
+    local local_git_tag=""
     local tag_name=""
+    local tag_source=""
+    local remote_tag_exists=0
+
     local release_id=""
     local release_notes=""
 
@@ -51,7 +55,10 @@ publish_release_diu() {
     local -a missing_tools=()
     local -a dist_files=()
 
+    # ==========================================================
     # Fonction locale d'appel API Forgejo
+    # ==========================================================
+
     _forgejo_release_api() {
         local method="${1:-GET}"
         local url="${2:-}"
@@ -137,19 +144,28 @@ publish_release_diu() {
         return 0
     }
 
+    # ==========================================================
     # Fonction locale d'extraction du code HTTP
+    # ==========================================================
+
     _forgejo_release_http_code() {
         local response="${1:-}"
         printf '%s' "${response##*$'\n'}"
     }
 
+    # ==========================================================
     # Fonction locale d'extraction du body
+    # ==========================================================
+
     _forgejo_release_http_body() {
         local response="${1:-}"
         printf '%s' "${response%$'\n'*}"
     }
 
+    # ==========================================================
     # Étape 1 - Vérification des prérequis
+    # ==========================================================
+
     print_title "Étape 1/11 — Vérification des prérequis"
 
     if ! command -v git >/dev/null 2>&1; then
@@ -195,7 +211,10 @@ publish_release_diu() {
     print_success \
         "Tous les prérequis sont disponibles."
 
+    # ==========================================================
     # Étape 2 - Validation du projet
+    # ==========================================================
+
     print_title "Étape 2/11 — Validation du projet"
 
     if [[ ! -d "${project_path}" ]]; then
@@ -427,7 +446,10 @@ publish_release_diu() {
     print_success \
         "Projet validé : ${project_path}"
 
+    # ==========================================================
     # Étape 3 - Sélection du paquet Debian
+    # ==========================================================
+
     print_title "Étape 3/11 — Sélection du paquet Debian"
 
     while IFS= read -r -d '' file; do
@@ -466,7 +488,10 @@ publish_release_diu() {
     print_success \
         "Paquet sélectionné : ${deb_filename}"
 
+    # ==========================================================
     # Étape 4 - Vérification des métadonnées Debian
+    # ==========================================================
+
     print_title "Étape 4/11 — Vérification des métadonnées Debian"
 
     package_name="$(
@@ -512,9 +537,57 @@ publish_release_diu() {
     print_success \
         "Paquet Debian valide : ${package_name} ${package_version}"
 
-    tag_name="v${deb_version}"
+    # ----------------------------------------------------------
+    # Recherche d'un tag sur le dernier commit Git
+    # ----------------------------------------------------------
 
+    local_git_tag="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
+    if [[ -n "${local_git_tag}" ]]; then
+
+        tag_name="${local_git_tag}"
+        tag_source="git"
+
+        print_info \
+            "Tag associé au dernier commit Git : ${tag_name}"
+
+        # Vérification de cohérence avec la version Debian
+        if [[ "${tag_name#v}" != "${deb_version}" ]]; then
+
+            print_error \
+                "Le tag Git et la version du paquet Debian sont incohérents."
+
+            printf '%-22s : %s\n' \
+                "Tag Git" "${tag_name}"
+
+            printf '%-22s : %s\n' \
+                "Version Debian" "${deb_version}"
+
+            return 1
+        fi
+
+    else
+
+        # Comportement historique
+        tag_name="v${deb_version}"
+        tag_source="debian"
+
+        print_info \
+            "Aucun tag associé au dernier commit Git."
+
+        print_info \
+            "Tag généré depuis la version Debian : ${tag_name}"
+    fi
+
+    # ==========================================================
     # Étape 5 - Validation du dépôt Forgejo
+    # ==========================================================
+
     print_title "Étape 5/11 — Validation du dépôt Forgejo"
 
     print_success \
@@ -526,7 +599,10 @@ publish_release_diu() {
     print_success \
         "Remote  : ${remote_name}"
 
+    # ==========================================================
     # Étape 6 - Authentification Forgejo
+    # ==========================================================
+
     print_title "Étape 6/11 — Authentification Forgejo"
 
     if ! _forgejo_ensure_credentials "${project_path}"; then
@@ -546,7 +622,10 @@ publish_release_diu() {
     print_success \
         "Credentials Forgejo disponibles."
 
+    # ==========================================================
     # Étape 7 - Vérification de la synchronisation Git
+    # ==========================================================
+
     print_title "Étape 7/11 — Vérification de la synchronisation Git"
 
     if ! forgejo_git_fetch "${project_path}"; then
@@ -628,9 +707,14 @@ publish_release_diu() {
     print_success \
         "HEAD == ${remote_branch_ref} (${head_sha:0:12})"
 
+    # ==========================================================
     # Étape 8 - Vérification du tag et de la Release
+    # ==========================================================
+
     print_title \
         "Étape 8/11 — Vérification du tag ${tag_name} et de la Release"
+
+    remote_tag_exists=0
 
     # Vérification du tag
     api_response="$(
@@ -652,16 +736,35 @@ publish_release_diu() {
     case "${http_code}" in
 
         200)
-            print_error \
-                "Le tag ${tag_name} existe déjà sur Forgejo."
-            print_error \
-                "Aucun tag existant ne sera déplacé ou modifié."
-            return 1
+            remote_tag_exists=1
+
+            if [[ "${tag_source}" == "git" ]]; then
+
+                print_success \
+                    "Le tag ${tag_name} existe déjà sur Forgejo."
+
+                print_info \
+                    "Le tag du commit local sera réutilisé pour la Release."
+
+            else
+
+                # Comportement historique lorsque le tag est généré
+                # depuis la version Debian.
+                print_error \
+                    "Le tag ${tag_name} existe déjà sur Forgejo."
+
+                print_error \
+                    "Aucun tag existant ne sera déplacé ou modifié."
+
+                return 1
+            fi
             ;;
 
         404)
+            remote_tag_exists=0
+
             print_success \
-                "Le tag ${tag_name} n'existe pas."
+                "Le tag ${tag_name} n'existe pas sur Forgejo."
             ;;
 
         401)
@@ -673,8 +776,10 @@ publish_release_diu() {
         403)
             print_error \
                 "Token Forgejo refusé (HTTP 403)."
+
             print_error \
                 "Vérifiez les permissions du token."
+
             return 1
             ;;
 
@@ -688,8 +793,10 @@ publish_release_diu() {
 
             print_error \
                 "Erreur lors de la vérification du tag."
+
             print_error \
                 "HTTP ${http_code} : ${error_msg}"
+
             return 1
             ;;
     esac
@@ -716,8 +823,10 @@ publish_release_diu() {
         200)
             print_error \
                 "Une Release ${tag_name} existe déjà sur Forgejo."
+
             print_error \
                 "Aucune Release existante ne sera modifiée."
+
             return 1
             ;;
 
@@ -748,65 +857,84 @@ publish_release_diu() {
 
             print_error \
                 "Erreur lors de la vérification de la Release."
+
             print_error \
                 "HTTP ${http_code} : ${error_msg}"
+
             return 1
             ;;
     esac
 
-    # Étape 9 - Création du tag
-    print_title \
-        "Étape 9/11 — Création du tag ${tag_name}"
+    # ==========================================================
+    # Étape 9 - Création / réutilisation du tag
+    # ==========================================================
 
-    api_response="$(
-        _forgejo_release_api \
-            POST \
-            "${remote_base_url}/api/v1/repos/${remote_owner}/${remote_repository}/tags" \
-            "$(jq -n \
-                --arg tag_name "${tag_name}" \
-                --arg target "${head_sha}" \
-                --arg message "Release ${tag_name}" \
-                '{
-                    tag_name: $tag_name,
-                    target: $target,
-                    message: $message
-                }'
-            )"
-    )" || {
-        return 1
-    }
+    if [[ "${remote_tag_exists}" -eq 1 ]]; then
 
-    http_code="$(
-        _forgejo_release_http_code "${api_response}"
-    )"
+        print_title \
+            "Étape 9/11 — Réutilisation du tag ${tag_name}"
 
-    http_body="$(
-        _forgejo_release_http_body "${api_response}"
-    )"
+        print_success \
+            "Tag ${tag_name} déjà disponible sur Forgejo."
 
-    if [[ "${http_code}" -lt 200 ||
-          "${http_code}" -ge 300 ]]; then
+    else
 
-        error_msg="$(
-            printf '%s' "${http_body}" |
-                jq -r \
-                    '.message // "erreur inconnue"' \
-                    2>/dev/null
+        print_title \
+            "Étape 9/11 — Création du tag ${tag_name}"
+
+        api_response="$(
+            _forgejo_release_api \
+                POST \
+                "${remote_base_url}/api/v1/repos/${remote_owner}/${remote_repository}/tags" \
+                "$(jq -n \
+                    --arg tag_name "${tag_name}" \
+                    --arg target "${head_sha}" \
+                    --arg message "Release ${tag_name}" \
+                    '{
+                        tag_name: $tag_name,
+                        target: $target,
+                        message: $message
+                    }'
+                )"
+        )" || {
+            return 1
+        }
+
+        http_code="$(
+            _forgejo_release_http_code "${api_response}"
         )"
 
-        print_error \
-            "Impossible de créer le tag ${tag_name}."
+        http_body="$(
+            _forgejo_release_http_body "${api_response}"
+        )"
 
-        print_error \
-            "HTTP ${http_code} : ${error_msg}"
+        if [[ "${http_code}" -lt 200 ||
+              "${http_code}" -ge 300 ]]; then
 
-        return 1
+            error_msg="$(
+                printf '%s' "${http_body}" |
+                    jq -r \
+                        '.message // "erreur inconnue"' \
+                        2>/dev/null
+            )"
+
+            print_error \
+                "Impossible de créer le tag ${tag_name}."
+
+            print_error \
+                "HTTP ${http_code} : ${error_msg}"
+
+            return 1
+        fi
+
+        print_success \
+            "Tag ${tag_name} créé sur ${head_sha:0:12}."
     fi
 
-    print_success \
-        "Tag ${tag_name} créé sur ${head_sha:0:12}."
-
+    # ==========================================================
     # Étape 10 - Création de la Release
+    # ==========================================================
+
     print_title \
         "Étape 10/11 — Création de la Release ${project_name} ${deb_version}"
 
@@ -900,7 +1028,10 @@ publish_release_diu() {
     print_success \
         "Release créée : DIU ${deb_version} (ID ${release_id})."
 
+    # ==========================================================
     # Étape 11 - Upload du paquet
+    # ==========================================================
+
     print_title \
         "Étape 11/11 — Upload du paquet ${deb_filename}"
 
@@ -924,6 +1055,7 @@ publish_release_diu() {
 
         print_error \
             "Impossible de préparer l'authentification."
+
         rm -f "${upload_auth_file}"
         return 1
     fi
@@ -939,7 +1071,9 @@ publish_release_diu() {
     )"; then
 
         upload_rc=0
+
     else
+
         upload_rc=$?
     fi
 
@@ -948,12 +1082,16 @@ publish_release_diu() {
     if [[ "${upload_rc}" -ne 0 ]]; then
         print_error \
             "Échec réseau lors de l'upload de l'asset."
+
         print_error \
             "Code curl : ${upload_rc}"
+
         print_error \
             "La Release reste visible mais incomplète."
+
         print_error \
             "Aucun rollback automatique."
+
         return 1
     fi
 
@@ -1012,12 +1150,19 @@ publish_release_diu() {
 
     printf '%-12s : %s\n' \
         "Projet" "${project_name}"
+
     printf '%-12s : %s\n' \
         "Tag" "${tag_name}"
+
+    printf '%-12s : %s\n' \
+        "Source tag" "${tag_source}"
+
     printf '%-12s : %s\n' \
         "Commit" "${head_sha:0:12}"
+
     printf '%-12s : %s\n' \
         "Release" "${release_id}"
+
     printf '%-12s : %s\n' \
         "Asset" "${deb_filename}"
 

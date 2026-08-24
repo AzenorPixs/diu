@@ -17,9 +17,10 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
-. "$BASH_SCRIPT_PATH/modules/devops//git.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
+. "$BASH_SCRIPT_PATH/modules/projects/git.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/diu-release.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/diu-packaging.sh"
 
@@ -2634,6 +2635,9 @@ manage_project_action() {
     local action="${1:-}"
     local project_id="${2:-}"
     local commit_name=""
+    local commit_tag=""
+    local commit_timestamp=""
+    local dockerfile_name=""
 
     case "$action" in
 
@@ -2653,16 +2657,26 @@ manage_project_action() {
                 "$project_id"
             ;;
 
+		dockerb)
+			dockerfile_name="${3:-dockerfile}"
+			proj_docker_build \
+				"$project_id" \
+				"$dockerfile_name"
+			;;
+
         gita)
             git_analyse \
                 "$project_id"
             ;;
 
 		gitc)
-			commit_name="${3:-}"
+			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+			commit_name="${3:-${commit_timestamp}}"
+			commit_tag="${4:-v${commit_timestamp}}"
 			git_commit \
 				"$project_id" \
-				"$commit_name"
+				"$commit_name" \
+				"$commit_tag"
 			;;
 
         giti)
@@ -2672,6 +2686,11 @@ manage_project_action() {
 
         gitp)
             git_push \
+                "$project_id"
+            ;;
+
+        gitpdr)
+            git_push_docker_release \
                 "$project_id"
             ;;
 
@@ -3090,7 +3109,9 @@ EOF
     if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
         return 1
     fi
-		gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg
+    if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
+        return 1
+    fi
 		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
 
 		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'

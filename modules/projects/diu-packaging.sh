@@ -6,6 +6,7 @@ build_deb_diu() {
     local project_path=""
     local staging_dir=""
     local build_dir=""
+    local git_tag=""
     local package_version=""
     local diu_maintainer=""
     local package_name=""
@@ -60,7 +61,31 @@ build_deb_diu() {
     # Génération des métadonnées du paquet
     # ----------------------------------------------------------
 
-    package_version="$(date +'%Y.%m.%d.%H.%M')"
+    git_tag="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
+    if [[ -n "${git_tag}" ]]; then
+
+        package_version="${git_tag#v}"
+
+        print_info \
+            "Version du paquet déduite du tag Git : ${git_tag}"
+
+    else
+
+        package_version="$(date +'%Y.%m.%d.%H.%M')"
+
+        print_info \
+            "Aucun tag Git associé au dernier commit."
+
+        print_info \
+            "Version du paquet générée automatiquement : ${package_version}"
+    fi
+
     diu_maintainer="Anthony DEMARD <postmaster@pixs.fr>"
 
     # ----------------------------------------------------------
@@ -231,7 +256,10 @@ EOF
         return 1
     }
 
-    if ! dpkg-deb --build --root-owner-group "${staging_dir}" "${build_dir}/${package_name}"; then
+    if ! dpkg-deb --build --root-owner-group \
+        "${staging_dir}" \
+        "${build_dir}/${package_name}"; then
+
         print_error "Échec de la construction du paquet."
         rm -rf "${staging_dir}"
         rm -rf "${build_dir}"
@@ -259,7 +287,9 @@ EOF
         -name "diu_*_all.deb" \
         ! -name "${package_name}" \
         -delete 2>/dev/null; then
-        print_error "Échec de la rotation des anciens paquets dans dist/."
+
+        print_error \
+            "Échec de la rotation des anciens paquets dans dist/."
         rm -rf "${staging_dir}"
         rm -rf "${build_dir}"
         return 1
@@ -272,5 +302,8 @@ EOF
     rm -rf "${staging_dir}"
     rm -rf "${build_dir}"
 
-    print_success "Paquet construit : ${final_destination}"
+    print_success \
+        "Paquet construit : ${final_destination}"
+
+    return 0
 }
