@@ -2130,6 +2130,9 @@ git_push_docker_release() {
     local forgejo_username=""
     local forgejo_token=""
 
+    local docker_config=""
+    local docker_publish_rc=0
+
     # --------------------------------------------------------
     # Vérification des arguments
     # --------------------------------------------------------
@@ -2234,35 +2237,49 @@ git_push_docker_release() {
     fi
 
     # --------------------------------------------------------
-    # Affichage
+    # Lecture des credentials Forgejo
     # --------------------------------------------------------
 
-	if ! _forgejo_read_username "${project_dir}"; then
-		echo "❌ Impossible de lire le nom d'utilisateur Forgejo."
-		return 1
-	fi
+    if ! _forgejo_read_username "${project_dir}"; then
+        echo "❌ Impossible de lire le nom d'utilisateur Forgejo."
+        return 1
+    fi
 
-	if ! _forgejo_read_token "${project_dir}"; then
-		echo "❌ Impossible de lire le token Forgejo."
-		return 1
-	fi
+    if ! _forgejo_read_token "${project_dir}"; then
+        echo "❌ Impossible de lire le token Forgejo."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_username}" ]]; then
+        echo "❌ Nom d'utilisateur Forgejo vide."
+        return 1
+    fi
+
+    if [[ -z "${forgejo_token}" ]]; then
+        echo "❌ Token Forgejo vide."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Affichage
+    # --------------------------------------------------------
 
     echo
     echo "=========================================================="
     echo " Publication Release Docker"
     echo "=========================================================="
     echo
-    echo "Projet         : ${PROJECT_NAME:-${project_id}}"
-    echo "Tag Git        : ${git_tag}"
-    echo "Version Docker : ${docker_version}"
+    echo "Projet              : ${PROJECT_NAME:-${project_id}}"
+    echo "Tag Git             : ${git_tag}"
+    echo "Version Docker      : ${docker_version}"
     echo
-    echo "Image locale   : ${local_image}"
+    echo "Image locale        : ${local_image}"
     echo
-    echo "Release        : ${remote_image_version}"
-    echo "Latest         : ${remote_image_latest}"
+    echo "Release             : ${remote_image_version}"
+    echo "Latest              : ${remote_image_latest}"
     echo
-	echo "Utilisateur Forgejo : ${forgejo_username}"
-	echo "Owner cible          : ${REMOTE_OWNER}"
+    echo "Utilisateur Forgejo : ${forgejo_username}"
+    echo "Owner cible         : ${REMOTE_OWNER}"
 
     # --------------------------------------------------------
     # Création du tag Docker versionné
@@ -2291,69 +2308,127 @@ git_push_docker_release() {
     fi
 
     # --------------------------------------------------------
-    # Authentification Forgejo
+    # Création du DOCKER_CONFIG temporaire
     # --------------------------------------------------------
 
-    echo
-    echo "=========================================================="
-    echo " Authentification Docker Forgejo"
-    echo "=========================================================="
-    echo
+    docker_config="$(mktemp -d)" || {
+        echo "❌ Impossible de créer le DOCKER_CONFIG temporaire."
+        return 1
+    }
 
-    if ! _forgejo_read_username "${project_dir}"; then
-        echo "❌ Impossible de lire le nom d'utilisateur Forgejo."
+    if [[ -z "${docker_config}" ]] ||
+       [[ ! -d "${docker_config}" ]]; then
+
+        echo "❌ DOCKER_CONFIG temporaire invalide."
         return 1
     fi
 
-    if ! _forgejo_read_token "${project_dir}"; then
-        echo "❌ Impossible de lire le token Forgejo."
+    if ! chmod 700 "${docker_config}"; then
+        echo "❌ Impossible de sécuriser ${docker_config}."
+        rm -rf "${docker_config}"
         return 1
     fi
 
-    if [[ -z "${forgejo_username}" ]]; then
-        echo "❌ Nom d'utilisateur Forgejo vide."
-        return 1
-    fi
+    if ! chown \
+        "${DEVOPS_USER}:${DEVOPS_GROUP}" \
+        "${docker_config}"; then
 
-    if [[ -z "${forgejo_token}" ]]; then
-        echo "❌ Token Forgejo vide."
-        return 1
-    fi
-
-    if ! printf '%s' "${forgejo_token}" | \
-        runuser -u "${DEVOPS_USER}" -- \
-            docker login \
-                "${remote_registry}" \
-                --username "${forgejo_username}" \
-                --password-stdin
-    then
-        echo "❌ Échec de l'authentification Docker auprès de ${remote_registry}."
-        return 1
-    fi
-
-    echo
-    echo "✅ Authentification Docker Forgejo réussie."
-
-    # --------------------------------------------------------
-    # Publication versionnée
-    # --------------------------------------------------------
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        docker push "${remote_image_version}"
-    then
-        echo "❌ Échec de la publication de ${remote_image_version}."
+        echo "❌ Impossible d'attribuer ${docker_config} à ${DEVOPS_USER}."
+        rm -rf "${docker_config}"
         return 1
     fi
 
     # --------------------------------------------------------
-    # Publication latest
+    # Authentification et publication
+    #
+    # Le sous-shell permet d'utiliser un trap local.
+    # Le DOCKER_CONFIG sera supprimé dans tous les cas :
+    # succès ou erreur.
     # --------------------------------------------------------
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        docker push "${remote_image_latest}"
-    then
-        echo "❌ Échec de la publication de ${remote_image_latest}."
-        return 1
+    docker_publish_rc=0
+
+    (
+        trap 'rm -rf "${docker_config}"' EXIT
+
+        # ----------------------------------------------------
+        # Authentification Forgejo
+        # ----------------------------------------------------
+
+        echo
+        echo "=========================================================="
+        echo " Authentification Docker Forgejo"
+        echo "=========================================================="
+        echo
+
+        if ! printf '%s' "${forgejo_token}" | \
+            runuser -u "${DEVOPS_USER}" -- \
+                env "DOCKER_CONFIG=${docker_config}" \
+                docker login \
+                    "${remote_registry}" \
+                    --username "${forgejo_username}" \
+                    --password-stdin
+        then
+            echo "❌ Échec de l'authentification Docker auprès de ${remote_registry}."
+            exit 1
+        fi
+
+        echo
+        echo "✅ Authentification Docker Forgejo réussie."
+
+        # ----------------------------------------------------
+        # Publication versionnée
+        # ----------------------------------------------------
+
+        echo
+        echo "=========================================================="
+        echo " Publication Docker ${docker_version}"
+        echo "=========================================================="
+        echo
+
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" \
+            docker push "${remote_image_version}"
+        then
+            echo "❌ Échec de la publication de ${remote_image_version}."
+            exit 1
+        fi
+
+        # ----------------------------------------------------
+        # Publication latest
+        # ----------------------------------------------------
+
+        echo
+        echo "=========================================================="
+        echo " Publication Docker latest"
+        echo "=========================================================="
+        echo
+
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" \
+            docker push "${remote_image_latest}"
+        then
+            echo "❌ Échec de la publication de ${remote_image_latest}."
+            exit 1
+        fi
+
+        exit 0
+
+    ) || docker_publish_rc=$?
+
+    # --------------------------------------------------------
+    # Suppression du token de la variable locale
+    # --------------------------------------------------------
+
+    unset forgejo_token
+
+    # --------------------------------------------------------
+    # Vérification du résultat de publication
+    # --------------------------------------------------------
+
+    if [[ "${docker_publish_rc}" -ne 0 ]]; then
+        echo "❌ Échec de la publication Docker."
+        return "${docker_publish_rc}"
     fi
 
     # --------------------------------------------------------
