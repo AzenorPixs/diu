@@ -2116,16 +2116,17 @@ git_push_docker_release() {
 
     local project_id="${1:-}"
 
-    local project_dir
-    local project_env
+    local project_dir=""
+    local project_env=""
 
-    local git_tag
-    local docker_version
+    local git_tag=""
+    local git_tags_count=0
+    local docker_version=""
 
-    local local_image
-    local remote_registry
-    local remote_image_version
-    local remote_image_latest
+    local local_image=""
+    local remote_registry=""
+    local remote_image_version=""
+    local remote_image_latest=""
 
     local forgejo_username=""
     local forgejo_token=""
@@ -2138,7 +2139,8 @@ git_push_docker_release() {
     # --------------------------------------------------------
 
     if [[ -z "${project_id}" ]]; then
-        echo "❌ ID du projet obligatoire."
+        print_error \
+            "Usage : git_push_docker_release <project_id>"
         return 1
     fi
 
@@ -2146,7 +2148,7 @@ git_push_docker_release() {
     # Définition des chemins
     # --------------------------------------------------------
 
-    project_dir="/home/${DEVOPS_USER}/datas/${project_id}"
+    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_dir}/project.env"
 
     # --------------------------------------------------------
@@ -2154,12 +2156,14 @@ git_push_docker_release() {
     # --------------------------------------------------------
 
     if [[ ! -d "${project_dir}" ]]; then
-        echo "❌ Projet introuvable : ${project_dir}"
+        print_error \
+            "Projet introuvable : ${project_dir}"
         return 1
     fi
 
     if [[ ! -f "${project_env}" ]]; then
-        echo "❌ Fichier project.env introuvable : ${project_env}"
+        print_error \
+            "Fichier project.env introuvable : ${project_env}"
         return 1
     fi
 
@@ -2175,7 +2179,8 @@ git_push_docker_release() {
     # --------------------------------------------------------
 
     if [[ "${PROJECT_DOCKERED:-No}" != "Yes" ]]; then
-        echo "❌ Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+        print_error \
+            "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
         return 1
     fi
 
@@ -2183,17 +2188,66 @@ git_push_docker_release() {
     # Vérification configuration distante
     # --------------------------------------------------------
 
-    if [[ -z "${REMOTE_BASE_URL:-}" ]] ||
-       [[ -z "${REMOTE_OWNER:-}" ]] ||
-       [[ -z "${REMOTE_REPOSITORY:-}" ]]; then
+    if [[ \
+        -z "${REMOTE_BASE_URL:-}" ||
+        -z "${REMOTE_OWNER:-}" ||
+        -z "${REMOTE_REPOSITORY:-}" \
+    ]]; then
 
-        echo "❌ Configuration distante incomplète dans project.env."
+        print_error \
+            "Configuration distante incomplète dans project.env."
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Vérification de Git
+    # --------------------------------------------------------
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git --version >/dev/null 2>&1; then
+
+        print_error \
+            "Git n'est pas accessible pour ${DEVOPS_USER}."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_dir}" \
+        rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+
+        print_error \
+            "Le projet n'est pas un dépôt Git valide : ${project_dir}"
         return 1
     fi
 
     # --------------------------------------------------------
     # Détermination du tag associé au dernier commit Git
     # --------------------------------------------------------
+
+    git_tags_count="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD 2>/dev/null |
+            sed '/^[[:space:]]*$/d' |
+            wc -l
+    )"
+
+    if [[ "${git_tags_count}" -eq 0 ]]; then
+        print_error \
+            "Aucun tag Git associé au dernier commit."
+        return 1
+    fi
+
+    if [[ "${git_tags_count}" -gt 1 ]]; then
+        print_error \
+            "Plusieurs tags Git sont associés au dernier commit."
+
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD
+
+        return 1
+    fi
 
     git_tag="$(
         runuser -u "${DEVOPS_USER}" -- \
@@ -2203,7 +2257,8 @@ git_push_docker_release() {
     )"
 
     if [[ -z "${git_tag}" ]]; then
-        echo "❌ Aucun tag Git associé au dernier commit."
+        print_error \
+            "Impossible de déterminer le tag Git du dernier commit."
         return 1
     fi
 
@@ -2213,50 +2268,62 @@ git_push_docker_release() {
 
     docker_version="${git_tag#v}"
 
+    if [[ -z "${docker_version}" ]]; then
+        print_error \
+            "Version Docker invalide déduite du tag Git '${git_tag}'."
+        return 1
+    fi
+
     # --------------------------------------------------------
-    # Images Docker
+    # Détermination des images Docker
     # --------------------------------------------------------
 
     local_image="${PROJECT_ID:-${project_id}}:latest"
 
     remote_registry="${REMOTE_BASE_URL#https://}"
     remote_registry="${remote_registry#http://}"
+    remote_registry="${remote_registry%/}"
 
     remote_image_version="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:${docker_version}"
     remote_image_latest="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:latest"
 
     # --------------------------------------------------------
-    # Vérification image locale
+    # Vérification de l'image locale
     # --------------------------------------------------------
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        docker image inspect "${local_image}" >/dev/null 2>&1
-    then
-        echo "❌ Image Docker locale introuvable : ${local_image}"
+        docker image inspect "${local_image}" >/dev/null 2>&1; then
+
+        print_error \
+            "Image Docker locale introuvable : ${local_image}"
         return 1
     fi
 
     # --------------------------------------------------------
-    # Lecture des credentials Forgejo
+    # Lecture unique des credentials Forgejo
     # --------------------------------------------------------
 
     if ! _forgejo_read_username "${project_dir}"; then
-        echo "❌ Impossible de lire le nom d'utilisateur Forgejo."
+        print_error \
+            "Impossible de lire le nom d'utilisateur Forgejo."
         return 1
     fi
 
     if ! _forgejo_read_token "${project_dir}"; then
-        echo "❌ Impossible de lire le token Forgejo."
+        print_error \
+            "Impossible de lire le token Forgejo."
         return 1
     fi
 
     if [[ -z "${forgejo_username}" ]]; then
-        echo "❌ Nom d'utilisateur Forgejo vide."
+        print_error \
+            "Nom d'utilisateur Forgejo vide."
         return 1
     fi
 
     if [[ -z "${forgejo_token}" ]]; then
-        echo "❌ Token Forgejo vide."
+        print_error \
+            "Token Forgejo vide."
         return 1
     fi
 
@@ -2264,33 +2331,46 @@ git_push_docker_release() {
     # Affichage
     # --------------------------------------------------------
 
-    echo
-    echo "=========================================================="
-    echo " Publication Release Docker"
-    echo "=========================================================="
-    echo
-    echo "Projet              : ${PROJECT_NAME:-${project_id}}"
-    echo "Tag Git             : ${git_tag}"
-    echo "Version Docker      : ${docker_version}"
-    echo
-    echo "Image locale        : ${local_image}"
-    echo
-    echo "Release             : ${remote_image_version}"
-    echo "Latest              : ${remote_image_latest}"
-    echo
-    echo "Utilisateur Forgejo : ${forgejo_username}"
-    echo "Owner cible         : ${REMOTE_OWNER}"
+    print_title "Publication Release Docker"
+
+    printf '%-22s : %s\n' \
+        "Projet" "${PROJECT_NAME:-${project_id}}"
+
+    printf '%-22s : %s\n' \
+        "Tag Git" "${git_tag}"
+
+    printf '%-22s : %s\n' \
+        "Version Docker" "${docker_version}"
+
+    printf '%-22s : %s\n' \
+        "Image locale" "${local_image}"
+
+    printf '%-22s : %s\n' \
+        "Release" "${remote_image_version}"
+
+    printf '%-22s : %s\n' \
+        "Latest" "${remote_image_latest}"
+
+    printf '%-22s : %s\n' \
+        "Utilisateur Forgejo" "${forgejo_username}"
+
+    printf '%-22s : %s\n' \
+        "Owner cible" "${REMOTE_OWNER}"
 
     # --------------------------------------------------------
     # Création du tag Docker versionné
     # --------------------------------------------------------
 
+    print_info \
+        "Création du tag Docker versionné."
+
     if ! runuser -u "${DEVOPS_USER}" -- \
         docker tag \
             "${local_image}" \
-            "${remote_image_version}"
-    then
-        echo "❌ Échec du tag Docker versionné."
+            "${remote_image_version}"; then
+
+        print_error \
+            "Échec du tag Docker versionné."
         return 1
     fi
 
@@ -2298,12 +2378,16 @@ git_push_docker_release() {
     # Création du tag Docker latest
     # --------------------------------------------------------
 
+    print_info \
+        "Création du tag Docker latest."
+
     if ! runuser -u "${DEVOPS_USER}" -- \
         docker tag \
             "${local_image}" \
-            "${remote_image_latest}"
-    then
-        echo "❌ Échec du tag Docker latest."
+            "${remote_image_latest}"; then
+
+        print_error \
+            "Échec du tag Docker latest."
         return 1
     fi
 
@@ -2312,19 +2396,22 @@ git_push_docker_release() {
     # --------------------------------------------------------
 
     docker_config="$(mktemp -d)" || {
-        echo "❌ Impossible de créer le DOCKER_CONFIG temporaire."
+        print_error \
+            "Impossible de créer le DOCKER_CONFIG temporaire."
         return 1
     }
 
     if [[ -z "${docker_config}" ]] ||
        [[ ! -d "${docker_config}" ]]; then
 
-        echo "❌ DOCKER_CONFIG temporaire invalide."
+        print_error \
+            "DOCKER_CONFIG temporaire invalide."
         return 1
     fi
 
     if ! chmod 700 "${docker_config}"; then
-        echo "❌ Impossible de sécuriser ${docker_config}."
+        print_error \
+            "Impossible de sécuriser ${docker_config}."
         rm -rf "${docker_config}"
         return 1
     fi
@@ -2333,7 +2420,9 @@ git_push_docker_release() {
         "${DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${docker_config}"; then
 
-        echo "❌ Impossible d'attribuer ${docker_config} à ${DEVOPS_USER}."
+        print_error \
+            "Impossible d'attribuer ${docker_config} à ${DEVOPS_USER}."
+
         rm -rf "${docker_config}"
         return 1
     fi
@@ -2341,9 +2430,10 @@ git_push_docker_release() {
     # --------------------------------------------------------
     # Authentification et publication
     #
-    # Le sous-shell permet d'utiliser un trap local.
-    # Le DOCKER_CONFIG sera supprimé dans tous les cas :
-    # succès ou erreur.
+    # Sous-shell :
+    # - trap local
+    # - DOCKER_CONFIG temporaire
+    # - nettoyage garanti sur succès ou erreur
     # --------------------------------------------------------
 
     docker_publish_rc=0
@@ -2352,14 +2442,10 @@ git_push_docker_release() {
         trap 'rm -rf "${docker_config}"' EXIT
 
         # ----------------------------------------------------
-        # Authentification Forgejo
+        # Authentification Docker Forgejo
         # ----------------------------------------------------
 
-        echo
-        echo "=========================================================="
-        echo " Authentification Docker Forgejo"
-        echo "=========================================================="
-        echo
+        print_title "Authentification Docker Forgejo"
 
         if ! printf '%s' "${forgejo_token}" | \
             runuser -u "${DEVOPS_USER}" -- \
@@ -2367,57 +2453,63 @@ git_push_docker_release() {
                 docker login \
                     "${remote_registry}" \
                     --username "${forgejo_username}" \
-                    --password-stdin
-        then
-            echo "❌ Échec de l'authentification Docker auprès de ${remote_registry}."
+                    --password-stdin; then
+
+            print_error \
+                "Échec de l'authentification Docker auprès de ${remote_registry}."
+
             exit 1
         fi
 
-        echo
-        echo "✅ Authentification Docker Forgejo réussie."
+        print_success \
+            "Authentification Docker Forgejo réussie."
 
         # ----------------------------------------------------
-        # Publication versionnée
+        # Publication de la version
         # ----------------------------------------------------
 
-        echo
-        echo "=========================================================="
-        echo " Publication Docker ${docker_version}"
-        echo "=========================================================="
-        echo
+        print_title \
+            "Publication Docker ${docker_version}"
 
         if ! runuser -u "${DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" \
-            docker push "${remote_image_version}"
-        then
-            echo "❌ Échec de la publication de ${remote_image_version}."
+            docker push "${remote_image_version}"; then
+
+            print_error \
+                "Échec de la publication de ${remote_image_version}."
+
             exit 1
         fi
+
+        print_success \
+            "Image Docker versionnée publiée."
 
         # ----------------------------------------------------
         # Publication latest
         # ----------------------------------------------------
 
-        echo
-        echo "=========================================================="
-        echo " Publication Docker latest"
-        echo "=========================================================="
-        echo
+        print_title \
+            "Publication Docker latest"
 
         if ! runuser -u "${DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" \
-            docker push "${remote_image_latest}"
-        then
-            echo "❌ Échec de la publication de ${remote_image_latest}."
+            docker push "${remote_image_latest}"; then
+
+            print_error \
+                "Échec de la publication de ${remote_image_latest}."
+
             exit 1
         fi
+
+        print_success \
+            "Image Docker latest publiée."
 
         exit 0
 
     ) || docker_publish_rc=$?
 
     # --------------------------------------------------------
-    # Suppression du token de la variable locale
+    # Nettoyage de la variable contenant le token
     # --------------------------------------------------------
 
     unset forgejo_token
@@ -2427,7 +2519,8 @@ git_push_docker_release() {
     # --------------------------------------------------------
 
     if [[ "${docker_publish_rc}" -ne 0 ]]; then
-        echo "❌ Échec de la publication Docker."
+        print_error \
+            "Échec de la publication de la Release Docker."
         return "${docker_publish_rc}"
     fi
 
@@ -2435,11 +2528,16 @@ git_push_docker_release() {
     # Résultat
     # --------------------------------------------------------
 
-    echo
-    echo "✅ Release Docker publiée."
-    echo
-    echo "   ${remote_image_version}"
-    echo "   ${remote_image_latest}"
+    print_success \
+        "Release Docker publiée avec succès."
+
+    printf '\n'
+
+    printf '%-22s : %s\n' \
+        "Version" "${remote_image_version}"
+
+    printf '%-22s : %s\n' \
+        "Latest" "${remote_image_latest}"
 
     return 0
 }
