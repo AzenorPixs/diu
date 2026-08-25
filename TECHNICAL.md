@@ -1,4 +1,4 @@
-VARIABLES.md
+TECHNICAL.md
 
 
 Les VARIABLES GLOBALES sont définit par leurs attributs : 
