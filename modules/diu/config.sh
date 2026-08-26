@@ -34,7 +34,7 @@ config_load_diu() {
 
 
 config_load_desktop() {
-    local config_file_desktop="/root/desktop/config/desktop.env"
+    local config_file_desktop="/root/diu/config/desktop.env"
 
     [[ -f "$config_file_desktop" ]] || return 0
 
@@ -44,7 +44,7 @@ config_load_desktop() {
 
 
 config_load_devops() {
-    local config_file_devops="/root/devops/config/devops.env"
+    local config_file_devops="/root/diu/config/devops.env"
 
     [[ -f "$config_file_devops" ]] || return 0
 
@@ -54,7 +54,7 @@ config_load_devops() {
 
 
 config_load_docker() {
-    local config_file_docker="/root/docker/config/docker.env"
+    local config_file_docker="/root/diu/config/docker.env"
 
     [[ -f "$config_file_docker" ]] || return 0
 

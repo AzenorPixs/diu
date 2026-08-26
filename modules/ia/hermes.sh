@@ -689,6 +689,22 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+
+
+    networks:
+      - internal
+      - proxy
+
+networks:
+  proxy:
+    name: proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
+  internal:
+    name: internal
+    internal: true
 EOF
 
     chown "${ENV_IA_USER}:${ENV_IA_GROUP}" "$compose_file"
