@@ -18,7 +18,7 @@ scope="docker"
 
 # Valeur par défaut
 # Valeur possible never | check | always
-default_value="check"
+default_value='"check"'
 
 # Fichier de configuration du scope
 variable_config_file="/root/diu/config/${scope}.env"
@@ -51,8 +51,7 @@ if [[ "${state}" == "ENABLE" ]]; then
 
             # Enregistrement dans le fichier de configuration
             echo "🔧 INITIALIATION VARIABLE GLOABAL DOCKER_IMAGE_HERMES_UPDATE_POLICY"
-            echo "export DOCKER_IMAGE_HERMES_UPDATE_POLICY=${default_value}" \
-                >> "${variable_config_file}"
+            echo "export DOCKER_IMAGE_HERMES_UPDATE_POLICY=${default_value}" >> "${variable_config_file}"
 
         else
 

@@ -30,11 +30,8 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 mkdir -p "$BASH_SCRIPT_PATH/config"
 mkdir -p "$BASH_SCRIPT_PATH/deb"
 
-# Chargement de la configuration
+# Chargement de la configuration et initialisation des variables manquantes
 config_load
-
-# Génération de la configuration
-
 
 # Vérifier qu'on est root
 if [ "$EUID" -ne 0 ]; then

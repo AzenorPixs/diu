@@ -18,7 +18,7 @@ scope="docker"
 
 # Valeur par défaut
 # Valeur possible
-default_value="nousresearch/hermes-agent:latest"
+default_value='"nousresearch/hermes-agent:latest"'
 
 # Fichier de configuration du scope
 variable_config_file="/root/diu/config/${scope}.env"
@@ -51,8 +51,7 @@ if [[ "${state}" == "ENABLE" ]]; then
 
             # Enregistrement dans le fichier de configuration
             echo "🔧 INITIALIATION VARIABLE GLOABAL DOCKER_IMAGE_HERMES"
-            echo "export DOCKER_IMAGE_HERMES=${default_value}" \
-                >> "${variable_config_file}"
+            echo "export DOCKER_IMAGE_HERMES=${default_value}" >> "${variable_config_file}"
 
         else
 
