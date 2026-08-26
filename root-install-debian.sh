@@ -255,14 +255,12 @@ Utilisation :
   rid																→  Exécute normalement l'installation Debian.
 
   rid ia configure hm                                       →  Configure Agent Hermès
+  rid ia docker ps                                          →  Execute un docker PS dans l'environnement IA
   rid ia install hm                                         →  Install Agent Hermes
-  rid ia docker ps                                          →  Execute un docker PS dans l'environnement IA (rootless)                                                         
-  rit ia start hm                                           →  Start Agent Hermes
+  rid ia start hm                                           →  Start Agent Hermes
   rid ia stop hm                                            →  Stop Agent Hermes
   rid ia update hm                                          →  Mise à jour Agent Hermes
   rid ia uninstall hm                                       →  Uninstall Agent Hermes
-  rid proj ocro <ID Projet>											            →  Démarre OpenCode en RO dans le projet <ID Projet>.
-  rid proj ocrw <ID Projet>											            →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
   rid docker root check-containers                          →   Vérification des containers Docker Up
   rid docker root diag <USER>                               →   Diagnostic Docker pour <USER>  
@@ -277,36 +275,32 @@ Utilisation :
   rid docker rootless test <USER>                           →   Teste Docker Rootless pour <USER>
   rid docker rootless unconfigure <USER>                    →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
 
-  rid os validate <ID Projet> <Spec>					    →  Valide la <Spec> validate pour le <Projet>.
-  rid proj deb				                                →  Construit le paquet Debian DIU dans dist/.
-  rid proj bash <ID Projet>					                →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
+  rid os validate <ID Projet> <Spec>                        →  Valide la <Spec> validate pour le <Projet>.
+  rid proj deb                                              →  Construit le paquet Debian DIU dans dist/.
+  rid proj bash <ID Projet>                                 →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
   rid proj del <ID Projet>                                  →  Supprime le projet <ID Projet>
-  rid proj dockerb <ID Projet>				                →  Construit le docker <ID Projet> à partir de <Docker File>
-  rid proj findads <ID Projet>						        →  cherche et supprime les motifs *sync-conflict* dans <ID Projet>
-  rid proj finds <ID Projet>						        →  cherche les motifs *sync-conflict* dans <ID Projet>
-  rid proj gita <ID Projet>							        →  Analyse le Git local pour <ID Projet>
-  rid proj gitc <ID Projet> <Nom du Commit>          		→  Commit vers le dépôt Git local pour <ID Projet>
-  rid proj giti <ID Projet>					                →  Initialisation du dépôt Git local dans <ID Projet>.
-  rid proj gitp <ID Projet>					                →  Push le Git local vers un Git distant pour <ID Projet>.
-  rid proj gitpdiu								            →  Push l'image docker sur le Git Distant pour le DIU.
-  rid proj gitpdr <ID Projet>					            →  Push l'image docker sur le Git Distant pour <ID Projet>.
-  rid proj gits <ID Projet>					                →  Statut du Git local pour <ID Projet>.
-  rid proj rel											    →  Publication du paquet Debian DIU vers le Git distant.
+  rid proj dockerb <ID Projet>                              →  Construit le docker <ID Projet> à partir de <Docker File>
+  rid proj findads <ID Projet>                              →  cherche et supprime les motifs *sync-conflict* dans <ID Projet>
+  rid proj finds <ID Projet>                                →  cherche les motifs *sync-conflict* dans <ID Projet>
+  rid proj gita <ID Projet>                                 →  Analyse le Git local pour <ID Projet>
+  rid proj gitc <ID Projet> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID Projet>
+  rid proj giti <ID Projet>                                 →  Initialisation du dépôt Git local dans <ID Projet>.
+  rid proj gitp <ID Projet>                                 →  Push le Git local vers un Git distant pour <ID Projet>.
+  rid proj gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
+  rid proj gitpdi <ID Projet>                               →  Publie l'image docker vers le Git Distant pour <ID Projet>.
+  rid proj gits <ID Projet>                                 →  Statut du Git local pour <ID Projet>.
+  rid proj ocro <ID Projet>                                 →  Démarre OpenCode en RO dans le projet <ID Projet>.
+  rid proj ocrw <ID Projet>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
-  rid update											    →  Mise à jour totale
-  rid update diu											→  Mise à jour du DIU
+  rid update                                                →  Mise à jour totale
+  rid update diu                                            →  Mise à jour du DIU
 
-  ridt proj cicddiu													→ Flux CI/CD pour le DIU
-  ridt proj cicddr													→ Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
+  ridt proj cicddiu                                         → Flux CI/CD pour le DIU
+  ridt proj cicddr <ID Projet>                              → Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
 
-Structure générale :
+Structure générale :  rid <classe> <action> <subaction> <variable>
 
-  rid <classe> <action> <subaction> <variable>
-
-Classe actuellement disponibles :
-
-  Classe :  ia | docker | proj | update
-
+Classe disponibles :  Classe :  ia | docker | proj | update
 EOF
 }
 
@@ -1270,8 +1264,8 @@ manage_project_action() {
             publish_release_diu
             ;;
 
-        gitpdr)
-            git_push_docker_release \
+        gitpdi)
+            git_push_docker_image \
                 "$project_id"
             ;;
 
