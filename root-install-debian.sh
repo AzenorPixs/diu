@@ -277,24 +277,24 @@ Utilisation :
   rid docker rootless test <USER>                           →   Teste Docker Rootless pour <USER>
   rid docker rootless unconfigure <USER>                    →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
 
-  rid os validate <ID Projet> <Spec>								        →  Valide la <Spec> validate pour le <Projet>.
-  rid proj deb				                                      →  Construit le paquet Debian DIU dans dist/.
-  rid proj bash <ID Projet>					                        →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
+  rid os validate <ID Projet> <Spec>					    →  Valide la <Spec> validate pour le <Projet>.
+  rid proj deb				                                →  Construit le paquet Debian DIU dans dist/.
+  rid proj bash <ID Projet>					                →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
   rid proj del <ID Projet>                                  →  Supprime le projet <ID Projet>
-  rid proj dockerb <ID Projet>				                      →  Construit le docker <ID Projet> à partir de <Docker File>
-  rid proj findads <ID Projet>											        →  cherche et supprime les motifs *sync-conflict* dans le projet <ID Projet>
-  rid proj finds <ID Projet>											          →  cherche les motifs *sync-conflict* dans le projet <ID Projet>
-  rid proj gita <ID Projet>											            →  Analyse le Git local pour le projet <ID Projet>
-  rid proj gitc <ID Projet> <Nom du Commit>         				→  Commit vers le dépôt Git local pour projet "<ID Projet>
-  rid proj giti <ID Projet>					                        →  Initialisation du dépôt Git local dans le projet <ID Projet>.
-  rid proj gitp <ID Projet>					                        →  Push le Git local vers un Git distant pour le projet <ID Projet>.
-  rid proj gitpdiu <ID Projet>					                    →  Push l'image docker sur le Git Distant pour le DIU.
-  rid proj gitpdr <ID Projet>					                      →  Push l'image docker sur le Git Distant pour <ID Projet>.
-  rid proj gits <ID Projet>					                        →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj rel														                  →  Publie le DIU sur le Git distant à partir du Deb dans dist/.
+  rid proj dockerb <ID Projet>				                →  Construit le docker <ID Projet> à partir de <Docker File>
+  rid proj findads <ID Projet>						        →  cherche et supprime les motifs *sync-conflict* dans <ID Projet>
+  rid proj finds <ID Projet>						        →  cherche les motifs *sync-conflict* dans <ID Projet>
+  rid proj gita <ID Projet>							        →  Analyse le Git local pour <ID Projet>
+  rid proj gitc <ID Projet> <Nom du Commit>          		→  Commit vers le dépôt Git local pour <ID Projet>
+  rid proj giti <ID Projet>					                →  Initialisation du dépôt Git local dans <ID Projet>.
+  rid proj gitp <ID Projet>					                →  Push le Git local vers un Git distant pour <ID Projet>.
+  rid proj gitpdiu								            →  Push l'image docker sur le Git Distant pour le DIU.
+  rid proj gitpdr <ID Projet>					            →  Push l'image docker sur le Git Distant pour <ID Projet>.
+  rid proj gits <ID Projet>					                →  Statut du Git local pour <ID Projet>.
+  rid proj rel											    →  Publication du paquet Debian DIU vers le Git distant.
 
-  rid update														→  Mise à jour totale
-  rid update diu												    →  Mise à jour du DIU
+  rid update											    →  Mise à jour totale
+  rid update diu											→  Mise à jour du DIU
 
   ridt proj cicddiu													→ Flux CI/CD pour le DIU
   ridt proj cicddr													→ Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
