@@ -17,6 +17,7 @@ state="ENABLE"
 scope="diu"
 
 # Valeur par défaut
+# Valeur possible 0 | 1
 default_value=1
 
 # Fichier de configuration du scope
