@@ -51,8 +51,7 @@ if [[ "${state}" == "ENABLE" ]]; then
 
             # Enregistrement dans le fichier de configuration
             echo "🔧 INITIALIATION VARIABLE GLOABAL DIU_AUTOMATIC_UPDATE"
-            echo "export DIU_AUTOMATIC_UPDATE=${default_value}" \
-                >> "${variable_config_file}"
+            echo "export DIU_AUTOMATIC_UPDATE=${default_value}" >> "${variable_config_file}"
 
         else
 
