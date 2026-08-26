@@ -322,14 +322,6 @@ export DOCKER_CONTAINERDIO_FIXED=0
 
 export DOCKER_CONTAINERDIO_FIXED_VERSION=1.7.28-0~debian.13~trixie
 
-export DOCKER_IMAGE_OPENCODE="ghcr.io/anomalyco/opencode:latest"
-
-export DOCKER_IMAGE_OPENCODE_UPDATE_POLICY="check"
-
-export DOCKER_IMAGE_HERMES="nousresearch/hermes-agent:latest"
-
-export DOCKER_IMAGE_HERMES_UPDATE_POLICY="check" # never, check ou always
-
 export DOCKER_IMAGE_UPDATE_POLICY="check" # never, check ou always
 
 export DOCKER_IMAGE_UPDATED=0 # Cette variable est réinitialisée à 0 à chaque appel. Ca valeur n'a aucune importance
