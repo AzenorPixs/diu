@@ -17,12 +17,14 @@ state="ENABLE"
 scope="diu"
 
 # Valeur par défaut
+# Valeur possible 0 | 1
 default_value=0
 
 # Fichier de configuration du scope
 variable_config_file="/root/diu/config/${scope}.env"
 
 # echo "🔧 CHECK VARIABLE GLOABAL DIU_APT_REPOSITORY_FD"
+
 
 # ============================================================
 # Génération de la variable
@@ -49,8 +51,7 @@ if [[ "${state}" == "ENABLE" ]]; then
 
             # Enregistrement dans le fichier de configuration
             echo "🔧 INITIALIATION VARIABLE GLOABAL DIU_APT_REPOSITORY_FD"
-            echo "export DIU_APT_REPOSITORY_FD=${default_value}" \
-                >> "${variable_config_file}"
+            echo "export DIU_APT_REPOSITORY_FD=${default_value}" >> "${variable_config_file}"
 
         else
 

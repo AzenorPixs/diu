@@ -30,11 +30,8 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 mkdir -p "$BASH_SCRIPT_PATH/config"
 mkdir -p "$BASH_SCRIPT_PATH/deb"
 
-# Chargement de la configuration
+# Chargement de la configuration et initialisation des variables manquantes
 config_load
-
-# Génération de la configuration
-
 
 # Vérifier qu'on est root
 if [ "$EUID" -ne 0 ]; then
@@ -255,14 +252,12 @@ Utilisation :
   rid																→  Exécute normalement l'installation Debian.
 
   rid ia configure hm                                       →  Configure Agent Hermès
+  rid ia docker ps                                          →  Execute un docker PS dans l'environnement IA
   rid ia install hm                                         →  Install Agent Hermes
-  rid ia docker ps                                          →  Execute un docker PS dans l'environnement IA (rootless)                                                         
-  rit ia start hm                                           →  Start Agent Hermes
+  rid ia start hm                                           →  Start Agent Hermes
   rid ia stop hm                                            →  Stop Agent Hermes
   rid ia update hm                                          →  Mise à jour Agent Hermes
   rid ia uninstall hm                                       →  Uninstall Agent Hermes
-  rid proj ocro <ID Projet>											            →  Démarre OpenCode en RO dans le projet <ID Projet>.
-  rid proj ocrw <ID Projet>											            →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
   rid docker root check-containers                          →   Vérification des containers Docker Up
   rid docker root diag <USER>                               →   Diagnostic Docker pour <USER>  
@@ -277,36 +272,32 @@ Utilisation :
   rid docker rootless test <USER>                           →   Teste Docker Rootless pour <USER>
   rid docker rootless unconfigure <USER>                    →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
 
-  rid os validate <ID Projet> <Spec>								        →  Valide la <Spec> validate pour le <Projet>.
-  rid proj deb				                                      →  Construit le paquet Debian DIU dans dist/.
-  rid proj bash <ID Projet>					                        →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
+  rid os validate <ID Projet> <Spec>                        →  Valide la <Spec> validate pour le <Projet>.
+  rid proj deb                                              →  Construit le paquet Debian DIU dans dist/.
+  rid proj bash <ID Projet>                                 →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
   rid proj del <ID Projet>                                  →  Supprime le projet <ID Projet>
-  rid proj dockerb <ID Projet>				                      →  Construit le docker <ID Projet> à partir de <Docker File>
-  rid proj findads <ID Projet>											        →  cherche et supprime les motifs *sync-conflict* dans le projet <ID Projet>
-  rid proj finds <ID Projet>											          →  cherche les motifs *sync-conflict* dans le projet <ID Projet>
-  rid proj gita <ID Projet>											            →  Analyse le Git local pour le projet <ID Projet>
-  rid proj gitc <ID Projet> <Nom du Commit>         				→  Commit vers le dépôt Git local pour projet "<ID Projet>
-  rid proj giti <ID Projet>					                        →  Initialisation du dépôt Git local dans le projet <ID Projet>.
-  rid proj gitp <ID Projet>					                        →  Push le Git local vers un Git distant pour le projet <ID Projet>.
-  rid proj gitpdiu <ID Projet>					                    →  Push l'image docker sur le Git Distant pour le DIU.
-  rid proj gitpdr <ID Projet>					                      →  Push l'image docker sur le Git Distant pour <ID Projet>.
-  rid proj gits <ID Projet>					                        →  Statut du dépôt Git local pour le projet /home/devops/datas/<ID Projet>.
-  rid proj rel														                  →  Publie le DIU sur le Git distant à partir du Deb dans dist/.
+  rid proj dockerb <ID Projet>                              →  Construit le docker <ID Projet> à partir de <Docker File>
+  rid proj findads <ID Projet>                              →  cherche et supprime les motifs *sync-conflict* dans <ID Projet>
+  rid proj finds <ID Projet>                                →  cherche les motifs *sync-conflict* dans <ID Projet>
+  rid proj gita <ID Projet>                                 →  Analyse le Git local pour <ID Projet>
+  rid proj gitc <ID Projet> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID Projet>
+  rid proj giti <ID Projet>                                 →  Initialisation du dépôt Git local dans <ID Projet>.
+  rid proj gitp <ID Projet>                                 →  Push le Git local vers un Git distant pour <ID Projet>.
+  rid proj gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
+  rid proj gitpdi <ID Projet>                               →  Publie l'image docker vers le Git Distant pour <ID Projet>.
+  rid proj gits <ID Projet>                                 →  Statut du Git local pour <ID Projet>.
+  rid proj ocro <ID Projet>                                 →  Démarre OpenCode en RO dans le projet <ID Projet>.
+  rid proj ocrw <ID Projet>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
-  rid update														→  Mise à jour totale
-  rid update diu												    →  Mise à jour du DIU
+  rid update                                                →  Mise à jour totale
+  rid update diu                                            →  Mise à jour du DIU
 
-  ridt proj cicddiu													→ Flux CI/CD pour le DIU
-  ridt proj cicddr													→ Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
+  ridt proj cicddiu                                         → Flux CI/CD pour le DIU
+  ridt proj cicddr <ID Projet>                              → Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
 
-Structure générale :
+Structure générale :  rid <classe> <action> <subaction> <variable>
 
-  rid <classe> <action> <subaction> <variable>
-
-Classe actuellement disponibles :
-
-  Classe :  ia | docker | proj | update
-
+Classe disponibles :  Classe :  ia | docker | proj | update
 EOF
 }
 
@@ -1270,8 +1261,8 @@ manage_project_action() {
             publish_release_diu
             ;;
 
-        gitpdr)
-            git_push_docker_release \
+        gitpdi)
+            git_push_docker_image \
                 "$project_id"
             ;;
 
@@ -1683,12 +1674,12 @@ EOF
 
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
-    if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
-        return 1
-    fi
-    if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
-        return 1
-    fi
+		if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+			return 1
+		fi
+		if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
+			return 1
+		fi
 		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
 
 		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
@@ -2142,6 +2133,25 @@ then
 		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN BULLSEYE"
 		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] http://download.docker.com/linux/debian bullseye stable' > /etc/apt/sources.list.d/docker.list
 		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker-archive-keyring.gpg
+
+	fi
+
+	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
+
+		if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+			return 1
+		fi
+		if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
+			return 1
+		fi
+
+		echo "🔧 CONFIGURE APT FUSION DIRECTORY SOURCES FOR DEBIAN BULLSEYE"
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-integrator/ bullseye main' > /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-tools/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-external-libraries/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-orchestrator-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+
 
 	fi
 
