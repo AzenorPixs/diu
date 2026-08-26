@@ -690,7 +690,6 @@ services:
       retries: 5
       start_period: 30s
 
-
     networks:
       - internal
       - proxy
