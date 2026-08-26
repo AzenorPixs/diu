@@ -3122,6 +3122,26 @@ then
 
 fi
 
+### LANG ###
+
+# Installation des composants nécessaires
+apt-get install -y locales keyboard-configuration console-setup
+
+# Locale française UTF-8
+sed -i '/^# *fr_FR.UTF-8 UTF-8/s/^# *//' /etc/locale.gen
+locale-gen
+
+# Locale système par défaut
+update-locale LANG=fr_FR.UTF-8 LANGUAGE=fr_FR:fr
+
+# Clavier français AZERTY
+cat > /etc/default/keyboard <<'EOF'
+XKBMODEL="pc105"
+XKBLAYOUT="fr"
+XKBVARIANT="latin9"
+XKBOPTIONS=""
+BACKSPACE="guess"
+EOF
 
 ### LOGROTATE ###
 

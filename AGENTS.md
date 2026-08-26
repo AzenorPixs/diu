@@ -2,24 +2,31 @@
 
 ## 1. Contexte
 
-* Projet : `DIU`
-* Racine : `/workspace`
-* Objectifs et architecture : `PROJET.md`
-* Gestion des variables : `VARIABLES.md`
+* Projet : `DIU` ;
+* Racine : `/workspace` ;
+* Règles de sécurité et de travails des LLM : `AGENTS.md` ;
+* Objectifs et architecture du projet : `PROJECT.md` ;
+* Cadrage technique : `TECHNICAL.md` ;
+* Cadrage de conteneurisation : `BUILD.md` ;
 
 Toutes les opérations DOIVENT être réalisées relativement à `/workspace`.
 
 L'agent NE DOIT PAS créer, modifier ou supprimer de fichier hors de `/workspace` sans validation explicite du développeur.
 
+TECHNICAL.md et BUILD.md ne sont pas nécessairement présents, et restent complémentaires et optionnelles.
+
 ## 2. Priorité des règles
 
 En cas de contradiction, appliquer cet ordre :
 
-1. demande explicite du développeur ;
-2. spécifications OpenSpec validées ;
-3. règles de sécurité et de travail de `AGENTS.md` ;
-4. documentation officielle du projet ;
-5. code existant.
+1. Demande explicite du développeur ;
+2. Spécifications OpenSpec validées ;
+3. Règles de sécurité et de travails des LLM : `AGENTS.md` ;
+4. Objectifs et architecture du projet : `PROJECT.md` ;
+5. Cadrage technique : `TECHNICAL.md` ;
+6. Cadrage de conteneurisation : `BUILD.md` ;
+7. documentation officielle du projet ;
+8. code existant.
 
 Une spécification OpenSpec validée prévaut sur un code contradictoire.
 
@@ -36,18 +43,19 @@ En cas de conflit, le `AGENTS.md` le plus proche du fichier concerné prévaut, 
 Avant toute intervention, l'agent DOIT lire uniquement ce qui est nécessaire, dans cet ordre :
 
 1. `AGENTS.md` ;
-2. `PROJET.md` ;
-3. `VARIABLES.md` ;
-4. spécifications ou évolution OpenSpec applicables ;
-5. conventions applicables ;
-6. code et documentation concernés.
+2. `PROJECT.md` ;
+2. `TECHNICAL.md` ;
+2. `BUILD.md` ;
+3. spécifications ou évolution OpenSpec applicables ;
+4. conventions applicables du projet ;
+5. code et documentation concernés.
 
 L'agent DOIT privilégier :
 
-* recherches ciblées ;
-* lectures partielles ;
-* lectures incrémentales ;
-* répertoires directement concernés.
+* les recherches ciblées ;
+* les lectures partielles ;
+* les lectures incrémentales ;
+* les répertoires directement concernés.
 
 Il NE DOIT PAS parcourir récursivement l'ensemble du dépôt lorsqu'une lecture ciblée suffit.
 
@@ -55,15 +63,15 @@ Il NE DOIT PAS parcourir récursivement l'ensemble du dépôt lorsqu'une lecture
 
 L'agent DOIT privilégier :
 
-* stabilité ;
-* reproductibilité ;
-* simplicité ;
-* lisibilité ;
-* maintenabilité ;
-* sécurité ;
-* traçabilité ;
-* modularité ;
-* compatibilité.
+* la stabilité ;
+* la reproductibilité ;
+* la simplicité ;
+* la lisibilité ;
+* la maintenabilité ;
+* la sécurité ;
+* la traçabilité ;
+* la modularité ;
+* la compatibilité.
 
 L'agent DOIT réaliser la modification minimale répondant correctement à l'objectif validé.
 
@@ -71,13 +79,13 @@ Il DOIT préserver tout comportement existant non concerné par la demande.
 
 Il NE DOIT PAS effectuer sans rapport avec la demande :
 
-* correction ;
-* refactoring ;
-* optimisation ;
-* reformatage ;
-* renommage ;
-* réorganisation ;
-* modification de convention.
+* de correction ;
+* de refactoring ;
+* d'optimisation ;
+* de reformatage ;
+* de renommage ;
+* de réorganisation ;
+* de modification de convention.
 
 Toute amélioration non demandée DOIT être proposée séparément.
 
@@ -91,7 +99,7 @@ Avant toute modification, l'agent DOIT :
 2. consulter les éléments OpenSpec applicables ;
 3. examiner l'implémentation actuelle ;
 4. identifier les fichiers concernés ;
-5. déterminer la modification minimale ;
+5. déterminer la modification minimale nécessaire ;
 6. obtenir une validation explicite lorsqu'elle est requise.
 
 L'agent DOIT modifier uniquement les fichiers nécessaires à l'objectif validé.
@@ -107,7 +115,7 @@ Après modification, l'agent DOIT :
 3. exécuter les tests et vérifications applicables ;
 4. vérifier la conformité OpenSpec ;
 5. vérifier l'absence de modification hors périmètre ;
-6. rapporter fichiers modifiés, validations, impacts, échecs et incertitudes.
+6. rapporter les fichiers modifiés, validations, impacts, échecs et incertitudes.
 
 ## 6. Modifications fonctionnelles et OpenSpec
 
@@ -133,7 +141,7 @@ La création, modification, suppression ou régénération d'éléments OpenSpec
 * une validation explicite du développeur ;
 * ou une commande OpenSpec explicitement demandée autorisant cette écriture.
 
-Les commandes suivantes, lorsqu'elles sont explicitement demandées, autorisent les écritures OpenSpec nécessaires à leur exécution :
+La demande explicite d'une des commandes suivantes autorise les écritures OpenSpec nécessaires à son exécution :
 
 * `/opsx-propose`
 * `/opsx-new`
@@ -148,7 +156,7 @@ Les spécifications OpenSpec DOIVENT rester cohérentes entre elles.
 
 OpenCode est un composant technique du projet.
 
-Les éléments générés suivants NE DOIVENT PAS être modifiés manuellement sans autorisation explicite :
+Les éléments suivants sont générés par OpenSpec/OpenCode et NE DOIVENT PAS être modifiés manuellement sans autorisation explicite :
 
 * `.opencode/commands/`
 * `.opencode/skills/`
@@ -159,7 +167,7 @@ Toute modification de la configuration OpenCode nécessite une validation explic
 
 L'agent DOIT préserver l'arborescence et les conventions existantes.
 
-Le renommage, déplacement ou la suppression d'un fichier ou répertoire nécessite une validation explicite.
+Le renommage, déplacement ou la suppression d'un fichier ou répertoire nécessite une validation explicite du développeur.
 
 Lorsqu'un fichier semble inutilisé, l'agent DOIT le signaler avant toute suppression.
 
@@ -171,10 +179,11 @@ Les éléments versionnés ou protégés suivants NE DOIVENT PAS être supprimé
 
 * `.gitignore`
 * `AGENTS.md`
-* `PROJET.md`
-* `VARIABLES.md`
+* `BUILD.md`
 * `LICENSE`
+* `PROJECT.md`
 * `README.md`
+* `TECHNICAL.md`
 * `.opencode/commands/`
 * `.opencode/skills/`
 * `.opencode/config/opencode.json`
@@ -184,11 +193,16 @@ Les éléments versionnés ou protégés suivants NE DOIVENT PAS être supprimé
 
 ## 9. Sources du projet
 
-Les fichiers du projet non explicitement exclus PEUVENT être utilisés comme sources de code, documentation et informations techniques ou fonctionnelles.
+Les fichiers du projet non explicitement exclus PEUVENT être utilisés comme sources :
+
+* de code ;
+* de documentation ;
+* d'informations techniques ;
+* d'informations fonctionnelles.
 
 Les sources exclues NE DOIVENT PAS être lues, analysées, indexées ou utilisées :
 
-```text
+```text id="6zj1eg"
 __pycache__/
 **/*.crt
 **/*.cer
@@ -249,13 +263,14 @@ venv/
 
 Les inclusions suivantes prévalent sur les exclusions générales et PEUVENT être consultées lorsque nécessaire :
 
-```text
+```text id="3ewy6y"
 .gitignore
 AGENTS.md
+BUILD.md
 LICENSE
-PROJET.md
+PROJECT.md
 README.md
-VARIABLES.md
+TECHNICAL.md
 .opencode/commands/
 .opencode/config/opencode.json
 .opencode/skills/
@@ -274,7 +289,7 @@ Leur modification nécessite une demande ou validation explicite concernant, sel
 * OpenCode ;
 * OpenSpec ;
 * Git ;
-* production de rapports techniques.
+* la production de rapports techniques.
 
 `output/` et `reports/` :
 
@@ -289,7 +304,8 @@ L'agent NE DOIT PAS :
 
 * ouvrir un fichier sensible ;
 * transmettre un secret au modèle ;
-* analyser ou indexer un secret ;
+* analyser un secret ;
+* indexer un secret ;
 * ajouter un secret à Git ;
 * afficher un secret dans les journaux ou sorties.
 
@@ -312,40 +328,42 @@ Un emplacement local tel que `.opencode/share/` PEUT contenir des secrets unique
 * de la lecture par les agents ;
 * de l'indexation.
 
-## 11. Sécurité et Docker
+## 11. Sécurité
 
 L'agent DOIT privilégier :
 
-* moindre privilège ;
-* validation des entrées ;
-* gestion explicite des erreurs ;
-* permissions minimales ;
-* absence de données sensibles dans les journaux.
+* le principe du moindre privilège ;
+* la validation des entrées ;
+* la gestion explicite des erreurs ;
+* des permissions minimales ;
+* l'absence de données sensibles dans les journaux.
 
 L'agent NE DOIT PAS supposer disposer d'un accès complet à la machine hôte.
 
 Sans validation explicite, il NE DOIT PAS modifier :
 
-* montages Docker ;
-* volumes ;
-* utilisateurs du conteneur ;
-* droits d'accès du conteneur ;
-* permissions accordées au conteneur.
+* les montages Docker ;
+* les volumes ;
+* les utilisateurs du conteneur ;
+* les droits d'accès du conteneur ;
+* les permissions accordées au conteneur.
 
 ## 12. Git
 
-Sans validation explicite, l'agent NE DOIT PAS :
+Sans validation explicite du développeur, l'agent NE DOIT PAS :
 
 * modifier `.git/` ;
 * réécrire l'historique ;
 * supprimer des commits ;
 * effectuer un push ;
-* modifier la configuration Git ;
+* modifier la configuration Git du dépôt ;
 * créer, modifier ou supprimer des branches ;
 * modifier les sous-modules ;
 * créer ou modifier des hooks Git.
 
-Les commits DOIVENT être atomiques et correspondre à une modification clairement identifiable.
+Les commits DOIVENT être atomiques.
+
+Un commit DOIT correspondre à une modification clairement identifiable.
 
 Un commit NE DOIT PAS mélanger des modifications indépendantes de type :
 
@@ -371,36 +389,32 @@ Les constructions POSIX DEVRAIENT être privilégiées lorsqu'elles permettent s
 
 Une fonctionnalité spécifique à une version récente de Bash nécessite une justification claire.
 
-Les scripts DOIVENT :
+Pour Bash, les vérifications minimales sont :
 
-* protéger les variables par des guillemets lorsque nécessaire ;
-* gérer explicitement les échecs attendus ;
-* détecter, traiter et signaler les erreurs ;
-* NE JAMAIS ignorer silencieusement une erreur ;
-* préserver les comportements existants non concernés.
-
-Vérifications minimales :
-
-```bash
+```bash id="8vhj9b"
 bash -n <fichier>
 shellcheck <fichier>
 ```
 
+Les scripts DOIVENT :
+
+* protéger les variables par des guillemets lorsque nécessaire ;
+* gérer explicitement les échecs attendus ;
+* détecter, traiter et signaler clairement les erreurs ;
+* NE JAMAIS ignorer silencieusement une erreur ;
+* préserver les comportements existants non concernés.
+
 ## 14. Variables
 
-`VARIABLES.md` définit le workflow de chargement, génération et tri des variables.
-
-Toute modification liée aux variables DOIT respecter `VARIABLES.md` et les spécifications OpenSpec applicables.
-
 Les variables de configuration DOIVENT rester cohérentes avec les spécifications.
-
-Une variable existante DOIT être réutilisée lorsqu'elle répond déjà au besoin.
 
 Les noms existants suffisamment explicites DOIVENT être conservés.
 
 Les renommages purement esthétiques sont interdits.
 
-Les valeurs codées en dur DOIVENT être évitées lorsque raisonnable.
+Les valeurs codées en dur DOIVENT être évitées lorsque cela est raisonnable.
+
+Une variable existante DOIT être réutilisée lorsqu'elle répond déjà au besoin.
 
 Toute nouvelle variable de configuration DOIT être documentée dans OpenSpec.
 
@@ -411,6 +425,8 @@ Conventions :
 * séparateur : `_`
 * nouvelles variables : anglais
 
+Pour toutes les spécifications techniques générales, se référer au fichier TECHNICAL.md.
+
 ## 15. Chemins, compatibilité et portabilité
 
 L'agent DOIT privilégier les chemins relatifs au projet lorsqu'ils préservent la portabilité.
@@ -419,18 +435,20 @@ Les chemins absolus DEVRAIENT être utilisés uniquement lorsqu'ils sont imposé
 
 Toute modification DOIT préserver la compatibilité avec :
 
-* installations existantes ;
-* versions stables de Debian supportées.
+* les installations existantes ;
+* les versions stables de Debian supportées.
 
-Tout changement incompatible DOIT être explicitement signalé.
+Toute incompatibilité DOIT être explicitement signalée et spécifiée.
 
 Toute dépendance spécifique à une distribution ou version DOIT être documentée.
 
-## 16. Idempotence et dépendances
+## 16. Idempotence
 
 Les scripts d'installation DEVRAIENT être idempotents lorsque raisonnablement possible.
 
 Une nouvelle exécution NE DOIT PAS provoquer d'effets de bord inattendus.
+
+## 17. Dépendances
 
 L'agent DEVRAIT privilégier les outils disponibles dans une installation Debian standard.
 
@@ -438,13 +456,13 @@ Une dépendance existante DOIT être réutilisée lorsqu'elle répond au besoin.
 
 Toute nouvelle dépendance nécessite :
 
-* justification ;
-* validation explicite ;
-* documentation.
+* une justification ;
+* une validation explicite du développeur ;
+* une documentation.
 
-## 17. Conventions et style
+## 18. Conventions et style
 
-L'agent DOIT respecter les conventions existantes de :
+L'agent DOIT respecter les conventions existantes :
 
 * nommage ;
 * organisation ;
@@ -457,30 +475,30 @@ En cas d'ambiguïté, l'agent DOIT privilégier la cohérence avec le code exist
 
 Il DEVRAIT privilégier :
 
-* fonctions courtes ;
-* noms explicites ;
-* indentation homogène ;
-* commentaires utiles ;
-* traitements simples ;
-* principe KISS.
+* les fonctions courtes ;
+* les noms explicites ;
+* une indentation homogène ;
+* les commentaires utiles ;
+* les traitements simples ;
+* le principe KISS.
 
 La simplicité prévaut sur l'optimisation prématurée.
 
 Les commentaires existants DOIVENT être conservés lorsqu'ils restent exacts.
 
-Un nouveau commentaire DOIT apporter une information utile.
+Un nouveau commentaire DOIT apporter une information utile et ne pas simplement répéter le code.
 
 L'agent NE DOIT PAS introduire `TODO`, `FIXME` ou `HACK` sans validation explicite.
 
-Un travail incomplet DEVRAIT être décrit dans OpenSpec plutôt que laissé sous forme de marqueur dans le code.
+Un travail incomplet DEVRAIT être représenté dans OpenSpec plutôt que laissé sous forme de marqueur dans le code.
 
-## 18. Documentation, encodage et licences
+## 19. Documentation, encodage et licences
 
 Toute évolution importante DOIT mettre à jour, lorsque nécessaire :
 
-* spécifications ;
-* documentation ;
-* commentaires concernés.
+* les spécifications ;
+* la documentation ;
+* les commentaires concernés.
 
 La documentation sans rapport avec la demande NE DOIT PAS être modifiée.
 
@@ -495,9 +513,14 @@ Les en-têtes de licence existants DOIVENT être conservés.
 
 Aucune licence NE DOIT être modifiée sans validation explicite.
 
-## 19. Messages et robustesse
+## 20. Messages et robustesse
 
-Les messages des scripts DOIVENT être explicites, cohérents et utiles au suivi ou au diagnostic.
+Les messages des scripts DOIVENT être :
+
+* explicites ;
+* cohérents ;
+* utiles au suivi ;
+* utiles au diagnostic.
 
 Ils NE DOIVENT PAS :
 
@@ -508,30 +531,29 @@ Ils NE DOIVENT PAS :
 
 Le code DEVRAIT privilégier :
 
-* gestion explicite des erreurs ;
-* messages d'erreur compréhensibles ;
-* codes de retour explicites ;
-* validation des entrées ;
-* idempotence lorsque pertinente.
+* une gestion explicite des erreurs ;
+* des messages d'erreur compréhensibles ;
+* des codes de retour explicites ;
+* la validation des entrées ;
+* l'idempotence lorsque pertinente.
 
-## 20. Tests et validation finale
+## 21. Tests et validation finale
 
 Lorsqu'un mécanisme de test existe, l'agent DOIT exécuter les tests applicables avant de déclarer le travail valide.
 
-Pour Bash :
+Pour Bash, les vérifications minimales sont :
 
-```bash
+```bash id="h2j28x"
 bash -n
 shellcheck
 ```
 
 Avant de déclarer une modification valide, l'agent DOIT vérifier :
 
-* syntaxe ;
-* absence d'erreur évidente ;
-* cohérence des fichiers modifiés ;
-* conformité OpenSpec ;
-* conformité avec `VARIABLES.md` lorsque concerné ;
-* absence de modification hors périmètre.
+* la syntaxe ;
+* l'absence d'erreur évidente ;
+* la cohérence des fichiers modifiés ;
+* la conformité avec OpenSpec ;
+* l'absence de modification hors périmètre.
 
 L'agent NE DOIT JAMAIS déclarer qu'un test ou une vérification a réussi s'il ne l'a pas réellement exécuté avec succès.
