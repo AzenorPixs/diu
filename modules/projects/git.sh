@@ -2307,7 +2307,7 @@ git_push() {
     return 0
 }
 
-git_push_docker_release() {
+git_push_docker_image() {
 
     local project_id="${1:-}"
 
