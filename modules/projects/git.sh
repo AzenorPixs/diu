@@ -3590,6 +3590,9 @@ git_init_clone() {
     local current_branch=""
     local confirmation=""
 
+    # Crée le dissier du projet
+    mkdir -p ${project_path}
+
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : git_init_clone <project_id>"

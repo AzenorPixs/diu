@@ -282,10 +282,12 @@ Utilisation :
   rid proj gita <ID Projet>                                 →  Analyse le Git local pour <ID Projet>
   rid proj gitc <ID Projet> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID Projet>
   rid proj giti <ID Projet>                                 →  Initialisation du dépôt Git local dans <ID Projet>.
+  rid proj gitic <ID Projet>                                →  Clone du dépôt Git local dans <ID Projet> depuis un Git Distant .
   rid proj gitp <ID Projet>                                 →  Push le Git local vers un Git distant pour <ID Projet>.
   rid proj gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
   rid proj gitpdi <ID Projet>                               →  Publie l'image docker vers le Git Distant pour <ID Projet>.
   rid proj gits <ID Projet>                                 →  Statut du Git local pour <ID Projet>.
+  rid proj gitu <ID Projet>                                 →  Met à jour les variables du projet pour <ID Projet>.
   rid proj ocro <ID Projet>                                 →  Démarre OpenCode en RO dans le projet <ID Projet>.
   rid proj ocrw <ID Projet>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
@@ -1269,6 +1271,13 @@ manage_project_action() {
         gits)
             git_status \
                 "$project_id"
+            ;;
+
+        gitu)
+            type_name="${3:-local}"
+            git_update \
+                "$project_id" \
+                "$type_name"
             ;;
 
         ocro)
