@@ -652,7 +652,7 @@ services:
       - /home/${ENV_IA_USER}/hermes/data/cont-init.d/10_tune_hermes:/etc/cont-init.d/10_tune_hermes:ro
       - /home/${ENV_IA_USER}/download:/opt/download
       - /home/${ENV_IA_USER}/tools:/opt/tools
-      - /home/${ENV_DEVOPS_USER}/datas/diu:/projets/diu:ro
+      - /home/${ENV_DEVOPS_USER}/datas:/opt/devops:ro
       - /var/run/docker.sock:/var/run/docker.sock
 
     ports:
@@ -670,7 +670,7 @@ services:
       - no-new-privileges:true
 
     cpus: 4.0
-    mem_limit: 8g
+    mem_limit: 12g
     pids_limit: 256
 
     healthcheck:
