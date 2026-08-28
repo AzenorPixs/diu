@@ -1674,12 +1674,12 @@ EOF
 
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
-    if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
-        return 1
-    fi
-    if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
-        return 1
-    fi
+		if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+			return 1
+		fi
+		if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
+			return 1
+		fi
 		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
 
 		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
@@ -2133,6 +2133,25 @@ then
 		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN BULLSEYE"
 		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] http://download.docker.com/linux/debian bullseye stable' > /etc/apt/sources.list.d/docker.list
 		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker-archive-keyring.gpg
+
+	fi
+
+	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
+
+		if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+			return 1
+		fi
+		if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
+			return 1
+		fi
+
+		echo "🔧 CONFIGURE APT FUSION DIRECTORY SOURCES FOR DEBIAN BULLSEYE"
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-integrator/ bullseye main' > /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-tools/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-external-libraries/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-orchestrator-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+
 
 	fi
 
@@ -5501,19 +5520,19 @@ then
 	install -d -o "$ENV_IA_USER" -g "$ENV_IA_GROUP" -m 2770 "/home/$ENV_IA_USER/download" "/home/$ENV_IA_USER/tools"
 
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER
-  find /home/$ENV_IA_USER -mindepth 1 -type d -exec chmod 2770 {} +
+  chmod 2770 /home/$ENV_IA_USER
   find /home/$ENV_IA_USER -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/hermes
-  find /home/$ENV_IA_USER/hermes -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/hermes -type d -exec chmod 2770 {} + 
   find /home/$ENV_IA_USER/hermes -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER/hermes -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/download
-  find /home/$ENV_IA_USER/download -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/download -type d -exec chmod 2770 {} + 
   find /home/$ENV_IA_USER/download -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER/download -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/tools
-  find /home/$ENV_IA_USER/tools -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/tools -type d -exec chmod 2770 {} + 
   find /home/$ENV_IA_USER/tools -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER/tools -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
 
