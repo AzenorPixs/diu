@@ -569,6 +569,9 @@ services:
 
     restart: unless-stopped
 
+	group_add:
+			- "1001"
+
     env_file:
       - .env
 
