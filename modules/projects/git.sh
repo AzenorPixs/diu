@@ -2354,6 +2354,10 @@ git_push_docker_image() {
     local forgejo_username=""
     local forgejo_token=""
 
+    local forgejo_api_base=""
+    local forgejo_repository_api=""
+    local forgejo_repository_http_code=""
+
     local docker_config=""
     local docker_publish_rc=0
 
@@ -2363,7 +2367,7 @@ git_push_docker_image() {
 
     if [[ -z "${project_id}" ]]; then
         print_error \
-            "Usage : git_push_docker_release <project_id>"
+            "Usage : git_push_docker_image <project_id>"
         return 1
     fi
 
@@ -2551,6 +2555,94 @@ git_push_docker_image() {
     fi
 
     # --------------------------------------------------------
+    # Vérification de curl
+    # --------------------------------------------------------
+
+    if ! command -v curl >/dev/null 2>&1; then
+        print_error \
+            "curl n'est pas installé."
+        unset forgejo_token
+        return 1
+    fi
+
+    # --------------------------------------------------------
+    # Vérification du dépôt Forgejo cible
+    #
+    # IMPORTANT :
+    #
+    # Forgejo ne tente l'association automatique d'un package
+    # Container à un dépôt que lors de la création initiale
+    # du package.
+    #
+    # Le dépôt doit donc exister AVANT le premier docker push.
+    # --------------------------------------------------------
+
+    forgejo_api_base="${REMOTE_BASE_URL%/}/api/v1"
+    forgejo_repository_api="${forgejo_api_base}/repos/${REMOTE_OWNER}/${REMOTE_REPOSITORY}"
+
+    print_title "Vérification du dépôt Forgejo"
+
+    printf '%-22s : %s\n' \
+        "Owner" "${REMOTE_OWNER}"
+
+    printf '%-22s : %s\n' \
+        "Dépôt" "${REMOTE_REPOSITORY}"
+
+    forgejo_repository_http_code="$(
+        curl \
+            --silent \
+            --show-error \
+            --output /dev/null \
+            --write-out '%{http_code}' \
+            --header "Authorization: token ${forgejo_token}" \
+            "${forgejo_repository_api}"
+    )"
+
+    case "${forgejo_repository_http_code}" in
+
+        200)
+            print_success \
+                "Dépôt Forgejo ${REMOTE_OWNER}/${REMOTE_REPOSITORY} disponible."
+            ;;
+
+        404)
+            print_error \
+                "Le dépôt Forgejo ${REMOTE_OWNER}/${REMOTE_REPOSITORY} n'existe pas."
+
+            print_error \
+                "Publication Docker refusée afin d'éviter la création d'un package non lié."
+
+            print_info \
+                "Publiez d'abord le dépôt Git avec gitp."
+
+            unset forgejo_token
+            return 1
+            ;;
+
+        401|403)
+            print_error \
+                "Accès refusé au dépôt Forgejo ${REMOTE_OWNER}/${REMOTE_REPOSITORY}."
+
+            print_error \
+                "Code HTTP Forgejo : ${forgejo_repository_http_code}"
+
+            unset forgejo_token
+            return 1
+            ;;
+
+        *)
+            print_error \
+                "Impossible de vérifier le dépôt Forgejo."
+
+            print_error \
+                "Code HTTP Forgejo : ${forgejo_repository_http_code}"
+
+            unset forgejo_token
+            return 1
+            ;;
+    esac
+
+    # --------------------------------------------------------
     # Affichage
     # --------------------------------------------------------
 
@@ -2580,6 +2672,9 @@ git_push_docker_image() {
     printf '%-22s : %s\n' \
         "Owner cible" "${REMOTE_OWNER}"
 
+    printf '%-22s : %s\n' \
+        "Dépôt associé" "${REMOTE_OWNER}/${REMOTE_REPOSITORY}"
+
     # --------------------------------------------------------
     # Création du tag Docker versionné
     # --------------------------------------------------------
@@ -2594,6 +2689,8 @@ git_push_docker_image() {
 
         print_error \
             "Échec du tag Docker versionné."
+
+        unset forgejo_token
         return 1
     fi
 
@@ -2611,6 +2708,8 @@ git_push_docker_image() {
 
         print_error \
             "Échec du tag Docker latest."
+
+        unset forgejo_token
         return 1
     fi
 
@@ -2621,6 +2720,8 @@ git_push_docker_image() {
     docker_config="$(mktemp -d)" || {
         print_error \
             "Impossible de créer le DOCKER_CONFIG temporaire."
+
+        unset forgejo_token
         return 1
     }
 
@@ -2629,13 +2730,17 @@ git_push_docker_image() {
 
         print_error \
             "DOCKER_CONFIG temporaire invalide."
+
+        unset forgejo_token
         return 1
     fi
 
     if ! chmod 700 "${docker_config}"; then
         print_error \
-            "Impossible de sécuriser ${docker_config}."
+            "Impossible de sécuriser ${docker_config}"
+
         rm -rf "${docker_config}"
+        unset forgejo_token
         return 1
     fi
 
@@ -2647,6 +2752,7 @@ git_push_docker_image() {
             "Impossible d'attribuer ${docker_config} à ${DEVOPS_USER}."
 
         rm -rf "${docker_config}"
+        unset forgejo_token
         return 1
     fi
 
@@ -2761,6 +2867,9 @@ git_push_docker_image() {
 
     printf '%-22s : %s\n' \
         "Latest" "${remote_image_latest}"
+
+    printf '%-22s : %s\n' \
+        "Dépôt Forgejo" "${REMOTE_OWNER}/${REMOTE_REPOSITORY}"
 
     return 0
 }
