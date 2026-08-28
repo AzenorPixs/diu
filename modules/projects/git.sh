@@ -1863,6 +1863,7 @@ git_push() {
     local remote_url=""
     local configured_remote_url=""
     local upstream=""
+    local expected_upstream=""
     local confirmation=""
     local push_rc=0
 
@@ -2031,6 +2032,9 @@ git_push() {
     remote_name="${REMOTE_NAME}"
     remote_default_branch="${REMOTE_DEFAULT_BRANCH}"
 
+    # Branche distante attendue pour la publication
+    expected_upstream="${remote_name}/${remote_default_branch}"
+
     # Construction de l'URL déclarative du dépôt distant
     remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
 
@@ -2175,7 +2179,7 @@ git_push() {
             ;;
     esac
 
-    # Détermination de l'upstream
+    # Détermination de l'upstream actuel
     upstream=""
 
     if runuser -u "${ENV_DEVOPS_USER}" -- \
@@ -2198,18 +2202,26 @@ git_push() {
         print_info \
             "Aucune branche distante de suivi n'est encore configurée."
 
-        printf '\n'
-        print_info "Le dépôt local va être envoyé vers :"
-        printf '  %s\n' "${configured_remote_url}"
-        printf '\n'
-        printf 'Branche locale    : %s\n' "${current_branch}"
-        printf 'Branche distante  : %s\n' "${remote_default_branch}"
+    elif [[ "${upstream}" == "${expected_upstream}" ]]; then
+
+        print_info \
+            "Branche distante de suivi : ${upstream}"
 
     else
 
         print_info \
-            "Branche distante de suivi : ${upstream}"
+            "Branche distante de suivi actuelle : ${upstream}"
+
+        print_info \
+            "La publication DIU utilisera : ${expected_upstream}"
     fi
+
+    printf '\n'
+    print_info "Le dépôt local va être envoyé vers :"
+    printf '  %s\n' "${configured_remote_url}"
+    printf '\n'
+    printf 'Branche locale    : %s\n' "${current_branch}"
+    printf 'Branche distante  : %s\n' "${remote_default_branch}"
 
     if [[ -n "${current_tag}" ]]; then
         printf 'Tag Git            : %s\n' "${current_tag}"
@@ -2236,25 +2248,41 @@ git_push() {
             print_title "Push vers Forgejo"
 
             if [[ -z "${upstream}" ]]; then
-
                 print_info \
                     "Premier push : création de la branche distante et de son suivi."
 
-                forgejo_git_push \
-                    "${project_path}" \
-                    -u "${remote_name}" \
-                    "${current_branch}:${remote_default_branch}" \
-                    || push_rc=$?
-
-            else
+            elif [[ "${upstream}" != "${expected_upstream}" ]]; then
+                print_info \
+                    "La branche ${current_branch} suit actuellement ${upstream}."
 
                 print_info \
-                    "Push de la branche ${current_branch} vers ${upstream}."
+                    "Le suivi sera remplacé par ${expected_upstream} après le push."
 
-                forgejo_git_push \
-                    "${project_path}" \
-                    || push_rc=$?
+            else
+                print_info \
+                    "Push de la branche ${current_branch} vers ${expected_upstream}."
             fi
+
+            #
+            # Le push est toujours explicite.
+            #
+            # Cela évite que Git utilise un upstream hérité d'un dépôt cloné
+            # (par exemple upstream/master) comme destination du push.
+            #
+            # Exemple :
+            #
+            #   main -> upstream/master
+            #
+            # devient après publication :
+            #
+            #   main -> origin/main
+            #
+            forgejo_git_push \
+                "${project_path}" \
+                --set-upstream \
+                "${remote_name}" \
+                "${current_branch}:${remote_default_branch}" \
+                || push_rc=$?
 
             # Vérification du push de la branche
             if [[ "${push_rc}" -ne 0 ]]; then
