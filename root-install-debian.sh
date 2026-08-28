@@ -5520,19 +5520,19 @@ then
 	install -d -o "$ENV_IA_USER" -g "$ENV_IA_GROUP" -m 2770 "/home/$ENV_IA_USER/download" "/home/$ENV_IA_USER/tools"
 
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER
-  find /home/$ENV_IA_USER -mindepth 1 -type d -exec chmod 2770 {} +
+  chmod 2770 /home/$ENV_IA_USER
   find /home/$ENV_IA_USER -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/hermes
-  find /home/$ENV_IA_USER/hermes -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/hermes -type d -exec chmod 2770 {} + 
   find /home/$ENV_IA_USER/hermes -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER/hermes -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/download
-  find /home/$ENV_IA_USER/download -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/download -type d -exec chmod 2770 {} + 
   find /home/$ENV_IA_USER/download -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER/download -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
   chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/tools
-  find /home/$ENV_IA_USER/tools -mindepth 0 -type d -exec chmod 2770 {} + 
+  find /home/$ENV_IA_USER/tools -type d -exec chmod 2770 {} + 
   find /home/$ENV_IA_USER/tools -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
   find /home/$ENV_IA_USER/tools -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
 
