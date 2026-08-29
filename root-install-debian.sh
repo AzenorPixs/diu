@@ -4879,6 +4879,7 @@ then
   su -c "mkdir -p proxy/traefik-manager/backups" - $ENV_DOCKER_USER
 
   su -c "mkdir -p datas" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/camofox" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/forgejo" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/g4f-cookies" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/g4f-medias" - $ENV_DOCKER_USER
@@ -4905,6 +4906,7 @@ then
   chmod 2770 /home/$ENV_DOCKER_USER/proxy/letsencrypt
   chmod 600 /home/$ENV_DOCKER_USER/proxy/.env
   chmod 600 /home/$ENV_DOCKER_USER/proxy/letsencrypt/acme.json
+  chown -R 0:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/camofox
   chown -R 0:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/meilisearch
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/redis
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/postgres
