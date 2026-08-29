@@ -526,8 +526,8 @@ DEEPSEEK_BASE_URL="${deepseek_url}"
 OPENROUTER_API_KEY="${openrouter_key}"
 OPENROUTER_BASE_URL="${openrouter_url}"
 
-OPENCODE_GO_API_KEY="${opengo_url}"
-OPENCODE_GO_BASE_URL="${openrouter_url}"
+OPENCODE_GO_API_KEY="${opengo_key}"
+OPENCODE_GO_BASE_URL="${opengo_url}"
 
 # ==========================================================
 # HERMES - API SERVER
