@@ -4895,8 +4895,8 @@ then
   su -c "touch proxy/letsencrypt/acme.json" - $ENV_DOCKER_USER
 
   chown -R $ENV_DOCKER_USER:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER
-  find /home/$ENV_DOCKER_USER -mindepth 1 -type d -exec chmod 2770 {} +
-  find /home/$ENV_DOCKER_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_DOCKER_USER -type d -exec chmod 2775 {} +
+  find /home/$ENV_DOCKER_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
   find /home/$ENV_DOCKER_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
 
   chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/proxy/librespeed-data
