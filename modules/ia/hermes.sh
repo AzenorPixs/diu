@@ -616,6 +616,8 @@ services:
 
     group_add:
       - "1001"
+      - "1002"
+      - "1005"
 
     env_file:
       - .env
