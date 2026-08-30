@@ -706,6 +706,7 @@ services:
       - /home/${ENV_IA_USER}/download:/opt/download
       - /home/${ENV_IA_USER}/tools:/opt/tools
       - /home/${ENV_DEVOPS_USER}/datas:/opt/devops:ro
+      - /home/${ENV_DOCKER_USER}/datas/camofox:/opt/camofox
       - /var/run/docker.sock:/var/run/docker.sock
 
     ports:

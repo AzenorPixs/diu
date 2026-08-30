@@ -4901,7 +4901,7 @@ then
 
   chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/proxy/librespeed-data
   chmod 2770 /home/$ENV_DOCKER_USER
-  chmod 2770 /home/$ENV_DOCKER_USER/datas
+  chmod 2775 /home/$ENV_DOCKER_USER/datas
   chmod 2770 /home/$ENV_DOCKER_USER/proxy
   chmod 2770 /home/$ENV_DOCKER_USER/proxy/letsencrypt
   chmod 600 /home/$ENV_DOCKER_USER/proxy/.env
