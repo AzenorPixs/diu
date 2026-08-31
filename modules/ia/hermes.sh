@@ -172,6 +172,8 @@ _hermes_generate_env() {
     local deepseek_url=""
     local openrouter_key=""
     local openrouter_url=""
+    local opengo_key=""
+    local opengo_url=""
 
     local api_server_key=""
 
@@ -184,6 +186,7 @@ _hermes_generate_env() {
     local default_openai_url="https://api.openai.com/v1"
     local default_deepseek_url="https://api.deepseek.com"
     local default_openrouter_url="https://openrouter.ai/api/v1"
+    local default_opengo_url="https://opencode.ai/zen/go/v1"
 
     local prompt
 
@@ -230,6 +233,17 @@ _hermes_generate_env() {
             head -n1
         )"
 
+        opengo_key="$(
+            sed -n 's/^OPENCODE_GO_API_KEY="\([^"]*\)"$/\1/p' "$env_file" |
+            head -n1
+        )"
+
+        opengo_url="$(
+            sed -n 's/^OPENCODE_GO_BASE_URL="\([^"]*\)"$/\1/p' "$env_file" |
+            head -n1
+        )"
+
+
         api_server_key="$(
             sed -n 's/^API_SERVER_KEY="\([^"]*\)"$/\1/p' "$env_file" |
             head -n1
@@ -266,6 +280,7 @@ _hermes_generate_env() {
     openai_url="${openai_url:-$default_openai_url}"
     deepseek_url="${deepseek_url:-$default_deepseek_url}"
     openrouter_url="${openrouter_url:-$default_openrouter_url}"
+    opengo_url="${opengo_url:-$default_opengo_url}"
 
 
     # ======================================================
@@ -346,6 +361,33 @@ _hermes_generate_env() {
 
     if [ -n "$prompt" ]; then
         openrouter_url="$prompt"
+    fi
+
+
+    # ======================================================
+    # OpenCode Go
+    # ======================================================
+
+    echo ""
+    echo "▶ OpenCode Go"
+
+    if [ -n "$opengo_key" ]; then
+        printf 'API KEY [********%s] : ' "${opengo_key: -4}"
+    else
+        printf 'API KEY : '
+    fi
+
+    read -r -s prompt
+    echo ""
+
+    if [ -n "$prompt" ]; then
+        opengo_key="$prompt"
+    fi
+
+    read -r -p "BASE URL [${opengo_url}] : " prompt
+
+    if [ -n "$prompt" ]; then
+        opengo_url="$prompt"
     fi
 
 
@@ -484,6 +526,9 @@ DEEPSEEK_BASE_URL="${deepseek_url}"
 OPENROUTER_API_KEY="${openrouter_key}"
 OPENROUTER_BASE_URL="${openrouter_url}"
 
+OPENCODE_GO_API_KEY="${opengo_key}"
+OPENCODE_GO_BASE_URL="${opengo_url}"
+
 # ==========================================================
 # HERMES - API SERVER
 # ==========================================================
@@ -571,6 +616,8 @@ services:
 
     group_add:
       - "1001"
+      - "1002"
+      - "1005"
 
     env_file:
       - .env
@@ -633,6 +680,9 @@ services:
 
       OPENROUTER_API_KEY: "\${OPENROUTER_API_KEY}"
       OPENROUTER_BASE_URL: "\${OPENROUTER_BASE_URL}"
+
+      OPENCODE_GO_API_KEY: "\${OPENCODE_GO_API_KEY}"
+      OPENCODE_GO_BASE_URL: "\${OPENCODE_GO_BASE_URL}"
 
       # ------------------------------------------------------
       # Agent

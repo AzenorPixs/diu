@@ -282,10 +282,12 @@ Utilisation :
   rid proj gita <ID Projet>                                 →  Analyse le Git local pour <ID Projet>
   rid proj gitc <ID Projet> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID Projet>
   rid proj giti <ID Projet>                                 →  Initialisation du dépôt Git local dans <ID Projet>.
+  rid proj gitic <ID Projet>                                →  Clone du dépôt Git local dans <ID Projet> depuis un Git Distant .
   rid proj gitp <ID Projet>                                 →  Push le Git local vers un Git distant pour <ID Projet>.
   rid proj gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
   rid proj gitpdi <ID Projet>                               →  Publie l'image docker vers le Git Distant pour <ID Projet>.
   rid proj gits <ID Projet>                                 →  Statut du Git local pour <ID Projet>.
+  rid proj gitu <ID Projet>                                 →  Met à jour les variables du projet pour <ID Projet>.
   rid proj ocro <ID Projet>                                 →  Démarre OpenCode en RO dans le projet <ID Projet>.
   rid proj ocrw <ID Projet>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
@@ -1269,6 +1271,13 @@ manage_project_action() {
         gits)
             git_status \
                 "$project_id"
+            ;;
+
+        gitu)
+            type_name="${3:-local}"
+            git_update \
+                "$project_id" \
+                "$type_name"
             ;;
 
         ocro)
@@ -4745,8 +4754,8 @@ EOF
 	fi
 
   chown -R $ENV_DEVOPS_USER:$ENV_DEVOPS_GROUP /home/$ENV_DEVOPS_USER
-  find /home/$ENV_DEVOPS_USER -mindepth 1 -type d -exec chmod 2770 {} +
-  find /home/$ENV_DEVOPS_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_DEVOPS_USER -type d -exec chmod 2775 {} +
+  find /home/$ENV_DEVOPS_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
   find /home/$ENV_DEVOPS_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0600 {} +
 
   ############################################################
@@ -4870,6 +4879,7 @@ then
   su -c "mkdir -p proxy/traefik-manager/backups" - $ENV_DOCKER_USER
 
   su -c "mkdir -p datas" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas/camofox" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/forgejo" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/g4f-cookies" - $ENV_DOCKER_USER
   su -c "mkdir -p datas/g4f-medias" - $ENV_DOCKER_USER
@@ -4885,17 +4895,18 @@ then
   su -c "touch proxy/letsencrypt/acme.json" - $ENV_DOCKER_USER
 
   chown -R $ENV_DOCKER_USER:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER
-  find /home/$ENV_DOCKER_USER -mindepth 1 -type d -exec chmod 2770 {} +
-  find /home/$ENV_DOCKER_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0770 {} +
+  find /home/$ENV_DOCKER_USER -type d -exec chmod 2775 {} +
+  find /home/$ENV_DOCKER_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
   find /home/$ENV_DOCKER_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
 
   chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/proxy/librespeed-data
   chmod 2770 /home/$ENV_DOCKER_USER
-  chmod 2770 /home/$ENV_DOCKER_USER/datas
+  chmod 2775 /home/$ENV_DOCKER_USER/datas
   chmod 2770 /home/$ENV_DOCKER_USER/proxy
   chmod 2770 /home/$ENV_DOCKER_USER/proxy/letsencrypt
   chmod 600 /home/$ENV_DOCKER_USER/proxy/.env
   chmod 600 /home/$ENV_DOCKER_USER/proxy/letsencrypt/acme.json
+  chown -R 0:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/camofox
   chown -R 0:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/meilisearch
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/redis
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/postgres
