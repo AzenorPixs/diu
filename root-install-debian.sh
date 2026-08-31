@@ -714,6 +714,8 @@ launch_ocro() {
       --pids-limit 256 \
       --memory 2g \
       --cpus 2 \
+      --group-add ${docker_gid} \
+      --network internal \
       -e OPENCODE_UID=$(id -u "${ENV_DEVOPS_USER}") \
       -e OPENCODE_GID=$(id -g "${ENV_DEVOPS_USER}") \
       -e HOME=/home/opencode \
@@ -728,6 +730,7 @@ launch_ocro() {
       -e OPENCODE_DISABLE_LSP_DOWNLOAD=false \
       -e PATH='/opt/devops/npm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
       -p 4096:4096 \
+      -v /var/run/docker.sock:/var/run/docker.sock \
 	  -v /home/devops/datas/${project_id}:/workspace:ro \
       -v /home/devops/datas/${project_id}/.opencode/cache:/home/opencode/.cache/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
@@ -773,6 +776,7 @@ launch_ocrw() {
       --memory 2g \
       --cpus 2 \
       --group-add ${docker_gid} \
+      --network internal \
       -e OPENCODE_UID=${opencode_uid} \
       -e OPENCODE_GID=${opencode_gid} \
       -e DOCKER_GID=${docker_gid} \
