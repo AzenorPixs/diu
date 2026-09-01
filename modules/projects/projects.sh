@@ -703,12 +703,13 @@ EOF
     fi
 
     # Création initiale du fichier AGENTS.md initial. 
-    cat > "$project_path/AGENTS.md" <<EOF
-# AGENTS.md — ${project_name}
+# Création initiale du fichier AGENTS.md.
+{
+    printf '# AGENTS.md — %s\n\n' "${project_name}"
+    printf '## 1. Contexte\n\n'
+    printf '* Projet : `%s` ;\n' "${project_name}"
 
-## 1. Contexte
-
-* Projet : `${project_name}` ;
+    cat <<'EOF'
 * Racine : `/workspace` ;
 * Règles de sécurité et de travails des LLM : `AGENTS.md` ;
 * Objectifs et architecture du projet : `PROJECT.md` ;
@@ -1264,6 +1265,7 @@ Avant de déclarer une modification valide, l'agent DOIT vérifier :
 
 L'agent NE DOIT JAMAIS déclarer qu'un test ou une vérification a réussi s'il ne l'a pas réellement exécuté avec succès.
 EOF
+} > "$project_path/AGENTS.md"
 
     # Création initiale du fichier LICENCE initial. 
     cat > "$project_path/LICENSE" <<EOF
