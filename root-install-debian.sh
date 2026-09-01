@@ -6660,6 +6660,10 @@ then
 	echo "alias gsi='git status --ignored'" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
+	echo "# Hermes #" >> /root/.zshrc
+	echo "alias hermes='docker exec -it hermes /opt/hermes/.venv/bin/hermes --tui'" >> /root/.zshrc
+
+	echo "" >> /root/.zshrc
 	echo "# IP #" >> /root/.zshrc
 	echo "alias ipr='ip route'" >> /root/.zshrc
 
