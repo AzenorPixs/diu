@@ -1981,7 +1981,60 @@ EOF
 
 fi
 
-if [ $DEBIAN_RELEASE = "bookworm" ]
+if [ $DEBIAN_RELEASE = "######################
+# Adresser à CGPT :) #
+######################
+
+« Nous initions une session de codage pour le projet PFD entre toi et OpenCode. Voici la liste des sigles à connaître entre nous pour gagner du temps. »
+
+Avant toute validation rendez-vous dans la bibliothèque  du projet PFD :
+
+Lis AGENTS.md.
+Lis PROJECT.md.
+Lis BUILD.md si disponible.
+Lis les spécifications OpenSpec déjà présentes dans openspec/specs/.
+Analyse les conventions de rédaction OpenSpec utilisées par le projet.
+
+Sigles :
+- OC = OpenCode
+- CGPT = ChatGPT
+
+Types de message adressé à OpenCode :
+- NDOC = Nouvelle Demande OpenCode — une NDOC attend une réponse de ta part.
+- NROC = Nouvelle Réponse OpenCode — une NROC n'attend rien ; selon le contexte de la session, passer à la suite si la session n'est pas achevée, ou proposer une nouvelle étape.
+- NFDOC = Nouveau Fichier en Diff — fichier qui va être modifié ; attend ta validation ou ton refus.
+- NQCMOC = Nouveau Demande à Choix Multiples — Une NQCMOC attend une réponse, généralement un chiffre.
+
+S'exprimer toujours en français, et rappeler à OpenCode de le faire également si nécessaire.
+
+Connect toi à OC COPIE COLLE LUI CELA avant de démarrer la session de codage
+
+
+####################
+# Adresser à OC :) #
+####################
+
+« Nous initions une session de codage pour le projet PFD, entre toi et CGPT. Voici la liste des sigles à connaître entre nous pour gagner du temps.
+
+Avant toute validation du projet PFD :
+
+Lis AGENTS.md.
+Lis PROJECT.md.
+Lis BUILD.md si disponible.
+Lis les spécifications OpenSpec déjà présentes dans openspec/specs/.
+Analyse les conventions de rédaction OpenSpec utilisées par le projet.
+
+Sigles :
+- OC = OpenCode
+- CGPT = ChatGPT
+
+Types de message adressé à CGPT :
+- NDOC = Nouvelle Demande OpenCode adressée à CGPT — une NDOC attend une réponse de la part de CGPT.
+- NROC = Nouvelle Réponse OpenCode adressée à CGPT — une NROC n'attend rien ; selon le contexte de la session, passer à la suite si la session n'est pas achevée, ou proposer une nouvelle étape.
+- NFDOC = Nouveau Fichier en Diff adressée à CGPT — fichier qui va être modifié ; attend ta validation ou ton refus.
+- NQCMOC = Nouveau Demande à Choix Multiples — Une NQCMOC attend une réponse, généralement un chiffre.
+
+Toute réponse à copier-coller dans CGPT doit commencer par la mention du type de message, et la partie à copier doit toujours être placée dans un bloc disposant d'un bouton de copie.bookworm" ]
 then
 
 	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN BOOKWORM"
@@ -3234,7 +3287,9 @@ then
 	echo "AllowHybridSleep=no" >> /etc/systemd/sleep.conf.d/nosleep.conf
 fi
 
-#### SOFTWARES ####
+#### SOFTWARES ##########################
+# Adresser à CGPT :) #
+######################
 
 if [ "${ACMESH:-0}" -eq 1 ]; then
 
