@@ -353,37 +353,6 @@ EOF
     cat > "$project_path/.opencode/config/opencode.json" <<'EOF'
 {
 	"$schema": "https://opencode.ai/config.json",
-	"provider": {
-		"openrouter": {
-			"models": {
-				"~deepseek/deepseek-v4-flash": {},
-				"~deepseek/deepseek-v4-pro": {},
-				"~google/gemini-3-flash-preview": {},
-				"~minimax/minimax-m3": {},
-				"~moonshotai/kimi-k3": {},
-				"~nvidia/nemotron-3-ultra-550b-a55b:free": {},
-				"~qwen/qwen3.7-plus": {},
-				"~xiaomi/mimo-v2.5-pro": {},
-				"~xiaomi/mimo-v2.5": {},
-				"~z-ai/glm-5.2": {}
-			}
-		}
-	},
-	"default_agent": "plan",
-	"agent": {
-		"build": {
-			"mode": "primary",
-			"model": "openrouter/xiaomi/mimo-v2.5"
-		},
-		"plan": {
-			"mode": "primary",
-			"model": "openrouter/xiaomi/mimo-v2.5-pro"
-		},
-		"code-reviewer": {
-			"mode": "subagent",
-			"model": "openrouter/deepseek/deepseek-v4-pro"
-		}
-	},
 	"share": "disabled",
 	"snapshot": false,
 	"autoupdate": false,

@@ -1,41 +1,14 @@
 {
 	"$schema": "https://opencode.ai/config.json",
-	"provider": {
-		"openrouter": {
-			"models": {
-				"~deepseek/deepseek-v4-flash": {},
-				"~deepseek/deepseek-v4-pro": {},
-				"~google/gemini-3-flash-preview": {},
-				"~minimax/minimax-m3": {},
-				"~moonshotai/kimi-k3": {},
-				"~nvidia/nemotron-3-ultra-550b-a55b:free": {},
-				"~qwen/qwen3.7-plus": {},
-				"~xiaomi/mimo-v2.5-pro": {},
-				"~xiaomi/mimo-v2.5": {},
-				"~z-ai/glm-5.2": {}
-			}
-		}
-	},
-	"default_agent": "plan",
-	"agent": {
-		"build": {
-		  "mode": "primary",
-		  "model": "openrouter/xiaomi/mimo-v2.5"
-		},
-		"plan": {
-		  "mode": "primary",
-		  "mo je serais plutôt pour exclure dist/*.deb de Git. Les .deb sont des artefacts de build/release, pas des sources.del": "openrouter/xiaomi/mimo-v2.5-pro"
-		},
-		"code-reviewer": {
-		  "mode": "subagent",
-		  "model": "openrouter/deepseek/deepseek-v4-pro"
-		}
-	},
 	"share": "disabled",
 	"snapshot": false,
 	"autoupdate": false,
 	"permission": {
 		"*": "ask",
+		"skill": {
+			"*": "ask",
+			"openspec-*": "allow"
+		},
 		"bash": {
 			"*": "deny",
 			"awk": "ask",
@@ -56,6 +29,7 @@
 			"docker *": "ask",
 			"docker-compose": "ask",
 			"docker-compose *": "ask",
+			"echo *": "ask",
 			"find *": "ask",
 			"file *": "ask",
 			"git add": "ask",
@@ -103,6 +77,8 @@
 			"glob": "allow",
 			"head": "allow",
 			"head *": "allow",
+			"id": "allow",
+			"id *": "allow",
 			"ls": "allow",
 			"ls *": "allow",
 			"lsp": "allow",
@@ -201,13 +177,13 @@
 			"tmp/**": "deny",
 			"venv/**": "deny"
 		},
-    "external_directory": {
-      "*": "deny",
-      "/tmp/opencode/**": "allow"
-    },
+		"external_directory": {
+			"*": "deny",
+			"/tmp/opencode/**": "allow"
+		},
 		"glob": "allow",
 		"grep": "allow",
-		"lsp": "allow",	
+		"lsp": "allow",
 		"question": "allow",
 		"read": {
 			"*": "allow",
