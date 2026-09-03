@@ -3835,16 +3835,25 @@ EOF
 
 					USERJS="$PROFILE/user.js"
 
-					# Créer user.js avec les bons droits
 					touch "$USERJS"
-					chown "$USERNAME":"$USERNAME" "$USERJS"
+
+					# Résolution de l'identité
+					USER_UID="$(id -u "$USERNAME" 2>/dev/null || true)"
+					USER_GID="$(id -g "$USERNAME" 2>/dev/null || true)"
+
+					if [ -n "$USER_UID" ] && [ -n "$USER_GID" ]; then
+						chown "$USER_UID:$USER_GID" "$USERJS"
+					else
+						echo "⚠️ Utilisateur '$USERNAME' introuvable, droits de $USERJS non modifiés."
+					fi
 
 					# Appliquer les préférences
 					set_pref "$USERJS" "browser.tabs.loadBookmarksInTabs" "true"
 					set_pref "$USERJS" "browser.search.openintab" "true"
 
-					# Remettre les droits au propre
-					chown "$USERNAME":"$USERNAME" "$USERJS"
+					if [ -n "$USER_UID" ] && [ -n "$USER_GID" ]; then
+						chown "$USER_UID:$USER_GID" "$USERJS"
+					fi
 
 				fi
 
