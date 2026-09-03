@@ -150,6 +150,16 @@ La demande explicite d'une des commandes suivantes autorise les écritures OpenS
 * `/opsx-sync`
 * `/opsx-archive`
 
+### Délégation de pilotage OpenSpec
+
+Lorsqu'un agent orchestrateur tel que CGPT pilote un agent de codage, il PEUT valider et autoriser les créations, modifications, corrections, synchronisations et archivages OpenSpec nécessaires à l'objectif demandé, à condition qu'ils respectent strictement les spécifications OpenSpec préalablement validées par le développeur.
+
+Avant toute écriture OpenSpec, l'agent de codage DOIT présenter à l'agent orchestrateur les fichiers concernés et les modifications proposées, puis attendre sa validation explicite. La validation de l'agent orchestrateur vaut alors autorisation d'écriture dans ce périmètre.
+
+L'agent de codage NE DOIT PAS valider seul ses modifications OpenSpec, étendre le périmètre validé, créer une évolution non demandée, ni effectuer un commit ou un push sans autorisation distincte.
+
+Le développeur peut limiter ou révoquer cette délégation à tout moment. Ses instructions prévalent toujours.
+
 Les spécifications OpenSpec DOIVENT rester cohérentes entre elles.
 
 ## 7. OpenCode
