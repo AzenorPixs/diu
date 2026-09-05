@@ -149,6 +149,20 @@ printf '%s\n%s\n' "$SOFTWARES_APT_CHATGPT" "$SOFTWARES_APT_CHATGPT_HOME"
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stdout.splitlines()[-2:], ['0', '~/.codex'])
 
+    def test_codex_cli_variables_persist_defaults(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_codex_cli.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
+source "$variable_source"
+cat "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], [
+            'export SOFTWARES_APT_CODEX_CLI=0',
+            'export SOFTWARES_APT_CODEX_CLI_HOME=~/.codex',
+        ])
+
     def test_chatgpt_variables_persist_both_defaults_coherently(self):
         result, _, _ = self.run_shell(r'''
 variable_source="$TMPDIR/software_apt_chatgpt.sh"
