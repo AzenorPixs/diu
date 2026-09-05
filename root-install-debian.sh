@@ -36,7 +36,9 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
             printf '%s\n' \
                 'rid system install apt <Dépôt> → Installe un dépôt APT.' \
                 'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
-                'rid system update              → Met à jour le module système du DIU.'
+                'rid system update              → Met à jour le module système du DIU.' \
+                'rid system update apt          → Régénère tous les dépôts APT.' \
+                'rid system apt update          → Mise à jour du systeme APT Debian.'
             ;;
         docker)
             printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
@@ -413,7 +415,9 @@ EOF
             printf '%s\n' \
                 'rid system install apt <Dépôt> → Installe un dépôt APT.' \
                 'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
-                'rid system update              → Met à jour le module système du DIU.'
+                'rid system update              → Met à jour le module système du DIU.' \
+                'rid system update apt          → Régénère tous les dépôts APT.' \
+                'rid system apt update          → Mise à jour du systeme APT Debian.'
             ;;
         system:install:|system:remove:)
             printf 'rid system %s apt <repository> → %s un dépôt APT.\n' \

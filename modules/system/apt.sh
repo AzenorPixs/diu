@@ -146,11 +146,6 @@ system_apt_debian_configure() {
     system_apt_configure_unofficial
 }
 
-system_apt_debian_update() {
-    system_apt_debian_configure
-    software_deb update "" 1
-}
-
 system_install_prerequisites() {
     local package
     local -a prerequisites=()
@@ -172,10 +167,18 @@ system_install_prerequisites() {
     done < <(printf '%s\n' "${prerequisites[@]}" | LC_ALL=C sort -u)
 }
 
-system_apt_update() {
+system_apt_regenerate() {
     system_apt_debian_configure
-    apt-get update
-    apt-get dist-upgrade -y
+}
+
+system_apt_update() {
+    system_apt_regenerate
+    echo "🔧 UPDATE & DIST-UPGRADE"
+    apt -y update && apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade
+    echo "🔧 CLEAN AND PURGE AND REMOVE"
+    apt autoclean -y
+    apt autopurge -y
+    apt autoremove -y
     system_install_prerequisites
 }
 
@@ -260,8 +263,8 @@ manage_system_action() {
             fi
             case "${1:-}" in
                 debian)
-                    [[ $# -eq 1 ]] || { print_error "Usage : diu system update apt [debian]"; return 2; }
-                    system_apt_debian_update
+                    [[ $# -eq 1 ]] || { print_error "Usage : diu system update apt"; return 2; }
+                    system_apt_update
                     ;;
                 '') system_apt_update ;;
                 *) print_error "Usage : diu system update apt [debian]"; return 2 ;;
@@ -269,7 +272,7 @@ manage_system_action() {
             ;;
         apt)
             shift
-            [[ $# -eq 0 ]] || { print_error "Usage : diu system apt"; return 2; }
+            [[ "${1:-}" == update && $# -eq 1 ]] || { print_error "Usage : diu system apt update"; return 2; }
             system_apt_update
             ;;
         '') system_update ;;
