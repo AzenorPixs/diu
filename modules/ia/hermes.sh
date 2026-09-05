@@ -1017,8 +1017,7 @@ update_agent_hermes() {
         return 1
     fi
 
-    if [[ "${DOCKER_IMAGE_UPDATED}" -eq 1 ]] &&
-       [[ "${was_running}" -eq 1 ]]
+    if [[ "${was_running}" -eq 1 ]]
     then
 
         echo

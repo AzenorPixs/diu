@@ -12,7 +12,7 @@ l'architecture cible décidée par le développeur, sans modifier le code.
 
 Le projet tend vers la structure suivante :
 
-    /workspace/
+    /home/devops/datas/diu/
     ├── config/
     ├── deb/
     ├── lib/

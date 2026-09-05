@@ -11,7 +11,7 @@ composants, afin de guider progressivement la séparation fonctionnelle du proje
 
 L'architecture cible du projet DIU est la suivante :
 
-    /workspace/
+    /home/devops/datas/diu/
     ├── config/
     ├── deb/
     ├── lib/
