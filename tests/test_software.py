@@ -108,6 +108,47 @@ printf '%s\n%s\n' "$SOFTWARES_APT_CHATGPT" "$SOFTWARES_APT_CHATGPT_HOME"
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stdout.splitlines()[-2:], ['0', '~/.codex'])
 
+    def test_chatgpt_variables_persist_both_defaults_coherently(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_chatgpt.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
+dpkg-query() { printf 'unknown'; }
+source "$variable_source"
+cat "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], [
+            'export SOFTWARES_APT_CHATGPT=0',
+            'export SOFTWARES_APT_CHATGPT_HOME=~/.codex',
+        ])
+
+    def test_chatgpt_static_value_is_not_redetected_when_defined(self):
+        result, _, _ = self.run_shell(r'''
+SOFTWARES_APT_CHATGPT=0
+dpkg-query() { printf 'installed'; }
+source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
+printf '%s\n' "$SOFTWARES_APT_CHATGPT"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-1], '0')
+
+    def test_chatgpt_home_migrates_escaped_default(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_chatgpt.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
+printf 'export SOFTWARES_APT_CHATGPT=0\nexport SOFTWARES_APT_CHATGPT_HOME=\\~/.codex\n' > "$TMPDIR/softwares.env"
+source "$TMPDIR/softwares.env"
+source "$variable_source"
+cat "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], [
+            'export SOFTWARES_APT_CHATGPT=0',
+            'export SOFTWARES_APT_CHATGPT_HOME=~/.codex',
+        ])
+
     def test_chatgpt_install_prepares_repository_updates_and_sets_desktop(self):
         result, calls, _ = self.run_shell(r'''
 desktop="$TMPDIR/chatgpt.desktop"
