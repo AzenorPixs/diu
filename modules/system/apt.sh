@@ -64,16 +64,24 @@ system_apt_debian_configure() {
 
 system_apt_debian_update() {
     system_apt_debian_configure
-    apt-get update
+    software_deb update "" 1
 }
 
 system_apt_update() {
     apt-get update
+    apt-get dist-upgrade -y
+}
+
+system_update() {
+    system_apt_update
 }
 
 manage_system_action() {
-    [[ "${1:-}" == update ]] || { print_error "Usage : diu system update [apt [debian]]"; return 2; }
+    [[ "${1:-}" == update || "${1:-}" == apt ]] || { print_error "Usage : diu system update [apt [debian]]"; return 2; }
     shift
+    if [[ "$1" == update ]]; then
+        shift
+    fi
     case "${1:-}" in
         apt)
             shift
@@ -85,7 +93,7 @@ manage_system_action() {
                 print_error "Usage : diu system update apt [debian]"; return 2
             fi
             ;;
-        '') system_apt_debian_update ;;
+        '') system_update ;;
         *) print_error "Usage : diu system update apt [debian]"; return 2 ;;
     esac
 }

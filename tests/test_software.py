@@ -167,29 +167,32 @@ class SoftwareTests(unittest.TestCase):
     def test_universal_order_and_exec_isolation(self):
         result, calls, _ = self.run_shell(r'''
 software_deb() { echo deb >> "$CALLS"; }
+system_apt_update() { echo apt >> "$CALLS"; }
 update_diu() { echo diu >> "$CALLS"; exec bash -c 'exit 0'; }
 unset ENV_IA_USER
 manage_update_action
 printf 'AFTER\n'
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.splitlines(), ['deb', 'diu'])
+        self.assertEqual(calls.splitlines(), ['apt', 'diu'])
         self.assertIn('AFTER', result.stdout)
 
     def test_global_failure_keeps_independent_diu(self):
         result, calls, _ = self.run_shell(r'''
 software_deb() { echo deb >> "$CALLS"; return 1; }
+system_apt_update() { echo apt >> "$CALLS"; return 1; }
 update_diu() { echo diu >> "$CALLS"; return 0; }
 unset ENV_IA_USER
 manage_update_action
 ''')
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(calls.splitlines(), ['deb', 'diu'])
+        self.assertEqual(calls.splitlines(), ['apt', 'diu'])
         self.assertIn('globale incomplète', result.stdout)
 
     def test_hermes_installed_but_stopped_is_included(self):
         result, calls, _ = self.run_shell(r'''
 software_deb() { echo deb >> "$CALLS"; }
+system_apt_update() { echo apt >> "$CALLS"; }
 update_diu() { echo diu >> "$CALLS"; }
 ENV_IA_USER=test
 _hermes_dir() { echo "$TMPDIR/hermes"; }
@@ -199,7 +202,7 @@ update_agent_hermes() { echo hermes >> "$CALLS"; }
 manage_update_action
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.splitlines(), ['deb', 'hermes', 'diu'])
+        self.assertEqual(calls.splitlines(), ['apt', 'hermes', 'diu'])
 
     def test_diu_specific_route(self):
         result, calls, _ = self.run_shell('update_diu() { echo diu >> "$CALLS"; }; manage_update_action diu')
@@ -218,6 +221,7 @@ manage_update_action
     def test_hermes_failure_is_in_global_summary(self):
         result, calls, _ = self.run_shell(r"""
 software_deb() { echo deb >> "$CALLS"; }
+system_apt_update() { echo apt >> "$CALLS"; }
 update_diu() { echo diu >> "$CALLS"; }
 ENV_IA_USER=test
 _hermes_dir() { echo "$TMPDIR/hermes"; }
@@ -227,7 +231,7 @@ update_agent_hermes() { echo hermes >> "$CALLS"; return 1; }
 manage_update_action
 """)
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(calls.splitlines(), ['deb', 'hermes', 'diu'])
+        self.assertEqual(calls.splitlines(), ['apt', 'hermes', 'diu'])
         self.assertIn('ia/hermes : échec', result.stdout)
 
     def test_diu_failure_is_in_global_summary(self):
