@@ -14,7 +14,7 @@ system_apt_is_deb822() {
 
 system_apt_repository_engine() {
     local enable="$1" name="$2" url_gpg_key="$3" type="$4"
-    local suites="$5" architecture="$6" uris="$7"
+    local suites="$5" architecture="$6" uris="$7" components="${8:-main}"
     local modern_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.sources"
     local legacy_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.list"
     local keyring="${SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY}/${name}-archive-keyring.gpg"
@@ -46,13 +46,13 @@ system_apt_repository_engine() {
             printf 'URIs: %s\n' "$uris"
             printf 'Suites: %s\n' "$suites"
             [[ -n "$architecture" ]] && printf 'Architectures: %s\n' "$architecture"
-            printf 'Components: main\nSigned-By: %s\n\n' "$keyring"
+            printf 'Components: %s\nSigned-By: %s\n\n' "$components" "$keyring"
         } > "$modern_file"
     else
         rm -f -- "$modern_file"
         local options="signed-by=${keyring}"
         [[ -n "$architecture" ]] && options="arch=${architecture} ${options}"
-        printf '%s [%s] %s %s main\n' "$type" "$options" "$uris" "$suites" > "$legacy_file"
+        printf '%s [%s] %s %s %s\n' "$type" "$options" "$uris" "$suites" "$components" > "$legacy_file"
     fi
 }
 
@@ -60,7 +60,7 @@ system_apt_configure_unofficial() {
     system_apt_repository_engine "${SYSTEM_APT_CROWDSEC:-0}" crowdsec \
         https://packagecloud.io/crowdsec/crowdsec/gpgkey deb any "" http://packagecloud.io/crowdsec/crowdsec/any
     system_apt_repository_engine "${SYSTEM_APT_DOCKER:-0}" docker \
-        https://download.docker.com/linux/debian/gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" https://download.docker.com/linux/debian
+        https://download.docker.com/linux/debian/gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" https://download.docker.com/linux/debian stable
     system_apt_repository_engine "${SYSTEM_APT_LEMONLDAP:-0}" lemonldap \
         https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg deb 2.0 amd64 https://lemonldap-ng.org/deb
     case "${SYSTEM_APT_MONGODB:-0}" in
@@ -76,13 +76,13 @@ system_apt_configure_unofficial() {
     system_apt_repository_engine "${SYSTEM_APT_NVIDIA:-0}" nvidia-container-toolkit \
         https://nvidia.github.io/libnvidia-container/gpgkey deb / amd64 https://nvidia.github.io/libnvidia-container/stable/deb/amd64/
     system_apt_repository_engine "${SYSTEM_APT_PROXMOX:-0}" proxmox \
-        https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" http://download.proxmox.com/debian/pve
+        https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" http://download.proxmox.com/debian/pve pve-no-subscription
     system_apt_repository_engine "${SYSTEM_APT_VSCODE:-0}" vscode \
         https://packages.microsoft.com/keys/microsoft.asc deb stable amd64 https://packages.microsoft.com/repos/code
     system_apt_repository_engine "${SYSTEM_APT_WAZUH:-0}" wazuh \
         https://packages.wazuh.com/key/GPG-KEY-WAZUH deb stable amd64 https://packages.wazuh.com/4.x/apt
     system_apt_repository_engine "${SYSTEM_APT_WEBMIN:-0}" webmin \
-        https://download.webmin.com/jcameron-key.asc deb sarge "" http://download.webmin.com/download/repository
+        https://download.webmin.com/jcameron-key.asc deb sarge "" http://download.webmin.com/download/repository contrib
 }
 
 system_apt_debian_is_deb822() {
