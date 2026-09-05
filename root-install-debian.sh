@@ -199,6 +199,16 @@ dispatch_arguments() {
         return 0
     fi
 
+    if [[ "$argument_class" == "?" ]]; then
+        display_help_context
+        exit 0
+    fi
+
+    if [[ "${*: -1}" == "?" ]]; then
+        display_help_context "${@:1:$(($# - 1))}"
+        exit 0
+    fi
+
     case "$argument_class" in
 
         devops)
@@ -245,7 +255,7 @@ dispatch_arguments() {
             ;;
 
         help|--help|-h)
-            display_usage
+            display_help_context
             ;;
 
         *)
@@ -259,6 +269,73 @@ dispatch_arguments() {
     # Une action avec arguments ne doit pas poursuivre
     # l'installation Debian linéaire.
     exit 0
+}
+
+display_help_context() {
+    local context="${1:-}" subcontext="${2:-}" leaf="${3:-}"
+
+    case "$context:$subcontext:$leaf" in
+        :) cat <<'EOF'
+rid ?                         → Affiche l'aide des commandes rid.
+rid devops ?                  → Outils DevOps et OpenSpec.
+rid docker ?                  → Gestion Docker root et rootless.
+rid ia ?                      → Gestion des agents IA.
+rid os ?                      → Validation OpenSpec.
+rid proj ?                    → Gestion des projets et publications.
+rid install ?                → Installation de logiciels.
+rid remove ?                 → Suppression de logiciels.
+rid update ?                 → Mise à jour des composants.
+rid system ?                 → Gestion du système Debian.
+rid version                  → Affiche la version du DIU.
+EOF
+            ;;
+        system::)
+            printf '%s\n' \
+                'rid system install ? → Installe un dépôt APT.' \
+                'rid system remove ?  → Supprime un dépôt APT.' \
+                'rid system update ?  → Met à jour le système.' \
+                'rid system apt       → Met à jour APT.'
+            ;;
+        system:install:|system:remove:)
+            printf 'rid system %s apt <repository> → %s un dépôt APT.\n' \
+                "$subcontext" "$([[ "$subcontext" == install ]] && printf 'Installe' || printf 'Supprime')"
+            ;;
+        system:update:)
+            printf '%s\n' \
+                'rid system update apt ?    → Met à jour APT.' \
+                'rid system update apt debian → Met à jour les paquets Debian.'
+            ;;
+        system:apt:)
+            printf '%s\n' 'rid system apt → Met à jour le système via APT.'
+            ;;
+        system:update:apt)
+            printf '%s\n' 'rid system update apt debian → Met à jour les paquets Debian.'
+            ;;
+        docker::)
+            printf '%s\n' 'rid docker root ? → Actions Docker root.' 'rid docker rootless ? → Actions Docker rootless.'
+            ;;
+        ia::)
+            printf '%s\n' 'rid ia configure ? → Configure un agent IA.' 'rid ia install ? → Installe un agent IA.' 'rid ia start ? → Démarre un agent IA.' 'rid ia stop ? → Arrête un agent IA.' 'rid ia update ? → Met à jour un agent IA.' 'rid ia uninstall ? → Désinstalle un agent IA.'
+            ;;
+        devops::)
+            printf '%s\n' 'rid devops info → Affiche les informations DevOps.' 'rid devops os → Gère OpenSpec pour un projet.'
+            ;;
+        os::)
+            printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
+            ;;
+        proj::)
+            printf '%s\n' 'rid proj create → Crée un projet.' 'rid proj del → Supprime un projet.' 'rid proj git* → Actions Git du projet.' 'rid proj dockerb → Construit son image Docker.' 'rid proj deb → Construit le paquet DIU.' 'rid proj cicddiu → Lance le CI/CD du DIU.'
+            ;;
+        install::|remove::)
+            printf '%s\n' "rid $context deb <SOFTWARE> → Opération sur un paquet Debian." "rid $context apt <SOFTWARE> → Opération sur un logiciel tiers."
+            ;;
+        update::)
+            printf '%s\n' 'rid update deb → Met à jour les paquets Debian.' 'rid update apt → Met à jour les logiciels tiers.' 'rid update diu → Met à jour le DIU.'
+            ;;
+        *)
+            display_usage
+            ;;
+    esac
 }
 
 display_usage() {
