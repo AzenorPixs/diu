@@ -108,12 +108,15 @@ update_diu() {
     # Récupération de la version installée
     # ----------------------------------------------------------
 
-    installed_version="$(
+    if ! installed_version="$(
         dpkg-query \
             -W \
             -f='${Version}' \
             diu 2>/dev/null
-    )"
+    )"; then
+        print_error "Impossible de lire la version installée du DIU."
+        return 1
+    fi
 
     if [[ -z "${installed_version}" ]]; then
         print_error "Le paquet DIU n'est pas installé sur ce système."
@@ -202,21 +205,30 @@ update_diu() {
         return 1
     fi
 
-    downloaded_package="$(
+    # Format dpkg-deb : conserver les expressions littérales.
+    # shellcheck disable=SC2016
+    if ! downloaded_package="$(
         dpkg-deb \
             --show \
             --showformat='${Package}' \
             "${deb_file}" \
             2>/dev/null
-    )"
+    )"; then
+        print_error "Impossible de lire le nom du paquet téléchargé."
+        return 1
+    fi
 
-    downloaded_version="$(
+    # shellcheck disable=SC2016
+    if ! downloaded_version="$(
         dpkg-deb \
             --show \
             --showformat='${Version}' \
             "${deb_file}" \
             2>/dev/null
-    )"
+    )"; then
+        print_error "Impossible de lire la version du paquet téléchargé."
+        return 1
+    fi
 
     if [[ "${downloaded_package}" != "diu" ]]; then
         print_error "Le paquet téléchargé n'est pas un paquet DIU."

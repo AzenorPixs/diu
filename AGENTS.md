@@ -3,15 +3,15 @@
 ## 1. Contexte
 
 * Projet : `DIU` ;
-* Racine : `/workspace` ;
+* Racine : `/home/devops/datas/diu` ;
 * Règles de sécurité et de travails des LLM : `AGENTS.md` ;
 * Objectifs et architecture du projet : `PROJECT.md` ;
 * Cadrage technique : `TECHNICAL.md` ;
 * Cadrage de conteneurisation : `BUILD.md` ;
 
-Toutes les opérations DOIVENT être réalisées relativement à `/workspace`.
+Toutes les opérations DOIVENT être réalisées relativement à `/home/devops/datas/diu`.
 
-L'agent NE DOIT PAS créer, modifier ou supprimer de fichier hors de `/workspace` sans validation explicite du développeur.
+L'agent NE DOIT PAS créer, modifier ou supprimer de fichier hors de `/home/devops/datas/diu` sans validation explicite du développeur.
 
 TECHNICAL.md et BUILD.md ne sont pas nécessairement présents, et restent complémentaires et optionnelles.
 
