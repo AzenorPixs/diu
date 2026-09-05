@@ -12,6 +12,9 @@ set -Eeuo pipefail
 
 # Le chemin où je me trouve est
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
+# shellcheck source=modules/system/variables-cleanup.sh
+. "$BASH_SCRIPT_PATH/modules/system/variables-cleanup.sh"
+config_cleanup || exit 1
 . "/root/diu/variables.sh"
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
@@ -19,6 +22,9 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
+. "$BASH_SCRIPT_PATH/modules/diu/update-all.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/find.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
@@ -219,8 +225,13 @@ dispatch_arguments() {
             manage_project_action "$@"
             ;;
 
+        install|remove)
+            manage_software_action "$@"
+            ;;
+
         update)
-            update_diu
+            shift
+            manage_update_action "$@"
             ;;
 
         version)
@@ -291,7 +302,13 @@ Utilisation :
   rid proj ocro <ID Projet>                                 →  Démarre OpenCode en RO dans le projet <ID Projet>.
   rid proj ocrw <ID Projet>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
-  rid update                                                →  Mise à jour totale
+  rid install deb <SOFTWARE>                                →  Installe un paquet officiel Debian
+  rid remove deb <SOFTWARE>                                 →  Désinstalle un paquet officiel Debian
+  rid update deb <SOFTWARE>                                 →  Met à jour un paquet officiel Debian
+  rid update deb                                            →  Met à jour les paquets officiels Debian
+  rid <install|remove|update> apt [SOFTWARE]                  →  Réservé au futur moteur de logiciels tiers
+
+  rid update                                                →  Mise à jour de tous les modules pris en charge
   rid update diu                                            →  Mise à jour du DIU
 
   ridt proj cicddiu                                         → Flux CI/CD pour le DIU
@@ -1585,7 +1602,7 @@ fi
 
 ### APT ###
 
-if [ $DEBIAN_RELEASE = "trixie" ]
+if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 then
 
 	### TiME ZONE ###
@@ -1981,7 +1998,7 @@ EOF
 
 fi
 
-if [ $DEBIAN_RELEASE = "######################
+if [ $SYSTEM_DEBIAN_RELEASE = "######################
 # Adresser à CGPT :) #
 ######################
 
@@ -2172,7 +2189,7 @@ then
 
 fi
 
-if [ $DEBIAN_RELEASE = "bullseye" ]
+if [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 then
 
 	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN BULLSEYE"
@@ -3657,7 +3674,7 @@ fi
 if [ $APACHE2 -eq 1 ]
 then
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 		echo ""
@@ -3666,7 +3683,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "bookworm" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ]
 	then
 
 		echo ""
@@ -3675,7 +3692,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo ""
@@ -5624,7 +5641,7 @@ fi
 if [ $FASTFETCH -eq 1 ]
 then
 
-	if [ $DEBIAN_RELEASE = "bookworm" ] || [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo "INSTALL NEOFETCH"
@@ -5649,7 +5666,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 		if dpkg -s fastfetch &>/dev/null
@@ -5704,7 +5721,7 @@ fi
 if [ $OPENJDK -eq 1 ]
 then
 
-	if [ $DEBIAN_RELEASE = "bookworm" ] || [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo ""
@@ -5738,7 +5755,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 
@@ -6981,14 +6998,14 @@ then
 	# echo '  tmux attach -t main || tmux new -s main' >> /root/.zshrc
 	# echo 'fi' >> /root/.zshrc
 
-	if [ $DEBIAN_RELEASE = "bookworm" ] || [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo "neofetch" >> /root/.zshrc
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 		echo "fastfetch" >> /root/.zshrc
