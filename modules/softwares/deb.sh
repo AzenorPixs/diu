@@ -3,7 +3,7 @@
 # Chaque opération utilise des index distincts, signés par les clés Debian.
 # Les fichiers de configuration APT de la machine ne sont pas modifiés.
 software_deb() (
-    local action="$1" software="${2:-}" temporary="" indexes="" codename=""
+    local action="$1" software="${2:-}" display_packages="${3:-0}" temporary="" indexes="" codename=""
     local origin suite uri component identifier package package_version status policy candidate
     local installed="" simulation="" result=0 command_name rest operation installed_version
     local -a options=() packages=() apt_command=()
@@ -116,6 +116,9 @@ software_deb() (
                 fi
                 if dpkg --compare-versions "$candidate" le "$package_version"; then
                     continue
+                fi
+                if [[ "$display_packages" == 1 ]]; then
+                    print_info "deb/$package : ${package_version} -> ${candidate}"
                 fi
                 targets+=("$package=$candidate")
                 ;;
