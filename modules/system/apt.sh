@@ -14,7 +14,7 @@ system_apt_is_deb822() {
 
 system_apt_repository_engine() {
     local enable="$1" name="$2" url_gpg_key="$3" type="$4"
-    local suites="$5" architecture="$6" uris="$7" components="${8:-main}"
+    local suites="$5" architecture="$6" uris="$7" components="${8-main}"
     local modern_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.sources"
     local legacy_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.list"
     local keyring="${SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY}/${name}-archive-keyring.gpg"
@@ -46,7 +46,8 @@ system_apt_repository_engine() {
             printf 'URIs: %s\n' "$uris"
             printf 'Suites: %s\n' "$suites"
             [[ -n "$architecture" ]] && printf 'Architectures: %s\n' "$architecture"
-            printf 'Components: %s\nSigned-By: %s\n\n' "$components" "$keyring"
+            [[ -n "$components" ]] && printf 'Components: %s\n' "$components"
+            printf 'Signed-By: %s\n\n' "$keyring"
         } > "$modern_file"
     else
         rm -f -- "$modern_file"
@@ -72,9 +73,9 @@ system_apt_configure_unofficial() {
     system_apt_repository_engine "${SYSTEM_APT_NODEJS:-0}" nodesource \
         https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key deb nodistro amd64 https://deb.nodesource.com/node_24.x
     system_apt_repository_engine "${SYSTEM_APT_NVIDIA:-0}" nvidia \
-        https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub deb / amd64 https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/
+        https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub deb / amd64 https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/ ""
     system_apt_repository_engine "${SYSTEM_APT_NVIDIA:-0}" nvidia-container-toolkit \
-        https://nvidia.github.io/libnvidia-container/gpgkey deb / amd64 https://nvidia.github.io/libnvidia-container/stable/deb/amd64/
+        https://nvidia.github.io/libnvidia-container/gpgkey deb / amd64 https://nvidia.github.io/libnvidia-container/stable/deb/amd64/ ""
     system_apt_repository_engine "${SYSTEM_APT_PROXMOX:-0}" proxmox \
         https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" http://download.proxmox.com/debian/pve pve-no-subscription
     system_apt_repository_engine "${SYSTEM_APT_VSCODE:-0}" vscode \
