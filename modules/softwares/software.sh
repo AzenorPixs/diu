@@ -7,7 +7,7 @@ manage_software_action() {
        [[ "$action" != install && "$action" != remove && "$action" != update ]] ||
        [[ "$action" != update && -z "$software" ]] ||
        [[ $# -eq 3 && -z "$software" ]]; then
-        print_error "Usage : rid <install|remove|update> <deb|apt> [SOFTWARE]"
+        print_error "Usage : rid <install|remove|update> <deb|apt|github> [SOFTWARE]"
         return 2
     fi
     if [[ -n "$software" && ! "$software" =~ ^[a-z0-9][a-z0-9+.-]+(:[a-z0-9][a-z0-9-]*)?$ ]]; then
@@ -17,6 +17,7 @@ manage_software_action() {
     case "$engine" in
         deb) software_deb "$action" "$software" ;;
         apt) software_apt_action "$action" "$software" ;;
+        github) software_github_action "$action" "$software" ;;
         *)
             print_error "Moteur logiciel inconnu : $engine"
             return 2

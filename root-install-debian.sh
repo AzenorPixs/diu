@@ -56,7 +56,10 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
                 'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
                 'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
                 'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
-                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.'
+                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.' \
+                'rid softwares install github <SOFTWARE> → Installer depuis une release GitHub.' \
+                'rid softwares remove github <SOFTWARE>  → Désinstaller un logiciel GitHub.' \
+                'rid softwares update github [SOFTWARE]  → Mettre à jour un ou tous les logiciels GitHub.'
             ;;
         *)
             printf 'rid %s → Affiche les sous-commandes disponibles.\n' "${1:-}"
@@ -166,6 +169,7 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/apt.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/github.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/find.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
@@ -498,7 +502,10 @@ EOF
                 'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
                 'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
                 'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
-                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.'
+                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.' \
+                'rid softwares install github <SOFTWARE> → Installer depuis une release GitHub.' \
+                'rid softwares remove github <SOFTWARE>  → Désinstaller un logiciel GitHub.' \
+                'rid softwares update github [SOFTWARE]  → Mettre à jour un ou tous les logiciels GitHub.'
             ;;
         *)
             display_usage

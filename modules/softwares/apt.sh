@@ -183,9 +183,19 @@ manage_softwares_action() {
                 return 2
             fi
             ;;
+        install:github|remove:github)
+            [[ $# -eq 3 ]] || { print_error "Usage : rid softwares $action github <SOFTWARE>"; return 2; }
+            software_github_action "$action" "$software"
+            ;;
+        update:github)
+            if [[ $# -eq 3 ]]; then software_github_action update "$software"; elif [[ $# -eq 2 ]]; then software_github_update_all; else print_error "Usage : rid softwares update github [SOFTWARE]"; return 2; fi
+            ;;
         update:)
             [[ $# -eq 1 ]] || { print_error "Usage : rid softwares update"; return 2; }
-            software_apt_update_all
+            local result=0
+            software_apt_update_all || result=1
+            software_github_update_all || result=1
+            return "$result"
             ;;
         *)
             print_error "Commande softwares inconnue : $*"
