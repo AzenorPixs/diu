@@ -70,7 +70,8 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             "rid system ${operation} apt proxmox → ${verb} le dépôt APT Proxmox." \
             "rid system ${operation} apt vscode → ${verb} le dépôt APT VS Code." \
             "rid system ${operation} apt wazuh-4 → ${verb} le dépôt APT Wazuh." \
-            "rid system ${operation} apt webmin → ${verb} le dépôt APT Webmin."
+            "rid system ${operation} apt webmin → ${verb} le dépôt APT Webmin." \
+            "rid system ${operation} apt cgpt → ${verb} les dépôts APT OpenAI."
         exit 0
     fi
     case "${1:-}:${2:-}" in
@@ -120,7 +121,8 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
                 "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
                 "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
                 "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
-                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin."
+                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin." \
+                "rid system ${operation} apt cgpt → ${operation^} les dépôts APT OpenAI."
             ;;
         system:update)
             printf '%s\n' \
