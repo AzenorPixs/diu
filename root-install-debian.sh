@@ -12,6 +12,126 @@ set -Eeuo pipefail
 
 # Le chemin où je me trouve est
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
+
+# L'aide racine reste disponible même si la configuration de production est
+# absente ou inaccessible.
+if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
+    printf '%s\n' \
+        'rid devops  → Outils DevOps et OpenSpec.' \
+        'rid docker  → Gestion Docker root et rootless.' \
+        'rid ia      → Gestion des agents IA.' \
+        'rid os      → Validation OpenSpec.' \
+        'rid proj    → Gestion des projets et publications.' \
+        'rid install → Installation de logiciels.' \
+        'rid remove  → Suppression de logiciels.' \
+        'rid update  → Mise à jour des composants.' \
+        'rid system  → Gestion du système Debian.' \
+        'rid version   → Affiche la version du DIU.'
+    exit 0
+fi
+
+if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
+    case "${1:-}" in
+        system)
+            printf '%s\n' \
+                'rid system install apt <Dépôt> → Installe un dépôt APT.' \
+                'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
+                'rid system update              → Met à jour le module système du DIU.'
+            ;;
+        docker)
+            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
+            ;;
+        ia)
+            printf '%s\n' 'rid ia configure → Configure Hermès.' 'rid ia install → Installe Hermès.' 'rid ia start → Démarre Hermès.' 'rid ia stop → Arrête Hermès.' 'rid ia update → Met à jour Hermès.' 'rid ia uninstall → Désinstalle Hermès.'
+            ;;
+        update)
+            printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
+            ;;
+        *)
+            printf 'rid %s → Affiche les sous-commandes disponibles.\n' "${1:-}"
+            ;;
+    esac
+    exit 0
+fi
+
+if [[ "${!#}" == help || "${!#}" == "?" ]]; then
+    if [[ "${1:-}" == system && ( "${2:-}" == install || "${2:-}" == remove ) && "${3:-}" == apt ]]; then
+        operation="${2}"
+        verb="$([[ "$operation" == install ]] && printf 'Installe' || printf 'Supprime')"
+        printf '%s\n' \
+            "rid system ${operation} apt crowdsec → ${verb} le dépôt APT CrowdSec." \
+            "rid system ${operation} apt docker → ${verb} le dépôt APT Docker." \
+            "rid system ${operation} apt lemonldap → ${verb} le dépôt APT LemonLDAP." \
+            "rid system ${operation} apt mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8 → ${verb} le dépôt APT MongoDB." \
+            "rid system ${operation} apt nodejs → ${verb} le dépôt APT NodeSource." \
+            "rid system ${operation} apt nvidia → ${verb} les dépôts APT NVIDIA." \
+            "rid system ${operation} apt proxmox → ${verb} le dépôt APT Proxmox." \
+            "rid system ${operation} apt vscode → ${verb} le dépôt APT VS Code." \
+            "rid system ${operation} apt wazuh-4 → ${verb} le dépôt APT Wazuh." \
+            "rid system ${operation} apt webmin → ${verb} le dépôt APT Webmin."
+        exit 0
+    fi
+    case "${1:-}:${2:-}" in
+        devops:)
+            printf '%s\n' 'rid devops info → Affiche les informations DevOps.' 'rid devops os → Gère OpenSpec pour un projet.'
+            ;;
+        docker:)
+            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
+            ;;
+        docker:root)
+            printf '%s\n' 'rid docker root check-containers → Liste les conteneurs actifs.' 'rid docker root test <USER> → Teste Docker pour un utilisateur.' 'rid docker root diag <USER> → Diagnostique Docker.'
+            ;;
+        docker:rootless)
+            printf '%s\n' 'rid docker rootless analyse <USER> → Analyse Docker rootless.' 'rid docker rootless configure <USER> → Configure Docker rootless.' 'rid docker rootless delete-state <USER> → Supprime son état.' 'rid docker rootless diag <USER> → Diagnostique Docker rootless.' 'rid docker rootless exec <USER> <CONTAINER> → Exécute dans un conteneur.' 'rid docker rootless inspect <USER> <CONTAINER> → Inspecte un conteneur.' 'rid docker rootless log <USER> <CONTAINER> → Affiche ses journaux.' 'rid docker rootless ps <USER> → Liste les conteneurs.' 'rid docker rootless test <USER> → Teste Docker rootless.' 'rid docker rootless unconfigure <USER> → Déconfigure Docker rootless.' 'rid docker rootless restore-state <USER> → Restaure son état.' 'rid docker rootless save-state <USER> → Sauvegarde son état.'
+            ;;
+        ia:)
+            printf '%s\n' 'rid ia configure hm → Configure Hermès.' 'rid ia install hm → Installe Hermès.' 'rid ia start hm → Démarre Hermès.' 'rid ia stop hm → Arrête Hermès.' 'rid ia update hm → Met à jour Hermès.' 'rid ia uninstall hm → Désinstalle Hermès.'
+            ;;
+        ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall)
+            printf '%s\n' "rid ia ${2} hm → ${2^} l’agent Hermès."
+            ;;
+        os:)
+            printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
+            ;;
+        proj:)
+            printf '%s\n' 'rid proj create <PROJET> → Crée un projet.' 'rid proj del <PROJET> → Supprime un projet.' 'rid proj dockerb <PROJET> → Construit son image.' 'rid proj finds <PROJET> → Recherche les conflits.' 'rid proj findads <PROJET> → Supprime les conflits.' 'rid proj gita <PROJET> → Analyse Git.' 'rid proj gitc <PROJET> [COMMIT] → Commite le projet.' 'rid proj giti <PROJET> → Initialise Git.' 'rid proj gitic <PROJET> → Clone le dépôt.' 'rid proj gitp <PROJET> → Pousse Git.' 'rid proj gitpdiu → Publie le paquet DIU.' 'rid proj gitpdi <PROJET> → Publie l’image.' 'rid proj gits <PROJET> → Affiche le statut Git.' 'rid proj gitu <PROJET> → Met à jour les variables.' 'rid proj ocro <PROJET> → Lance OpenCode RO.' 'rid proj ocrw <PROJET> → Lance OpenCode RW.' 'rid proj ocsh → Lance le shell OpenCode.' 'rid proj deb → Construit le paquet DIU.' 'rid proj cicddiu → Lance le CI/CD DIU.' 'rid proj cicddr <PROJET> → Lance le CI/CD projet.'
+            ;;
+        system:install|system:remove)
+            printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
+                "${2}" "$([[ "${2}" == install ]] && printf 'Installe' || printf 'Supprime')"
+            ;;
+        system:install:apt|system:remove:apt)
+            operation="${2}"
+            printf '%s\n' \
+                "rid system ${operation} apt crowdsec → ${operation^} le dépôt APT CrowdSec." \
+                "rid system ${operation} apt docker → ${operation^} le dépôt APT Docker." \
+                "rid system ${operation} apt lemonldap → ${operation^} le dépôt APT LemonLDAP." \
+                "rid system ${operation} apt mongodb-4|5|6|7|8 → ${operation^} le dépôt APT MongoDB." \
+                "rid system ${operation} apt nodejs → ${operation^} le dépôt APT NodeSource." \
+                "rid system ${operation} apt nvidia → ${operation^} les dépôts APT NVIDIA." \
+                "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
+                "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
+                "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
+                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin."
+            ;;
+        system:update)
+            printf '%s\n' \
+                'rid system update apt → Met à jour APT.' \
+                'rid system update apt debian → Met à jour les paquets Debian.'
+            ;;
+        install:|remove:)
+            printf '%s\n' "rid ${1} deb <SOFTWARE> → Opération sur Debian." "rid ${1} apt <SOFTWARE> → Opération sur un logiciel tiers."
+            ;;
+        update:)
+            printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
+            ;;
+        *)
+            printf 'rid %s %s → Affiche les sous-commandes disponibles.\n' "${1:-}" "${2:-}"
+            ;;
+    esac
+    exit 0
+fi
+
 # shellcheck source=modules/system/variables-cleanup.sh
 . "$BASH_SCRIPT_PATH/modules/system/variables-cleanup.sh"
 config_cleanup || exit 1
@@ -199,12 +319,12 @@ dispatch_arguments() {
         return 0
     fi
 
-    if [[ "$argument_class" == "?" ]]; then
+    if [[ "$argument_class" == help || "$argument_class" == "?" ]]; then
         display_help_context
         exit 0
     fi
 
-    if [[ "${*: -1}" == "?" ]]; then
+    if [[ "${!#}" == help || "${!#}" == "?" ]]; then
         display_help_context "${@:1:$(($# - 1))}"
         exit 0
     fi
@@ -276,33 +396,46 @@ display_help_context() {
 
     case "$context:$subcontext:$leaf" in
         :) cat <<'EOF'
-rid ?                         → Affiche l'aide des commandes rid.
-rid devops ?                  → Outils DevOps et OpenSpec.
-rid docker ?                  → Gestion Docker root et rootless.
-rid ia ?                      → Gestion des agents IA.
-rid os ?                      → Validation OpenSpec.
-rid proj ?                    → Gestion des projets et publications.
-rid install ?                → Installation de logiciels.
-rid remove ?                 → Suppression de logiciels.
-rid update ?                 → Mise à jour des composants.
-rid system ?                 → Gestion du système Debian.
+rid                            → Affiche l'aide des commandes rid.
+rid devops                     → Outils DevOps et OpenSpec.
+rid docker                     → Gestion Docker root et rootless.
+rid ia                         → Gestion des agents IA.
+rid os                         → Validation OpenSpec.
+rid proj                       → Gestion des projets et publications.
+rid install                    → Installation de logiciels.
+rid remove                     → Suppression de logiciels.
+rid update                     → Mise à jour des composants.
+rid system                     → Gestion du système Debian.
 rid version                  → Affiche la version du DIU.
 EOF
             ;;
         system::)
             printf '%s\n' \
-                'rid system install ? → Installe un dépôt APT.' \
-                'rid system remove ?  → Supprime un dépôt APT.' \
-                'rid system update ?  → Met à jour le système.' \
-                'rid system apt       → Met à jour APT.'
+                'rid system install apt <Dépôt> → Installe un dépôt APT.' \
+                'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
+                'rid system update              → Met à jour le module système du DIU.'
             ;;
         system:install:|system:remove:)
             printf 'rid system %s apt <repository> → %s un dépôt APT.\n' \
                 "$subcontext" "$([[ "$subcontext" == install ]] && printf 'Installe' || printf 'Supprime')"
             ;;
+        system:install:apt|system:remove:apt)
+            local operation="$subcontext"
+            printf '%s\n' \
+                "rid system ${operation} apt crowdsec → ${operation^} le dépôt APT CrowdSec." \
+                "rid system ${operation} apt docker → ${operation^} le dépôt APT Docker." \
+                "rid system ${operation} apt lemonldap → ${operation^} le dépôt APT LemonLDAP." \
+                "rid system ${operation} apt mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8 → ${operation} le dépôt APT MongoDB." \
+                "rid system ${operation} apt nodejs → ${operation^} le dépôt APT NodeSource." \
+                "rid system ${operation} apt nvidia → ${operation^} les dépôts APT NVIDIA." \
+                "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
+                "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
+                "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
+                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin."
+            ;;
         system:update:)
             printf '%s\n' \
-                'rid system update apt ?    → Met à jour APT.' \
+                'rid system update apt      → Met à jour APT.' \
                 'rid system update apt debian → Met à jour les paquets Debian.'
             ;;
         system:apt:)
@@ -312,10 +445,10 @@ EOF
             printf '%s\n' 'rid system update apt debian → Met à jour les paquets Debian.'
             ;;
         docker::)
-            printf '%s\n' 'rid docker root ? → Actions Docker root.' 'rid docker rootless ? → Actions Docker rootless.'
+            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
             ;;
         ia::)
-            printf '%s\n' 'rid ia configure ? → Configure un agent IA.' 'rid ia install ? → Installe un agent IA.' 'rid ia start ? → Démarre un agent IA.' 'rid ia stop ? → Arrête un agent IA.' 'rid ia update ? → Met à jour un agent IA.' 'rid ia uninstall ? → Désinstalle un agent IA.'
+            printf '%s\n' 'rid ia configure → Configure Hermès.' 'rid ia install → Installe Hermès.' 'rid ia start → Démarre Hermès.' 'rid ia stop → Arrête Hermès.' 'rid ia update → Met à jour Hermès.' 'rid ia uninstall → Désinstalle Hermès.'
             ;;
         devops::)
             printf '%s\n' 'rid devops info → Affiche les informations DevOps.' 'rid devops os → Gère OpenSpec pour un projet.'
@@ -330,7 +463,7 @@ EOF
             printf '%s\n' "rid $context deb <SOFTWARE> → Opération sur un paquet Debian." "rid $context apt <SOFTWARE> → Opération sur un logiciel tiers."
             ;;
         update::)
-            printf '%s\n' 'rid update deb → Met à jour les paquets Debian.' 'rid update apt → Met à jour les logiciels tiers.' 'rid update diu → Met à jour le DIU.'
+            printf '%s\n' 'rid update → Mise à jour du système.'
             ;;
         *)
             display_usage
