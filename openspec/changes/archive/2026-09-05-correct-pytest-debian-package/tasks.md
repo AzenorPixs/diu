@@ -1,0 +1,3 @@
+- [ ] Remplacer le nom du paquet dans le module.
+- [ ] Valider la syntaxe et la spécification.
+- [ ] Archiver le changement.
