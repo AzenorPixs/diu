@@ -143,7 +143,7 @@ software_github_update_all() {
     local software result=0
     while IFS= read -r software; do
         [[ -n "$software" ]] || continue
-        if software_github_action update "$software"; then print_success "softwares/github/$software : terminé."; else print_error "softwares/github/$software : échec."; result=1; fi
+        if ! software_github_action update "$software"; then print_error "softwares/github/$software : échec."; result=1; fi
     done < <(software_github_known_software)
     return "$result"
 }
