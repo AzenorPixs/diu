@@ -3,6 +3,7 @@
 SYSTEM_APT_DEBIAN_SOURCES_FILE="/etc/apt/sources.list.d/debian.sources"
 SYSTEM_APT_THIRD_PARTY_DIRECTORY="/etc/apt/sources.list.d"
 SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY="/usr/share/keyrings"
+SYSTEM_APT_CGPT_KEY_FILE="${BASH_SCRIPT_PATH:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)}/modules/system/apt-keys/chatgpt-archive-keyring.asc"
 
 system_apt_is_deb822() {
     local version_id=""
@@ -84,6 +85,35 @@ system_apt_configure_unofficial() {
         https://packages.wazuh.com/key/GPG-KEY-WAZUH deb stable amd64 https://packages.wazuh.com/4.x/apt
     system_apt_repository_engine "${SYSTEM_APT_WEBMIN:-0}" webmin \
         https://download.webmin.com/jcameron-key.asc deb sarge "" http://download.webmin.com/download/repository contrib
+    if [[ "${SYSTEM_APT_CGPT:-0}" == 1 ]]; then
+        system_apt_cgpt_configure
+    else
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" \
+            "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY/chatgpt-archive-keyring.gpg"
+    fi
+}
+
+system_apt_cgpt_configure() {
+    local keyring="$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY/chatgpt-archive-keyring.gpg"
+    install -d -m 0755 "$SYSTEM_APT_THIRD_PARTY_DIRECTORY" "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY"
+    install -m 0644 "$SYSTEM_APT_CGPT_KEY_FILE" "$keyring"
+    if system_apt_is_deb822; then
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list"
+        cat > "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" <<EOF
+### THIS FILE IS MANAGED BY DIU ###
+X-Repolib-Name: ChatGPT
+Types: deb
+URIs: https://persistent.oaistatic.com/codex-app-prod/linux/deb
+Suites: stable
+Components: main
+Architectures: amd64
+Signed-By: $keyring
+EOF
+    else
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources"
+        printf 'deb [arch=amd64 signed-by=%s] %s stable main\n' "$keyring" \
+            https://persistent.oaistatic.com/codex-app-prod/linux/deb > "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list"
+    fi
 }
 
 system_apt_debian_is_deb822() {
@@ -199,6 +229,7 @@ system_apt_repository_variable() {
         vscode|code) printf '%s' SYSTEM_APT_VSCODE ;;
         wazuh|wazuh-4) printf '%s' SYSTEM_APT_WAZUH ;;
         webmin) printf '%s' SYSTEM_APT_WEBMIN ;;
+        cgpt|chatgpt|codex|openai) printf '%s' SYSTEM_APT_CGPT ;;
         *) return 1 ;;
     esac
 }
@@ -239,6 +270,11 @@ system_apt_remove_repository() {
         return 2
     }
     system_apt_set_repository_variable "$variable" 0
+    if [[ "$variable" == SYSTEM_APT_CGPT ]]; then
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" \
+            "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" \
+            "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/openai-codex.sources"
+    fi
     system_apt_debian_configure
 }
 
