@@ -1,11 +1,109 @@
 #!/usr/bin/env bash
 
-# Registre explicite des recettes APT. Il restera vide tant qu'aucun logiciel
-# tiers n'aura été déclaré par une évolution dédiée.
 software_apt_recipe() {
     case "${1,,}:${2,,}" in
+        chatgpt:install) printf '%s' software_apt_chatgpt_install ;;
+        chatgpt:remove) printf '%s' software_apt_chatgpt_remove ;;
+        chatgpt:update) printf '%s' software_apt_chatgpt_update ;;
         *) return 1 ;;
     esac
+}
+
+software_apt_chatgpt_desktop_file="/usr/share/applications/chatgpt.desktop"
+
+software_apt_chatgpt_home_path() {
+    local configured_home="${SOFTWARES_APT_CHATGPT_HOME:-~/.codex}"
+    case "$configured_home" in
+        '~') configured_home="${HOME:-}" ;;
+        \~/*) configured_home="${HOME:-}/${configured_home:2}" ;;
+    esac
+    [[ -n "$configured_home" && "$configured_home" != *$'\n'* ]] || {
+        print_error "Chemin CODEX_HOME invalide."
+        return 1
+    }
+    printf '%s' "$configured_home"
+}
+
+software_apt_chatgpt_set_desktop_home() {
+    local desktop_file="${SOFTWARES_APT_CHATGPT_DESKTOP_FILE:-$software_apt_chatgpt_desktop_file}"
+    local home_path temporary mode
+    [[ -f "$desktop_file" ]] || {
+        print_error "Fichier desktop ChatGPT introuvable : $desktop_file"
+        return 1
+    }
+    home_path="$(software_apt_chatgpt_home_path)" || return 1
+    [[ "$home_path" != *'"'* ]] || {
+        print_error "Chemin CODEX_HOME non représentable dans le fichier desktop."
+        return 1
+    }
+    local desktop_home="$home_path"
+    if [[ "$desktop_home" == *[[:space:]]* ]]; then
+        desktop_home="\"$desktop_home\""
+    fi
+    temporary="$(mktemp)" || return 1
+    mode="$(stat -c '%a' "$desktop_file")" || { rm -f -- "$temporary"; return 1; }
+    if ! awk -v desktop_home="$desktop_home" '
+        BEGIN {
+            exec_line = "Exec=env CODEX_HOME=" desktop_home " chatgpt %U"
+            updated = 0
+        }
+        /^Exec=/ && !updated { print exec_line; updated = 1; next }
+        { print }
+        END { exit !updated }
+    ' "$desktop_file" > "$temporary"; then
+        rm -f -- "$temporary"
+        print_error "Entrée Exec absente du fichier desktop ChatGPT."
+        return 1
+    fi
+    chmod "$mode" "$temporary" || { rm -f -- "$temporary"; return 1; }
+    mv -- "$temporary" "$desktop_file"
+}
+
+software_apt_chatgpt_update_indexes() {
+    apt -y update
+}
+
+software_apt_chatgpt_is_installed() {
+    dpkg-query -W -f='${db:Status-Status}' chatgpt 2>/dev/null | grep -qx installed
+}
+
+software_apt_chatgpt_install() {
+    if [[ "${SYSTEM_APT_CGPT:-0}" != 1 ]]; then
+        declare -F system_apt_install_repository >/dev/null 2>&1 || {
+            print_error "Moteur de dépôts APT indisponible pour ChatGPT."
+            return 1
+        }
+        system_apt_install_repository cgpt || return 1
+        software_apt_chatgpt_update_indexes || return 1
+    fi
+    if software_apt_chatgpt_is_installed; then
+        print_info "ChatGPT est déjà installé."
+    else
+        apt -y install chatgpt || return 1
+    fi
+    software_apt_chatgpt_set_desktop_home
+}
+
+software_apt_chatgpt_remove() {
+    if software_apt_chatgpt_is_installed; then
+        apt -y remove chatgpt || return 1
+    else
+        print_info "ChatGPT est déjà absent."
+    fi
+    declare -F system_apt_remove_repository >/dev/null 2>&1 || {
+        print_error "Moteur de dépôts APT indisponible pour ChatGPT."
+        return 1
+    }
+    system_apt_remove_repository cgpt || return 1
+    software_apt_chatgpt_update_indexes
+}
+
+software_apt_chatgpt_update() {
+    software_apt_chatgpt_is_installed || {
+        print_error "ChatGPT n'est pas installé."
+        return 1
+    }
+    software_apt_chatgpt_set_desktop_home
 }
 
 software_apt_action() {
@@ -34,10 +132,40 @@ software_apt_update() {
     fi
 }
 
+software_apt_known_software() {
+    printf '%s\n' chatgpt
+}
+
+software_apt_update_selective() {
+    local software result=0
+    while IFS= read -r software; do
+        [[ -n "${software}" ]] || continue
+        [[ "${SOFTWARES_APT_CHATGPT:-0}" == 1 && "$software" == chatgpt ]] || continue
+        if software_apt_action update "$software"; then
+            print_success "softwares/apt/$software : terminé."
+        else
+            print_error "softwares/apt/$software : échec."
+            result=1
+        fi
+    done < <(software_apt_known_software)
+    return "$result"
+}
+
+software_apt_update_all() {
+    local result=0
+    if ! software_apt_update; then
+        result=1
+    fi
+    if ! software_apt_update_selective; then
+        result=1
+    fi
+    return "$result"
+}
+
 manage_softwares_action() {
     local action="${1:-}" engine="${2:-}" software="${3:-}"
     case "$action:$engine" in
-        install:apt|remove:apt|update:apt)
+        install:apt|remove:apt)
             [[ $# -eq 3 ]] || { print_error "Usage : rid softwares $action apt <SOFTWARE>"; return 2; }
             software_apt_action "$action" "$software"
             ;;
@@ -45,10 +173,23 @@ manage_softwares_action() {
             [[ $# -eq 2 ]] || { print_error "Usage : rid softwares apt update"; return 2; }
             software_apt_update
             ;;
+        update:apt)
+            if [[ $# -eq 3 ]]; then
+                software_apt_action update "$software"
+            elif [[ $# -eq 2 ]]; then
+                software_apt_update_all
+            else
+                print_error "Usage : rid softwares update apt [SOFTWARE]"
+                return 2
+            fi
+            ;;
+        update:)
+            [[ $# -eq 1 ]] || { print_error "Usage : rid softwares update"; return 2; }
+            software_apt_update_all
+            ;;
         *)
             print_error "Commande softwares inconnue : $*"
             return 2
             ;;
     esac
 }
-

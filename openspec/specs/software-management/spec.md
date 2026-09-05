@@ -260,3 +260,110 @@ la mise à jour globale APT appartient au module `softwares`.
 - **WHEN** DIU démarre
 - **THEN** le module `system` est chargé avant `softwares`
 - **AND** les modules suivants sont chargés après `softwares`
+
+### Requirement: Variables ChatGPT du moteur APT
+
+Le scope `softwares` SHALL déclarer `SOFTWARES_APT_CHATGPT` et
+`SOFTWARES_APT_CHATGPT_HOME` avec l'état `ENABLE`. La valeur par défaut de
+`SOFTWARES_APT_CHATGPT` SHALL être `0`, puis son initialisation SHALL détecter
+le statut installé du paquet Debian `chatgpt` et produire `1` lorsqu'il est
+installé. La valeur par défaut de `SOFTWARES_APT_CHATGPT_HOME` SHALL être
+`~/.codex`.
+
+#### Scenario: ChatGPT absent au démarrage
+
+- **WHEN** le paquet Debian `chatgpt` n'est pas installé
+- **THEN** `SOFTWARES_APT_CHATGPT` vaut `0`
+
+#### Scenario: ChatGPT présent au démarrage
+
+- **WHEN** le paquet Debian `chatgpt` est installé
+- **THEN** `SOFTWARES_APT_CHATGPT` vaut `1`
+
+### Requirement: Installation APT de ChatGPT
+
+`rid install apt chatgpt` et `rid softwares install apt chatgpt` SHALL utiliser
+la recette explicite ChatGPT. Lorsque `SYSTEM_APT_CGPT` ne vaut pas `1`, elle SHALL préparer le
+dépôt avec le moteur `system`, actualiser les index APT, puis installer le
+paquet `chatgpt`. Après une installation réussie, elle SHALL modifier
+`/usr/share/applications/chatgpt.desktop` pour définir une entrée
+`Exec=env CODEX_HOME=<HOME résolu> chatgpt %U`.
+
+#### Scenario: Dépôt CGPT absent
+
+- **WHEN** ChatGPT est installé alors que `SYSTEM_APT_CGPT` vaut `0`
+- **THEN** le dépôt CGPT est préparé, les index sont actualisés, puis le paquet
+  `chatgpt` est installé
+- **AND** le fichier desktop reçoit la variable `CODEX_HOME`
+
+#### Scenario: Dépôt CGPT déjà disponible
+
+- **WHEN** ChatGPT est installé alors que `SYSTEM_APT_CGPT` vaut `1`
+- **THEN** la recette n'installe pas à nouveau le dépôt
+- **AND** elle installe le paquet puis modifie le fichier desktop
+
+### Requirement: Désinstallation APT de ChatGPT
+
+`rid remove apt chatgpt` et `rid softwares remove apt chatgpt` SHALL supprimer le paquet `chatgpt`, puis
+retirer le dépôt CGPT avec le moteur `system`, puis actualiser les index APT.
+Tout échec SHALL être propagé et l'ordre SHALL être conservé.
+
+#### Scenario: Désinstallation complète
+
+- **WHEN** ChatGPT est installé et le dépôt CGPT est actif
+- **THEN** DIU supprime le paquet, retire le dépôt, puis actualise les index
+  APT
+
+### Requirement: Mise à jour sélective APT de ChatGPT
+
+`rid update apt chatgpt` et `rid softwares update apt chatgpt` SHALL vérifier
+que le paquet `chatgpt` est installé puis SHALL réappliquer la modification de
+`/usr/share/applications/chatgpt.desktop`. Cette action SHALL NOT mettre à jour
+le paquet : les mises à jour APT sont gérées globalement.
+
+#### Scenario: Paquet absent
+
+- **WHEN** ChatGPT n'est pas installé
+- **THEN** la mise à jour échoue explicitement sans installation
+
+#### Scenario: ChatGPT installé
+
+- **WHEN** ChatGPT est installé
+- **THEN** aucune commande APT de mise à jour sélective n'est invoquée
+- **AND** la ligne desktop contient `CODEX_HOME`
+
+### Requirement: Mise à jour globale APT du module softwares
+
+`rid softwares update apt` SHALL exécuter `rid softwares apt update`, puis
+réexécuter les mises à jour sélectives des logiciels APT reconnus et installés.
+La phase sélective SHALL toujours être exécutée après la phase APT. Les
+logiciels absents ou non déclarés SHALL être ignorés sans installation.
+
+#### Scenario: Ordre des phases
+
+- **WHEN** l'utilisateur invoque `rid softwares update apt`
+- **THEN** DIU exécute d'abord la mise à jour APT globale
+- **AND** DIU exécute ensuite les mises à jour sélectives applicables
+
+#### Scenario: Logiciel absent
+
+- **WHEN** un logiciel reconnu n'est pas installé
+- **THEN** DIU ne rejoue pas sa mise à jour sélective
+- **AND** DIU ne l'installe pas
+
+### Requirement: Intégration aux mises à jour globales
+
+`rid softwares update` SHALL appeler la même séquence que `rid softwares update
+apt`. `rid update` SHALL inclure cette séquence une seule fois pour le module
+`softwares`.
+
+#### Scenario: Mise à jour du module softwares
+
+- **WHEN** l'utilisateur invoque `rid softwares update`
+- **THEN** DIU exécute la mise à jour APT puis les mises à jour sélectives
+
+#### Scenario: Mise à jour de tous les modules
+
+- **WHEN** l'utilisateur invoque `rid update`
+- **THEN** DIU exécute la séquence `softwares` après la phase APT
+- **AND** aucune mise à jour sélective n'est rejouée une seconde fois

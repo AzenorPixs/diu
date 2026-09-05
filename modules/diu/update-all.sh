@@ -5,8 +5,8 @@
 update_all() {
     local result=0 module hermes_directory=""
     print_title "Mise à jour de tous les modules DIU"
-    if declare -F software_apt_update >/dev/null 2>&1; then
-        if (set -Eeuo pipefail; software_apt_update); then
+    if declare -F software_apt_update_all >/dev/null 2>&1; then
+        if (set -Eeuo pipefail; software_apt_update_all); then
             print_success "softwares/apt : terminé."
         else
             print_error "softwares/apt : échec."

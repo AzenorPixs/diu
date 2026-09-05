@@ -55,6 +55,7 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
                 'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
                 'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
                 'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
+                'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
                 'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.'
             ;;
         *)
@@ -496,6 +497,7 @@ EOF
                 'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
                 'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
                 'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
+                'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
                 'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.'
             ;;
         *)
