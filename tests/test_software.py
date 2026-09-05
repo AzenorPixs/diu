@@ -141,6 +141,39 @@ source "$ROOT/modules/softwares/github.sh"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_codex_cli_home_tilde_is_resolved_for_current_user(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+SOFTWARES_APT_CODEX_CLI_HOME='~/.codex'
+[[ "$(software_github_codex_cli_root)" == "$HOME/.codex" ]]
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_github_codex_cli_remove_reports_version(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+codex_root="$TMPDIR/codex-home"
+mkdir -p "$codex_root/packages/standalone" "$TMPDIR/bin"
+printf '#!/bin/sh\nprintf "codex-cli 1.2.3\\n"\n' > "$TMPDIR/bin/codex"
+chmod 0755 "$TMPDIR/bin/codex"
+SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
+    software_github_codex_cli_remove
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('OK softwares/github/codex-cli (1.2.3): désinstallé.', result.stdout)
+
+    def test_apt_chatgpt_remove_reports_version(self):
+        result, _, _ = self.run_shell(r'''
+    dpkg-query() {
+        if [[ "$*" == *db:Status-Status* ]]; then printf 'installed'; else printf '2.4.0'; fi
+    }
+apt() { :; }
+system_apt_remove_repository() { :; }
+manage_softwares_action remove apt chatgpt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('OK softwares/apt/chatgpt (2.4.0): désinstallé.', result.stdout)
+
     def test_chatgpt_variables_detect_package_and_default_home(self):
         result, _, _ = self.run_shell(r'''
 source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"

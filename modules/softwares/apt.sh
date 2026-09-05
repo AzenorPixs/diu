@@ -67,7 +67,12 @@ software_apt_chatgpt_is_installed() {
     dpkg-query -W -f='${db:Status-Status}' chatgpt 2>/dev/null | grep -qx installed
 }
 
+software_apt_chatgpt_version() {
+    dpkg-query -W -f='${Version}' chatgpt 2>/dev/null
+}
+
 software_apt_chatgpt_install() {
+    local was_installed=0
     if [[ "${SYSTEM_APT_CGPT:-0}" != 1 ]]; then
         declare -F system_apt_install_repository >/dev/null 2>&1 || {
             print_error "Moteur de dépôts APT indisponible pour ChatGPT."
@@ -77,18 +82,25 @@ software_apt_chatgpt_install() {
         software_apt_chatgpt_update_indexes || return 1
     fi
     if software_apt_chatgpt_is_installed; then
-        print_info "ChatGPT est déjà installé."
+        was_installed=1
+        print_info "softwares/apt/chatgpt : déjà installé ($(software_apt_chatgpt_version))."
     else
         apt -y install chatgpt || return 1
     fi
-    software_apt_chatgpt_set_desktop_home
+    software_apt_chatgpt_set_desktop_home || return 1
+    if [[ "$was_installed" == 0 ]]; then
+        print_success "softwares/apt/chatgpt ($(software_apt_chatgpt_version)): installé."
+    fi
 }
 
 software_apt_chatgpt_remove() {
+    local installed_version
     if software_apt_chatgpt_is_installed; then
+        installed_version="$(software_apt_chatgpt_version)"
         apt -y remove chatgpt || return 1
+        print_success "softwares/apt/chatgpt (${installed_version:-inconnue}): désinstallé."
     else
-        print_info "ChatGPT est déjà absent."
+        print_info "softwares/apt/chatgpt : déjà désinstallé."
     fi
     declare -F system_apt_remove_repository >/dev/null 2>&1 || {
         print_error "Moteur de dépôts APT indisponible pour ChatGPT."
@@ -104,6 +116,7 @@ software_apt_chatgpt_update() {
         return 1
     }
     software_apt_chatgpt_set_desktop_home
+    print_info "softwares/apt/chatgpt ($(software_apt_chatgpt_version)): déjà à jour."
 }
 
 software_apt_action() {
