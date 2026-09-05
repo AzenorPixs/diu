@@ -119,6 +119,28 @@ software_github_action install demo
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(calls.splitlines(), ['install'])
 
+    def test_codex_cli_remove_keeps_profile(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+codex_root="$TMPDIR/codex-home"
+mkdir -p "$codex_root/packages/standalone" "$TMPDIR/bin"
+printf 'profile' > "$codex_root/config.toml"
+printf '#!/bin/sh\n' > "$TMPDIR/bin/codex"
+chmod 0755 "$TMPDIR/bin/codex"
+SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
+    software_github_codex_cli_remove
+[[ -f "$codex_root/config.toml" && ! -e "$TMPDIR/bin/codex" && ! -e "$codex_root/packages/standalone" ]]
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_codex_cli_recipe_is_explicit(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+[[ "$(software_github_recipe codex-cli install)" == software_github_codex_cli_install ]]
+[[ "$(software_github_recipe unknown install 2>/dev/null || true)" == '' ]]
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_chatgpt_variables_detect_package_and_default_home(self):
         result, _, _ = self.run_shell(r'''
 source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
