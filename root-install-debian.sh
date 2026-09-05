@@ -102,6 +102,12 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
                 "${2}" "$([[ "${2}" == install ]] && printf 'Installe' || printf 'Supprime')"
             ;;
+        system:apt)
+            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
+            ;;
+        system:apt:update)
+            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
+            ;;
         system:install:apt|system:remove:apt)
             operation="${2}"
             printf '%s\n' \
@@ -443,7 +449,7 @@ EOF
                 'rid system update apt debian → Met à jour les paquets Debian.'
             ;;
         system:apt:)
-            printf '%s\n' 'rid system apt → Met à jour le système via APT.'
+            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
             ;;
         system:update:apt)
             printf '%s\n' 'rid system update apt debian → Met à jour les paquets Debian.'
