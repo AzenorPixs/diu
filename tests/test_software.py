@@ -100,6 +100,25 @@ class SoftwareTests(unittest.TestCase):
         self.assertIn('non pris en charge', result.stdout)
         self.assertEqual(calls, '')
 
+    def test_github_unknown_recipe_does_not_call_system(self):
+        result, calls, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+manage_software_action() { :; }
+software_github_action install unknown
+''')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(calls, '')
+
+    def test_github_recipe_registry_routes_explicitly(self):
+        result, calls, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+software_github_recipe() { [[ "$1:$2" == demo:install ]] && printf '%s' demo_install; }
+demo_install() { echo install >> "$CALLS"; }
+software_github_action install demo
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['install'])
+
     def test_chatgpt_variables_detect_package_and_default_home(self):
         result, _, _ = self.run_shell(r'''
 source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
