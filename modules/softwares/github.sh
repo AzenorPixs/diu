@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016,SC2088
 
 # Les recettes sont enregistrées explicitement par le module qui les fournit.
 software_github_recipe() {
@@ -10,8 +11,15 @@ software_github_recipe() {
     esac
 }
 
-software_github_codex_cli_root() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_HOME:-$HOME/.codex}"; }
+software_github_codex_cli_root() {
+    local configured_home="${SOFTWARES_APT_CODEX_CLI_HOME:-~/.codex}"
+    case "$configured_home" in
+        '~/'*) printf '%s/%s\n' "$HOME" "${configured_home#\~/}" ;;
+        *) printf '%s\n' "$configured_home" ;;
+    esac
+}
 software_github_codex_cli_binary() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_BIN:-$HOME/.local/bin/codex}"; }
+software_github_codex_cli_version() { "$(software_github_codex_cli_binary)" --version 2>/dev/null | sed -n 's/.* \([0-9][0-9A-Za-z.+-]*\)$/\1/p' | head -n 1; }
 
 software_github_codex_cli_install() {
     local root archive checksum_file metadata tag asset checksum expected actual staging binary
@@ -47,37 +55,56 @@ software_github_codex_cli_install() {
     mkdir -p "$(dirname "$binary")"
     {
         printf '%s\n' '#!/bin/sh'
-        printf 'export CODEX_HOME=%s\n' "$(printf '%s' "$root" | sed "s/'/'\\''/g; s/^/'/; s/$/'/")"
-        printf 'exec %s/packages/standalone/current/bin/codex "$@"\n' "$(printf '%s' "$root" | sed "s/'/'\\''/g; s/^/'/; s/$/'/")"
+        printf '%s\n' 'config_file="${DIU_CONFIG_FILE:-/root/diu/config/softwares.env}"'
+        printf '%s\n' '[ -r "$config_file" ] && . "$config_file"'
+        printf '%s\n' 'configured_home="${SOFTWARES_APT_CODEX_CLI_HOME:-~/.codex}"'
+        printf '%s\n' 'case "$configured_home" in'
+        printf '%s\n' '    ~/*) CODEX_HOME="$HOME/${configured_home#~/}" ;;'
+        printf '%s\n' '    *) CODEX_HOME="$configured_home" ;;'
+        printf '%s\n' 'esac'
+        printf '%s\n' 'export CODEX_HOME'
+        printf '%s\n' 'exec "$CODEX_HOME/packages/standalone/current/bin/codex" "$@"'
     } >"$binary"
     chmod 0755 "$binary"
     rm -f "$archive" "$checksum_file"
     SOFTWARES_APT_CODEX_CLI=1
     export SOFTWARES_APT_CODEX_CLI
+    local installed_version
+    installed_version="$(software_github_codex_cli_version)"
+    print_success "softwares/github/codex-cli (${installed_version:-inconnue}): installé."
 }
 
 software_github_codex_cli_remove() {
-    local root binary
+    local root binary installed_version
     root="$(software_github_codex_cli_root)"
     binary="$(software_github_codex_cli_binary)"
+    if [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]]; then
+        installed_version="$(software_github_codex_cli_version)"
+    else
+        print_info "softwares/github/codex-cli : déjà désinstallé."
+        return 0
+    fi
     rm -f "$binary"
     rm -rf "$root/packages/standalone"
     SOFTWARES_APT_CODEX_CLI=0
     export SOFTWARES_APT_CODEX_CLI
+    print_success "softwares/github/codex-cli (${installed_version:-inconnue}): désinstallé."
 }
 
 software_github_codex_cli_update() {
-    local binary local_version metadata remote_version
+    local binary local_version metadata remote_version updated_version
     [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]] || { print_error "Codex CLI n'est pas installé."; return 1; }
     binary="$(software_github_codex_cli_binary)"
-    local_version="$($binary --version 2>/dev/null | sed -n 's/.* \([0-9][0-9A-Za-z.+-]*\)$/\1/p' | head -n 1)"
+    local_version="$(software_github_codex_cli_version)"
     metadata="$(curl --fail --silent --show-error --location --header 'Accept: application/vnd.github+json' 'https://api.github.com/repos/openai/codex/releases/latest')" || return 1
     remote_version="$(printf '%s\n' "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"rust-v\([^"]*\)".*/\1/p' | head -n 1)"
     if [[ -n "$local_version" && -n "$remote_version" ]] && ! software_github_version_is_newer "$local_version" "$remote_version"; then
         print_info "Codex CLI est déjà à jour ($local_version)."
         return 0
     fi
-    software_github_codex_cli_install
+    software_github_codex_cli_install >/dev/null || return 1
+    updated_version="$(software_github_codex_cli_version)"
+    print_success "softwares/github/codex-cli (${local_version:-inconnue} --> ${updated_version:-inconnue}): mis à jour."
 }
 
 software_github_version_is_newer() {

@@ -533,3 +533,33 @@ variable d’état indique qu’il est installé. `rid softwares update` et
 
 - **WHEN** `SOFTWARES_APT_CODEX_CLI` vaut `1`
 - **THEN** la mise à jour globale compare puis met à jour Codex CLI si nécessaire
+
+### Requirement: Résultat visible des opérations des moteurs
+
+Les recettes des moteurs `apt` et `github` SHALL afficher une ligne de succès
+identifiant le moteur et le logiciel après chaque installation ou
+désinstallation effective. La ligne SHALL inclure la version installée lorsque
+celle-ci est disponible. Une mise à jour effective SHALL afficher les versions
+avant et après. Une opération idempotente SHALL afficher explicitement l'état
+déjà atteint et SHALL ne pas afficher une réussite d'installation, de
+désinstallation ou de mise à jour effective.
+
+#### Scenario: Installation avec version
+
+- **WHEN** `rid softwares install github codex-cli` réussit
+- **THEN** DIU affiche `✅ softwares/github/codex-cli (<VERSION>): installé.`
+
+#### Scenario: Désinstallation avec version
+
+- **WHEN** `rid softwares remove github codex-cli` réussit
+- **THEN** DIU affiche `✅ softwares/github/codex-cli (<VERSION>): désinstallé.`
+
+#### Scenario: Mise à jour avec changement de version
+
+- **WHEN** une recette `apt` ou `github` met effectivement à jour un logiciel
+- **THEN** DIU affiche `✅ softwares/<ENGINE>/<SOFTWARE> (<AVANT> --> <APRES>): mis à jour.`
+
+#### Scenario: Aucun changement
+
+- **WHEN** le logiciel est déjà installé, absent ou à jour selon l'action
+- **THEN** DIU affiche l'état sans présenter une mutation qui n'a pas eu lieu
