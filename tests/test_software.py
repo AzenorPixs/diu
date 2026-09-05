@@ -151,9 +151,10 @@ class SoftwareTests(unittest.TestCase):
     def test_update_all_deb_skips_vendor(self):
         result, calls, _ = self.run_shell('manage_update_action deb')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('vendor : non applicable', result.stdout)
+        self.assertNotIn('vendor : non applicable', result.stdout)
         self.assertIn('install -- foo=2.0', calls)
         self.assertNotIn('vendor=', calls)
+        self.assertEqual(calls.count('MUTATION'), 1)
 
     def test_apt_failures_propagate(self):
         for failure in ('INDEX_FAILURE', 'RESOLVE_FAILURE', 'APT_FAILURE'):
