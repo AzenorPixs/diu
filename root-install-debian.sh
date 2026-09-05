@@ -1675,23 +1675,6 @@ then
 
 	fi
 
-	if [ "$DOCKER" = "1" ]
-	then
-		rm -f /etc/apt/sources.list.d/docker.list
-
-		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN TRIXIE"
-		install -d -m 0755 /usr/share/keyrings
-		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor --yes --output /usr/share/keyrings/docker-archive-keyring.gpg
-
-		cat > /etc/apt/sources.list.d/docker.sources <<'EOF'
-Types: deb
-URIs: https://download.docker.com/linux/debian
-Suites: trixie
-Components: stable
-Signed-By: /usr/share/keyrings/docker-archive-keyring.gpg
-EOF
-	fi
-
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
 		if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
@@ -1824,52 +1807,6 @@ EOF
 			echo '' >> /etc/apt/sources.list.d/mongodb.sources
 
 		fi
-
-	fi
-
-	if [ $DEVOPS == "1" ]
-	then
-
-		if [ -f /etc/apt/sources.list.d/nodesource.list ]
-		then
-
-			rm -f /etc/apt/sources.list.d/nodesource.list
-
-		fi
-
-		echo "🔧 CONFIGURE APT NODE.JS SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor > /usr/share/keyrings/nodesource-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/nodesource.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'URIs: https://deb.nodesource.com/node_24.x' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Suites: nodistro' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Components: main' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Signed-By: /usr/share/keyrings/nodesource-archive-keyring.gpg' >> /etc/apt/sources.list.d/nodesource.sources
-		echo '' >> /etc/apt/sources.list.d/nodesource.sources
-
-	fi
-
-	if [ $VSCODE == "1" ]
-	then
-
-		if [ -f /etc/apt/sources.list.d/vscode.list ]
-		then
-
-			rm -f /etc/apt/sources.list.d/vscode.list
-
-		fi
-
-		echo "🔧 CONFIGURE APT VISUAL STUDIO CODE SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/vscode-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/vscode.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'URIs: https://packages.microsoft.com/repos/code' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Suites: stable' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Components: main' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Architectures: amd64' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Signed-By: /usr/share/keyrings/vscode-archive-keyring.gpg' >> /etc/apt/sources.list.d/vscode.sources
-		echo '' >> /etc/apt/sources.list.d/vscode.sources
 
 	fi
 
@@ -2062,15 +1999,6 @@ then
 
 	fi
 
-	if [ $DOCKER == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN BOOKWORM"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] http://download.docker.com/linux/debian bookworm stable' > /etc/apt/sources.list.d/docker.list
-		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker-archive-keyring.gpg
-
-	fi
-
 	if [ $LEMONLDAP == "1" ]
 	then
 
@@ -2197,15 +2125,6 @@ then
 		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BULLSEYE"
 		echo 'deb [signed-by=/usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg] http://packagecloud.io/crowdsec/crowdsec/debian/ bullseye main' > /etc/apt/sources.list.d/crowdsec.list
 		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
-
-	fi
-
-	if [ $DOCKER == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN BULLSEYE"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] http://download.docker.com/linux/debian bullseye stable' > /etc/apt/sources.list.d/docker.list
-		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker-archive-keyring.gpg
 
 	fi
 
