@@ -72,7 +72,6 @@ software_deb() (
             candidate="$(software_deb_candidate "$policy")"
             if [[ -z "$candidate" || "$candidate" == '(none)' ]] ||
                ! software_deb_version_available "$policy" "$candidate"; then
-                print_info "deb/$package : non applicable (aucune version officielle disponible)."
                 continue
             fi
             if ! software_deb_installed_official "$package" "$package_version" "$policy" "$indexes"; then
@@ -116,7 +115,6 @@ software_deb() (
                     return 1
                 fi
                 if dpkg --compare-versions "$candidate" le "$package_version"; then
-                    print_info "$package : déjà à jour."
                     continue
                 fi
                 targets+=("$package=$candidate")
