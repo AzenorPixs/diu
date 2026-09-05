@@ -14,7 +14,7 @@ software_github_codex_cli_root() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_HOME
 software_github_codex_cli_binary() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_BIN:-$HOME/.local/bin/codex}"; }
 
 software_github_codex_cli_install() {
-    local root archive metadata tag asset checksum expected actual staging binary
+    local root archive checksum_file metadata tag asset checksum expected actual staging binary
     [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { print_error "Codex CLI GitHub est pris en charge uniquement sur Linux x86_64."; return 1; }
     command -v curl >/dev/null 2>&1 || { print_error "curl est requis pour Codex CLI."; return 1; }
     command -v tar >/dev/null 2>&1 || { print_error "tar est requis pour Codex CLI."; return 1; }
@@ -22,13 +22,16 @@ software_github_codex_cli_install() {
     root="$(software_github_codex_cli_root)"
     binary="$(software_github_codex_cli_binary)"
     archive="$root/.codex-package.tar.gz"
+    checksum_file="$root/.codex-package_SHA256SUMS"
     metadata="$(curl --fail --silent --show-error --location --header 'Accept: application/vnd.github+json' 'https://api.github.com/repos/openai/codex/releases/latest')" || return 1
     tag="$(printf '%s\n' "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
     [[ "$tag" == rust-v[0-9]* ]] || { print_error "Release Codex CLI GitHub invalide."; return 1; }
     asset="codex-package-x86_64-unknown-linux-musl.tar.gz"
-    checksum="$(printf '%s\n' "$metadata" | sed -n "/\"name\"[[:space:]]*:[[:space:]]*\"$asset\"/,/}/p" | sed -n 's/.*"digest"[[:space:]]*:[[:space:]]*"sha256:\([0-9a-fA-F]\{64\}\)".*/\1/p' | head -n 1)"
-    [[ "$checksum" =~ ^[0-9a-fA-F]{64}$ ]] || { print_error "Digest SHA-256 Codex CLI introuvable."; return 1; }
+    printf '%s\n' "$metadata" | grep -F '"name": "'"$asset"'"' >/dev/null || { print_error "Archive Codex CLI x86_64 introuvable dans la release GitHub."; return 1; }
     mkdir -p "$root"
+    curl --fail --silent --show-error --location "https://github.com/openai/codex/releases/download/$tag/codex-package_SHA256SUMS" -o "$checksum_file" || return 1
+    checksum="$(awk -v asset="$asset" 'length($1) == 64 && $1 !~ /[^0-9a-fA-F]/ && $2 == asset { print tolower($1); exit }' "$checksum_file")"
+    [[ "$checksum" =~ ^[0-9a-fA-F]{64}$ ]] || { print_error "Digest SHA-256 Codex CLI introuvable dans le manifeste GitHub."; rm -f "$checksum_file"; return 1; }
     curl --fail --silent --show-error --location "https://github.com/openai/codex/releases/download/$tag/$asset" -o "$archive" || return 1
     expected="$(printf '%s  %s\n' "$checksum" "$archive")"
     actual="$(sha256sum "$archive")"
@@ -48,7 +51,7 @@ software_github_codex_cli_install() {
         printf 'exec %s/packages/standalone/current/bin/codex "$@"\n' "$(printf '%s' "$root" | sed "s/'/'\\''/g; s/^/'/; s/$/'/")"
     } >"$binary"
     chmod 0755 "$binary"
-    rm -f "$archive"
+    rm -f "$archive" "$checksum_file"
     SOFTWARES_APT_CODEX_CLI=1
     export SOFTWARES_APT_CODEX_CLI
 }
