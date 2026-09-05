@@ -25,6 +25,7 @@ if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
         'rid install → Installation de logiciels.' \
         'rid remove  → Suppression de logiciels.' \
         'rid update  → Mise à jour des composants.' \
+        'rid softwares → Gestion et installation des logiciels.' \
         'rid system  → Gestion du système Debian.' \
         'rid version   → Affiche la version du DIU.'
     exit 0
@@ -48,6 +49,13 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
             ;;
         update)
             printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
+            ;;
+        softwares)
+            printf '%s\n' \
+                'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
+                'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
+                'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
+                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.'
             ;;
         *)
             printf 'rid %s → Affiche les sous-commandes disponibles.\n' "${1:-}"
@@ -156,6 +164,7 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/system/apt.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/apt.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/find.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
@@ -370,6 +379,11 @@ dispatch_arguments() {
             manage_software_action "$@"
             ;;
 
+        softwares)
+            shift
+            manage_softwares_action "$@"
+            ;;
+
         update)
             shift
             manage_update_action "$@"
@@ -476,6 +490,13 @@ EOF
             ;;
         update::)
             printf '%s\n' 'rid update → Mise à jour du système.'
+            ;;
+        softwares::)
+            printf '%s\n' \
+                'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
+                'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
+                'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
+                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.'
             ;;
         *)
             display_usage
