@@ -21,6 +21,12 @@
 - [x] Étendre rid update à toutes les opérations applicables et à DIU lui-même.
 - [x] Ajouter le bilan global et la propagation des échecs.
 
+## 3 bis. Mise à jour des images Docker
+
+- [x] Utiliser la fonction générique Docker avec une politique explicite.
+- [x] Corriger l'appel Hermes et supprimer la dépendance à la variable globale obsolète.
+- [x] Vérifier la syntaxe, les tests et la validation OpenSpec.
+
 ## 4. Étape ultérieure : moteur apt
 
 - [ ] Définir les logiciels reconnus et leur dépendance ou non à un dépôt.

@@ -28,16 +28,15 @@ ensure_docker_image() {
 	#            Docker ne télécharge que les couches absentes ou modifiées.
 	#
 	# Politique par défaut :
-	#   Si le deuxième argument n'est pas fourni, la fonction utilise la
-	#   variable globale DOCKER_IMAGE_UPDATE_POLICY.
+	#   Si le deuxième argument n'est pas fourni, la politique "check" est
+	#   utilisée. Les appelants doivent fournir leur variable de politique.
 	#
 	#   Si cette variable globale est absente ou vide, la politique "check"
 	#   est utilisée par défaut.
 	#
 	# Priorité de sélection de la politique :
 	#   1. Deuxième argument passé à la fonction ;
-	#   2. Variable globale DOCKER_IMAGE_UPDATE_POLICY ;
-	#   3. Valeur par défaut "check".
+	#   2. Valeur par défaut "check".
 	#
 	# Exemples :
 	#
@@ -66,9 +65,8 @@ ensure_docker_image() {
     fi
 
     # Le deuxième argument est prioritaire.
-    # À défaut, la politique globale est utilisée.
-    # Si aucune des deux n'est définie, la valeur "check" est appliquée.
-    update_policy="${requested_policy:-${DOCKER_IMAGE_UPDATE_POLICY:-check}}"
+    # Si aucune politique n'est fournie, la valeur "check" est appliquée.
+    update_policy="${requested_policy:-check}"
 
     case "${update_policy}" in
         never|check|always)

@@ -108,6 +108,15 @@ l'aide, reste disponible. Aucun parcours ne lance automatiquement d'opération G
 
 ## Validation
 
+### Mise à jour des images Docker
+
+Le module Docker fournit une fonction générique `ensure_docker_image` prenant
+une image et une politique (`never`, `check` ou `always`). La politique passée
+en argument est prioritaire et aucune variable globale historique ne doit être
+nécessaire. Les modules logiciels appellent cette fonction avec leur variable
+d'image et leur variable de politique propres. Hermes utilise donc
+`DOCKER_IMAGE_HERMES` et `DOCKER_IMAGE_HERMES_UPDATE_POLICY`.
+
 Les tests devront simuler APT, les recettes et les participants globaux, sans
 modifier les logiciels de la machine. Ils devront vérifier les arguments,
 l'isolation des moteurs, les appels, les échecs et la non-duplication.
