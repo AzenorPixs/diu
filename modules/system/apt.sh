@@ -67,10 +67,32 @@ system_apt_debian_update() {
     software_deb update "" 1
 }
 
+system_install_prerequisites() {
+    local package
+    local -a prerequisites=()
+
+    prerequisites=(
+        aptitude apache2-utils apt-transport-https bash-completion
+        bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg
+        gpg inetutils-telnet iptables jq lshw lsb-release man-db manpages-fr
+        net-tools netcat-traditional nicstat openssl pciutils ripgrep shellcheck
+        pytest ripgrep shellcheck sudo tcpdump traceroute tree util-linux wget
+    )
+
+    while IFS= read -r package; do
+        if ! dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null |
+            grep -qx installed; then
+            print_info "Installation du prérequis : $package"
+            apt-get install -y -- "$package"
+        fi
+    done < <(printf '%s\n' "${prerequisites[@]}" | LC_ALL=C sort -u)
+}
+
 system_apt_update() {
     system_apt_debian_configure
     apt-get update
     apt-get dist-upgrade -y
+    system_install_prerequisites
 }
 
 system_update() {

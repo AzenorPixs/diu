@@ -1,0 +1,5 @@
+- [x] Implémenter la fonction d'installation dans `modules/system/apt.sh`.
+- [x] L'appeler après la mise à jour APT dans les parcours concernés.
+- [ ] Ajouter ou adapter les tests ciblés.
+- [x] Valider la spécification et vérifier la syntaxe Bash.
+- [x] Archiver le changement OpenSpec après validation.
