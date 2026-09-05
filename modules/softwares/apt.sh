@@ -154,9 +154,7 @@ software_apt_update_selective() {
     while IFS= read -r software; do
         [[ -n "${software}" ]] || continue
         [[ "${SOFTWARES_APT_CHATGPT:-0}" == 1 && "$software" == chatgpt ]] || continue
-        if software_apt_action update "$software"; then
-            print_success "softwares/apt/$software : terminé."
-        else
+        if ! software_apt_action update "$software"; then
             print_error "softwares/apt/$software : échec."
             result=1
         fi
