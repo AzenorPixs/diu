@@ -27,7 +27,7 @@ software_github_codex_cli_install() {
     tag="$(printf '%s\n' "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
     [[ "$tag" == rust-v[0-9]* ]] || { print_error "Release Codex CLI GitHub invalide."; return 1; }
     asset="codex-package-x86_64-unknown-linux-musl.tar.gz"
-    printf '%s\n' "$metadata" | grep -F '"name": "'"$asset"'"' >/dev/null || { print_error "Archive Codex CLI x86_64 introuvable dans la release GitHub."; return 1; }
+    printf '%s\n' "$metadata" | grep -F "$asset" >/dev/null || { print_error "Archive Codex CLI x86_64 introuvable dans la release GitHub."; return 1; }
     mkdir -p "$root"
     curl --fail --silent --show-error --location "https://github.com/openai/codex/releases/download/$tag/codex-package_SHA256SUMS" -o "$checksum_file" || return 1
     checksum="$(awk -v asset="$asset" 'length($1) == 64 && $1 !~ /[^0-9a-fA-F]/ && $2 == asset { print tolower($1); exit }' "$checksum_file")"
