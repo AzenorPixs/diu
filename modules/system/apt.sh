@@ -68,6 +68,7 @@ system_apt_debian_update() {
 }
 
 system_apt_update() {
+    system_apt_debian_configure
     apt-get update
     apt-get dist-upgrade -y
 }
