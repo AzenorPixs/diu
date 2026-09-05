@@ -6,3 +6,5 @@
 - [ ] Retirer les déclarations de dépôts tiers du script monolithique.
 - [ ] Ajouter les tests d'écriture et de suppression des deux formats APT.
 - [ ] Vérifier et clôturer la spécification.
+- [x] Corriger les fichiers deb822 NVIDIA pour omettre `Components`.
+- [x] Ajouter la spécification OpenSpec du comportement NVIDIA.
