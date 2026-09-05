@@ -12,6 +12,137 @@ set -Eeuo pipefail
 
 # Le chemin où je me trouve est
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
+
+# L'aide racine reste disponible même si la configuration de production est
+# absente ou inaccessible.
+if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
+    printf '%s\n' \
+        'rid devops  → Outils DevOps et OpenSpec.' \
+        'rid docker  → Gestion Docker root et rootless.' \
+        'rid ia      → Gestion des agents IA.' \
+        'rid os      → Validation OpenSpec.' \
+        'rid proj    → Gestion des projets et publications.' \
+        'rid install → Installation de logiciels.' \
+        'rid remove  → Suppression de logiciels.' \
+        'rid update  → Mise à jour des composants.' \
+        'rid system  → Gestion du système Debian.' \
+        'rid version   → Affiche la version du DIU.'
+    exit 0
+fi
+
+if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
+    case "${1:-}" in
+        system)
+            printf '%s\n' \
+                'rid system install apt <Dépôt> → Installe un dépôt APT.' \
+                'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
+                'rid system update              → Met à jour le module système du DIU.' \
+                'rid system update apt          → Régénère tous les dépôts APT.' \
+                'rid system apt update          → Mise à jour du systeme APT Debian.'
+            ;;
+        docker)
+            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
+            ;;
+        ia)
+            printf '%s\n' 'rid ia configure → Configure Hermès.' 'rid ia install → Installe Hermès.' 'rid ia start → Démarre Hermès.' 'rid ia stop → Arrête Hermès.' 'rid ia update → Met à jour Hermès.' 'rid ia uninstall → Désinstalle Hermès.'
+            ;;
+        update)
+            printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
+            ;;
+        *)
+            printf 'rid %s → Affiche les sous-commandes disponibles.\n' "${1:-}"
+            ;;
+    esac
+    exit 0
+fi
+
+if [[ "${!#}" == help || "${!#}" == "?" ]]; then
+    if [[ "${1:-}" == system && ( "${2:-}" == install || "${2:-}" == remove ) && "${3:-}" == apt ]]; then
+        operation="${2}"
+        verb="$([[ "$operation" == install ]] && printf 'Installe' || printf 'Supprime')"
+        printf '%s\n' \
+            "rid system ${operation} apt crowdsec → ${verb} le dépôt APT CrowdSec." \
+            "rid system ${operation} apt docker → ${verb} le dépôt APT Docker." \
+            "rid system ${operation} apt lemonldap → ${verb} le dépôt APT LemonLDAP." \
+            "rid system ${operation} apt mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8 → ${verb} le dépôt APT MongoDB." \
+            "rid system ${operation} apt nodejs → ${verb} le dépôt APT NodeSource." \
+            "rid system ${operation} apt nvidia → ${verb} les dépôts APT NVIDIA." \
+            "rid system ${operation} apt proxmox → ${verb} le dépôt APT Proxmox." \
+            "rid system ${operation} apt vscode → ${verb} le dépôt APT VS Code." \
+            "rid system ${operation} apt wazuh-4 → ${verb} le dépôt APT Wazuh." \
+            "rid system ${operation} apt webmin → ${verb} le dépôt APT Webmin."
+        exit 0
+    fi
+    case "${1:-}:${2:-}" in
+        devops:)
+            printf '%s\n' 'rid devops info → Affiche les informations DevOps.' 'rid devops os → Gère OpenSpec pour un projet.'
+            ;;
+        docker:)
+            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
+            ;;
+        docker:root)
+            printf '%s\n' 'rid docker root check-containers → Liste les conteneurs actifs.' 'rid docker root test <USER> → Teste Docker pour un utilisateur.' 'rid docker root diag <USER> → Diagnostique Docker.'
+            ;;
+        docker:rootless)
+            printf '%s\n' 'rid docker rootless analyse <USER> → Analyse Docker rootless.' 'rid docker rootless configure <USER> → Configure Docker rootless.' 'rid docker rootless delete-state <USER> → Supprime son état.' 'rid docker rootless diag <USER> → Diagnostique Docker rootless.' 'rid docker rootless exec <USER> <CONTAINER> → Exécute dans un conteneur.' 'rid docker rootless inspect <USER> <CONTAINER> → Inspecte un conteneur.' 'rid docker rootless log <USER> <CONTAINER> → Affiche ses journaux.' 'rid docker rootless ps <USER> → Liste les conteneurs.' 'rid docker rootless test <USER> → Teste Docker rootless.' 'rid docker rootless unconfigure <USER> → Déconfigure Docker rootless.' 'rid docker rootless restore-state <USER> → Restaure son état.' 'rid docker rootless save-state <USER> → Sauvegarde son état.'
+            ;;
+        ia:)
+            printf '%s\n' 'rid ia configure hm → Configure Hermès.' 'rid ia install hm → Installe Hermès.' 'rid ia start hm → Démarre Hermès.' 'rid ia stop hm → Arrête Hermès.' 'rid ia update hm → Met à jour Hermès.' 'rid ia uninstall hm → Désinstalle Hermès.'
+            ;;
+        ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall)
+            printf '%s\n' "rid ia ${2} hm → ${2^} l’agent Hermès."
+            ;;
+        os:)
+            printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
+            ;;
+        proj:)
+            printf '%s\n' 'rid proj create <PROJET> → Crée un projet.' 'rid proj del <PROJET> → Supprime un projet.' 'rid proj dockerb <PROJET> → Construit son image.' 'rid proj finds <PROJET> → Recherche les conflits.' 'rid proj findads <PROJET> → Supprime les conflits.' 'rid proj gita <PROJET> → Analyse Git.' 'rid proj gitc <PROJET> [COMMIT] → Commite le projet.' 'rid proj giti <PROJET> → Initialise Git.' 'rid proj gitic <PROJET> → Clone le dépôt.' 'rid proj gitp <PROJET> → Pousse Git.' 'rid proj gitpdiu → Publie le paquet DIU.' 'rid proj gitpdi <PROJET> → Publie l’image.' 'rid proj gits <PROJET> → Affiche le statut Git.' 'rid proj gitu <PROJET> → Met à jour les variables.' 'rid proj ocro <PROJET> → Lance OpenCode RO.' 'rid proj ocrw <PROJET> → Lance OpenCode RW.' 'rid proj ocsh → Lance le shell OpenCode.' 'rid proj deb → Construit le paquet DIU.' 'rid proj cicddiu → Lance le CI/CD DIU.' 'rid proj cicddr <PROJET> → Lance le CI/CD projet.'
+            ;;
+        system:install|system:remove)
+            printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
+                "${2}" "$([[ "${2}" == install ]] && printf 'Installe' || printf 'Supprime')"
+            ;;
+        system:apt)
+            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
+            ;;
+        system:apt:update)
+            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
+            ;;
+        system:install:apt|system:remove:apt)
+            operation="${2}"
+            printf '%s\n' \
+                "rid system ${operation} apt crowdsec → ${operation^} le dépôt APT CrowdSec." \
+                "rid system ${operation} apt docker → ${operation^} le dépôt APT Docker." \
+                "rid system ${operation} apt lemonldap → ${operation^} le dépôt APT LemonLDAP." \
+                "rid system ${operation} apt mongodb-4|5|6|7|8 → ${operation^} le dépôt APT MongoDB." \
+                "rid system ${operation} apt nodejs → ${operation^} le dépôt APT NodeSource." \
+                "rid system ${operation} apt nvidia → ${operation^} les dépôts APT NVIDIA." \
+                "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
+                "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
+                "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
+                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin."
+            ;;
+        system:update)
+            printf '%s\n' \
+                'rid system update apt → Met à jour APT.' \
+                'rid system update apt debian → Met à jour les paquets Debian.'
+            ;;
+        install:|remove:)
+            printf '%s\n' "rid ${1} deb <SOFTWARE> → Opération sur Debian." "rid ${1} apt <SOFTWARE> → Opération sur un logiciel tiers."
+            ;;
+        update:)
+            printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
+            ;;
+        *)
+            printf 'rid %s %s → Affiche les sous-commandes disponibles.\n' "${1:-}" "${2:-}"
+            ;;
+    esac
+    exit 0
+fi
+
+# shellcheck source=modules/system/variables-cleanup.sh
+. "$BASH_SCRIPT_PATH/modules/system/variables-cleanup.sh"
+config_cleanup || exit 1
 . "/root/diu/variables.sh"
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
@@ -19,6 +150,10 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
+. "$BASH_SCRIPT_PATH/modules/diu/update-all.sh"
+. "$BASH_SCRIPT_PATH/modules/system/apt.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/find.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
@@ -192,6 +327,16 @@ dispatch_arguments() {
         return 0
     fi
 
+    if [[ "$argument_class" == help || "$argument_class" == "?" ]]; then
+        display_help_context
+        exit 0
+    fi
+
+    if [[ "${!#}" == help || "${!#}" == "?" ]]; then
+        display_help_context "${@:1:$(($# - 1))}"
+        exit 0
+    fi
+
     case "$argument_class" in
 
         devops)
@@ -219,8 +364,18 @@ dispatch_arguments() {
             manage_project_action "$@"
             ;;
 
+        install|remove)
+            manage_software_action "$@"
+            ;;
+
         update)
-            update_diu
+            shift
+            manage_update_action "$@"
+            ;;
+
+        system)
+            shift
+            manage_system_action "$@"
             ;;
 
         version)
@@ -228,7 +383,7 @@ dispatch_arguments() {
             ;;
 
         help|--help|-h)
-            display_usage
+            display_help_context
             ;;
 
         *)
@@ -242,6 +397,88 @@ dispatch_arguments() {
     # Une action avec arguments ne doit pas poursuivre
     # l'installation Debian linéaire.
     exit 0
+}
+
+display_help_context() {
+    local context="${1:-}" subcontext="${2:-}" leaf="${3:-}"
+
+    case "$context:$subcontext:$leaf" in
+        :) cat <<'EOF'
+rid                            → Affiche l'aide des commandes rid.
+rid devops                     → Outils DevOps et OpenSpec.
+rid docker                     → Gestion Docker root et rootless.
+rid ia                         → Gestion des agents IA.
+rid os                         → Validation OpenSpec.
+rid proj                       → Gestion des projets et publications.
+rid install                    → Installation de logiciels.
+rid remove                     → Suppression de logiciels.
+rid update                     → Mise à jour des composants.
+rid system                     → Gestion du système Debian.
+rid version                  → Affiche la version du DIU.
+EOF
+            ;;
+        system::)
+            printf '%s\n' \
+                'rid system install apt <Dépôt> → Installe un dépôt APT.' \
+                'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
+                'rid system update              → Met à jour le module système du DIU.' \
+                'rid system update apt          → Régénère tous les dépôts APT.' \
+                'rid system apt update          → Mise à jour du systeme APT Debian.'
+            ;;
+        system:install:|system:remove:)
+            printf 'rid system %s apt <repository> → %s un dépôt APT.\n' \
+                "$subcontext" "$([[ "$subcontext" == install ]] && printf 'Installe' || printf 'Supprime')"
+            ;;
+        system:install:apt|system:remove:apt)
+            local operation="$subcontext"
+            printf '%s\n' \
+                "rid system ${operation} apt crowdsec → ${operation^} le dépôt APT CrowdSec." \
+                "rid system ${operation} apt docker → ${operation^} le dépôt APT Docker." \
+                "rid system ${operation} apt lemonldap → ${operation^} le dépôt APT LemonLDAP." \
+                "rid system ${operation} apt mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8 → ${operation} le dépôt APT MongoDB." \
+                "rid system ${operation} apt nodejs → ${operation^} le dépôt APT NodeSource." \
+                "rid system ${operation} apt nvidia → ${operation^} les dépôts APT NVIDIA." \
+                "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
+                "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
+                "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
+                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin."
+            ;;
+        system:update:)
+            printf '%s\n' \
+                'rid system update apt      → Met à jour APT.' \
+                'rid system update apt debian → Met à jour les paquets Debian.'
+            ;;
+        system:apt:)
+            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
+            ;;
+        system:update:apt)
+            printf '%s\n' 'rid system update apt debian → Met à jour les paquets Debian.'
+            ;;
+        docker::)
+            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
+            ;;
+        ia::)
+            printf '%s\n' 'rid ia configure → Configure Hermès.' 'rid ia install → Installe Hermès.' 'rid ia start → Démarre Hermès.' 'rid ia stop → Arrête Hermès.' 'rid ia update → Met à jour Hermès.' 'rid ia uninstall → Désinstalle Hermès.'
+            ;;
+        devops::)
+            printf '%s\n' 'rid devops info → Affiche les informations DevOps.' 'rid devops os → Gère OpenSpec pour un projet.'
+            ;;
+        os::)
+            printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
+            ;;
+        proj::)
+            printf '%s\n' 'rid proj create → Crée un projet.' 'rid proj del → Supprime un projet.' 'rid proj git* → Actions Git du projet.' 'rid proj dockerb → Construit son image Docker.' 'rid proj deb → Construit le paquet DIU.' 'rid proj cicddiu → Lance le CI/CD du DIU.'
+            ;;
+        install::|remove::)
+            printf '%s\n' "rid $context deb <SOFTWARE> → Opération sur un paquet Debian." "rid $context apt <SOFTWARE> → Opération sur un logiciel tiers."
+            ;;
+        update::)
+            printf '%s\n' 'rid update → Mise à jour du système.'
+            ;;
+        *)
+            display_usage
+            ;;
+    esac
 }
 
 display_usage() {
@@ -291,7 +528,13 @@ Utilisation :
   rid proj ocro <ID Projet>                                 →  Démarre OpenCode en RO dans le projet <ID Projet>.
   rid proj ocrw <ID Projet>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
-  rid update                                                →  Mise à jour totale
+  rid install deb <SOFTWARE>                                →  Installe un paquet officiel Debian
+  rid remove deb <SOFTWARE>                                 →  Désinstalle un paquet officiel Debian
+  rid update deb <SOFTWARE>                                 →  Met à jour un paquet officiel Debian
+  rid update deb                                            →  Met à jour les paquets officiels Debian
+  rid <install|remove|update> apt [SOFTWARE]                  →  Réservé au futur moteur de logiciels tiers
+
+  rid update                                                →  Mise à jour de tous les modules pris en charge
   rid update diu                                            →  Mise à jour du DIU
 
   ridt proj cicddiu                                         → Flux CI/CD pour le DIU
@@ -1585,7 +1828,9 @@ fi
 
 ### APT ###
 
-if [ $DEBIAN_RELEASE = "trixie" ]
+system_apt_debian_configure
+
+if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 then
 
 	### TiME ZONE ###
@@ -1603,26 +1848,6 @@ then
 
 	fi
 
-	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN TRIXIE"
-	echo '' > /etc/apt/sources.list.d/debian.sources
-	echo 'Types: deb' >> /etc/apt/sources.list.d/debian.sources
-	echo 'URIs: http://security.debian.org' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Suites: trixie-security' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Components: main contrib non-free-firmware non-free' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources
-	echo '' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Types: deb' >> /etc/apt/sources.list.d/debian.sources
-	echo 'URIs: http://deb.debian.org/debian' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Suites: trixie trixie-updates' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Components: main contrib non-free-firmware non-free' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources
-	echo '' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Types: deb' >> /etc/apt/sources.list.d/debian.sources
-	echo 'URIs: http://deb.debian.org/debian' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Suites: trixie-backports' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Components: main contrib non-free-firmware non-free' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources
-	echo '' >> /etc/apt/sources.list.d/debian.sources
 
 	install -d -m 0755 /usr/share/keyrings
 
@@ -1668,23 +1893,6 @@ then
 		echo 'Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg' >> /etc/apt/sources.list.d/proxmox.sources
 		echo '' >> /etc/apt/sources.list.d/proxmox.sources
 
-	fi
-
-	if [ "$DOCKER" = "1" ]
-	then
-		rm -f /etc/apt/sources.list.d/docker.list
-
-		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN TRIXIE"
-		install -d -m 0755 /usr/share/keyrings
-		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor --yes --output /usr/share/keyrings/docker-archive-keyring.gpg
-
-		cat > /etc/apt/sources.list.d/docker.sources <<'EOF'
-Types: deb
-URIs: https://download.docker.com/linux/debian
-Suites: trixie
-Components: stable
-Signed-By: /usr/share/keyrings/docker-archive-keyring.gpg
-EOF
 	fi
 
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
@@ -1822,52 +2030,6 @@ EOF
 
 	fi
 
-	if [ $DEVOPS == "1" ]
-	then
-
-		if [ -f /etc/apt/sources.list.d/nodesource.list ]
-		then
-
-			rm -f /etc/apt/sources.list.d/nodesource.list
-
-		fi
-
-		echo "🔧 CONFIGURE APT NODE.JS SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor > /usr/share/keyrings/nodesource-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/nodesource.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'URIs: https://deb.nodesource.com/node_24.x' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Suites: nodistro' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Components: main' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nodesource.sources
-		echo 'Signed-By: /usr/share/keyrings/nodesource-archive-keyring.gpg' >> /etc/apt/sources.list.d/nodesource.sources
-		echo '' >> /etc/apt/sources.list.d/nodesource.sources
-
-	fi
-
-	if [ $VSCODE == "1" ]
-	then
-
-		if [ -f /etc/apt/sources.list.d/vscode.list ]
-		then
-
-			rm -f /etc/apt/sources.list.d/vscode.list
-
-		fi
-
-		echo "🔧 CONFIGURE APT VISUAL STUDIO CODE SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/vscode-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/vscode.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'URIs: https://packages.microsoft.com/repos/code' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Suites: stable' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Components: main' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Architectures: amd64' >> /etc/apt/sources.list.d/vscode.sources
-		echo 'Signed-By: /usr/share/keyrings/vscode-archive-keyring.gpg' >> /etc/apt/sources.list.d/vscode.sources
-		echo '' >> /etc/apt/sources.list.d/vscode.sources
-
-	fi
-
 	if [ $WEBMIN == "1" ]
 	then
 
@@ -1981,7 +2143,7 @@ EOF
 
 fi
 
-if [ $DEBIAN_RELEASE = "######################
+if [ $SYSTEM_DEBIAN_RELEASE = "######################
 # Adresser à CGPT :) #
 ######################
 
@@ -2054,15 +2216,6 @@ then
 		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BOOKWORM"
 		echo 'deb [signed-by=/usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg] http://packagecloud.io/crowdsec/crowdsec/debian/ bookworm main' > /etc/apt/sources.list.d/crowdsec.list
 		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
-
-	fi
-
-	if [ $DOCKER == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN BOOKWORM"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] http://download.docker.com/linux/debian bookworm stable' > /etc/apt/sources.list.d/docker.list
-		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker-archive-keyring.gpg
 
 	fi
 
@@ -2172,7 +2325,7 @@ then
 
 fi
 
-if [ $DEBIAN_RELEASE = "bullseye" ]
+if [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 then
 
 	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN BULLSEYE"
@@ -2192,15 +2345,6 @@ then
 		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BULLSEYE"
 		echo 'deb [signed-by=/usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg] http://packagecloud.io/crowdsec/crowdsec/debian/ bullseye main' > /etc/apt/sources.list.d/crowdsec.list
 		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
-
-	fi
-
-	if [ $DOCKER == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT DOCKER SOURCES FOR DEBIAN BULLSEYE"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] http://download.docker.com/linux/debian bullseye stable' > /etc/apt/sources.list.d/docker.list
-		curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor > /usr/share/keyrings/docker-archive-keyring.gpg
 
 	fi
 
@@ -3657,7 +3801,7 @@ fi
 if [ $APACHE2 -eq 1 ]
 then
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 		echo ""
@@ -3666,7 +3810,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "bookworm" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ]
 	then
 
 		echo ""
@@ -3675,7 +3819,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo ""
@@ -5624,7 +5768,7 @@ fi
 if [ $FASTFETCH -eq 1 ]
 then
 
-	if [ $DEBIAN_RELEASE = "bookworm" ] || [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo "INSTALL NEOFETCH"
@@ -5649,7 +5793,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 		if dpkg -s fastfetch &>/dev/null
@@ -5704,7 +5848,7 @@ fi
 if [ $OPENJDK -eq 1 ]
 then
 
-	if [ $DEBIAN_RELEASE = "bookworm" ] || [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo ""
@@ -5738,7 +5882,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 
@@ -6981,14 +7125,14 @@ then
 	# echo '  tmux attach -t main || tmux new -s main' >> /root/.zshrc
 	# echo 'fi' >> /root/.zshrc
 
-	if [ $DEBIAN_RELEASE = "bookworm" ] || [ $DEBIAN_RELEASE = "bullseye" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
 	then
 
 		echo "neofetch" >> /root/.zshrc
 
 	fi
 
-	if [ $DEBIAN_RELEASE = "trixie" ]
+	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 	then
 
 		echo "fastfetch" >> /root/.zshrc
