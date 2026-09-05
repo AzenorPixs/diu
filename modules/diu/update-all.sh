@@ -11,7 +11,16 @@ update_all() {
         print_error "softwares/deb : échec."
         result=1
     fi
-    print_info "softwares/apt : non pris en charge (moteur futur)."
+    if declare -F system_apt_update >/dev/null 2>&1; then
+        if (set -Eeuo pipefail; system_apt_update); then
+            print_success "system/apt : terminé."
+        else
+            print_error "system/apt : échec."
+            result=1
+        fi
+    else
+        print_info "system/apt : non chargé dans ce contexte."
+    fi
     for module in desktop environment projects system; do
         print_info "$module : aucune sous-fonction de mise à jour prise en charge."
     done
