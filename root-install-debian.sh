@@ -23,6 +23,7 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update-all.sh"
+. "$BASH_SCRIPT_PATH/modules/system/apt.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
@@ -232,6 +233,11 @@ dispatch_arguments() {
         update)
             shift
             manage_update_action "$@"
+            ;;
+
+        system)
+            shift
+            manage_system_action "$@"
             ;;
 
         version)
@@ -1602,6 +1608,8 @@ fi
 
 ### APT ###
 
+system_apt_debian_configure
+
 if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
 then
 
@@ -1620,26 +1628,6 @@ then
 
 	fi
 
-	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN TRIXIE"
-	echo '' > /etc/apt/sources.list.d/debian.sources
-	echo 'Types: deb' >> /etc/apt/sources.list.d/debian.sources
-	echo 'URIs: http://security.debian.org' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Suites: trixie-security' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Components: main contrib non-free-firmware non-free' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources
-	echo '' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Types: deb' >> /etc/apt/sources.list.d/debian.sources
-	echo 'URIs: http://deb.debian.org/debian' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Suites: trixie trixie-updates' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Components: main contrib non-free-firmware non-free' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources
-	echo '' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Types: deb' >> /etc/apt/sources.list.d/debian.sources
-	echo 'URIs: http://deb.debian.org/debian' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Suites: trixie-backports' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Components: main contrib non-free-firmware non-free' >> /etc/apt/sources.list.d/debian.sources
-	echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg' >> /etc/apt/sources.list.d/debian.sources
-	echo '' >> /etc/apt/sources.list.d/debian.sources
 
 	install -d -m 0755 /usr/share/keyrings
 
