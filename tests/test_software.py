@@ -15,6 +15,7 @@ print_success() { printf 'OK %s\n' "$*"; }
 print_title() { printf '%s\n' "$*"; }
 source "$ROOT/modules/softwares/software.sh"
 source "$ROOT/modules/softwares/deb.sh"
+source "$ROOT/modules/softwares/apt.sh"
 source "$ROOT/modules/diu/update-all.sh"
 apt-get() {
     printf 'apt-get %s\n' "$*" >> "$CALLS"
@@ -69,6 +70,7 @@ apt-cache() {
     fi
 }
 dpkg-query() { printf 'foo\t1.0\tinstalled\nvendor\t1.0\tinstalled\n'; }
+apt() { printf 'apt %s\n' "$*" >> "$CALLS"; return "${APT_FAILURE:-0}"; }
 '''
 
 
@@ -96,6 +98,74 @@ class SoftwareTests(unittest.TestCase):
         result, calls, _ = self.run_shell('manage_software_action install apt foo')
         self.assertEqual(result.returncode, 1)
         self.assertIn('non pris en charge', result.stdout)
+        self.assertEqual(calls, '')
+
+    def test_chatgpt_variables_detect_package_and_default_home(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
+printf '%s\n%s\n' "$SOFTWARES_APT_CHATGPT" "$SOFTWARES_APT_CHATGPT_HOME"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], ['0', '~/.codex'])
+
+    def test_chatgpt_install_prepares_repository_updates_and_sets_desktop(self):
+        result, calls, _ = self.run_shell(r'''
+desktop="$TMPDIR/chatgpt.desktop"
+printf 'Name=ChatGPT\nExec=chatgpt %%U\n' > "$desktop"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'unknown' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_install_repository() { echo repository >> "$CALLS"; }
+SYSTEM_APT_CGPT=0
+SOFTWARES_APT_CHATGPT_DESKTOP_FILE="$desktop"
+SOFTWARES_APT_CHATGPT_HOME='~/.codex'
+manage_softwares_action install apt chatgpt
+cat "$desktop"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['repository', 'apt -y update', 'apt -y install chatgpt'])
+        self.assertIn(f'Exec=env CODEX_HOME={os.environ["HOME"]}/.codex chatgpt %U', result.stdout)
+
+    def test_chatgpt_install_skips_repository_when_enabled(self):
+        result, calls, _ = self.run_shell(r'''
+desktop="$TMPDIR/chatgpt.desktop"
+printf 'Exec=chatgpt %%U\n' > "$desktop"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'unknown' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_install_repository() { echo repository >> "$CALLS"; }
+SYSTEM_APT_CGPT=1
+SOFTWARES_APT_CHATGPT_DESKTOP_FILE="$desktop"
+manage_softwares_action install apt chatgpt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['apt -y install chatgpt'])
+
+    def test_chatgpt_remove_orders_package_repository_and_update(self):
+        result, calls, _ = self.run_shell(r'''
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'installed' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_remove_repository() { echo repository >> "$CALLS"; }
+manage_softwares_action remove apt chatgpt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['apt -y remove chatgpt', 'repository', 'apt -y update'])
+
+    def test_chatgpt_update_rewrites_desktop_without_apt(self):
+        result, calls, _ = self.run_shell(r'''
+desktop="$TMPDIR/chatgpt.desktop"
+printf 'Exec=chatgpt %%U\n' > "$desktop"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'installed' || printf 'foo\t1.0\tinstalled\n'; }
+SOFTWARES_APT_CHATGPT_DESKTOP_FILE="$desktop"
+SOFTWARES_APT_CHATGPT_HOME='/srv/codex'
+manage_softwares_action update apt chatgpt
+cat "$desktop"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls, '')
+        self.assertIn('Exec=env CODEX_HOME=/srv/codex chatgpt %U', result.stdout)
+
+    def test_chatgpt_update_absent_does_not_call_apt(self):
+        result, calls, _ = self.run_shell(r'''
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'unknown' || printf 'foo\t1.0\tinstalled\n'; }
+manage_softwares_action update apt chatgpt
+''')
+        self.assertEqual(result.returncode, 1)
         self.assertEqual(calls, '')
 
     def test_official_install_uses_isolated_sources(self):

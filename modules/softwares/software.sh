@@ -16,10 +16,7 @@ manage_software_action() {
     fi
     case "$engine" in
         deb) software_deb "$action" "$software" ;;
-        apt)
-            print_error "Moteur apt non pris en charge : les recettes tierces et le moteur de dépôts restent à implémenter."
-            return 1
-            ;;
+        apt) software_apt_action "$action" "$software" ;;
         *)
             print_error "Moteur logiciel inconnu : $engine"
             return 2
