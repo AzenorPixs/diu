@@ -178,10 +178,10 @@ manage_softwares_action remove apt chatgpt
     def test_chatgpt_variables_detect_package_and_default_home(self):
         result, _, _ = self.run_shell(r'''
 source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
-    [[ -z "${SOFTWARES_APT_CHATGPT+x}" ]]
+    printf '%s\n' "$SOFTWARES_APT_CHATGPT"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout, '')
+        self.assertEqual(result.stdout.splitlines()[-1], '0')
 
     def test_codex_cli_variables_persist_defaults(self):
         result, _, _ = self.run_shell(r'''
@@ -190,10 +190,10 @@ sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#"
     "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
 SOFTWARES_APT_CODEX_CLI=0
 source "$variable_source"
-[[ ! -e "$TMPDIR/softwares.env" ]]
+    cat "$TMPDIR/softwares.env"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout, '')
+        self.assertEqual(result.stdout.splitlines()[-1:], ['export SOFTWARES_APT_CODEX_CLI=0'])
 
     def test_chatgpt_variables_persist_without_home(self):
         result, _, _ = self.run_shell(r'''
@@ -202,20 +202,20 @@ sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#"
     "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
 dpkg-query() { printf 'unknown'; }
 source "$variable_source"
-[[ ! -s "$TMPDIR/softwares.env" ]]
+    cat "$TMPDIR/softwares.env"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout, '')
+        self.assertEqual(result.stdout.splitlines()[-1:], ['export SOFTWARES_APT_CHATGPT=0'])
 
     def test_chatgpt_static_value_is_not_redetected_when_defined(self):
         result, _, _ = self.run_shell(r'''
 SOFTWARES_APT_CHATGPT=0
 dpkg-query() { printf 'installed'; }
 source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
-    [[ -z "${SOFTWARES_APT_CHATGPT+x}" ]]
+    printf '%s\n' "$SOFTWARES_APT_CHATGPT"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout, '')
+        self.assertEqual(result.stdout.splitlines()[-1], '0')
 
     def test_chatgpt_home_is_removed_from_persisted_config(self):
         result, _, _ = self.run_shell(r'''
@@ -225,10 +225,10 @@ sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#"
 printf 'export SOFTWARES_APT_CHATGPT=0\nexport SOFTWARES_APT_CHATGPT_HOME=\\~/.codex\n' > "$TMPDIR/softwares.env"
 source "$TMPDIR/softwares.env"
 source "$variable_source"
-[[ ! -s "$TMPDIR/softwares.env" ]]
+    cat "$TMPDIR/softwares.env"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout, '')
+        self.assertEqual(result.stdout.splitlines()[-1:], ['export SOFTWARES_APT_CHATGPT=0'])
 
     def test_chatgpt_install_prepares_repository_without_changing_desktop(self):
         result, calls, _ = self.run_shell(r'''
