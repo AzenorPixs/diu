@@ -527,7 +527,14 @@ variable d’état indique qu’il est installé. `rid softwares update` et
 #### Scenario: Codex absent
 
 - **WHEN** `SOFTWARES_APT_CODEX_CLI` vaut `0`
-- **THEN** la mise à jour globale n’installe pas Codex CLI
+- **THEN** la mise à jour globale n'installe pas Codex CLI
+
+### Requirement: Désactivation de la variable HOME Codex CLI
+
+Le fichier déclaratif Codex CLI SHALL être à l'état `DISABLE`. DIU SHALL NOT
+créer, utiliser ou persister `SOFTWARES_APT_CODEX_CLI_HOME`. L'installation
+SHALL exposer directement le binaire extrait par un lien symbolique et SHALL
+NOT générer de wrapper shell.
 
 #### Scenario: Codex installé
 
@@ -563,3 +570,10 @@ désinstallation ou de mise à jour effective.
 
 - **WHEN** le logiciel est déjà installé, absent ou à jour selon l'action
 - **THEN** DIU affiche l'état sans présenter une mutation qui n'a pas eu lieu
+
+### Requirement: Retrait de la personnalisation ChatGPT
+
+La recette APT de ChatGPT SHALL gérer uniquement le paquet et son dépôt. Elle
+SHALL NOT modifier `/usr/share/applications/chatgpt.desktop` ni utiliser ou
+persister `SOFTWARES_APT_CHATGPT_HOME`. Cette exigence remplace les exigences
+antérieures de personnalisation desktop et de gestion de cette variable.

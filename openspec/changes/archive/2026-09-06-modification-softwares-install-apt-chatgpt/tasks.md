@@ -1,0 +1,4 @@
+- [x] Mettre à jour la spécification.
+- [x] Retirer la personnalisation desktop et la variable HOME.
+- [x] Mettre à jour les tests concernés.
+- [x] Valider puis archiver l'évolution.

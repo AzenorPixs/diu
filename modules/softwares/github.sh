@@ -11,25 +11,17 @@ software_github_recipe() {
     esac
 }
 
-software_github_codex_cli_root() {
-    local configured_home="${SOFTWARES_APT_CODEX_CLI_HOME:-~/.codex}"
-    case "$configured_home" in
-        '~/'*) printf '%s/%s\n' "$HOME" "${configured_home#\~/}" ;;
-        *) printf '%s\n' "$configured_home" ;;
-    esac
-}
 software_github_codex_cli_install_root() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_INSTALL_ROOT:-/usr/local/lib/codex}"; }
 software_github_codex_cli_binary() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_BIN:-/usr/local/bin/codex}"; }
 software_github_codex_cli_version() { "$(software_github_codex_cli_binary)" --version 2>/dev/null | sed -n 's/.* \([0-9][0-9A-Za-z.+-]*\)$/\1/p' | head -n 1; }
 
 software_github_codex_cli_install() {
-    local root data_root archive checksum_file metadata tag asset checksum expected actual staging binary
+    local root archive checksum_file metadata tag asset checksum expected actual staging binary
     [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { print_error "Codex CLI GitHub est pris en charge uniquement sur Linux x86_64."; return 1; }
     command -v curl >/dev/null 2>&1 || { print_error "curl est requis pour Codex CLI."; return 1; }
     command -v tar >/dev/null 2>&1 || { print_error "tar est requis pour Codex CLI."; return 1; }
     command -v sha256sum >/dev/null 2>&1 || { print_error "sha256sum est requis pour Codex CLI."; return 1; }
     root="$(software_github_codex_cli_install_root)"
-    data_root="$(software_github_codex_cli_root)"
     binary="$(software_github_codex_cli_binary)"
     archive="$root/.codex-package.tar.gz"
     checksum_file="$root/.codex-package_SHA256SUMS"
@@ -55,22 +47,7 @@ software_github_codex_cli_install() {
     rm -rf "$root/packages/standalone/current"
     mv "$staging" "$root/packages/standalone/current"
     mkdir -p "$(dirname "$binary")"
-    {
-        printf '%s\n' '#!/bin/sh'
-        printf '%s\n' 'config_file="${DIU_CONFIG_FILE:-/root/diu/config/softwares.env}"'
-        printf '%s\n' '[ -r "$config_file" ] && . "$config_file"'
-        printf '%s\n' 'configured_home="${SOFTWARES_APT_CODEX_CLI_HOME:-~/.codex}"'
-        printf '%s\n' 'case "$configured_home" in'
-        printf '%s\n' '    ~/*) CODEX_HOME="$HOME/${configured_home#~/}" ;;'
-        printf '%s\n' '    *) CODEX_HOME="$configured_home" ;;'
-        printf '%s\n' 'esac'
-        printf '%s\n' 'export CODEX_HOME'
-        printf '%s\n' 'exec "${CODEX_INSTALL_ROOT:-/usr/local/lib/codex}/packages/standalone/current/bin/codex" "$@"'
-    } >"$binary"
-    chmod 0755 "$binary"
-    if [[ "$data_root" != "$root" ]]; then
-        rm -rf "$data_root/packages/standalone" "$data_root/packages/tmp"
-    fi
+    ln -sfn "$root/packages/standalone/current/bin/codex" "$binary"
     rm -f "$archive" "$checksum_file"
     SOFTWARES_APT_CODEX_CLI=1
     export SOFTWARES_APT_CODEX_CLI
