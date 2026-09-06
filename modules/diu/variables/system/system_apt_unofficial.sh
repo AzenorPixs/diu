@@ -35,6 +35,7 @@ system_apt_unofficial_detect() {
                 SYSTEM_APT_PROXMOX) repository='proxmox|download\.proxmox\.com' ;;
                 SYSTEM_APT_VSCODE) repository='packages\.microsoft\.com/repos/code' ;;
                 SYSTEM_APT_WEBMIN) repository='webmin|download\.webmin\.com' ;;
+                SYSTEM_APT_CGPT) repository='openai|chatgpt|codex' ;;
                 *) repository="${variable#SYSTEM_APT_}" ;;
             esac
             if grep -RqsE "${repository}|${repository^}" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
@@ -65,3 +66,4 @@ system_apt_unofficial_declare SYSTEM_APT_PROXMOX
 system_apt_unofficial_declare SYSTEM_APT_VSCODE
 system_apt_unofficial_declare SYSTEM_APT_WAZUH
 system_apt_unofficial_declare SYSTEM_APT_WEBMIN
+system_apt_unofficial_declare SYSTEM_APT_CGPT

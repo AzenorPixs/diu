@@ -15,6 +15,7 @@ print_success() { printf 'OK %s\n' "$*"; }
 print_title() { printf '%s\n' "$*"; }
 source "$ROOT/modules/softwares/software.sh"
 source "$ROOT/modules/softwares/deb.sh"
+source "$ROOT/modules/softwares/apt.sh"
 source "$ROOT/modules/diu/update-all.sh"
 apt-get() {
     printf 'apt-get %s\n' "$*" >> "$CALLS"
@@ -69,6 +70,7 @@ apt-cache() {
     fi
 }
 dpkg-query() { printf 'foo\t1.0\tinstalled\nvendor\t1.0\tinstalled\n'; }
+apt() { printf 'apt %s\n' "$*" >> "$CALLS"; return "${APT_FAILURE:-0}"; }
 '''
 
 
@@ -96,6 +98,206 @@ class SoftwareTests(unittest.TestCase):
         result, calls, _ = self.run_shell('manage_software_action install apt foo')
         self.assertEqual(result.returncode, 1)
         self.assertIn('non pris en charge', result.stdout)
+        self.assertEqual(calls, '')
+
+    def test_github_unknown_recipe_does_not_call_system(self):
+        result, calls, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+manage_software_action() { :; }
+software_github_action install unknown
+''')
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(calls, '')
+
+    def test_github_recipe_registry_routes_explicitly(self):
+        result, calls, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+software_github_recipe() { [[ "$1:$2" == demo:install ]] && printf '%s' demo_install; }
+demo_install() { echo install >> "$CALLS"; }
+software_github_action install demo
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['install'])
+
+    def test_codex_cli_remove_keeps_profile(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+codex_root="$TMPDIR/codex-home"
+codex_install_root="$TMPDIR/codex-install"
+mkdir -p "$codex_root/packages/standalone" "$codex_install_root/packages/standalone" "$TMPDIR/bin"
+printf 'profile' > "$codex_root/config.toml"
+printf '#!/bin/sh\n' > "$TMPDIR/bin/codex"
+chmod 0755 "$TMPDIR/bin/codex"
+SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_INSTALL_ROOT="$codex_install_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
+    software_github_codex_cli_remove
+[[ -f "$codex_root/config.toml" && ! -e "$TMPDIR/bin/codex" && ! -e "$codex_install_root/packages/standalone" ]]
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_codex_cli_recipe_is_explicit(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+[[ "$(software_github_recipe codex-cli install)" == software_github_codex_cli_install ]]
+[[ "$(software_github_recipe unknown install 2>/dev/null || true)" == '' ]]
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_codex_cli_home_tilde_is_resolved_for_current_user(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+SOFTWARES_APT_CODEX_CLI_HOME='~/.codex'
+[[ "$(software_github_codex_cli_root)" == "$HOME/.codex" ]]
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_github_codex_cli_remove_reports_version(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+codex_root="$TMPDIR/codex-home"
+codex_install_root="$TMPDIR/codex-install"
+mkdir -p "$codex_root/packages/standalone" "$codex_install_root/packages/standalone" "$TMPDIR/bin"
+printf '#!/bin/sh\nprintf "codex-cli 1.2.3\\n"\n' > "$TMPDIR/bin/codex"
+chmod 0755 "$TMPDIR/bin/codex"
+SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_INSTALL_ROOT="$codex_install_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
+    software_github_codex_cli_remove
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('OK softwares/github/codex-cli (1.2.3): désinstallé.', result.stdout)
+
+    def test_apt_chatgpt_remove_reports_version(self):
+        result, _, _ = self.run_shell(r'''
+    dpkg-query() {
+        if [[ "$*" == *db:Status-Status* ]]; then printf 'installed'; else printf '2.4.0'; fi
+    }
+apt() { :; }
+system_apt_remove_repository() { :; }
+manage_softwares_action remove apt chatgpt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('OK softwares/apt/chatgpt (2.4.0): désinstallé.', result.stdout)
+
+    def test_chatgpt_variables_detect_package_and_default_home(self):
+        result, _, _ = self.run_shell(r'''
+source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
+printf '%s\n%s\n' "$SOFTWARES_APT_CHATGPT" "$SOFTWARES_APT_CHATGPT_HOME"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], ['0', '~/.codex'])
+
+    def test_codex_cli_variables_persist_defaults(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_codex_cli.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
+SOFTWARES_APT_CODEX_CLI=0
+source "$variable_source"
+cat "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], [
+            'export SOFTWARES_APT_CODEX_CLI=0',
+            'export SOFTWARES_APT_CODEX_CLI_HOME=~/.codex',
+        ])
+
+    def test_chatgpt_variables_persist_both_defaults_coherently(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_chatgpt.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
+dpkg-query() { printf 'unknown'; }
+source "$variable_source"
+cat "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], [
+            'export SOFTWARES_APT_CHATGPT=0',
+            'export SOFTWARES_APT_CHATGPT_HOME=~/.codex',
+        ])
+
+    def test_chatgpt_static_value_is_not_redetected_when_defined(self):
+        result, _, _ = self.run_shell(r'''
+SOFTWARES_APT_CHATGPT=0
+dpkg-query() { printf 'installed'; }
+source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
+printf '%s\n' "$SOFTWARES_APT_CHATGPT"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-1], '0')
+
+    def test_chatgpt_home_migrates_escaped_default(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_chatgpt.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
+printf 'export SOFTWARES_APT_CHATGPT=0\nexport SOFTWARES_APT_CHATGPT_HOME=\\~/.codex\n' > "$TMPDIR/softwares.env"
+source "$TMPDIR/softwares.env"
+source "$variable_source"
+cat "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-2:], [
+            'export SOFTWARES_APT_CHATGPT=0',
+            'export SOFTWARES_APT_CHATGPT_HOME=~/.codex',
+        ])
+
+    def test_chatgpt_install_prepares_repository_updates_and_sets_desktop(self):
+        result, calls, _ = self.run_shell(r'''
+desktop="$TMPDIR/chatgpt.desktop"
+printf 'Name=ChatGPT\nExec=chatgpt %%U\n' > "$desktop"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'unknown' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_install_repository() { echo repository >> "$CALLS"; }
+SYSTEM_APT_CGPT=0
+SOFTWARES_APT_CHATGPT_DESKTOP_FILE="$desktop"
+SOFTWARES_APT_CHATGPT_HOME='~/.codex'
+manage_softwares_action install apt chatgpt
+cat "$desktop"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['repository', 'apt -y update', 'apt -y install chatgpt'])
+        self.assertIn(f'Exec=env CODEX_HOME={os.environ["HOME"]}/.codex chatgpt %U', result.stdout)
+
+    def test_chatgpt_install_skips_repository_when_enabled(self):
+        result, calls, _ = self.run_shell(r'''
+desktop="$TMPDIR/chatgpt.desktop"
+printf 'Exec=chatgpt %%U\n' > "$desktop"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'unknown' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_install_repository() { echo repository >> "$CALLS"; }
+SYSTEM_APT_CGPT=1
+SOFTWARES_APT_CHATGPT_DESKTOP_FILE="$desktop"
+manage_softwares_action install apt chatgpt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['apt -y install chatgpt'])
+
+    def test_chatgpt_remove_orders_package_repository_and_update(self):
+        result, calls, _ = self.run_shell(r'''
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'installed' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_remove_repository() { echo repository >> "$CALLS"; }
+manage_softwares_action remove apt chatgpt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['apt -y remove chatgpt', 'repository', 'apt -y update'])
+
+    def test_chatgpt_update_rewrites_desktop_without_apt(self):
+        result, calls, _ = self.run_shell(r'''
+desktop="$TMPDIR/chatgpt.desktop"
+printf 'Exec=chatgpt %%U\n' > "$desktop"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'installed' || printf 'foo\t1.0\tinstalled\n'; }
+SOFTWARES_APT_CHATGPT_DESKTOP_FILE="$desktop"
+SOFTWARES_APT_CHATGPT_HOME='/srv/codex'
+manage_softwares_action update apt chatgpt
+cat "$desktop"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls, '')
+        self.assertIn('Exec=env CODEX_HOME=/srv/codex chatgpt %U', result.stdout)
+
+    def test_chatgpt_update_absent_does_not_call_apt(self):
+        result, calls, _ = self.run_shell(r'''
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'unknown' || printf 'foo\t1.0\tinstalled\n'; }
+manage_softwares_action update apt chatgpt
+''')
+        self.assertEqual(result.returncode, 1)
         self.assertEqual(calls, '')
 
     def test_official_install_uses_isolated_sources(self):

@@ -3,6 +3,7 @@
 SYSTEM_APT_DEBIAN_SOURCES_FILE="/etc/apt/sources.list.d/debian.sources"
 SYSTEM_APT_THIRD_PARTY_DIRECTORY="/etc/apt/sources.list.d"
 SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY="/usr/share/keyrings"
+SYSTEM_APT_CGPT_KEY_FILE="${BASH_SCRIPT_PATH:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)}/modules/system/apt-keys/chatgpt-archive-keyring.asc"
 
 system_apt_is_deb822() {
     local version_id=""
@@ -14,7 +15,7 @@ system_apt_is_deb822() {
 
 system_apt_repository_engine() {
     local enable="$1" name="$2" url_gpg_key="$3" type="$4"
-    local suites="$5" architecture="$6" uris="$7" components="${8:-main}"
+    local suites="$5" architecture="$6" uris="$7" components="${8-main}"
     local modern_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.sources"
     local legacy_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.list"
     local keyring="${SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY}/${name}-archive-keyring.gpg"
@@ -46,7 +47,8 @@ system_apt_repository_engine() {
             printf 'URIs: %s\n' "$uris"
             printf 'Suites: %s\n' "$suites"
             [[ -n "$architecture" ]] && printf 'Architectures: %s\n' "$architecture"
-            printf 'Components: %s\nSigned-By: %s\n\n' "$components" "$keyring"
+            [[ -n "$components" ]] && printf 'Components: %s\n' "$components"
+            printf 'Signed-By: %s\n\n' "$keyring"
         } > "$modern_file"
     else
         rm -f -- "$modern_file"
@@ -72,9 +74,9 @@ system_apt_configure_unofficial() {
     system_apt_repository_engine "${SYSTEM_APT_NODEJS:-0}" nodesource \
         https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key deb nodistro amd64 https://deb.nodesource.com/node_24.x
     system_apt_repository_engine "${SYSTEM_APT_NVIDIA:-0}" nvidia \
-        https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub deb / amd64 https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/
+        https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub deb / amd64 https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/ ""
     system_apt_repository_engine "${SYSTEM_APT_NVIDIA:-0}" nvidia-container-toolkit \
-        https://nvidia.github.io/libnvidia-container/gpgkey deb / amd64 https://nvidia.github.io/libnvidia-container/stable/deb/amd64/
+        https://nvidia.github.io/libnvidia-container/gpgkey deb / amd64 https://nvidia.github.io/libnvidia-container/stable/deb/amd64/ ""
     system_apt_repository_engine "${SYSTEM_APT_PROXMOX:-0}" proxmox \
         https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" http://download.proxmox.com/debian/pve pve-no-subscription
     system_apt_repository_engine "${SYSTEM_APT_VSCODE:-0}" vscode \
@@ -83,6 +85,35 @@ system_apt_configure_unofficial() {
         https://packages.wazuh.com/key/GPG-KEY-WAZUH deb stable amd64 https://packages.wazuh.com/4.x/apt
     system_apt_repository_engine "${SYSTEM_APT_WEBMIN:-0}" webmin \
         https://download.webmin.com/jcameron-key.asc deb sarge "" http://download.webmin.com/download/repository contrib
+    if [[ "${SYSTEM_APT_CGPT:-0}" == 1 ]]; then
+        system_apt_cgpt_configure
+    else
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" \
+            "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY/chatgpt-archive-keyring.gpg"
+    fi
+}
+
+system_apt_cgpt_configure() {
+    local keyring="$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY/chatgpt-archive-keyring.gpg"
+    install -d -m 0755 "$SYSTEM_APT_THIRD_PARTY_DIRECTORY" "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY"
+    install -m 0644 "$SYSTEM_APT_CGPT_KEY_FILE" "$keyring"
+    if system_apt_is_deb822; then
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list"
+        cat > "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" <<EOF
+### THIS FILE IS MANAGED BY DIU ###
+X-Repolib-Name: ChatGPT
+Types: deb
+URIs: https://persistent.oaistatic.com/codex-app-prod/linux/deb
+Suites: stable
+Components: main
+Architectures: amd64
+Signed-By: $keyring
+EOF
+    else
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources"
+        printf 'deb [arch=amd64 signed-by=%s] %s stable main\n' "$keyring" \
+            https://persistent.oaistatic.com/codex-app-prod/linux/deb > "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list"
+    fi
 }
 
 system_apt_debian_is_deb822() {
@@ -156,6 +187,7 @@ system_install_prerequisites() {
         gpg inetutils-telnet iptables jq lshw lsb-release man-db manpages-fr
         net-tools netcat-traditional nicstat openssl pciutils ripgrep shellcheck
         python3-pytest ripgrep shellcheck sudo tcpdump traceroute tree util-linux wget
+        libsecret-tools
     )
 
     while IFS= read -r package; do
@@ -198,6 +230,7 @@ system_apt_repository_variable() {
         vscode|code) printf '%s' SYSTEM_APT_VSCODE ;;
         wazuh|wazuh-4) printf '%s' SYSTEM_APT_WAZUH ;;
         webmin) printf '%s' SYSTEM_APT_WEBMIN ;;
+        cgpt|chatgpt|codex|openai) printf '%s' SYSTEM_APT_CGPT ;;
         *) return 1 ;;
     esac
 }
@@ -238,6 +271,11 @@ system_apt_remove_repository() {
         return 2
     }
     system_apt_set_repository_variable "$variable" 0
+    if [[ "$variable" == SYSTEM_APT_CGPT ]]; then
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" \
+            "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" \
+            "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/openai-codex.sources"
+    fi
     system_apt_debian_configure
 }
 
