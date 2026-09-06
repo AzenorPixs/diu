@@ -6666,11 +6666,6 @@ then
 	echo "export API_OPENROUTER_KEY=$API_OPENROUTER_KEY" >> /root/.zshrc
 	echo "export EDITOR=nano" >> /root/.zshrc
 	echo "export LANG=fr_FR.UTF-8" >> /root/.zshrc
-	CODEX_HOME_VALUE="$SOFTWARES_APT_CODEX_CLI_HOME"
-	case "$CODEX_HOME_VALUE" in
-		\~/*) CODEX_HOME_VALUE="/home/$DEVOPS_USER/${CODEX_HOME_VALUE#\~/}" ;;
-	esac
-	echo "export CODEX_HOME=$(printf '%q' "$CODEX_HOME_VALUE")" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# CLEAN PATH #" >> /root/.zshrc		
