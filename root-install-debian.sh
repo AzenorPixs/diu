@@ -25,6 +25,7 @@ if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
         'rid install → Installation de logiciels.' \
         'rid remove  → Suppression de logiciels.' \
         'rid update  → Mise à jour des composants.' \
+        'rid softwares → Gestion et installation des logiciels.' \
         'rid system  → Gestion du système Debian.' \
         'rid version   → Affiche la version du DIU.'
     exit 0
@@ -49,6 +50,17 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
         update)
             printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
             ;;
+        softwares)
+            printf '%s\n' \
+                'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
+                'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
+                'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
+                'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
+                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.' \
+                'rid softwares install github <SOFTWARE> → Installer depuis une release GitHub.' \
+                'rid softwares remove github <SOFTWARE>  → Désinstaller un logiciel GitHub.' \
+                'rid softwares update github [SOFTWARE]  → Mettre à jour un ou tous les logiciels GitHub.'
+            ;;
         *)
             printf 'rid %s → Affiche les sous-commandes disponibles.\n' "${1:-}"
             ;;
@@ -70,7 +82,8 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             "rid system ${operation} apt proxmox → ${verb} le dépôt APT Proxmox." \
             "rid system ${operation} apt vscode → ${verb} le dépôt APT VS Code." \
             "rid system ${operation} apt wazuh-4 → ${verb} le dépôt APT Wazuh." \
-            "rid system ${operation} apt webmin → ${verb} le dépôt APT Webmin."
+            "rid system ${operation} apt webmin → ${verb} le dépôt APT Webmin." \
+            "rid system ${operation} apt cgpt → ${verb} les dépôts APT OpenAI."
         exit 0
     fi
     case "${1:-}:${2:-}" in
@@ -120,7 +133,8 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
                 "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
                 "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
                 "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
-                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin."
+                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin." \
+                "rid system ${operation} apt cgpt → ${operation^} les dépôts APT OpenAI."
             ;;
         system:update)
             printf '%s\n' \
@@ -154,6 +168,8 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/system/apt.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/apt.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/github.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/find.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
@@ -368,6 +384,11 @@ dispatch_arguments() {
             manage_software_action "$@"
             ;;
 
+        softwares)
+            shift
+            manage_softwares_action "$@"
+            ;;
+
         update)
             shift
             manage_update_action "$@"
@@ -474,6 +495,17 @@ EOF
             ;;
         update::)
             printf '%s\n' 'rid update → Mise à jour du système.'
+            ;;
+        softwares::)
+            printf '%s\n' \
+                'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
+                'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
+                'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
+                'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
+                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.' \
+                'rid softwares install github <SOFTWARE> → Installer depuis une release GitHub.' \
+                'rid softwares remove github <SOFTWARE>  → Désinstaller un logiciel GitHub.' \
+                'rid softwares update github [SOFTWARE]  → Mettre à jour un ou tous les logiciels GitHub.'
             ;;
         *)
             display_usage
@@ -6634,6 +6666,11 @@ then
 	echo "export API_OPENROUTER_KEY=$API_OPENROUTER_KEY" >> /root/.zshrc
 	echo "export EDITOR=nano" >> /root/.zshrc
 	echo "export LANG=fr_FR.UTF-8" >> /root/.zshrc
+	CODEX_HOME_VALUE="$SOFTWARES_APT_CODEX_CLI_HOME"
+	case "$CODEX_HOME_VALUE" in
+		\~/*) CODEX_HOME_VALUE="/home/$DEVOPS_USER/${CODEX_HOME_VALUE#\~/}" ;;
+	esac
+	echo "export CODEX_HOME=$(printf '%q' "$CODEX_HOME_VALUE")" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# CLEAN PATH #" >> /root/.zshrc		
