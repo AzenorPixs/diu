@@ -1,0 +1,6 @@
+- [x] Mettre à jour la spécification `software-management`.
+- [x] Persister l'état Codex CLI après installation et désinstallation.
+- [x] Rendre l'update ciblé sans effet après désinstallation.
+- [x] Ajouter les tests de régression de persistance et d'absence.
+- [x] Exécuter les tests, les contrôles Bash et la validation OpenSpec.
+- [x] Archiver la spécification.

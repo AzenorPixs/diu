@@ -577,3 +577,46 @@ La recette APT de ChatGPT SHALL gérer uniquement le paquet et son dépôt. Elle
 SHALL NOT modifier `/usr/share/applications/chatgpt.desktop` ni utiliser ou
 persister `SOFTWARES_APT_CHATGPT_HOME`. Cette exigence remplace les exigences
 antérieures de personnalisation desktop et de gestion de cette variable.
+
+### Requirement: Cohérence persistée de l'état Codex CLI
+
+Après une installation ou une désinstallation réussie de Codex CLI, DIU SHALL
+persister la valeur correspondante de `SOFTWARES_APT_CODEX_CLI` dans
+`/root/diu/config/softwares.env` lorsque ce fichier est accessible en écriture.
+
+#### Scenario: Désinstallation persistée
+
+- **WHEN** `rid softwares remove github codex-cli` réussit
+- **THEN** `SOFTWARES_APT_CODEX_CLI` vaut `0` dans le processus courant
+- **AND** la configuration persistée contient `export SOFTWARES_APT_CODEX_CLI=0`
+- **AND** une initialisation ultérieure ne considère pas Codex CLI comme installé
+
+#### Scenario: Mise à jour après désinstallation
+
+- **WHEN** `rid softwares update github codex-cli` est invoqué alors que
+  `SOFTWARES_APT_CODEX_CLI` vaut `0`
+- **THEN** DIU n'effectue aucun accès réseau ni téléchargement
+- **AND** DIU affiche que Codex CLI n'est pas installé
+- **AND** la commande réussit sans erreur d'opération
+
+### Requirement: Cohérence persistée de l'état ChatGPT
+
+Après une installation ou une désinstallation réussie de ChatGPT par le
+moteur APT, DIU SHALL persister la valeur correspondante de
+`SOFTWARES_APT_CHATGPT` dans `/root/diu/config/softwares.env` lorsque ce
+fichier est accessible en écriture.
+
+#### Scenario: Installation persistée
+
+- **WHEN** `rid softwares install apt chatgpt` réussit
+- **THEN** `SOFTWARES_APT_CHATGPT` vaut `1` dans le processus courant
+- **AND** la configuration persistée contient
+  `export SOFTWARES_APT_CHATGPT=1`
+
+#### Scenario: Désinstallation persistée
+
+- **WHEN** `rid softwares remove apt chatgpt` réussit
+- **THEN** `SOFTWARES_APT_CHATGPT` vaut `0` dans le processus courant
+- **AND** la configuration persistée contient
+  `export SOFTWARES_APT_CHATGPT=0`
+- **AND** une initialisation ultérieure ne considère pas ChatGPT comme installé

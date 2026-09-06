@@ -1,0 +1,6 @@
+- [x] Mettre à jour la spécification `software-management`.
+- [x] Persister l'état ChatGPT après installation.
+- [x] Persister l'état ChatGPT après désinstallation.
+- [x] Ajouter les tests de régression.
+- [x] Exécuter les tests, contrôles Bash et la validation OpenSpec.
+- [x] Archiver la spécification.

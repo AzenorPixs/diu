@@ -163,6 +163,33 @@ chmod 0755 "$TMPDIR/bin/codex"
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('OK softwares/github/codex-cli (1.2.3): désinstallé.', result.stdout)
 
+    def test_codex_cli_remove_persists_disabled_state(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_codex_cli.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
+source "$variable_source"
+source "$ROOT/modules/softwares/github.sh"
+codex_install_root="$TMPDIR/codex-install"
+mkdir -p "$codex_install_root/packages/standalone" "$TMPDIR/bin"
+printf '#!/bin/sh\nprintf "codex-cli 1.2.3\\n"\n' > "$TMPDIR/bin/codex"
+chmod 0755 "$TMPDIR/bin/codex"
+SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_INSTALL_ROOT="$codex_install_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
+    software_github_codex_cli_remove
+grep -Fx 'export SOFTWARES_APT_CODEX_CLI=0' "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_codex_cli_update_after_remove_is_noop(self):
+        result, calls, _ = self.run_shell(r'''
+source "$ROOT/modules/softwares/github.sh"
+SOFTWARES_APT_CODEX_CLI=0
+software_github_codex_cli_update
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Codex CLI n'est pas installé.", result.stdout)
+        self.assertNotIn('curl', calls)
+
     def test_apt_chatgpt_remove_reports_version(self):
         result, _, _ = self.run_shell(r'''
     dpkg-query() {
@@ -259,6 +286,20 @@ manage_softwares_action install apt chatgpt
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(calls.splitlines(), ['apt -y install chatgpt'])
 
+    def test_chatgpt_install_persists_enabled_state(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_chatgpt.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
+source "$variable_source"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'unknown' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_install_repository() { :; }
+SYSTEM_APT_CGPT=0
+manage_softwares_action install apt chatgpt
+grep -Fx 'export SOFTWARES_APT_CHATGPT=1' "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_chatgpt_remove_orders_package_repository_and_update(self):
         result, calls, _ = self.run_shell(r'''
 dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'installed' || printf 'foo\t1.0\tinstalled\n'; }
@@ -267,6 +308,20 @@ manage_softwares_action remove apt chatgpt
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(calls.splitlines(), ['apt -y remove chatgpt', 'repository', 'apt -y update'])
+
+    def test_chatgpt_remove_persists_disabled_state(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_chatgpt.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
+source "$variable_source"
+dpkg-query() { [[ "$*" == *chatgpt* ]] && printf 'installed' || printf 'foo\t1.0\tinstalled\n'; }
+system_apt_remove_repository() { :; }
+SOFTWARES_APT_CHATGPT=1
+manage_softwares_action remove apt chatgpt
+grep -Fx 'export SOFTWARES_APT_CHATGPT=0' "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_chatgpt_update_does_not_rewrite_desktop_or_call_apt(self):
         result, calls, _ = self.run_shell(r'''

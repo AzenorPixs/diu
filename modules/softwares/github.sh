@@ -51,6 +51,9 @@ software_github_codex_cli_install() {
     rm -f "$archive" "$checksum_file"
     SOFTWARES_APT_CODEX_CLI=1
     export SOFTWARES_APT_CODEX_CLI
+    if declare -F software_apt_codex_cli_persist >/dev/null 2>&1; then
+        software_apt_codex_cli_persist
+    fi
     local installed_version
     installed_version="$(software_github_codex_cli_version)"
     print_success "softwares/github/codex-cli (${installed_version:-inconnue}): installé."
@@ -69,12 +72,15 @@ software_github_codex_cli_remove() {
     rm -rf "$root/packages/standalone" "$root/packages/tmp"
     SOFTWARES_APT_CODEX_CLI=0
     export SOFTWARES_APT_CODEX_CLI
+    if declare -F software_apt_codex_cli_persist >/dev/null 2>&1; then
+        software_apt_codex_cli_persist
+    fi
     print_success "softwares/github/codex-cli (${installed_version:-inconnue}): désinstallé."
 }
 
 software_github_codex_cli_update() {
     local binary local_version metadata remote_version updated_version
-    [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]] || { print_error "Codex CLI n'est pas installé."; return 1; }
+    [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]] || { print_info "Codex CLI n'est pas installé."; return 0; }
     binary="$(software_github_codex_cli_binary)"
     local_version="$(software_github_codex_cli_version)"
     metadata="$(curl --fail --silent --show-error --location --header 'Accept: application/vnd.github+json' 'https://api.github.com/repos/openai/codex/releases/latest')" || return 1
