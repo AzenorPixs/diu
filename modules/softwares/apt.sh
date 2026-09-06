@@ -9,56 +9,6 @@ software_apt_recipe() {
     esac
 }
 
-software_apt_chatgpt_desktop_file="/usr/share/applications/chatgpt.desktop"
-
-software_apt_chatgpt_home_path() {
-    local configured_home="${SOFTWARES_APT_CHATGPT_HOME:-~/.codex}"
-    case "$configured_home" in
-        '~') configured_home="${HOME:-}" ;;
-        \~/*) configured_home="${HOME:-}/${configured_home:2}" ;;
-    esac
-    [[ -n "$configured_home" && "$configured_home" != *$'\n'* ]] || {
-        print_error "Chemin CODEX_HOME invalide."
-        return 1
-    }
-    printf '%s' "$configured_home"
-}
-
-software_apt_chatgpt_set_desktop_home() {
-    local desktop_file="${SOFTWARES_APT_CHATGPT_DESKTOP_FILE:-$software_apt_chatgpt_desktop_file}"
-    local home_path temporary mode
-    [[ -f "$desktop_file" ]] || {
-        print_error "Fichier desktop ChatGPT introuvable : $desktop_file"
-        return 1
-    }
-    home_path="$(software_apt_chatgpt_home_path)" || return 1
-    [[ "$home_path" != *'"'* ]] || {
-        print_error "Chemin CODEX_HOME non représentable dans le fichier desktop."
-        return 1
-    }
-    local desktop_home="$home_path"
-    if [[ "$desktop_home" == *[[:space:]]* ]]; then
-        desktop_home="\"$desktop_home\""
-    fi
-    temporary="$(mktemp)" || return 1
-    mode="$(stat -c '%a' "$desktop_file")" || { rm -f -- "$temporary"; return 1; }
-    if ! awk -v desktop_home="$desktop_home" '
-        BEGIN {
-            exec_line = "Exec=env CODEX_HOME=" desktop_home " chatgpt %U"
-            updated = 0
-        }
-        /^Exec=/ && !updated { print exec_line; updated = 1; next }
-        { print }
-        END { exit !updated }
-    ' "$desktop_file" > "$temporary"; then
-        rm -f -- "$temporary"
-        print_error "Entrée Exec absente du fichier desktop ChatGPT."
-        return 1
-    fi
-    chmod "$mode" "$temporary" || { rm -f -- "$temporary"; return 1; }
-    mv -- "$temporary" "$desktop_file"
-}
-
 software_apt_chatgpt_update_indexes() {
     apt -y update
 }
@@ -87,8 +37,9 @@ software_apt_chatgpt_install() {
     else
         apt -y install chatgpt || return 1
     fi
-    software_apt_chatgpt_set_desktop_home || return 1
     if [[ "$was_installed" == 0 ]]; then
+        SOFTWARES_APT_CHATGPT=1
+        export SOFTWARES_APT_CHATGPT
         print_success "softwares/apt/chatgpt ($(software_apt_chatgpt_version)): installé."
     fi
 }
@@ -107,7 +58,9 @@ software_apt_chatgpt_remove() {
         return 1
     }
     system_apt_remove_repository cgpt || return 1
-    software_apt_chatgpt_update_indexes
+    software_apt_chatgpt_update_indexes || return 1
+    SOFTWARES_APT_CHATGPT=0
+    export SOFTWARES_APT_CHATGPT
 }
 
 software_apt_chatgpt_update() {
@@ -115,7 +68,6 @@ software_apt_chatgpt_update() {
         print_error "ChatGPT n'est pas installé."
         return 1
     }
-    software_apt_chatgpt_set_desktop_home
     print_info "ChatGPT est déjà à jour ($(software_apt_chatgpt_version))."
 }
 
