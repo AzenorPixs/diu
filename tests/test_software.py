@@ -123,13 +123,14 @@ software_github_action install demo
         result, _, _ = self.run_shell(r'''
 source "$ROOT/modules/softwares/github.sh"
 codex_root="$TMPDIR/codex-home"
-mkdir -p "$codex_root/packages/standalone" "$TMPDIR/bin"
+codex_install_root="$TMPDIR/codex-install"
+mkdir -p "$codex_root/packages/standalone" "$codex_install_root/packages/standalone" "$TMPDIR/bin"
 printf 'profile' > "$codex_root/config.toml"
 printf '#!/bin/sh\n' > "$TMPDIR/bin/codex"
 chmod 0755 "$TMPDIR/bin/codex"
-SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
+SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_INSTALL_ROOT="$codex_install_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
     software_github_codex_cli_remove
-[[ -f "$codex_root/config.toml" && ! -e "$TMPDIR/bin/codex" && ! -e "$codex_root/packages/standalone" ]]
+[[ -f "$codex_root/config.toml" && ! -e "$TMPDIR/bin/codex" && ! -e "$codex_install_root/packages/standalone" ]]
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
@@ -153,10 +154,11 @@ SOFTWARES_APT_CODEX_CLI_HOME='~/.codex'
         result, _, _ = self.run_shell(r'''
 source "$ROOT/modules/softwares/github.sh"
 codex_root="$TMPDIR/codex-home"
-mkdir -p "$codex_root/packages/standalone" "$TMPDIR/bin"
+codex_install_root="$TMPDIR/codex-install"
+mkdir -p "$codex_root/packages/standalone" "$codex_install_root/packages/standalone" "$TMPDIR/bin"
 printf '#!/bin/sh\nprintf "codex-cli 1.2.3\\n"\n' > "$TMPDIR/bin/codex"
 chmod 0755 "$TMPDIR/bin/codex"
-SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
+SOFTWARES_APT_CODEX_CLI=1 SOFTWARES_APT_CODEX_CLI_HOME="$codex_root" SOFTWARES_APT_CODEX_CLI_INSTALL_ROOT="$codex_install_root" SOFTWARES_APT_CODEX_CLI_BIN="$TMPDIR/bin/codex" \
     software_github_codex_cli_remove
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

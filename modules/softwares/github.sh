@@ -18,7 +18,8 @@ software_github_codex_cli_root() {
         *) printf '%s\n' "$configured_home" ;;
     esac
 }
-software_github_codex_cli_binary() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_BIN:-$HOME/.local/bin/codex}"; }
+software_github_codex_cli_install_root() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_INSTALL_ROOT:-/usr/local/lib/codex}"; }
+software_github_codex_cli_binary() { printf '%s\n' "${SOFTWARES_APT_CODEX_CLI_BIN:-/usr/local/bin/codex}"; }
 software_github_codex_cli_version() { "$(software_github_codex_cli_binary)" --version 2>/dev/null | sed -n 's/.* \([0-9][0-9A-Za-z.+-]*\)$/\1/p' | head -n 1; }
 
 software_github_codex_cli_install() {
@@ -27,7 +28,7 @@ software_github_codex_cli_install() {
     command -v curl >/dev/null 2>&1 || { print_error "curl est requis pour Codex CLI."; return 1; }
     command -v tar >/dev/null 2>&1 || { print_error "tar est requis pour Codex CLI."; return 1; }
     command -v sha256sum >/dev/null 2>&1 || { print_error "sha256sum est requis pour Codex CLI."; return 1; }
-    root="$(software_github_codex_cli_root)"
+    root="$(software_github_codex_cli_install_root)"
     binary="$(software_github_codex_cli_binary)"
     archive="$root/.codex-package.tar.gz"
     checksum_file="$root/.codex-package_SHA256SUMS"
@@ -63,7 +64,7 @@ software_github_codex_cli_install() {
         printf '%s\n' '    *) CODEX_HOME="$configured_home" ;;'
         printf '%s\n' 'esac'
         printf '%s\n' 'export CODEX_HOME'
-        printf '%s\n' 'exec "$CODEX_HOME/packages/standalone/current/bin/codex" "$@"'
+        printf '%s\n' 'exec "${CODEX_INSTALL_ROOT:-/usr/local/lib/codex}/packages/standalone/current/bin/codex" "$@"'
     } >"$binary"
     chmod 0755 "$binary"
     rm -f "$archive" "$checksum_file"
@@ -76,16 +77,15 @@ software_github_codex_cli_install() {
 
 software_github_codex_cli_remove() {
     local root binary installed_version
-    root="$(software_github_codex_cli_root)"
+    root="$(software_github_codex_cli_install_root)"
     binary="$(software_github_codex_cli_binary)"
     if [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]]; then
         installed_version="$(software_github_codex_cli_version)"
     else
-        print_info "softwares/github/codex-cli : déjà désinstallé."
-        return 0
+        installed_version="inconnue"
     fi
     rm -f "$binary"
-    rm -rf "$root/packages/standalone"
+    rm -rf "$root/packages/standalone" "$root/packages/tmp"
     SOFTWARES_APT_CODEX_CLI=0
     export SOFTWARES_APT_CODEX_CLI
     print_success "softwares/github/codex-cli (${installed_version:-inconnue}): désinstallé."
