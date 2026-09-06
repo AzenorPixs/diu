@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034,SC2088,SC2155
 
 config="STATIC"
-state="DISABLE"
+state="ENABLE"
 scope="softwares"
 default_value=0
 variable_config_file="/root/diu/config/${scope}.env"
@@ -22,7 +22,7 @@ software_apt_codex_cli_persist() {
     [[ ! -e "$variable_config_file" || -w "$variable_config_file" ]] || return 0
 
     if [[ -f "$variable_config_file" ]]; then
-        sed -i '/^export SOFTWARES_APT_CODEX_CLI_/d' \
+        sed -i '/^export SOFTWARES_APT_CODEX_CLI=/d; /^export SOFTWARES_APT_CODEX_CLI_HOME=/d' \
             "$variable_config_file"
     fi
     printf 'export SOFTWARES_APT_CODEX_CLI=%s\n' "$SOFTWARES_APT_CODEX_CLI" >> "$variable_config_file"
@@ -36,7 +36,7 @@ if [[ "$state" == ENABLE ]]; then
 else
     unset SOFTWARES_APT_CODEX_CLI SOFTWARES_APT_CODEX_CLI_HOME
     if [[ -f "$variable_config_file" ]]; then
-        sed -i '/^export SOFTWARES_APT_CODEX_CLI_/d' \
+        sed -i '/^export SOFTWARES_APT_CODEX_CLI=/d; /^export SOFTWARES_APT_CODEX_CLI_HOME=/d' \
             "$variable_config_file"
     fi
 fi

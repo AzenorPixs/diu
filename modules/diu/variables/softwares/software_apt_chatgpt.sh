@@ -3,7 +3,7 @@
 
 # Configuration déclarative de l'intégration ChatGPT Desktop.
 config="STATIC"
-state="DISABLE"
+state="ENABLE"
 scope="softwares"
 default_value=0
 variable_config_file="/root/diu/config/${scope}.env"

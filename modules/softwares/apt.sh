@@ -38,6 +38,8 @@ software_apt_chatgpt_install() {
         apt -y install chatgpt || return 1
     fi
     if [[ "$was_installed" == 0 ]]; then
+        SOFTWARES_APT_CHATGPT=1
+        export SOFTWARES_APT_CHATGPT
         print_success "softwares/apt/chatgpt ($(software_apt_chatgpt_version)): installé."
     fi
 }
@@ -56,7 +58,9 @@ software_apt_chatgpt_remove() {
         return 1
     }
     system_apt_remove_repository cgpt || return 1
-    software_apt_chatgpt_update_indexes
+    software_apt_chatgpt_update_indexes || return 1
+    SOFTWARES_APT_CHATGPT=0
+    export SOFTWARES_APT_CHATGPT
 }
 
 software_apt_chatgpt_update() {
