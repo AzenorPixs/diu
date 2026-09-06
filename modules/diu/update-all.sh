@@ -5,15 +5,25 @@
 update_all() {
     local result=0 module hermes_directory=""
     print_title "Mise à jour de tous les modules DIU"
-    if declare -F system_apt_update >/dev/null 2>&1; then
-        if (set -Eeuo pipefail; system_apt_update); then
-            print_success "system/apt : terminé."
+    if declare -F software_apt_update_all >/dev/null 2>&1; then
+        if (set -Eeuo pipefail; software_apt_update_all); then
+            print_success "softwares/apt : terminé."
         else
-            print_error "system/apt : échec."
+            print_error "softwares/apt : échec."
+            result=1
+        fi
+    elif declare -F system_apt_update >/dev/null 2>&1; then
+        if (set -Eeuo pipefail; system_apt_update); then
+            print_success "softwares/apt : terminé."
+        else
+            print_error "softwares/apt : échec."
             result=1
         fi
     else
-        print_info "system/apt : non chargé dans ce contexte."
+        print_info "softwares/apt : non chargé dans ce contexte."
+    fi
+    if declare -F software_github_update_all >/dev/null 2>&1; then
+        if (set -Eeuo pipefail; software_github_update_all); then print_success "softwares/github : terminé."; else print_error "softwares/github : échec."; result=1; fi
     fi
     for module in desktop environment projects system; do
         print_info "$module : aucune sous-fonction de mise à jour prise en charge."
