@@ -116,7 +116,7 @@ software_apt_chatgpt_update() {
         return 1
     }
     software_apt_chatgpt_set_desktop_home
-    print_info "softwares/apt/chatgpt ($(software_apt_chatgpt_version)): déjà à jour."
+    print_info "ChatGPT est déjà à jour ($(software_apt_chatgpt_version))."
 }
 
 software_apt_action() {
