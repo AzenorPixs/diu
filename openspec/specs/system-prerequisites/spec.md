@@ -13,7 +13,7 @@ Le module `system` SHALL gérer les prérequis suivants :
 `aptitude`, `apache2-utils`, `apt-transport-https`, `bash-completion`,
 `bind9-dnsutils`, `ca-certificates`, `curl`, `dirmngr`, `ethtool`, `extrepo`,
 `git`, `gnupg`, `gpg`, `inetutils-telnet`, `iptables`, `jq`, `lshw`,
-`lsb-release`, `man-db`, `manpages-fr`, `net-tools`, `netcat-traditional`,
+`libsecret-tools`, `lsb-release`, `man-db`, `manpages-fr`, `net-tools`, `netcat-traditional`,
 `nicstat`, `openssl`, `pciutils`, `python3-pytest`, `ripgrep`, `shellcheck`,
 `sudo`, `tcpdump`, `traceroute`, `tree`, `util-linux`, `wget`.
 

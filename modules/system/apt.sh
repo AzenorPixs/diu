@@ -187,6 +187,7 @@ system_install_prerequisites() {
         gpg inetutils-telnet iptables jq lshw lsb-release man-db manpages-fr
         net-tools netcat-traditional nicstat openssl pciutils ripgrep shellcheck
         python3-pytest ripgrep shellcheck sudo tcpdump traceroute tree util-linux wget
+        libsecret-tools
     )
 
     while IFS= read -r package; do
