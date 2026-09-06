@@ -40,6 +40,9 @@ software_apt_chatgpt_install() {
     if [[ "$was_installed" == 0 ]]; then
         SOFTWARES_APT_CHATGPT=1
         export SOFTWARES_APT_CHATGPT
+        if declare -F software_apt_chatgpt_persist >/dev/null 2>&1; then
+            software_apt_chatgpt_persist
+        fi
         print_success "softwares/apt/chatgpt ($(software_apt_chatgpt_version)): installé."
     fi
 }
@@ -61,6 +64,9 @@ software_apt_chatgpt_remove() {
     software_apt_chatgpt_update_indexes || return 1
     SOFTWARES_APT_CHATGPT=0
     export SOFTWARES_APT_CHATGPT
+    if declare -F software_apt_chatgpt_persist >/dev/null 2>&1; then
+        software_apt_chatgpt_persist
+    fi
 }
 
 software_apt_chatgpt_update() {
