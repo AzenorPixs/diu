@@ -6666,6 +6666,7 @@ then
 	echo "export API_OPENROUTER_KEY=$API_OPENROUTER_KEY" >> /root/.zshrc
 	echo "export EDITOR=nano" >> /root/.zshrc
 	echo "export LANG=fr_FR.UTF-8" >> /root/.zshrc
+	echo "export CODEX_HOME=\"\${SOFTWARES_APT_CODEX_CLI_HOME}\"" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# CLEAN PATH #" >> /root/.zshrc		
