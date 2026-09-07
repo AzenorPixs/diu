@@ -6,7 +6,7 @@
 # Construction de l'image Docker d'un projet
 # ============================================================
 
-proj_docker_build() {
+projects_docker_build() {
 
     local project_id="${1:-}"
     local dockerfile="${2:-dockerfile}"
@@ -56,8 +56,21 @@ proj_docker_build() {
     # Vérification que le projet est Dockerisé
     # --------------------------------------------------------
 
-    if [[ "${PROJECT_DOCKERED:-No}" != "Yes" ]]; then
-        echo "❌ Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+    case "${PROJECT_DOCKERED:-}" in
+        Yes|YES|1)
+            ;;
+        *)
+            echo "❌ Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+            return 1
+            ;;
+    esac
+
+    # --------------------------------------------------------
+    # Vérification de l'entrypoint
+    # --------------------------------------------------------
+
+    if [[ ! -f "${project_dir}/entrypoint.sh" ]]; then
+        echo "❌ Entrypoint introuvable : ${project_dir}/entrypoint.sh"
         return 1
     fi
 

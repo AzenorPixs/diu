@@ -75,7 +75,8 @@ Le module `projects` assure la configuration et la gestion des projets de
 développement.
 
 Il regroupe les fonctions nécessaires à la création, à l'initialisation et à
-l'administration des projets pris en charge par le DIU.
+l'administration des projets pris en charge par le DIU, ainsi qu'à la
+publication de leurs images Docker et paquets Debian vers Forgejo.
 
 ## Principes d'organisation
 
