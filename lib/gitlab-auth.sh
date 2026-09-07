@@ -4,6 +4,7 @@
 
 _gitlab_resolve_remote() {
     local project_path="${1:-}"
+    local remote_name="${2:-${REMOTE_GITLAB_NAME:-origin}}"
     local remote_url=""
     local remote_authority=""
     local remote_path=""
@@ -14,7 +15,7 @@ _gitlab_resolve_remote() {
         return 1
     fi
 
-    if ! remote_url="$(runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" remote get-url origin 2>/dev/null)"; then
+    if ! remote_url="$(runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" remote get-url "${remote_name}" 2>/dev/null)"; then
         print_error "Impossible de déterminer le remote GitLab du projet."
         return 1
     fi
@@ -151,14 +152,16 @@ _gitlab_initialize_credentials() {
 
 _gitlab_validate_credentials() {
     local project_path="${1:-}"
+    local remote_name="${2:-${REMOTE_GITLAB_NAME:-origin}}"
 
-    _gitlab_resolve_remote "${project_path}" || return 1
+    _gitlab_resolve_remote "${project_path}" "${remote_name}" || return 1
     _gitlab_read_username "${project_path}" || return 1
     _gitlab_read_token "${project_path}" || return 1
 }
 
 _gitlab_ensure_credentials() {
     local project_path="${1:-}"
+    local remote_name="${2:-${REMOTE_GITLAB_NAME:-origin}}"
 
     if [[ -z "${project_path}" || ! -d "${project_path}" ]]; then
         print_error "Le répertoire du projet est introuvable : ${project_path}"
@@ -166,12 +169,43 @@ _gitlab_ensure_credentials() {
     fi
 
     if [[ -f "${project_path}/config/gitlab.username" && -f "${project_path}/config/gitlab.token" ]]; then
-        _gitlab_validate_credentials "${project_path}"
+        _gitlab_validate_credentials "${project_path}" "${remote_name}"
         return $?
     fi
 
     _gitlab_initialize_credentials "${project_path}" || return 1
-    _gitlab_validate_credentials "${project_path}"
+    _gitlab_validate_credentials "${project_path}" "${remote_name}"
+}
+
+_gitlab_git_with_token() {
+    local project_path="${1:-}"
+    local username="${2:-}"
+    local token="${3:-}"
+    shift 3 || true
+
+    case "${REMOTE_GITLAB_SSL_VERIFY:-Yes}" in
+        No|no|non|NON|false|FALSE|0)
+            (
+                export GIT_SSL_NO_VERIFY=true
+                git_with_token \
+                    "${project_path}" \
+                    "${username}" \
+                    "${token}" \
+                    "${@}"
+            )
+            ;;
+        Yes|yes|oui|OUI|true|TRUE|1)
+            git_with_token \
+                "${project_path}" \
+                "${username}" \
+                "${token}" \
+                "${@}"
+            ;;
+        *)
+            print_error "REMOTE_GITLAB_SSL_VERIFY doit valoir Yes ou No."
+            return 1
+            ;;
+    esac
 }
 
 gitlab_git_fetch() {
@@ -179,10 +213,14 @@ gitlab_git_fetch() {
     shift || true
     local fetch_args=("${@}")
 
-    _gitlab_ensure_credentials "${project_path}" || return 1
+    _gitlab_ensure_credentials "${project_path}" "${REMOTE_GITLAB_NAME:-origin}" || return 1
     _gitlab_read_username "${project_path}" || return 1
     _gitlab_read_token "${project_path}" || return 1
-    git_with_token "${project_path}" "${gitlab_username}" "${gitlab_token}" fetch "${fetch_args[@]}"
+    _gitlab_git_with_token \
+        "${project_path}" \
+        "${gitlab_username}" \
+        "${gitlab_token}" \
+        fetch "${fetch_args[@]}"
 }
 
 gitlab_git_push() {
@@ -190,8 +228,12 @@ gitlab_git_push() {
     shift || true
     local push_args=("${@}")
 
-    _gitlab_ensure_credentials "${project_path}" || return 1
+    _gitlab_ensure_credentials "${project_path}" "${REMOTE_GITLAB_NAME:-origin}" || return 1
     _gitlab_read_username "${project_path}" || return 1
     _gitlab_read_token "${project_path}" || return 1
-    git_with_token "${project_path}" "${gitlab_username}" "${gitlab_token}" push "${push_args[@]}"
+    _gitlab_git_with_token \
+        "${project_path}" \
+        "${gitlab_username}" \
+        "${gitlab_token}" \
+        push "${push_args[@]}"
 }
