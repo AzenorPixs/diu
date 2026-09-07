@@ -290,7 +290,7 @@ cicd_project_docker_release() {
     print_title \
         "Étape 3/4 — Build de l'image Docker"
 
-    if ! proj_docker_build \
+    if ! projects_docker_build \
         "${project_id}"; then
 
         print_error \
@@ -305,7 +305,7 @@ cicd_project_docker_release() {
     print_title \
         "Étape 4/4 — Publication de la Release Docker"
 
-    if ! git_push_docker_release \
+    if ! projects_forgejo_release \
         "${project_id}"; then
 
         print_error \
@@ -3467,8 +3467,209 @@ github_push() {
     git_push_provider "${project_id}" "github"
 }
 
-# Push vers l dépôt distant Forgejo le projet <PROJECT ID>
-git_push_docker_image() {
+# Publie vers Forgejo les artefacts activés du projet <PROJECT ID>.
+projects_forgejo_release() {
+    local project_id="${1:-}"
+    local project_path=""
+    local project_env=""
+    local docker_enabled="No"
+    local debian_enabled="No"
+    local debian_file=""
+    local -a debian_files=()
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : projects_forgejo_release <project_id>"
+        return 1
+    fi
+
+    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_path}/project.env"
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Projet introuvable : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_info "Configuration générale absente ; initialisation du projet."
+        if ! update_projects "${project_id}"; then
+            print_error "Impossible d'initialiser la configuration du projet."
+            return 1
+        fi
+    fi
+
+    unset \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        PROJECT_DOCKERED \
+        PROJECT_DEBIAN_PACKAGE \
+        REMOTE_FORGEJO_BASE_URL \
+        REMOTE_FORGEJO_OWNER \
+        REMOTE_FORGEJO_REPOSITORY \
+        REMOTE_FORGEJO_NAME \
+        REMOTE_FORGEJO_BRANCH \
+        REMOTE_FORGEJO_SSL_VERIFY
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ -z "${PROJECT_ID:-}" ||
+        "${PROJECT_ID}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ||
+        -z "${PROJECT_DEBIAN_PACKAGE:-}" ]]; then
+        print_info "Configuration générale incomplète ; mise à jour du projet."
+        if ! update_projects "${project_id}"; then
+            print_error "Impossible de compléter la configuration du projet."
+            return 1
+        fi
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            PROJECT_DEBIAN_PACKAGE \
+            REMOTE_FORGEJO_BASE_URL \
+            REMOTE_FORGEJO_OWNER \
+            REMOTE_FORGEJO_REPOSITORY \
+            REMOTE_FORGEJO_NAME \
+            REMOTE_FORGEJO_BRANCH \
+            REMOTE_FORGEJO_SSL_VERIFY
+        # shellcheck disable=SC1090
+        source "${project_env}"
+    fi
+
+    if [[ -z "${REMOTE_FORGEJO_BASE_URL:-}" ||
+        -z "${REMOTE_FORGEJO_OWNER:-}" ||
+        -z "${REMOTE_FORGEJO_REPOSITORY:-}" ||
+        -z "${REMOTE_FORGEJO_NAME:-}" ||
+        -z "${REMOTE_FORGEJO_BRANCH:-}" ||
+        -z "${REMOTE_FORGEJO_SSL_VERIFY:-}" ]]; then
+        print_info "Configuration Forgejo incomplète ; mise à jour Forgejo."
+        if ! forgejo_update "${project_id}"; then
+            print_error "Impossible de compléter la configuration Forgejo."
+            return 1
+        fi
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            PROJECT_DEBIAN_PACKAGE \
+            REMOTE_FORGEJO_BASE_URL \
+            REMOTE_FORGEJO_OWNER \
+            REMOTE_FORGEJO_REPOSITORY \
+            REMOTE_FORGEJO_NAME \
+            REMOTE_FORGEJO_BRANCH \
+            REMOTE_FORGEJO_SSL_VERIFY
+        # shellcheck disable=SC1090
+        source "${project_env}"
+    fi
+
+    if [[ "${PROJECT_ID:-}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ||
+        -z "${PROJECT_DEBIAN_PACKAGE:-}" ]]; then
+        print_error "Configuration générale invalide après mise à jour."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_FORGEJO_BASE_URL:-}" ||
+        -z "${REMOTE_FORGEJO_OWNER:-}" ||
+        -z "${REMOTE_FORGEJO_REPOSITORY:-}" ||
+        -z "${REMOTE_FORGEJO_NAME:-}" ||
+        -z "${REMOTE_FORGEJO_BRANCH:-}" ||
+        -z "${REMOTE_FORGEJO_SSL_VERIFY:-}" ]]; then
+        print_error "Configuration Forgejo invalide après mise à jour."
+        return 1
+    fi
+
+    docker_enabled="${PROJECT_DOCKERED}"
+    debian_enabled="${PROJECT_DEBIAN_PACKAGE}"
+
+    case "${docker_enabled}" in
+        Yes|YES|1)
+            docker_enabled="Yes"
+            ;;
+        *)
+            docker_enabled="No"
+            ;;
+    esac
+
+    case "${debian_enabled}" in
+        Yes|YES|1)
+            debian_enabled="Yes"
+            ;;
+        *)
+            debian_enabled="No"
+            ;;
+    esac
+
+    if [[ "${docker_enabled}" == "No" && "${debian_enabled}" == "No" ]]; then
+        print_error "Aucun artefact Docker ou Debian n'est activé pour ${project_id}."
+        return 1
+    fi
+
+    if [[ "${docker_enabled}" == "Yes" ]]; then
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            docker image inspect "${PROJECT_ID}:latest" >/dev/null 2>&1; then
+            print_error "Image Docker locale introuvable : ${PROJECT_ID}:latest"
+            return 1
+        fi
+    fi
+
+    if [[ "${debian_enabled}" == "Yes" ]]; then
+        if [[ ! -d "${project_path}/dist" ]]; then
+            print_error "Répertoire dist/ introuvable : ${project_path}/dist"
+            return 1
+        fi
+
+        while IFS= read -r -d '' debian_file; do
+            debian_files+=("${debian_file}")
+        done < <(
+            find "${project_path}/dist" \
+                -maxdepth 1 \
+                -type f \
+                -name '*.deb' \
+                -print0 \
+                2>/dev/null
+        )
+
+        if [[ ${#debian_files[@]} -eq 0 ]]; then
+            print_error "Aucun paquet Debian trouvé dans ${project_path}/dist/"
+            return 1
+        fi
+
+        if [[ ${#debian_files[@]} -gt 1 ]]; then
+            print_error "Plusieurs paquets Debian sont présents dans dist/ :"
+            for debian_file in "${debian_files[@]}"; do
+                printf '  %s\n' "$(basename "${debian_file}")"
+            done
+            return 1
+        fi
+    fi
+
+    if [[ "${docker_enabled}" == "Yes" ]]; then
+        if ! projects_forgejo_release_docker "${project_id}"; then
+            return 1
+        fi
+    fi
+
+    if [[ "${debian_enabled}" == "Yes" ]]; then
+        if ! publish_release_debian "${project_id}"; then
+            return 1
+        fi
+    fi
+
+    print_success "Release Forgejo du projet ${project_id} terminée."
+    return 0
+}
+
+# Publication de l'image Docker d'un projet vers Forgejo.
+projects_forgejo_release_docker() {
 
     local project_id="${1:-}"
 
@@ -3500,7 +3701,7 @@ git_push_docker_image() {
 
     if [[ -z "${project_id}" ]]; then
         print_error \
-            "Usage : git_push_docker_image <project_id>"
+            "Usage : projects_forgejo_release_docker <project_id>"
         return 1
     fi
 
@@ -3538,11 +3739,15 @@ git_push_docker_image() {
     # Vérification projet Docker
     # --------------------------------------------------------
 
-    if [[ "${PROJECT_DOCKERED:-No}" != "Yes" ]]; then
-        print_error \
-            "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
-        return 1
-    fi
+    case "${PROJECT_DOCKERED:-No}" in
+        Yes|YES|1)
+            ;;
+        *)
+            print_error \
+                "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+            return 1
+            ;;
+    esac
 
     # --------------------------------------------------------
     # Vérification configuration distante
@@ -4309,8 +4514,8 @@ git_status() {
     return 0
 }
 
-# Génération ou mise à jour des variables du <PROJECT_ID>
-git_update() {
+# Compatibilité interne pour les modes historiques de configuration.
+git_update_legacy() {
     local project_id="${1:-}"
     local update_mode="${2:-local}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -4319,6 +4524,7 @@ git_update() {
     local project_name=""
     local project_type="BASH"
     local project_dockered="No"
+    local project_debian_package="No"
 
     local local_default_branch="main"
     local git_user_name=""
@@ -4399,6 +4605,7 @@ git_update() {
             PROJECT_NAME \
             PROJECT_TYPE \
             PROJECT_DOCKERED \
+            PROJECT_DEBIAN_PACKAGE \
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
             GIT_USER_EMAIL \
@@ -4437,6 +4644,7 @@ git_update() {
         project_name="${PROJECT_NAME:-}"
         project_type="${PROJECT_TYPE:-BASH}"
         project_dockered="${PROJECT_DOCKERED:-No}"
+        project_debian_package="${PROJECT_DEBIAN_PACKAGE:-No}"
 
         local_default_branch="${LOCAL_DEFAULT_BRANCH:-main}"
         git_user_name="${GIT_USER_NAME:-}"
@@ -4828,6 +5036,8 @@ git_update() {
     printf '%-30s : %s\n' "PROJECT_NAME" "${project_name}"
     printf '%-30s : %s\n' "PROJECT_TYPE" "${project_type}"
     printf '%-30s : %s\n' "PROJECT_DOCKERED" "${project_dockered}"
+    printf '%-30s : %s\n' \
+        "PROJECT_DEBIAN_PACKAGE" "${project_debian_package}"
 
     printf '\n'
 
@@ -4897,6 +5107,8 @@ git_update() {
         printf 'PROJECT_NAME=%q\n' "${project_name}"
         printf 'PROJECT_TYPE=%q\n' "${project_type}"
         printf 'PROJECT_DOCKERED=%q\n' "${project_dockered}"
+        printf 'PROJECT_DEBIAN_PACKAGE=%q\n' \
+            "${project_debian_package}"
 
         printf '\n'
         printf '# Git local\n'
@@ -5011,6 +5223,151 @@ git_update() {
         "Configuration du projet enregistrée : ${project_env}"
 
     return 0
+}
+
+# Génération ou mise à jour des variables du dépôt Git local.
+git_update_local() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+
+    local local_default_branch="main"
+    local git_user_name=""
+    local git_user_email=""
+    local value=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : git_update <project_id>"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        if ! update_projects "${project_id}"; then
+            print_error \
+                "Impossible de compléter les variables du projet."
+            return 1
+        fi
+    fi
+
+    unset \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        PROJECT_DOCKERED \
+        PROJECT_DEBIAN_PACKAGE \
+        LOCAL_DEFAULT_BRANCH \
+        GIT_USER_NAME \
+        GIT_USER_EMAIL
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ "${PROJECT_ID:-}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ||
+        -z "${PROJECT_DEBIAN_PACKAGE:-}" ]]; then
+        if ! update_projects "${project_id}"; then
+            print_error \
+                "Impossible de compléter les variables du projet."
+            return 1
+        fi
+
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            PROJECT_DEBIAN_PACKAGE \
+            LOCAL_DEFAULT_BRANCH \
+            GIT_USER_NAME \
+            GIT_USER_EMAIL
+
+        # shellcheck disable=SC1090
+        source "${project_env}"
+    fi
+
+    local_default_branch="${LOCAL_DEFAULT_BRANCH:-main}"
+    git_user_name="${GIT_USER_NAME:-}"
+    git_user_email="${GIT_USER_EMAIL:-}"
+
+    print_title "Configuration Git local du projet ${project_id}"
+
+    value=""
+    read -r -p \
+        "LOCAL_DEFAULT_BRANCH [${local_default_branch}] : " value
+    if [[ -n "${value}" ]]; then
+        local_default_branch="${value}"
+    fi
+
+    while [[ -z "${local_default_branch}" ]]; do
+        print_error "LOCAL_DEFAULT_BRANCH ne peut pas être vide."
+        read -r -p "LOCAL_DEFAULT_BRANCH : " local_default_branch
+    done
+
+    value=""
+    read -r -p "GIT_USER_NAME [${git_user_name}] : " value
+    if [[ -n "${value}" ]]; then
+        git_user_name="${value}"
+    fi
+
+    while [[ -z "${git_user_name}" ]]; do
+        print_error "GIT_USER_NAME ne peut pas être vide."
+        read -r -p "GIT_USER_NAME : " git_user_name
+    done
+
+    value=""
+    read -r -p "GIT_USER_EMAIL [${git_user_email}] : " value
+    if [[ -n "${value}" ]]; then
+        git_user_email="${value}"
+    fi
+
+    while [[ -z "${git_user_email}" ]]; do
+        print_error "GIT_USER_EMAIL ne peut pas être vide."
+        read -r -p "GIT_USER_EMAIL : " git_user_email
+    done
+
+    if ! project_env_set_variables \
+        "${project_env}" \
+        LOCAL_DEFAULT_BRANCH "${local_default_branch}" \
+        GIT_USER_NAME "${git_user_name}" \
+        GIT_USER_EMAIL "${git_user_email}"; then
+        return 1
+    fi
+
+    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+        ! chmod 660 "${project_env}"; then
+        print_error "Impossible de définir les droits de ${project_env}."
+        return 1
+    fi
+
+    print_success "Variables Git local enregistrées : ${project_env}"
+    return 0
+}
+
+# Point d'entrée public : local par défaut, modes historiques conservés.
+git_update() {
+    local project_id="${1:-}"
+    local update_mode="${2:-local}"
+
+    case "${update_mode}" in
+        local)
+            git_update_local "${project_id}"
+            ;;
+        clone|gitlab)
+            git_update_legacy "${project_id}" "${update_mode}"
+            ;;
+        *)
+            print_error \
+                "Mode git_update invalide : ${update_mode} (attendu : local, clone ou gitlab)."
+            return 1
+            ;;
+    esac
 }
 
 # Initialise un dépôt local Git pour le projet <PROJECT ID> à partir d'un clone distant.

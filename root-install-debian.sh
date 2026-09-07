@@ -65,15 +65,18 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
             printf '%s\n' \
                 'rid projects create <ID PROJECT> → Crée un projet.' \
                 'rid projects del <ID PROJECT> → Supprime un projet.' \
-                'rid projects dockerb <ID PROJECT> → Construit les images Docker.' \
+                'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet.' \
+                'rid projects docker → Gestion Docker des projets.' \
                 'rid projects finds <ID PROJECT> → Recherche les projets.' \
                 'rid projects findads <ID PROJECT> → Recherche les adresses des projets.' \
                 'rid projects gita <ID PROJECT> → Affiche les actions Git disponibles.' \
+                'rid projects git → Gestion des variables du dépôt local Git.' \
+                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git.' \
                 'rid projects gitc <ID PROJECT> → Clone ou commit un dépôt Git.' \
                 'rid projects giti <ID PROJECT> → Initialise un dépôt Git.' \
                 'rid projects gitic <ID PROJECT> → Initialise et clone un dépôt Git.' \
                 'rid projects gitpdiu <ID PROJECT> → Pousse le projet DIU vers Forgejo.' \
-                'rid projects gitpdi <ID PROJECT> → Pousse un projet vers Forgejo.' \
+                'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.' \
                 'rid projects gitlab → Gestion des dépôts GitLab.' \
                 'rid projects github → Gestion des dépôts GitHub.' \
                 'rid projects forgejo → Gestion des dépôts Forgejo.' \
@@ -113,7 +116,8 @@ fi
 if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == help ]]; then
     printf '%s\n' \
         "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo." \
-        'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.'
+        'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.' \
+        'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.'
     exit 0
 fi
 
@@ -122,8 +126,38 @@ if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == push && "${4:-}
     exit 0
 fi
 
+if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == release && "${4:-}" == help ]]; then
+    printf '%s\n' 'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif du projet <ID PROJECT> vers Forgejo.'
+    exit 0
+fi
+
 if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == update && "${4:-}" == help ]]; then
     printf '%s\n' "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo pour le projet <ID PROJECT>."
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == update && "${3:-}" == help ]]; then
+    printf '%s\n' 'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet <ID PROJECT>.'
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == git && "${3:-}" == help ]]; then
+    printf '%s\n' 'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == git && "${3:-}" == update && "${4:-}" == help ]]; then
+    printf '%s\n' 'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == docker && "${3:-}" == help ]]; then
+    printf '%s\n' "rid projects docker build <ID PROJECT> → Construit l'image Docker du projet <ID PROJECT>."
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == docker && "${3:-}" == build && "${4:-}" == help ]]; then
+    printf '%s\n' "rid projects docker build <ID PROJECT> → Construit l'image Docker du projet <ID PROJECT>."
     exit 0
 fi
 
@@ -168,7 +202,7 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
             ;;
         proj:)
-            printf '%s\n' 'rid projects create <PROJET> → Crée un projet.' 'rid projects del <PROJET> → Supprime un projet.' 'rid projects dockerb <PROJET> → Construit son image.' 'rid projects finds <PROJET> → Recherche les conflits.' 'rid projects findads <PROJET> → Supprime les conflits.' 'rid projects gita <PROJET> → Analyse Git.' 'rid projects gitc <PROJET> [COMMIT] → Commite le projet.' 'rid projects giti <PROJET> → Initialise Git.' 'rid projects gitic <PROJET> → Clone le dépôt.' 'rid projects gitpdiu → Publie le paquet DIU.' 'rid projects gitpdi <PROJET> → Publie l’image.' 'rid projects gits <PROJET> → Affiche le statut Git.' 'rid projects gitu <PROJET> → Met à jour les variables.' 'rid projects ocro <PROJET> → Lance OpenCode RO.' 'rid projects ocrw <PROJET> → Lance OpenCode RW.' 'rid projects ocsh → Lance le shell OpenCode.' 'rid projects deb → Construit le paquet DIU.' 'rid projects cicddiu → Lance le CI/CD DIU.' 'rid projects cicddr <PROJET> → Lance le CI/CD projet.'
+            printf '%s\n' 'rid projects create <PROJET> → Crée un projet.' 'rid projects del <PROJET> → Supprime un projet.' 'rid projects docker → Gestion Docker des projets.' 'rid projects finds <PROJET> → Recherche les conflits.' 'rid projects findads <PROJET> → Supprime les conflits.' 'rid projects gita <PROJET> → Analyse Git.' 'rid projects gitc <PROJET> [COMMIT] → Commite le projet.' 'rid projects giti <PROJET> → Initialise Git.' 'rid projects gitic <PROJET> → Clone le dépôt.' 'rid projects gitpdiu → Publie le paquet DIU.' 'rid projects forgejo release <PROJET> → Publie l’image et/ou le paquet vers Forgejo.' 'rid projects gits <PROJET> → Affiche le statut Git.' 'rid projects gitu <PROJET> → Met à jour les variables.' 'rid projects ocro <PROJET> → Lance OpenCode RO.' 'rid projects ocrw <PROJET> → Lance OpenCode RW.' 'rid projects ocsh → Lance le shell OpenCode.' 'rid projects deb → Construit le paquet DIU.' 'rid projects cicddiu → Lance le CI/CD DIU.' 'rid projects cicddr <PROJET> → Lance le CI/CD projet.'
             ;;
         system:install|system:remove)
             printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
@@ -552,15 +586,18 @@ EOF
             printf '%s\n' \
                 'rid projects create → Crée un projet.' \
                 'rid projects del → Supprime un projet.' \
-                'rid projects dockerb → Construit les images Docker.' \
+                'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet.' \
+                'rid projects docker → Gestion Docker des projets.' \
                 'rid projects finds → Recherche les projets.' \
                 'rid projects findads → Recherche les adresses des projets.' \
                 'rid projects gita <ID> → Affiche les actions Git disponibles.' \
+                'rid projects git → Gestion des variables du dépôt local Git.' \
+                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git.' \
                 'rid projects gitc <ID> → Clone un dépôt Git.' \
                 'rid projects giti <ID> → Initialise un dépôt Git.' \
                 'rid projects gitic <ID> → Initialise et clone un dépôt Git.' \
                 'rid projects gitpdiu <ID> → Pousse le projet DIU vers Forgejo.' \
-                'rid projects gitpdi <ID> → Pousse un projet vers Forgejo.' \
+                'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.' \
                 'rid projects gits <ID> → Affiche le statut Git.' \
                 'rid projects gitu <ID> → Met à jour un projet.' \
                 'rid projects gitlab → Gestion des dépôts GitLab.' \
@@ -572,6 +609,26 @@ EOF
                 'rid projects deb <ID> → Construit le paquet Debian.' \
                 'rid projects cicddiu <ID> → Lance la CI/CD du projet DIU.' \
                 'rid projects cicddr <ID> → Lance la CI/CD du projet.'
+            ;;
+        projects:update:)
+            printf '%s\n' \
+                'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet <ID PROJECT>.'
+            ;;
+        projects:git:)
+            printf '%s\n' \
+                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
+            ;;
+        projects:git:update)
+            printf '%s\n' \
+                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
+            ;;
+        projects:docker:)
+            printf '%s\n' \
+                "rid projects docker build <ID PROJECT> → Construire l'image Docker du projet <ID PROJECT>."
+            ;;
+        projects:docker:build)
+            printf '%s\n' \
+                "rid projects docker build <ID PROJECT> → Construire l'image Docker du projet <ID PROJECT>."
             ;;
         projects:gitlab:)
             printf '%s\n' \
@@ -598,13 +655,17 @@ EOF
         projects:forgejo:)
             printf '%s\n' \
                 "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo." \
-                'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.'
+                'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.' \
+                'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.'
             ;;
         projects:forgejo:update)
             printf '%s\n' "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo pour le projet <ID PROJECT>."
             ;;
         projects:forgejo:push)
             printf '%s\n' 'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo distant pour le projet <ID PROJECT>.'
+            ;;
+        projects:forgejo:release)
+            printf '%s\n' 'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif du projet <ID PROJECT> vers Forgejo.'
             ;;
         install::|remove::)
             printf '%s\n' "rid $context deb <SOFTWARE> → Opération sur un paquet Debian." "rid $context apt <SOFTWARE> → Opération sur un logiciel tiers."
@@ -661,7 +722,7 @@ Utilisation :
   rid projects deb                                              →  Construit le paquet Debian DIU dans dist/.
   rid projects bash <ID projectset>                                 →  Crée un projectset dans /home/<DEVOPS USER>/datas/<ID projectset>
   rid projects del <ID projectset>                                  →  Supprime le projectset <ID projectset>
-  rid projects dockerb <ID projectset>                              →  Construit le docker <ID projectset> à partir de <Docker File>
+  rid projects docker build <ID projectset>                         →  Construit le docker <ID projectset> à partir de <Docker File>
   rid projects findads <ID projectset>                              →  cherche et supprime les motifs *sync-conflict* dans <ID projectset>
   rid projects finds <ID projectset>                                →  cherche les motifs *sync-conflict* dans <ID projectset>
   rid projects gita <ID projectset>                                 →  Analyse le Git local pour <ID projectset>
@@ -674,7 +735,7 @@ Utilisation :
   rid projects forgejo push <ID projectset>                          →  Pousse le Git local vers un dépôt Forgejo pour <ID projectset>.
   rid projects forgejo update <ID projectset>                        →  Crée ou modifie les variables Forgejo pour <ID projectset>.
   rid projects gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
-  rid projects gitpdi <ID projectset>                               →  Publie l'image docker vers le Git Distant pour <ID projectset>.
+  rid projects forgejo release <ID projectset>                       →  Publie l'image Docker et/ou le paquet applicatif vers Forgejo.
   rid projects gits <ID projectset>                                 →  Statut du Git local pour <ID projectset>.
   rid projects gitu <ID projectset>                                 →  Met à jour les variables du projectset pour <ID projectset>.
   rid projects ocro <ID projectset>                                 →  Démarre OpenCode en RO dans le projectset <ID projectset>.
@@ -1578,7 +1639,6 @@ manage_project_action() {
     local commit_name=""
     local commit_tag=""
     local commit_timestamp=""
-    local dockerfile_name=""
 
     case "$action" in
 
@@ -1612,12 +1672,27 @@ manage_project_action() {
                 "$project_id"
             ;;
 
-        dockerb)
-          dockerfile_name="${3:-dockerfile}"
-          proj_docker_build \
-            "$project_id" \
-            "$dockerfile_name"
-          ;;
+        update)
+            update_projects \
+                "$project_id"
+            ;;
+
+        docker)
+            case "${project_subaction}" in
+                build)
+                    projects_docker_build \
+                        "${3:-}"
+                    ;;
+                help|?)
+                    display_help_context projects docker
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects docker' : ${project_subaction}"
+                    display_usage
+                    exit 2
+                    ;;
+            esac
+            ;;
 
         finds)
             proj_find_sync \
@@ -1648,6 +1723,25 @@ manage_project_action() {
         giti)
             git_init \
                 "$project_id"
+            ;;
+
+        git)
+            project_id="${3:-}"
+
+            case "${project_subaction}" in
+                update)
+                    git_update \
+                        "${project_id}"
+                    ;;
+                help|?)
+                    display_help_context projects git
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects git' : ${project_subaction}"
+                    display_usage
+                    exit 2
+                    ;;
+            esac
             ;;
 
         gitic)
@@ -1730,6 +1824,10 @@ manage_project_action() {
                     forgejo_push \
                         "${project_id}"
                     ;;
+                release)
+                    projects_forgejo_release \
+                        "${project_id}"
+                    ;;
                 help|?)
                     display_help_context projects forgejo push
                     ;;
@@ -1744,11 +1842,6 @@ manage_project_action() {
 
         gitpdiu)
             publish_release_diu
-            ;;
-
-        gitpdi)
-            git_push_docker_image \
-                "$project_id"
             ;;
 
         gits)

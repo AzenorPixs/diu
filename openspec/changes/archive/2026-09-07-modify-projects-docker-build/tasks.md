@@ -1,0 +1,6 @@
+- [x] Créer et valider la spécification OpenSpec.
+- [x] Renommer la fonction et renforcer les validations Docker.
+- [x] Adapter le dispatch et les aides CLI.
+- [x] Adapter l'appel CI/CD Docker.
+- [x] Vérifier syntaxe, aides et absence de l'ancien parcours.
+- [x] Publier la spécification canonique et archiver l'évolution.
