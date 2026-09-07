@@ -4005,8 +4005,9 @@ projects_gitlab_release_docker() {
 
     remote_host="${remote_gitlab_base_url#https://}"
     remote_host="${remote_host#http://}"
+    remote_host="${remote_host%%/*}"
     remote_host="${remote_host%/}"
-    remote_registry="registry.${remote_host}"
+    remote_registry="${remote_host}"
 
     local_image="${PROJECT_ID:-${project_id}}:latest"
     remote_image_version="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:${docker_version}"

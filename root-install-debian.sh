@@ -5548,6 +5548,9 @@ then
 	fi
 
 	echo '{' > /etc/docker/daemon.json
+	echo '  "insecure-registries": [' >> /etc/docker/daemon.json
+	echo '    "0.0.0.0/0"' >> /etc/docker/daemon.json
+	echo '  ],' >> /etc/docker/daemon.json
 	echo '  "log-driver": "syslog",' >> /etc/docker/daemon.json
 	echo '  "log-opts": {' >> /etc/docker/daemon.json
 	echo '    "tag": "docker-{{.Name}}",' >> /etc/docker/daemon.json
