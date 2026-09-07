@@ -11,6 +11,14 @@ Le système DOIT exposer la commande `rid projects gitlab push <ID PROJECT>`.
 - ALORS le dépôt local est poussé vers le dépôt GitLab distant configuré
 - ET la branche distante configurée reçoit la branche locale publiée
 
+### Scénario : sélection explicite de GitLab
+
+- ÉTANT DONNÉ que le projet possède déjà une configuration Forgejo
+- QUAND l'utilisateur exécute `rid projects gitlab push <ID PROJECT>`
+- ALORS la commande sélectionne explicitement le fournisseur GitLab
+- ET elle ne bloque pas en raison de `REMOTE_GIT_TYPE='forgejo'`
+- ET elle utilise ou initialise les variables `REMOTE_GITLAB_*`
+
 ## Exigence : configuration GitLab du projet
 
 La configuration du projet DOIT utiliser les variables suivantes dans `project.env` :

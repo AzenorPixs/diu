@@ -1872,6 +1872,7 @@ git_push() {
     local push_rc=0
     local remote_type_to_use=""
     local missing_fields="No"
+    local forgejo_credential_remote_name=""
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
@@ -1922,10 +1923,30 @@ git_push() {
             git_update_mode="${requested_remote_type}"
         fi
 
-        if ! git_update "${project_id}" "${git_update_mode}"; then
-            print_error \
-                "Impossible d'initialiser la configuration du projet."
-            return 1
+        if [[ "${requested_remote_type}" == "forgejo" ]]; then
+            if ! forgejo_update "${project_id}"; then
+                print_error \
+                    "Impossible de mettre à jour la configuration Forgejo du projet."
+                return 1
+            fi
+        elif [[ "${requested_remote_type}" == "gitlab" ]]; then
+            if ! gitlab_update "${project_id}"; then
+                print_error \
+                    "Impossible d'initialiser la configuration GitLab du projet."
+                return 1
+            fi
+        elif [[ "${requested_remote_type}" == "github" ]]; then
+            if ! github_update "${project_id}"; then
+                print_error \
+                    "Impossible de mettre à jour la configuration GitHub du projet."
+                return 1
+            fi
+        else
+            if ! git_update "${project_id}" "${git_update_mode}"; then
+                print_error \
+                    "Impossible d'initialiser la configuration du projet."
+                return 1
+            fi
         fi
     fi
 
@@ -1952,7 +1973,18 @@ git_push() {
         REMOTE_GITLAB_OWNER \
         REMOTE_GITLAB_REPOSITORY \
         REMOTE_GITLAB_NAME \
-        REMOTE_GITLAB_BRANCH
+        REMOTE_GITLAB_BRANCH \
+        REMOTE_FORGEJO_BASE_URL \
+        REMOTE_FORGEJO_OWNER \
+        REMOTE_FORGEJO_REPOSITORY \
+        REMOTE_FORGEJO_NAME \
+        REMOTE_FORGEJO_BRANCH \
+        REMOTE_FORGEJO_SSL_VERIFY \
+        REMOTE_GITHUB_BASE_URL \
+        REMOTE_GITHUB_OWNER \
+        REMOTE_GITHUB_REPOSITORY \
+        REMOTE_GITHUB_NAME \
+        REMOTE_GITHUB_BRANCH
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -1961,23 +1993,20 @@ git_push() {
     remote_type_to_use="${REMOTE_GIT_TYPE:-}"
 
     if [[ -n "${requested_remote_type}" ]]; then
-        if [[ -n "${remote_type_to_use}" && "${remote_type_to_use}" != "${requested_remote_type}" ]]; then
-            print_error \
-                "Le type de remote demandé (${requested_remote_type}) diffère de la configuration (${remote_type_to_use})."
-            return 1
-        fi
-
         remote_type_to_use="${requested_remote_type}"
     fi
 
     if [[ -z "${PROJECT_ID:-}" ||
         -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ||
         -z "${remote_type_to_use:-}" \
     ]]; then
 
         missing_fields="Yes"
 
-    elif [[ "${remote_type_to_use}" == "forgejo" ]]; then
+    elif [[ "${remote_type_to_use}" == "forgejo" &&
+        "${requested_remote_type}" != "forgejo" ]]; then
 
         if [[ -z "${REMOTE_BASE_URL:-}" ||
             -z "${REMOTE_OWNER:-}" ||
@@ -2001,6 +2030,32 @@ git_push() {
             missing_fields="Yes"
         fi
 
+    elif [[ "${remote_type_to_use}" == "github" ]]; then
+
+        if [[ -z "${REMOTE_GITHUB_BASE_URL:-}" ||
+            -z "${REMOTE_GITHUB_OWNER:-}" ||
+            -z "${REMOTE_GITHUB_REPOSITORY:-}" ||
+            -z "${REMOTE_GITHUB_NAME:-}" ||
+            -z "${REMOTE_GITHUB_BRANCH:-}" \
+        ]]; then
+
+            missing_fields="Yes"
+        fi
+
+    elif [[ "${remote_type_to_use}" == "forgejo" &&
+        "${requested_remote_type}" == "forgejo" ]]; then
+
+        if [[ -z "${REMOTE_FORGEJO_BASE_URL:-}" ||
+            -z "${REMOTE_FORGEJO_OWNER:-}" ||
+            -z "${REMOTE_FORGEJO_REPOSITORY:-}" ||
+            -z "${REMOTE_FORGEJO_NAME:-}" ||
+            -z "${REMOTE_FORGEJO_BRANCH:-}" ||
+            -z "${REMOTE_FORGEJO_SSL_VERIFY:-}" \
+        ]]; then
+
+            missing_fields="Yes"
+        fi
+
     else
         print_error "Type de dépôt Git distant non supporté : ${remote_type_to_use}"
         return 1
@@ -2011,10 +2066,30 @@ git_push() {
         print_info \
             "La configuration Git du projet est incomplète."
 
-        if ! git_update "${project_id}" "${remote_type_to_use}"; then
-            print_error \
-                "Impossible de mettre à jour la configuration du projet."
-            return 1
+        if [[ "${requested_remote_type}" == "forgejo" ]]; then
+            if ! forgejo_update "${project_id}"; then
+                print_error \
+                    "Impossible de mettre à jour la configuration Forgejo du projet."
+                return 1
+            fi
+        elif [[ "${requested_remote_type}" == "gitlab" ]]; then
+            if ! gitlab_update "${project_id}"; then
+                print_error \
+                    "Impossible de mettre à jour la configuration GitLab du projet."
+                return 1
+            fi
+        elif [[ "${requested_remote_type}" == "github" ]]; then
+            if ! github_update "${project_id}"; then
+                print_error \
+                    "Impossible de mettre à jour la configuration GitHub du projet."
+                return 1
+            fi
+        else
+            if ! git_update "${project_id}" "${remote_type_to_use}"; then
+                print_error \
+                    "Impossible de mettre à jour la configuration du projet."
+                return 1
+            fi
         fi
 
         # Recharge project.env après git_update
@@ -2032,19 +2107,28 @@ git_push() {
             REMOTE_DEFAULT_BRANCH \
             REMOTE_GITLAB_BASE_URL \
             REMOTE_GITLAB_OWNER \
-            REMOTE_GITLAB_REPOSITORY \
-            REMOTE_GITLAB_NAME \
-            REMOTE_GITLAB_BRANCH
+        REMOTE_GITLAB_REPOSITORY \
+        REMOTE_GITLAB_NAME \
+        REMOTE_GITLAB_BRANCH \
+        REMOTE_FORGEJO_BASE_URL \
+        REMOTE_FORGEJO_OWNER \
+        REMOTE_FORGEJO_REPOSITORY \
+        REMOTE_FORGEJO_NAME \
+        REMOTE_FORGEJO_BRANCH \
+        REMOTE_FORGEJO_SSL_VERIFY \
+        REMOTE_GITHUB_BASE_URL \
+            REMOTE_GITHUB_OWNER \
+            REMOTE_GITHUB_REPOSITORY \
+            REMOTE_GITHUB_NAME \
+            REMOTE_GITHUB_BRANCH
 
         # shellcheck disable=SC1090
         source "${project_env}"
 
         remote_type_to_use="${REMOTE_GIT_TYPE:-}"
 
-        if [[ -n "${requested_remote_type}" && "${remote_type_to_use}" != "${requested_remote_type}" ]]; then
-            print_error \
-                "Le type de remote demandé (${requested_remote_type}) diffère de la configuration mise à jour (${remote_type_to_use})."
-            return 1
+        if [[ -n "${requested_remote_type}" ]]; then
+            remote_type_to_use="${requested_remote_type}"
         fi
     fi
 
@@ -2065,12 +2149,25 @@ git_push() {
         return 1
     fi
 
-    if [[ -z "${REMOTE_GIT_TYPE:-}" ]]; then
-        print_error "REMOTE_GIT_TYPE n'est pas défini dans project.env."
+    if [[ -z "${PROJECT_TYPE:-}" ]]; then
+        print_error "PROJECT_TYPE n'est pas défini dans project.env."
         return 1
     fi
 
-    if [[ "${remote_type_to_use}" == "forgejo" ]]; then
+    if [[ -z "${PROJECT_DOCKERED:-}" ]]; then
+        print_error "PROJECT_DOCKERED n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_GIT_TYPE:-}" ]]; then
+        if [[ -z "${requested_remote_type}" ]]; then
+            print_error "REMOTE_GIT_TYPE n'est pas défini dans project.env."
+            return 1
+        fi
+    fi
+
+    if [[ "${remote_type_to_use}" == "forgejo" &&
+        "${requested_remote_type}" != "forgejo" ]]; then
 
         if [[ -z "${REMOTE_BASE_URL:-}" ]]; then
             print_error "REMOTE_BASE_URL n'est pas défini dans project.env."
@@ -2094,6 +2191,39 @@ git_push() {
 
         if [[ -z "${REMOTE_DEFAULT_BRANCH:-}" ]]; then
             print_error "REMOTE_DEFAULT_BRANCH n'est pas défini dans project.env."
+            return 1
+        fi
+
+    elif [[ "${remote_type_to_use}" == "forgejo" &&
+        "${requested_remote_type}" == "forgejo" ]]; then
+
+        if [[ -z "${REMOTE_FORGEJO_BASE_URL:-}" ]]; then
+            print_error "REMOTE_FORGEJO_BASE_URL n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_FORGEJO_OWNER:-}" ]]; then
+            print_error "REMOTE_FORGEJO_OWNER n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_FORGEJO_REPOSITORY:-}" ]]; then
+            print_error "REMOTE_FORGEJO_REPOSITORY n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_FORGEJO_NAME:-}" ]]; then
+            print_error "REMOTE_FORGEJO_NAME n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_FORGEJO_BRANCH:-}" ]]; then
+            print_error "REMOTE_FORGEJO_BRANCH n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_FORGEJO_SSL_VERIFY:-}" ]]; then
+            print_error "REMOTE_FORGEJO_SSL_VERIFY n'est pas défini dans project.env."
             return 1
         fi
 
@@ -2124,6 +2254,33 @@ git_push() {
             return 1
         fi
 
+    elif [[ "${remote_type_to_use}" == "github" ]]; then
+
+        if [[ -z "${REMOTE_GITHUB_BASE_URL:-}" ]]; then
+            print_error "REMOTE_GITHUB_BASE_URL n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_GITHUB_OWNER:-}" ]]; then
+            print_error "REMOTE_GITHUB_OWNER n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_GITHUB_REPOSITORY:-}" ]]; then
+            print_error "REMOTE_GITHUB_REPOSITORY n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_GITHUB_NAME:-}" ]]; then
+            print_error "REMOTE_GITHUB_NAME n'est pas défini dans project.env."
+            return 1
+        fi
+
+        if [[ -z "${REMOTE_GITHUB_BRANCH:-}" ]]; then
+            print_error "REMOTE_GITHUB_BRANCH n'est pas défini dans project.env."
+            return 1
+        fi
+
     else
         print_error "Type de dépôt Git distant non supporté : ${remote_type_to_use}"
         return 1
@@ -2139,12 +2296,55 @@ git_push() {
         remote_repository="${REMOTE_GITLAB_REPOSITORY}"
         remote_name="${REMOTE_GITLAB_NAME}"
         remote_default_branch="${REMOTE_GITLAB_BRANCH}"
+    elif [[ "${remote_git_type}" == "github" ]]; then
+        remote_base_url="${REMOTE_GITHUB_BASE_URL%/}"
+        remote_owner="${REMOTE_GITHUB_OWNER}"
+        remote_repository="${REMOTE_GITHUB_REPOSITORY}"
+        remote_name="${REMOTE_GITHUB_NAME}"
+        remote_default_branch="${REMOTE_GITHUB_BRANCH}"
+    elif [[ "${remote_git_type}" == "forgejo" &&
+        "${requested_remote_type}" == "forgejo" ]]; then
+        remote_base_url="${REMOTE_FORGEJO_BASE_URL%/}"
+        remote_owner="${REMOTE_FORGEJO_OWNER}"
+        remote_repository="${REMOTE_FORGEJO_REPOSITORY}"
+        remote_name="${REMOTE_FORGEJO_NAME}"
+        remote_default_branch="${REMOTE_FORGEJO_BRANCH}"
     else
         remote_base_url="${REMOTE_BASE_URL%/}"
         remote_owner="${REMOTE_OWNER}"
         remote_repository="${REMOTE_REPOSITORY}"
         remote_name="${REMOTE_NAME}"
         remote_default_branch="${REMOTE_DEFAULT_BRANCH}"
+    fi
+
+    if [[ "${remote_git_type}" == "gitlab" ]]; then
+        configured_remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
+
+        if ! gitlab_remote_ensure \
+            "${project_path}" \
+            "${remote_name}" \
+            "${configured_remote_url}"; then
+            return 1
+        fi
+    elif [[ "${remote_git_type}" == "github" ]]; then
+        configured_remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
+
+        if ! github_remote_ensure \
+            "${project_path}" \
+            "${remote_name}" \
+            "${configured_remote_url}"; then
+            return 1
+        fi
+    elif [[ "${remote_git_type}" == "forgejo" &&
+        "${requested_remote_type}" == "forgejo" ]]; then
+        configured_remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
+
+        if ! forgejo_remote_ensure \
+            "${project_path}" \
+            "${remote_name}" \
+            "${configured_remote_url}"; then
+            return 1
+        fi
     fi
 
     # Branche distante attendue pour la publication
@@ -2280,7 +2480,14 @@ git_push() {
     case "${remote_git_type}" in
 
         forgejo)
-            if ! _forgejo_ensure_credentials "${project_path}"; then
+            if [[ "${requested_remote_type}" == "forgejo" ]]; then
+                forgejo_credential_remote_name="${remote_name}"
+            else
+                forgejo_credential_remote_name="origin"
+            fi
+
+            if ! _forgejo_ensure_credentials \
+                "${project_path}" "${forgejo_credential_remote_name}"; then
                 print_error \
                     "Impossible d'initialiser les credentials Forgejo."
                 return 1
@@ -2291,6 +2498,14 @@ git_push() {
             if ! _gitlab_ensure_credentials "${project_path}"; then
                 print_error \
                     "Impossible d'initialiser les credentials GitLab."
+                return 1
+            fi
+            ;;
+
+        github)
+            if ! _github_ensure_credentials "${project_path}" "${remote_name}"; then
+                print_error \
+                    "Impossible d'initialiser les credentials GitHub."
                 return 1
             fi
             ;;
@@ -2400,12 +2615,22 @@ git_push() {
             #
             #   main -> origin/main
             #
-            forgejo_git_push \
-                "${project_path}" \
-                --set-upstream \
-                "${remote_name}" \
-                "${current_branch}:${remote_default_branch}" \
-                || push_rc=$?
+            if [[ "${requested_remote_type}" == "forgejo" ]]; then
+                forgejo_git_push_named \
+                    "${project_path}" \
+                    "${remote_name}" \
+                    --set-upstream \
+                    "${remote_name}" \
+                    "${current_branch}:${remote_default_branch}" \
+                    || push_rc=$?
+            else
+                forgejo_git_push \
+                    "${project_path}" \
+                    --set-upstream \
+                    "${remote_name}" \
+                    "${current_branch}:${remote_default_branch}" \
+                    || push_rc=$?
+            fi
 
             # Vérification du push de la branche
             if [[ "${push_rc}" -ne 0 ]]; then
@@ -2422,11 +2647,20 @@ git_push() {
                 print_info \
                     "Publication du tag '${current_tag}' vers '${remote_name}'."
 
-                forgejo_git_push \
-                    "${project_path}" \
-                    "${remote_name}" \
-                    "refs/tags/${current_tag}:refs/tags/${current_tag}" \
-                    || push_rc=$?
+                if [[ "${requested_remote_type}" == "forgejo" ]]; then
+                    forgejo_git_push_named \
+                        "${project_path}" \
+                        "${remote_name}" \
+                        "${remote_name}" \
+                        "refs/tags/${current_tag}:refs/tags/${current_tag}" \
+                        || push_rc=$?
+                else
+                    forgejo_git_push \
+                        "${project_path}" \
+                        "${remote_name}" \
+                        "refs/tags/${current_tag}:refs/tags/${current_tag}" \
+                        || push_rc=$?
+                fi
 
                 if [[ "${push_rc}" -ne 0 ]]; then
                     print_error \
@@ -2506,6 +2740,67 @@ git_push() {
             fi
             ;;
 
+        github)
+
+            print_title "Push vers GitHub"
+
+            if [[ -z "${upstream}" ]]; then
+                print_info \
+                    "Premier push : création de la branche distante et de son suivi."
+
+            elif [[ "${upstream}" != "${expected_upstream}" ]]; then
+                print_info \
+                    "La branche ${current_branch} suit actuellement ${upstream}."
+
+                print_info \
+                    "Le suivi sera remplacé par ${expected_upstream} après le push."
+
+            else
+                print_info \
+                    "Push de la branche ${current_branch} vers ${expected_upstream}."
+            fi
+
+            github_git_push \
+                "${project_path}" \
+                --set-upstream \
+                "${remote_name}" \
+                "${current_branch}:${remote_default_branch}" \
+                || push_rc=$?
+
+            if [[ "${push_rc}" -ne 0 ]]; then
+                print_error \
+                    "Échec du push Git distant (code ${push_rc})."
+                return "${push_rc}"
+            fi
+
+            if [[ -n "${current_tag}" ]]; then
+
+                print_title "Push du tag Git"
+
+                print_info \
+                    "Publication du tag '${current_tag}' vers '${remote_name}'."
+
+                github_git_push \
+                    "${project_path}" \
+                    "${remote_name}" \
+                    "refs/tags/${current_tag}:refs/tags/${current_tag}" \
+                    || push_rc=$?
+
+                if [[ "${push_rc}" -ne 0 ]]; then
+                    print_error \
+                        "Échec du push du tag Git '${current_tag}' (code ${push_rc})."
+                    return "${push_rc}"
+                fi
+
+                print_success \
+                    "Tag Git '${current_tag}' publié avec succès."
+
+            else
+                print_info \
+                    "Aucun tag associé au dernier commit : aucun tag à publier."
+            fi
+            ;;
+
     esac
 
     # Résultat
@@ -2520,6 +2815,744 @@ git_push() {
     return 0
 }
 
+# Vérifie ou crée le remote Forgejo du dépôt local.
+forgejo_remote_ensure() {
+    local project_path="${1:-}"
+    local remote_name="${2:-}"
+    local expected_url="${3:-}"
+    local configured_url=""
+
+    if [[ -z "${project_path}" || -z "${remote_name}" || -z "${expected_url}" ]]; then
+        print_error "Usage : forgejo_remote_ensure <project_path> <remote_name> <url>"
+        return 1
+    fi
+
+    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url --push "${remote_name}" 2>/dev/null)"; then
+        if runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" remote add "${remote_name}" "${expected_url}"; then
+            print_info \
+                "Remote Forgejo '${remote_name}' ajouté au dépôt local."
+            return 0
+        fi
+
+        print_error \
+            "Impossible d'ajouter le remote Forgejo '${remote_name}'."
+        return 1
+    fi
+
+    if [[ "${configured_url}" != "${expected_url}" ]]; then
+        print_error "L'URL du remote Forgejo '${remote_name}' ne correspond pas à project.env."
+        printf 'URL configurée        : %s\n' "${configured_url}"
+        printf 'URL déclarée          : %s\n' "${expected_url}"
+        return 1
+    fi
+
+    return 0
+}
+
+# Vérifie ou crée le remote GitLab du dépôt local.
+gitlab_remote_ensure() {
+    local project_path="${1:-}"
+    local remote_name="${2:-}"
+    local expected_url="${3:-}"
+    local configured_url=""
+
+    if [[ -z "${project_path}" || -z "${remote_name}" || -z "${expected_url}" ]]; then
+        print_error "Usage : gitlab_remote_ensure <project_path> <remote_name> <url>"
+        return 1
+    fi
+
+    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url --push "${remote_name}" 2>/dev/null)"; then
+        if runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" remote add "${remote_name}" "${expected_url}"; then
+            print_info \
+                "Remote GitLab '${remote_name}' ajouté au dépôt local."
+            return 0
+        fi
+
+        print_error \
+            "Impossible d'ajouter le remote GitLab '${remote_name}'."
+        return 1
+    fi
+
+    if [[ "${configured_url}" != "${expected_url}" ]]; then
+        print_error "L'URL du remote GitLab '${remote_name}' ne correspond pas à project.env."
+        printf 'URL configurée        : %s\n' "${configured_url}"
+        printf 'URL déclarée          : %s\n' "${expected_url}"
+        return 1
+    fi
+
+    return 0
+}
+
+# Vérifie ou crée le remote GitHub du dépôt local.
+github_remote_ensure() {
+    local project_path="${1:-}"
+    local remote_name="${2:-}"
+    local expected_url="${3:-}"
+    local configured_url=""
+
+    if [[ -z "${project_path}" || -z "${remote_name}" || -z "${expected_url}" ]]; then
+        print_error "Usage : github_remote_ensure <project_path> <remote_name> <url>"
+        return 1
+    fi
+
+    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url --push "${remote_name}" 2>/dev/null)"; then
+        if runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" remote add "${remote_name}" "${expected_url}"; then
+            print_info \
+                "Remote GitHub '${remote_name}' ajouté au dépôt local."
+            return 0
+        fi
+
+        print_error \
+            "Impossible d'ajouter le remote GitHub '${remote_name}'."
+        return 1
+    fi
+
+    if [[ "${configured_url}" != "${expected_url}" ]]; then
+        print_error "L'URL du remote GitHub '${remote_name}' ne correspond pas à project.env."
+        printf 'URL configurée        : %s\n' "${configured_url}"
+        printf 'URL déclarée          : %s\n' "${expected_url}"
+        return 1
+    fi
+
+    return 0
+}
+
+# Vérifie et complète la configuration générale avant la configuration Forgejo.
+forgejo_project_config_ensure() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : forgejo_project_config_ensure <project_id>"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" || ! -f "${project_env}" ]]; then
+        return 1
+    fi
+
+    unset PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ -z "${PROJECT_ID:-}" ||
+        "${PROJECT_ID}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" \
+    ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+# Complète uniquement le différentiel de configuration propre à Forgejo.
+forgejo_update() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+    local project_env_tmp="${project_env}.forgejo.tmp"
+    local remote_forgejo_base_url=""
+    local remote_forgejo_owner=""
+    local remote_forgejo_repository="${project_id}"
+    local remote_forgejo_name="origin"
+    local remote_forgejo_branch="main"
+    local remote_forgejo_ssl_verify="No"
+    local value=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : forgejo_update <project_id>"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if ! forgejo_project_config_ensure "${project_id}"; then
+        print_info \
+            "La configuration générale du projet est absente ou incomplète."
+
+        if ! git_update "${project_id}" local; then
+            print_error \
+                "Impossible de compléter la configuration générale du projet."
+            return 1
+        fi
+    fi
+
+    if ! forgejo_project_config_ensure "${project_id}"; then
+        print_error \
+            "La configuration générale du projet reste non conforme."
+        return 1
+    fi
+
+    unset \
+        REMOTE_FORGEJO_BASE_URL \
+        REMOTE_FORGEJO_OWNER \
+        REMOTE_FORGEJO_REPOSITORY \
+        REMOTE_FORGEJO_NAME \
+        REMOTE_FORGEJO_BRANCH \
+        REMOTE_FORGEJO_SSL_VERIFY
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    remote_forgejo_base_url="${REMOTE_FORGEJO_BASE_URL:-}"
+    remote_forgejo_owner="${REMOTE_FORGEJO_OWNER:-}"
+    remote_forgejo_repository="${REMOTE_FORGEJO_REPOSITORY:-${project_id}}"
+    remote_forgejo_name="${REMOTE_FORGEJO_NAME:-origin}"
+    remote_forgejo_branch="${REMOTE_FORGEJO_BRANCH:-main}"
+    remote_forgejo_ssl_verify="${REMOTE_FORGEJO_SSL_VERIFY:-No}"
+
+    print_title "Configuration Forgejo du projet ${project_id}"
+
+    value=""
+    read -r -p \
+        "REMOTE_FORGEJO_BASE_URL [${remote_forgejo_base_url}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_forgejo_base_url="${value}"
+    fi
+    remote_forgejo_base_url="${remote_forgejo_base_url%/}"
+    while [[ -z "${remote_forgejo_base_url}" ]]; do
+        print_error "REMOTE_FORGEJO_BASE_URL ne peut pas être vide."
+        read -r -p "REMOTE_FORGEJO_BASE_URL : " remote_forgejo_base_url
+        remote_forgejo_base_url="${remote_forgejo_base_url%/}"
+    done
+
+    if [[ ! "${remote_forgejo_base_url}" =~ ^https://[^/@]+$ ]]; then
+        print_error \
+            "REMOTE_FORGEJO_BASE_URL doit être une URL HTTPS sans identifiants."
+        return 1
+    fi
+
+    value=""
+    read -r -p \
+        "REMOTE_FORGEJO_OWNER [${remote_forgejo_owner}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_forgejo_owner="${value}"
+    fi
+    while [[ -z "${remote_forgejo_owner}" ]]; do
+        print_error "REMOTE_FORGEJO_OWNER ne peut pas être vide."
+        read -r -p "REMOTE_FORGEJO_OWNER : " remote_forgejo_owner
+    done
+
+    value=""
+    read -r -p \
+        "REMOTE_FORGEJO_REPOSITORY [${remote_forgejo_repository}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_forgejo_repository="${value}"
+    fi
+    remote_forgejo_repository="${remote_forgejo_repository:-${project_id}}"
+
+    value=""
+    read -r -p \
+        "REMOTE_FORGEJO_NAME [${remote_forgejo_name}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_forgejo_name="${value}"
+    fi
+    remote_forgejo_name="${remote_forgejo_name:-origin}"
+
+    value=""
+    read -r -p \
+        "REMOTE_FORGEJO_BRANCH [${remote_forgejo_branch}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_forgejo_branch="${value}"
+    fi
+    remote_forgejo_branch="${remote_forgejo_branch:-main}"
+
+    value=""
+    read -r -p \
+        "REMOTE_FORGEJO_SSL_VERIFY [${remote_forgejo_ssl_verify}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_forgejo_ssl_verify="${value}"
+    fi
+    case "${remote_forgejo_ssl_verify}" in
+        Yes|yes|oui|OUI|true|TRUE|1)
+            remote_forgejo_ssl_verify="Yes"
+            ;;
+        No|no|non|NON|false|FALSE|0)
+            remote_forgejo_ssl_verify="No"
+            ;;
+        *)
+            print_error "REMOTE_FORGEJO_SSL_VERIFY doit valoir Yes ou No."
+            return 1
+            ;;
+    esac
+
+    if ! awk '
+        !/^REMOTE_FORGEJO_BASE_URL=/ &&
+        !/^REMOTE_FORGEJO_OWNER=/ &&
+        !/^REMOTE_FORGEJO_REPOSITORY=/ &&
+        !/^REMOTE_FORGEJO_NAME=/ &&
+        !/^REMOTE_FORGEJO_BRANCH=/ &&
+        !/^REMOTE_FORGEJO_SSL_VERIFY=/ &&
+        !/^# Forgejo distant$/ { print }
+    ' "${project_env}" > "${project_env_tmp}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible de préparer project.env pour Forgejo."
+        return 1
+    fi
+
+    if ! {
+        printf '\n# Forgejo distant\n'
+        printf 'REMOTE_FORGEJO_BASE_URL=%q\n' "${remote_forgejo_base_url}"
+        printf 'REMOTE_FORGEJO_OWNER=%q\n' "${remote_forgejo_owner}"
+        printf 'REMOTE_FORGEJO_REPOSITORY=%q\n' "${remote_forgejo_repository}"
+        printf 'REMOTE_FORGEJO_NAME=%q\n' "${remote_forgejo_name}"
+        printf 'REMOTE_FORGEJO_BRANCH=%q\n' "${remote_forgejo_branch}"
+        printf 'REMOTE_FORGEJO_SSL_VERIFY=%q\n' "${remote_forgejo_ssl_verify}"
+    } >> "${project_env_tmp}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible d'ajouter la configuration Forgejo."
+        return 1
+    fi
+
+    if ! mv -f "${project_env_tmp}" "${project_env}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible d'installer la configuration Forgejo."
+        return 1
+    fi
+
+    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+        ! chmod 660 "${project_env}"; then
+        print_error \
+            "Impossible de préserver les droits de project.env."
+        return 1
+    fi
+
+    print_success \
+        "Configuration Forgejo enregistrée sans modifier les autres fournisseurs."
+    return 0
+}
+
+# Vérifie et complète la configuration générale avant la configuration GitLab.
+gitlab_project_config_ensure() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : gitlab_project_config_ensure <project_id>"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        return 1
+    fi
+
+    unset PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ -z "${PROJECT_ID:-}" ||
+        "${PROJECT_ID}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" \
+    ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+# Complète uniquement le différentiel de configuration propre à GitLab.
+gitlab_update() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+    local project_env_tmp="${project_env}.gitlab.tmp"
+    local remote_gitlab_base_url=""
+    local remote_gitlab_owner=""
+    local remote_gitlab_repository="${project_id}"
+    local remote_gitlab_name="origin"
+    local remote_gitlab_branch="main"
+    local remote_gitlab_ssl_verify="No"
+    local value=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : gitlab_update <project_id>"
+        return 1
+    fi
+
+    if [[ -f "${project_env}" ]]; then
+        unset \
+            REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_OWNER \
+            REMOTE_GITLAB_REPOSITORY \
+            REMOTE_GITLAB_NAME \
+            REMOTE_GITLAB_BRANCH \
+            REMOTE_GITLAB_SSL_VERIFY
+
+        # shellcheck disable=SC1090
+        source "${project_env}"
+
+        remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-${remote_gitlab_base_url}}"
+        remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-${remote_gitlab_owner}}"
+        remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${remote_gitlab_repository}}"
+        remote_gitlab_name="${REMOTE_GITLAB_NAME:-${remote_gitlab_name}}"
+        remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-${remote_gitlab_branch}}"
+    fi
+
+    if ! gitlab_project_config_ensure "${project_id}"; then
+        print_info \
+            "La configuration générale du projet est absente ou incomplète."
+
+        if ! git_update "${project_id}" local; then
+            print_error \
+                "Impossible de compléter la configuration générale du projet."
+            return 1
+        fi
+    fi
+
+    if ! gitlab_project_config_ensure "${project_id}"; then
+        print_error \
+            "La configuration générale du projet reste non conforme."
+        return 1
+    fi
+
+    unset \
+        REMOTE_GITLAB_BASE_URL \
+        REMOTE_GITLAB_OWNER \
+        REMOTE_GITLAB_REPOSITORY \
+        REMOTE_GITLAB_NAME \
+        REMOTE_GITLAB_BRANCH
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-${remote_gitlab_base_url}}"
+    remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-${remote_gitlab_owner}}"
+    remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${remote_gitlab_repository}}"
+    remote_gitlab_name="${REMOTE_GITLAB_NAME:-${remote_gitlab_name}}"
+    remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-${remote_gitlab_branch}}"
+    remote_gitlab_ssl_verify="${REMOTE_GITLAB_SSL_VERIFY:-${remote_gitlab_ssl_verify}}"
+
+    print_title "Configuration GitLab du projet ${project_id}"
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_BASE_URL [${remote_gitlab_base_url}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_base_url="${value}"
+    fi
+    remote_gitlab_base_url="${remote_gitlab_base_url%/}"
+    while [[ -z "${remote_gitlab_base_url}" ]]; do
+        print_error "REMOTE_GITLAB_BASE_URL ne peut pas être vide."
+        read -r -p "REMOTE_GITLAB_BASE_URL : " remote_gitlab_base_url
+        remote_gitlab_base_url="${remote_gitlab_base_url%/}"
+    done
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_OWNER [${remote_gitlab_owner}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_owner="${value}"
+    fi
+    while [[ -z "${remote_gitlab_owner}" ]]; do
+        print_error "REMOTE_GITLAB_OWNER ne peut pas être vide."
+        read -r -p "REMOTE_GITLAB_OWNER : " remote_gitlab_owner
+    done
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_REPOSITORY [${remote_gitlab_repository}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_repository="${value}"
+    fi
+    remote_gitlab_repository="${remote_gitlab_repository:-${project_id}}"
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_NAME [${remote_gitlab_name}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_name="${value}"
+    fi
+    remote_gitlab_name="${remote_gitlab_name:-origin}"
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_BRANCH [${remote_gitlab_branch}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_branch="${value}"
+    fi
+    remote_gitlab_branch="${remote_gitlab_branch:-main}"
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_SSL_VERIFY [${remote_gitlab_ssl_verify}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_ssl_verify="${value}"
+    fi
+    case "${remote_gitlab_ssl_verify}" in
+        Yes|yes|oui|OUI|true|TRUE|1)
+            remote_gitlab_ssl_verify="Yes"
+            ;;
+        No|no|non|NON|false|FALSE|0)
+            remote_gitlab_ssl_verify="No"
+            ;;
+        *)
+            print_error "REMOTE_GITLAB_SSL_VERIFY doit valoir Yes ou No."
+            return 1
+            ;;
+    esac
+
+    if ! awk '
+        !/^REMOTE_GITLAB_BASE_URL=/ &&
+        !/^REMOTE_GITLAB_OWNER=/ &&
+        !/^REMOTE_GITLAB_REPOSITORY=/ &&
+        !/^REMOTE_GITLAB_NAME=/ &&
+        !/^REMOTE_GITLAB_BRANCH=/ &&
+        !/^REMOTE_GITLAB_SSL_VERIFY=/ &&
+        !/^# GitLab distant$/ { print }
+    ' "${project_env}" > "${project_env_tmp}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible de préparer project.env pour GitLab."
+        return 1
+    fi
+
+    if ! {
+        printf '\n# GitLab distant\n'
+        printf 'REMOTE_GITLAB_BASE_URL=%q\n' "${remote_gitlab_base_url}"
+        printf 'REMOTE_GITLAB_OWNER=%q\n' "${remote_gitlab_owner}"
+        printf 'REMOTE_GITLAB_REPOSITORY=%q\n' "${remote_gitlab_repository}"
+        printf 'REMOTE_GITLAB_NAME=%q\n' "${remote_gitlab_name}"
+        printf 'REMOTE_GITLAB_BRANCH=%q\n' "${remote_gitlab_branch}"
+        printf 'REMOTE_GITLAB_SSL_VERIFY=%q\n' "${remote_gitlab_ssl_verify}"
+    } >> "${project_env_tmp}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible d'ajouter la configuration GitLab."
+        return 1
+    fi
+
+    if ! mv -f "${project_env_tmp}" "${project_env}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible d'installer la configuration GitLab."
+        return 1
+    fi
+
+    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+        ! chmod 660 "${project_env}"; then
+        print_error \
+            "Impossible de préserver les droits de project.env."
+        return 1
+    fi
+
+    print_success \
+        "Configuration GitLab enregistrée sans modifier la configuration générale."
+    return 0
+}
+
+# Vérifie et complète la configuration générale avant la configuration GitHub.
+github_project_config_ensure() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : github_project_config_ensure <project_id>"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" || ! -f "${project_env}" ]]; then
+        return 1
+    fi
+
+    unset PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ -z "${PROJECT_ID:-}" ||
+        "${PROJECT_ID}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" \
+    ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+# Complète uniquement le différentiel de configuration propre à GitHub.
+github_update() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+    local project_env_tmp="${project_env}.github.tmp"
+    local remote_github_base_url=""
+    local remote_github_owner=""
+    local remote_github_repository="${project_id}"
+    local remote_github_name="origin"
+    local remote_github_branch="main"
+    local value=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : github_update <project_id>"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if ! github_project_config_ensure "${project_id}"; then
+        print_info \
+            "La configuration générale du projet est absente ou incomplète."
+
+        if ! git_update "${project_id}" local; then
+            print_error \
+                "Impossible de compléter la configuration générale du projet."
+            return 1
+        fi
+    fi
+
+    if ! github_project_config_ensure "${project_id}"; then
+        print_error \
+            "La configuration générale du projet reste non conforme."
+        return 1
+    fi
+
+    unset \
+        REMOTE_GITHUB_BASE_URL \
+        REMOTE_GITHUB_OWNER \
+        REMOTE_GITHUB_REPOSITORY \
+        REMOTE_GITHUB_NAME \
+        REMOTE_GITHUB_BRANCH
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    remote_github_base_url="${REMOTE_GITHUB_BASE_URL:-}"
+    remote_github_owner="${REMOTE_GITHUB_OWNER:-}"
+    remote_github_repository="${REMOTE_GITHUB_REPOSITORY:-${project_id}}"
+    remote_github_name="${REMOTE_GITHUB_NAME:-origin}"
+    remote_github_branch="${REMOTE_GITHUB_BRANCH:-main}"
+
+    print_title "Configuration GitHub du projet ${project_id}"
+
+    value=""
+    read -r -p \
+        "REMOTE_GITHUB_BASE_URL [${remote_github_base_url}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_github_base_url="${value}"
+    fi
+    remote_github_base_url="${remote_github_base_url%/}"
+    while [[ -z "${remote_github_base_url}" ]]; do
+        print_error "REMOTE_GITHUB_BASE_URL ne peut pas être vide."
+        read -r -p "REMOTE_GITHUB_BASE_URL : " remote_github_base_url
+        remote_github_base_url="${remote_github_base_url%/}"
+    done
+
+    value=""
+    read -r -p \
+        "REMOTE_GITHUB_OWNER [${remote_github_owner}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_github_owner="${value}"
+    fi
+    while [[ -z "${remote_github_owner}" ]]; do
+        print_error "REMOTE_GITHUB_OWNER ne peut pas être vide."
+        read -r -p "REMOTE_GITHUB_OWNER : " remote_github_owner
+    done
+
+    value=""
+    read -r -p \
+        "REMOTE_GITHUB_REPOSITORY [${remote_github_repository}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_github_repository="${value}"
+    fi
+    remote_github_repository="${remote_github_repository:-${project_id}}"
+
+    value=""
+    read -r -p \
+        "REMOTE_GITHUB_NAME [${remote_github_name}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_github_name="${value}"
+    fi
+    remote_github_name="${remote_github_name:-origin}"
+
+    value=""
+    read -r -p \
+        "REMOTE_GITHUB_BRANCH [${remote_github_branch}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_github_branch="${value}"
+    fi
+    remote_github_branch="${remote_github_branch:-main}"
+
+    if ! awk '
+        !/^REMOTE_GITHUB_BASE_URL=/ &&
+        !/^REMOTE_GITHUB_OWNER=/ &&
+        !/^REMOTE_GITHUB_REPOSITORY=/ &&
+        !/^REMOTE_GITHUB_NAME=/ &&
+        !/^REMOTE_GITHUB_BRANCH=/ &&
+        !/^# GitHub distant$/ { print }
+    ' "${project_env}" > "${project_env_tmp}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible de préparer project.env pour GitHub."
+        return 1
+    fi
+
+    if ! {
+        printf '\n# GitHub distant\n'
+        printf 'REMOTE_GITHUB_BASE_URL=%q\n' "${remote_github_base_url}"
+        printf 'REMOTE_GITHUB_OWNER=%q\n' "${remote_github_owner}"
+        printf 'REMOTE_GITHUB_REPOSITORY=%q\n' "${remote_github_repository}"
+        printf 'REMOTE_GITHUB_NAME=%q\n' "${remote_github_name}"
+        printf 'REMOTE_GITHUB_BRANCH=%q\n' "${remote_github_branch}"
+    } >> "${project_env_tmp}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible d'ajouter la configuration GitHub."
+        return 1
+    fi
+
+    if ! mv -f "${project_env_tmp}" "${project_env}"; then
+        rm -f "${project_env_tmp}"
+        print_error "Impossible d'installer la configuration GitHub."
+        return 1
+    fi
+
+    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+        ! chmod 660 "${project_env}"; then
+        print_error \
+            "Impossible de préserver les droits de project.env."
+        return 1
+    fi
+
+    print_success \
+        "Configuration GitHub enregistrée sans modifier la configuration générale."
+    return 0
+}
+
+# Push vers le dépôt distant Forgejo du projet <PROJECT ID>
+forgejo_push() {
+    local project_id="${1:-}"
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "forgejo_push : PROJECT_ID est vide."
+        return 1
+    fi
+
+    git_push "${project_id}" "forgejo"
+}
+
 # Push vers le dépôt distant GitLab du projet <PROJECT ID>
 gitlab_push() {
 
@@ -2531,6 +3564,18 @@ gitlab_push() {
     fi
 
     git_push "${project_id}" "gitlab"
+}
+
+# Push vers le dépôt distant GitHub du projet <PROJECT ID>
+github_push() {
+    local project_id="${1:-}"
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "github_push : PROJECT_ID est vide."
+        return 1
+    fi
+
+    git_push "${project_id}" "github"
 }
 
 # Push vers l dépôt distant Forgejo le projet <PROJECT ID>
@@ -3414,6 +4459,19 @@ git_update() {
     local remote_gitlab_name="origin"
     local remote_gitlab_branch="main"
     local gitlab_mode="No"
+    local remote_forgejo_base_url=""
+    local remote_forgejo_owner=""
+    local remote_forgejo_repository=""
+    local remote_forgejo_name="origin"
+    local remote_forgejo_branch="main"
+    local remote_forgejo_ssl_verify="No"
+    local forgejo_config_present="No"
+    local remote_github_base_url=""
+    local remote_github_owner=""
+    local remote_github_repository=""
+    local remote_github_name="origin"
+    local remote_github_branch="main"
+    local github_config_present="No"
 
     local remote_clone_git_type="github"
     local remote_clone_base_url="https://github.com"
@@ -3478,6 +4536,17 @@ git_update() {
             REMOTE_GITLAB_REPOSITORY \
             REMOTE_GITLAB_NAME \
             REMOTE_GITLAB_BRANCH \
+            REMOTE_FORGEJO_BASE_URL \
+            REMOTE_FORGEJO_OWNER \
+            REMOTE_FORGEJO_REPOSITORY \
+            REMOTE_FORGEJO_NAME \
+            REMOTE_FORGEJO_BRANCH \
+            REMOTE_FORGEJO_SSL_VERIFY \
+            REMOTE_GITHUB_BASE_URL \
+            REMOTE_GITHUB_OWNER \
+            REMOTE_GITHUB_REPOSITORY \
+            REMOTE_GITHUB_NAME \
+            REMOTE_GITHUB_BRANCH \
             REMOTE_CLONE_GIT_TYPE \
             REMOTE_CLONE_BASE_URL \
             REMOTE_CLONE_OWNER \
@@ -3507,6 +4576,38 @@ git_update() {
         remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${project_id}}"
         remote_gitlab_name="${REMOTE_GITLAB_NAME:-origin}"
         remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-main}"
+        remote_forgejo_base_url="${REMOTE_FORGEJO_BASE_URL:-}"
+        remote_forgejo_owner="${REMOTE_FORGEJO_OWNER:-}"
+        remote_forgejo_repository="${REMOTE_FORGEJO_REPOSITORY:-${project_id}}"
+        remote_forgejo_name="${REMOTE_FORGEJO_NAME:-origin}"
+        remote_forgejo_branch="${REMOTE_FORGEJO_BRANCH:-main}"
+        remote_forgejo_ssl_verify="${REMOTE_FORGEJO_SSL_VERIFY:-No}"
+        remote_github_base_url="${REMOTE_GITHUB_BASE_URL:-}"
+        remote_github_owner="${REMOTE_GITHUB_OWNER:-}"
+        remote_github_repository="${REMOTE_GITHUB_REPOSITORY:-${project_id}}"
+        remote_github_name="${REMOTE_GITHUB_NAME:-origin}"
+        remote_github_branch="${REMOTE_GITHUB_BRANCH:-main}"
+
+        if [[ \
+            -n "${REMOTE_FORGEJO_BASE_URL+x}" ||
+            -n "${REMOTE_FORGEJO_OWNER+x}" ||
+            -n "${REMOTE_FORGEJO_REPOSITORY+x}" ||
+            -n "${REMOTE_FORGEJO_NAME+x}" ||
+            -n "${REMOTE_FORGEJO_BRANCH+x}" ||
+            -n "${REMOTE_FORGEJO_SSL_VERIFY+x}" \
+        ]]; then
+            forgejo_config_present="Yes"
+        fi
+
+        if [[ \
+            -n "${REMOTE_GITHUB_BASE_URL+x}" ||
+            -n "${REMOTE_GITHUB_OWNER+x}" ||
+            -n "${REMOTE_GITHUB_REPOSITORY+x}" ||
+            -n "${REMOTE_GITHUB_NAME+x}" ||
+            -n "${REMOTE_GITHUB_BRANCH+x}" \
+        ]]; then
+            github_config_present="Yes"
+        fi
 
         if [[ "${remote_git_type}" == "gitlab" ]]; then
             gitlab_mode="Yes"
@@ -3951,6 +5052,38 @@ git_update() {
                 "${remote_name}"
             printf 'REMOTE_DEFAULT_BRANCH=%q\n' \
                 "${remote_default_branch}"
+        fi
+
+        if [[ "${forgejo_config_present}" == "Yes" ]]; then
+            printf '\n'
+            printf '# Forgejo distant\n'
+            printf 'REMOTE_FORGEJO_BASE_URL=%q\n' \
+                "${remote_forgejo_base_url}"
+            printf 'REMOTE_FORGEJO_OWNER=%q\n' \
+                "${remote_forgejo_owner}"
+            printf 'REMOTE_FORGEJO_REPOSITORY=%q\n' \
+                "${remote_forgejo_repository}"
+            printf 'REMOTE_FORGEJO_NAME=%q\n' \
+                "${remote_forgejo_name}"
+            printf 'REMOTE_FORGEJO_BRANCH=%q\n' \
+                "${remote_forgejo_branch}"
+            printf 'REMOTE_FORGEJO_SSL_VERIFY=%q\n' \
+                "${remote_forgejo_ssl_verify}"
+        fi
+
+        if [[ "${github_config_present}" == "Yes" ]]; then
+            printf '\n'
+            printf '# GitHub distant\n'
+            printf 'REMOTE_GITHUB_BASE_URL=%q\n' \
+                "${remote_github_base_url}"
+            printf 'REMOTE_GITHUB_OWNER=%q\n' \
+                "${remote_github_owner}"
+            printf 'REMOTE_GITHUB_REPOSITORY=%q\n' \
+                "${remote_github_repository}"
+            printf 'REMOTE_GITHUB_NAME=%q\n' \
+                "${remote_github_name}"
+            printf 'REMOTE_GITHUB_BRANCH=%q\n' \
+                "${remote_github_branch}"
         fi
 
         if [[ "${clone_config_present}" == "Yes" ]]; then

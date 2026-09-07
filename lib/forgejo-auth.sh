@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 
+_forgejo_curl() {
+    case "${REMOTE_FORGEJO_SSL_VERIFY:-Yes}" in
+        Yes|yes|oui|OUI|true|TRUE|1)
+            curl "$@"
+            ;;
+        No|no|non|NON|false|FALSE|0)
+            curl --insecure "$@"
+            ;;
+        *)
+            print_error "REMOTE_FORGEJO_SSL_VERIFY doit valoir Yes ou No."
+            return 1
+            ;;
+    esac
+}
+
 _forgejo_resolve_remote() {
 
     # Provider d'authentification et d'accès Forgejo
@@ -27,6 +42,7 @@ _forgejo_resolve_remote() {
     # ==========================================================
 
     local project_path="${1:-}"
+    local remote_name="${2:-origin}"
     local remote_url=""
     local url_path=""
     local authority=""
@@ -40,18 +56,18 @@ _forgejo_resolve_remote() {
 
     remote_url="$(
         runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" remote get-url origin 2>/dev/null
+            git -C "${project_path}" remote get-url "${remote_name}" 2>/dev/null
     )"
 
     if [[ -z "${remote_url}" ]]; then
         print_error \
-            "forgejo-auth : impossible de récupérer l'URL du remote origin."
+            "forgejo-auth : impossible de récupérer l'URL du remote ${remote_name}."
         return 1
     fi
 
     if [[ "${remote_url}" != https://* ]]; then
         print_error \
-            "forgejo-auth : le remote origin doit utiliser HTTPS."
+            "forgejo-auth : le remote ${remote_name} doit utiliser HTTPS."
         return 1
     fi
 
@@ -62,7 +78,7 @@ _forgejo_resolve_remote() {
 
     if [[ "${authority}" == *"@"* ]]; then
         print_error \
-            "forgejo-auth : l'URL du remote origin contient des informations d'identification interdites."
+            "forgejo-auth : l'URL du remote ${remote_name} contient des informations d'identification interdites."
         return 1
     fi
 
@@ -219,6 +235,7 @@ _forgejo_create_api_curl_config() {
 # Cette fonction est utilisée par les opérations Git et API.
 _forgejo_prepare_context() {
     local project_path="${1:-}"
+    local remote_name="${2:-origin}"
 
     if [[ -z "${project_path}" ]]; then
         print_error "_forgejo_prepare_context : project_path est vide."
@@ -231,7 +248,7 @@ _forgejo_prepare_context() {
         return 1
     fi
 
-    if ! _forgejo_resolve_remote "${project_path}"; then
+    if ! _forgejo_resolve_remote "${project_path}" "${remote_name}"; then
         return 1
     fi
 
@@ -325,7 +342,7 @@ _forgejo_api_request() {
     if [[ -n "${upload_file}" ]]; then
 
         if response="$(
-            curl -sS \
+            _forgejo_curl -sS \
                 -w '\n%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
@@ -341,7 +358,7 @@ _forgejo_api_request() {
     elif [[ -n "${payload}" ]]; then
 
         if response="$(
-            curl -sS \
+            _forgejo_curl -sS \
                 -w '\n%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
@@ -358,7 +375,7 @@ _forgejo_api_request() {
     else
 
         if response="$(
-            curl -sS \
+            _forgejo_curl -sS \
                 -w '\n%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
@@ -503,6 +520,7 @@ _forgejo_validate_credentials() {
     # ==========================================================
 
     local project_path="${1:-}"
+    local remote_name="${2:-origin}"
 
     local http_code=""
     local curl_rc=0
@@ -525,7 +543,7 @@ _forgejo_validate_credentials() {
     # Étape 1 : Résolution du remote Forgejo
     # ==========================================================
 
-    if ! _forgejo_resolve_remote "${project_path}"; then
+    if ! _forgejo_resolve_remote "${project_path}" "${remote_name}"; then
         return 1
     fi
 
@@ -600,7 +618,7 @@ _forgejo_validate_credentials() {
     forgejo_url="${forgejo_base}/api/v1/repos/${forgejo_owner}/${forgejo_repo}"
 
     http_code="$(
-        curl -sS \
+        _forgejo_curl -sS \
             -o /dev/null \
             -w '%{http_code}' \
             -H "Authorization: token ${forgejo_token}" \
@@ -694,7 +712,7 @@ _forgejo_validate_credentials() {
             # --------------------------------------------------
 
             error_body="$(
-                curl -sS \
+                _forgejo_curl -sS \
                     -H "Authorization: token ${forgejo_token}" \
                     -H "Accept: application/json" \
                     "${forgejo_url}" \
@@ -735,6 +753,7 @@ _forgejo_ensure_credentials() {
     # ==========================================================
 
     local project_path="${1:-}"
+    local remote_name="${2:-${REMOTE_FORGEJO_NAME:-origin}}"
 
     local forgejo_host=""
     local forgejo_base=""
@@ -782,7 +801,7 @@ _forgejo_ensure_credentials() {
     # Étape 1 : Déduction des informations Forgejo
     # ==========================================================
 
-    if ! _forgejo_resolve_remote "${project_path}"; then
+    if ! _forgejo_resolve_remote "${project_path}" "${remote_name}"; then
         return 1
     fi
 
@@ -817,7 +836,7 @@ _forgejo_ensure_credentials() {
         credentials_rc=0
 
         _forgejo_validate_credentials \
-            "${project_path}" || credentials_rc=$?
+            "${project_path}" "${remote_name}" || credentials_rc=$?
 
         case "${credentials_rc}" in
 
@@ -983,7 +1002,7 @@ _forgejo_ensure_credentials() {
             credentials_rc=0
 
             _forgejo_validate_credentials \
-                "${project_path}" || credentials_rc=$?
+                "${project_path}" "${remote_name}" || credentials_rc=$?
 
             case "${credentials_rc}" in
 
@@ -1096,7 +1115,7 @@ _forgejo_ensure_credentials() {
             unset forgejo_password
 
             auth_http_code="$(
-                curl -sS \
+                _forgejo_curl -sS \
                     -o /dev/null \
                     -w '%{http_code}' \
                     --netrc-file "${netrc_file}" \
@@ -1162,7 +1181,7 @@ _forgejo_ensure_credentials() {
                 "Création du token en cours..."
 
             token_http_response="$(
-                curl -sS \
+                    _forgejo_curl -sS \
                     -w '\n%{http_code}' \
                     --netrc-file "${netrc_file}" \
                     -X POST \
@@ -1385,7 +1404,7 @@ _forgejo_ensure_credentials() {
             credentials_rc=0
 
             _forgejo_validate_credentials \
-                "${project_path}" || credentials_rc=$?
+                "${project_path}" "${remote_name}" || credentials_rc=$?
 
             case "${credentials_rc}" in
 
@@ -1417,17 +1436,48 @@ _forgejo_ensure_credentials() {
     esac
 }
 
-# Git fetch authentifié
+# Exécute une commande Git Forgejo avec l'option TLS configurée.
+_forgejo_git_with_token() {
+    local project_path="${1:-}"
+    local username="${2:-}"
+    local token="${3:-}"
+    shift 3 || true
+
+    case "${REMOTE_FORGEJO_SSL_VERIFY:-Yes}" in
+        Yes|yes|oui|OUI|true|TRUE|1)
+            git_with_token \
+                "${project_path}" \
+                "${username}" \
+                "${token}" \
+                "${@}"
+            ;;
+        No|no|non|NON|false|FALSE|0)
+            (
+                export GIT_SSL_NO_VERIFY=true
+                git_with_token \
+                    "${project_path}" \
+                    "${username}" \
+                    "${token}" \
+                    "${@}"
+            )
+            ;;
+        *)
+            print_error "REMOTE_FORGEJO_SSL_VERIFY doit valoir Yes ou No."
+            return 1
+            ;;
+    esac
+}
+
+# Git fetch authentifié vers le remote historique origin.
 forgejo_git_fetch() {
     local project_path="${1:-}"
 
     if [[ -z "${project_path}" ]]; then
-        print_error \
-            "forgejo_git_fetch : project_path vide."
+        print_error "forgejo_git_fetch : project_path vide."
         return 1
     fi
 
-    if ! _forgejo_ensure_credentials "${project_path}"; then
+    if ! _forgejo_ensure_credentials "${project_path}" origin; then
         return 1
     fi
 
@@ -1439,28 +1489,37 @@ forgejo_git_fetch() {
         return 1
     fi
 
-    git_with_token \
+    _forgejo_git_with_token \
         "${project_path}" \
         "${forgejo_username}" \
         "${forgejo_token}" \
         fetch origin
 }
 
-# Git push authentifié
+# Git push authentifié vers le remote historique origin.
 # forgejo_git_push <project_path> [push_args...]
 forgejo_git_push() {
     local project_path="${1:-}"
     shift || true
+    forgejo_git_push_named "${project_path}" origin "${@}"
+}
+
+# Git push authentifié vers un remote Forgejo nommé.
+# forgejo_git_push_named <project_path> <remote_name> [push_args...]
+forgejo_git_push_named() {
+    local project_path="${1:-}"
+    local remote_name="${2:-}"
+    shift 2 || true
 
     local push_args=("${@}")
 
-    if [[ -z "${project_path}" ]]; then
+    if [[ -z "${project_path}" || -z "${remote_name}" ]]; then
         print_error \
-            "forgejo_git_push : project_path vide."
+            "forgejo_git_push_named : project_path et remote_name sont obligatoires."
         return 1
     fi
 
-    if ! _forgejo_ensure_credentials "${project_path}"; then
+    if ! _forgejo_ensure_credentials "${project_path}" "${remote_name}"; then
         print_error \
             "forgejo_git_push : impossible d'initialiser les credentials Forgejo."
         return 1
@@ -1474,22 +1533,10 @@ forgejo_git_push() {
         return 1
     fi
 
-    if [[ ${#push_args[@]} -gt 0 ]]; then
-
-        git_with_token \
-            "${project_path}" \
-            "${forgejo_username}" \
-            "${forgejo_token}" \
-            push \
-            "${push_args[@]}"
-
-    else
-
-        git_with_token \
-            "${project_path}" \
-            "${forgejo_username}" \
-            "${forgejo_token}" \
-            push
-
-    fi
+    _forgejo_git_with_token \
+        "${project_path}" \
+        "${forgejo_username}" \
+        "${forgejo_token}" \
+        push \
+        "${push_args[@]}"
 }

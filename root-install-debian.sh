@@ -61,10 +61,70 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
                 'rid softwares remove github <SOFTWARE>  → Désinstaller un logiciel GitHub.' \
                 'rid softwares update github [SOFTWARE]  → Mettre à jour un ou tous les logiciels GitHub.'
             ;;
+        projects)
+            printf '%s\n' \
+                'rid projects create <ID PROJECT> → Crée un projet.' \
+                'rid projects del <ID PROJECT> → Supprime un projet.' \
+                'rid projects dockerb <ID PROJECT> → Construit les images Docker.' \
+                'rid projects finds <ID PROJECT> → Recherche les projets.' \
+                'rid projects findads <ID PROJECT> → Recherche les adresses des projets.' \
+                'rid projects gita <ID PROJECT> → Affiche les actions Git disponibles.' \
+                'rid projects gitc <ID PROJECT> → Clone ou commit un dépôt Git.' \
+                'rid projects giti <ID PROJECT> → Initialise un dépôt Git.' \
+                'rid projects gitic <ID PROJECT> → Initialise et clone un dépôt Git.' \
+                'rid projects gitp <ID PROJECT> → Pousse un projet vers Forgejo.' \
+                'rid projects gitpdiu <ID PROJECT> → Pousse le projet DIU vers Forgejo.' \
+                'rid projects gitpdi <ID PROJECT> → Pousse un projet vers Forgejo.' \
+                'rid projects gitlab → Gestion des dépôts GitLab.' \
+                'rid projects github → Gestion des dépôts GitHub.' \
+                'rid projects forgejo → Gestion des dépôts Forgejo.' \
+                'rid projects gits <ID PROJECT> → Affiche le statut Git.' \
+                'rid projects gitu <ID PROJECT> → Met à jour un projet.' \
+                'rid projects ocro <ID PROJECT> → Ouvre le projet en lecture seule.' \
+                'rid projects ocrw <ID PROJECT> → Ouvre le projet en lecture-écriture.' \
+                'rid projects ocsh <ID PROJECT> → Ouvre un shell dans le projet.' \
+                'rid projects deb <ID PROJECT> → Construit le paquet Debian.' \
+                'rid projects cicddiu <ID PROJECT> → Lance la CI/CD du projet DIU.' \
+                'rid projects cicddr <ID PROJECT> → Lance la CI/CD du projet.'
+            ;;
         *)
             printf 'rid %s → Affiche les sous-commandes disponibles.\n' "${1:-}"
             ;;
     esac
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == github && "${3:-}" == help ]]; then
+    printf '%s\n' \
+        "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub." \
+        'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub.'
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == github && "${3:-}" == push && "${4:-}" == help ]]; then
+    printf '%s\n' 'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub distant pour le projet <ID PROJECT>.'
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == github && "${3:-}" == update && "${4:-}" == help ]]; then
+    printf '%s\n' "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub pour le projet <ID PROJECT>."
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == help ]]; then
+    printf '%s\n' \
+        "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo." \
+        'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.'
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == push && "${4:-}" == help ]]; then
+    printf '%s\n' 'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo distant pour le projet <ID PROJECT>.'
+    exit 0
+fi
+
+if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == update && "${4:-}" == help ]]; then
+    printf '%s\n' "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo pour le projet <ID PROJECT>."
     exit 0
 fi
 
@@ -162,6 +222,7 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
 . "$BASH_SCRIPT_PATH/lib/gitlab-auth.sh"
+. "$BASH_SCRIPT_PATH/lib/github-auth.sh"
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
@@ -505,6 +566,8 @@ EOF
                 'rid projects gits <ID> → Affiche le statut Git.' \
                 'rid projects gitu <ID> → Met à jour un projet.' \
                 'rid projects gitlab → Gestion des dépôts GitLab.' \
+                'rid projects github → Gestion des dépôts GitHub.' \
+                'rid projects forgejo → Gestion des dépôts Forgejo.' \
                 'rid projects ocro <ID> → Ouvre le projet en lecture seule.' \
                 'rid projects ocrw <ID> → Ouvre le projet en lecture-écriture.' \
                 'rid projects ocsh <ID> → Ouvre un shell dans le projet.' \
@@ -513,10 +576,37 @@ EOF
                 'rid projects cicddr <ID> → Lance la CI/CD du projet.'
             ;;
         projects:gitlab:)
-            printf '%s\n' 'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers GitLab.'
+            printf '%s\n' \
+                'rid projects gitlab update <ID PROJECT> → Vérifie, modifie ou crée les variables GitLab.' \
+                'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers GitLab.'
+            ;;
+        projects:gitlab:update)
+            printf '%s\n' 'rid projects gitlab update <ID PROJECT> → Vérifie, modifie ou crée les variables GitLab du projet <ID PROJECT>.'
             ;;
         projects:gitlab:push)
             printf '%s\n' 'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers un dépôt GitLab distant pour le projet <ID PROJECT>.'
+            ;;
+        projects:github:)
+            printf '%s\n' \
+                "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub." \
+                'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub.'
+            ;;
+        projects:github:update)
+            printf '%s\n' "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub pour le projet <ID PROJECT>."
+            ;;
+        projects:github:push)
+            printf '%s\n' 'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub distant pour le projet <ID PROJECT>.'
+            ;;
+        projects:forgejo:)
+            printf '%s\n' \
+                "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo." \
+                'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.'
+            ;;
+        projects:forgejo:update)
+            printf '%s\n' "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo pour le projet <ID PROJECT>."
+            ;;
+        projects:forgejo:push)
+            printf '%s\n' 'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo distant pour le projet <ID PROJECT>.'
             ;;
         install::|remove::)
             printf '%s\n' "rid $context deb <SOFTWARE> → Opération sur un paquet Debian." "rid $context apt <SOFTWARE> → Opération sur un logiciel tiers."
@@ -582,6 +672,10 @@ Utilisation :
   rid projects gitic <ID projectset>                                →  Clone du dépôt Git local dans <ID projectset> depuis un Git Distant .
   rid projects gitp <ID projectset>                                 →  Push le Git local vers un Git distant pour <ID projectset>.
   rid projects gitlab push <ID projectset>                           →  Pousse le Git local vers un dépôt GitLab pour <ID projectset>.
+  rid projects github push <ID projectset>                           →  Pousse le Git local vers un dépôt GitHub pour <ID projectset>.
+  rid projects github update <ID projectset>                         →  Crée ou modifie les variables GitHub pour <ID projectset>.
+  rid projects forgejo push <ID projectset>                          →  Pousse le Git local vers un dépôt Forgejo pour <ID projectset>.
+  rid projects forgejo update <ID projectset>                        →  Crée ou modifie les variables Forgejo pour <ID projectset>.
   rid projects gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
   rid projects gitpdi <ID projectset>                               →  Publie l'image docker vers le Git Distant pour <ID projectset>.
   rid projects gits <ID projectset>                                 →  Statut du Git local pour <ID projectset>.
@@ -1573,6 +1667,10 @@ manage_project_action() {
             project_id="${3:-}"
 
             case "${project_subaction}" in
+                update)
+                    gitlab_update \
+                        "${project_id}"
+                    ;;
                 push)
                     gitlab_push \
                         "$project_id"
@@ -1582,6 +1680,64 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects gitlab' : ${project_subaction}"
+                    display_usage
+                    exit 2
+                    ;;
+            esac
+
+            ;;
+
+        github)
+            if [[ "${project_subaction}" == "help" || "${project_subaction}" == "?" ]]; then
+                display_help_context projects github
+                exit 0
+            fi
+
+            project_id="${3:-}"
+
+            case "${project_subaction}" in
+                update)
+                    github_update \
+                        "${project_id}"
+                    ;;
+                push)
+                    github_push \
+                        "${project_id}"
+                    ;;
+                help|?)
+                    display_help_context projects github push
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects github' : ${project_subaction}"
+                    display_usage
+                    exit 2
+                    ;;
+            esac
+
+            ;;
+
+        forgejo)
+            if [[ "${project_subaction}" == "help" || "${project_subaction}" == "?" ]]; then
+                display_help_context projects forgejo
+                exit 0
+            fi
+
+            project_id="${3:-}"
+
+            case "${project_subaction}" in
+                update)
+                    forgejo_update \
+                        "${project_id}"
+                    ;;
+                push)
+                    forgejo_push \
+                        "${project_id}"
+                    ;;
+                help|?)
+                    display_help_context projects forgejo push
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects forgejo' : ${project_subaction}"
                     display_usage
                     exit 2
                     ;;
