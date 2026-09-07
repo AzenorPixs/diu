@@ -94,7 +94,7 @@ cicd_project_diu() {
 
     print_title "Étape 2/4 — Push Git"
 
-    if ! git_push \
+    if ! forgejo_push \
         "${project_id}"; then
 
         print_error "Échec du push Git."
@@ -194,13 +194,7 @@ cicd_project_docker_release() {
         PROJECT_DOCKERED \
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
-        GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        GIT_USER_EMAIL
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -281,7 +275,7 @@ cicd_project_docker_release() {
     print_title \
         "Étape 2/4 — Push Git"
 
-    if ! git_push \
+    if ! forgejo_push \
         "${project_id}"; then
 
         print_error \
@@ -409,13 +403,7 @@ git_analyse() {
         PROJECT_DOCKERED \
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
-        GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        GIT_USER_EMAIL
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -443,13 +431,7 @@ git_analyse() {
             PROJECT_DOCKERED \
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
-            GIT_USER_EMAIL \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH
+            GIT_USER_EMAIL
 
         # shellcheck disable=SC1090
         source "${project_env}"
@@ -1152,13 +1134,7 @@ git_commit() {
         PROJECT_NAME \
         PROJECT_TYPE \
         PROJECT_DOCKERED \
-        LOCAL_DEFAULT_BRANCH \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        LOCAL_DEFAULT_BRANCH
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -1184,13 +1160,7 @@ git_commit() {
             PROJECT_NAME \
             PROJECT_TYPE \
             PROJECT_DOCKERED \
-            LOCAL_DEFAULT_BRANCH \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH
+            LOCAL_DEFAULT_BRANCH
 
         # shellcheck disable=SC1090
         source "${project_env}"
@@ -1385,13 +1355,7 @@ git_init() {
         PROJECT_DOCKERED \
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
-        GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        GIT_USER_EMAIL
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -1422,13 +1386,7 @@ git_init() {
             PROJECT_DOCKERED \
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
-            GIT_USER_EMAIL \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH
+            GIT_USER_EMAIL
 
         # shellcheck disable=SC1090
         source "${project_env}"
@@ -1847,8 +1805,8 @@ git_get_latest_release() {
     return 0
 }
 
-# Push vers le dépôt distant Forgejo le projet <PROJECT ID>
-git_push() {
+# Publication vers un fournisseur distant explicite.
+git_push_provider() {
     local project_id="$1"
     local requested_remote_type="${2:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -1876,7 +1834,7 @@ git_push() {
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
-        print_error "git_push : PROJECT_ID est vide."
+        print_error "git_push_provider : PROJECT_ID est vide."
         return 1
     fi
 
@@ -1963,12 +1921,6 @@ git_push() {
         PROJECT_TYPE \
         PROJECT_DOCKERED \
         LOCAL_DEFAULT_BRANCH \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH \
         REMOTE_GITLAB_BASE_URL \
         REMOTE_GITLAB_OWNER \
         REMOTE_GITLAB_REPOSITORY \
@@ -1990,7 +1942,7 @@ git_push() {
     source "${project_env}"
 
     # Vérification des variables essentielles
-    remote_type_to_use="${REMOTE_GIT_TYPE:-}"
+    remote_type_to_use="${requested_remote_type}"
 
     if [[ -n "${requested_remote_type}" ]]; then
         remote_type_to_use="${requested_remote_type}"
@@ -2004,19 +1956,6 @@ git_push() {
     ]]; then
 
         missing_fields="Yes"
-
-    elif [[ "${remote_type_to_use}" == "forgejo" &&
-        "${requested_remote_type}" != "forgejo" ]]; then
-
-        if [[ -z "${REMOTE_BASE_URL:-}" ||
-            -z "${REMOTE_OWNER:-}" ||
-            -z "${REMOTE_REPOSITORY:-}" ||
-            -z "${REMOTE_NAME:-}" ||
-            -z "${REMOTE_DEFAULT_BRANCH:-}" \
-        ]]; then
-
-            missing_fields="Yes"
-        fi
 
     elif [[ "${remote_type_to_use}" == "gitlab" ]]; then
 
@@ -2099,12 +2038,6 @@ git_push() {
             PROJECT_TYPE \
             PROJECT_DOCKERED \
             LOCAL_DEFAULT_BRANCH \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH \
             REMOTE_GITLAB_BASE_URL \
             REMOTE_GITLAB_OWNER \
         REMOTE_GITLAB_REPOSITORY \
@@ -2125,7 +2058,7 @@ git_push() {
         # shellcheck disable=SC1090
         source "${project_env}"
 
-        remote_type_to_use="${REMOTE_GIT_TYPE:-}"
+        remote_type_to_use="${requested_remote_type}"
 
         if [[ -n "${requested_remote_type}" ]]; then
             remote_type_to_use="${requested_remote_type}"
@@ -2159,43 +2092,7 @@ git_push() {
         return 1
     fi
 
-    if [[ -z "${REMOTE_GIT_TYPE:-}" ]]; then
-        if [[ -z "${requested_remote_type}" ]]; then
-            print_error "REMOTE_GIT_TYPE n'est pas défini dans project.env."
-            return 1
-        fi
-    fi
-
-    if [[ "${remote_type_to_use}" == "forgejo" &&
-        "${requested_remote_type}" != "forgejo" ]]; then
-
-        if [[ -z "${REMOTE_BASE_URL:-}" ]]; then
-            print_error "REMOTE_BASE_URL n'est pas défini dans project.env."
-            return 1
-        fi
-
-        if [[ -z "${REMOTE_OWNER:-}" ]]; then
-            print_error "REMOTE_OWNER n'est pas défini dans project.env."
-            return 1
-        fi
-
-        if [[ -z "${REMOTE_REPOSITORY:-}" ]]; then
-            print_error "REMOTE_REPOSITORY n'est pas défini dans project.env."
-            return 1
-        fi
-
-        if [[ -z "${REMOTE_NAME:-}" ]]; then
-            print_error "REMOTE_NAME n'est pas défini dans project.env."
-            return 1
-        fi
-
-        if [[ -z "${REMOTE_DEFAULT_BRANCH:-}" ]]; then
-            print_error "REMOTE_DEFAULT_BRANCH n'est pas défini dans project.env."
-            return 1
-        fi
-
-    elif [[ "${remote_type_to_use}" == "forgejo" &&
-        "${requested_remote_type}" == "forgejo" ]]; then
+    if [[ "${remote_type_to_use}" == "forgejo" ]]; then
 
         if [[ -z "${REMOTE_FORGEJO_BASE_URL:-}" ]]; then
             print_error "REMOTE_FORGEJO_BASE_URL n'est pas défini dans project.env."
@@ -2302,19 +2199,12 @@ git_push() {
         remote_repository="${REMOTE_GITHUB_REPOSITORY}"
         remote_name="${REMOTE_GITHUB_NAME}"
         remote_default_branch="${REMOTE_GITHUB_BRANCH}"
-    elif [[ "${remote_git_type}" == "forgejo" &&
-        "${requested_remote_type}" == "forgejo" ]]; then
+    elif [[ "${remote_git_type}" == "forgejo" ]]; then
         remote_base_url="${REMOTE_FORGEJO_BASE_URL%/}"
         remote_owner="${REMOTE_FORGEJO_OWNER}"
         remote_repository="${REMOTE_FORGEJO_REPOSITORY}"
         remote_name="${REMOTE_FORGEJO_NAME}"
         remote_default_branch="${REMOTE_FORGEJO_BRANCH}"
-    else
-        remote_base_url="${REMOTE_BASE_URL%/}"
-        remote_owner="${REMOTE_OWNER}"
-        remote_repository="${REMOTE_REPOSITORY}"
-        remote_name="${REMOTE_NAME}"
-        remote_default_branch="${REMOTE_DEFAULT_BRANCH}"
     fi
 
     if [[ "${remote_git_type}" == "gitlab" ]]; then
@@ -2335,8 +2225,7 @@ git_push() {
             "${configured_remote_url}"; then
             return 1
         fi
-    elif [[ "${remote_git_type}" == "forgejo" &&
-        "${requested_remote_type}" == "forgejo" ]]; then
+    elif [[ "${remote_git_type}" == "forgejo" ]]; then
         configured_remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
 
         if ! forgejo_remote_ensure \
@@ -3550,7 +3439,7 @@ forgejo_push() {
         return 1
     fi
 
-    git_push "${project_id}" "forgejo"
+    git_push_provider "${project_id}" "forgejo"
 }
 
 # Push vers le dépôt distant GitLab du projet <PROJECT ID>
@@ -3563,7 +3452,7 @@ gitlab_push() {
         return 1
     fi
 
-    git_push "${project_id}" "gitlab"
+    git_push_provider "${project_id}" "gitlab"
 }
 
 # Push vers le dépôt distant GitHub du projet <PROJECT ID>
@@ -3575,7 +3464,7 @@ github_push() {
         return 1
     fi
 
-    git_push "${project_id}" "github"
+    git_push_provider "${project_id}" "github"
 }
 
 # Push vers l dépôt distant Forgejo le projet <PROJECT ID>
@@ -3660,9 +3549,9 @@ git_push_docker_image() {
     # --------------------------------------------------------
 
     if [[ \
-        -z "${REMOTE_BASE_URL:-}" ||
-        -z "${REMOTE_OWNER:-}" ||
-        -z "${REMOTE_REPOSITORY:-}" \
+        -z "${REMOTE_FORGEJO_BASE_URL:-}" ||
+        -z "${REMOTE_FORGEJO_OWNER:-}" ||
+        -z "${REMOTE_FORGEJO_REPOSITORY:-}" \
     ]]; then
 
         print_error \
@@ -3751,12 +3640,12 @@ git_push_docker_image() {
 
     local_image="${PROJECT_ID:-${project_id}}:latest"
 
-    remote_registry="${REMOTE_BASE_URL#https://}"
+    remote_registry="${REMOTE_FORGEJO_BASE_URL#https://}"
     remote_registry="${remote_registry#http://}"
     remote_registry="${remote_registry%/}"
 
-    remote_image_version="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:${docker_version}"
-    remote_image_latest="${remote_registry}/${REMOTE_OWNER}/${REMOTE_REPOSITORY}:latest"
+    remote_image_version="${remote_registry}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:${docker_version}"
+    remote_image_latest="${remote_registry}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:latest"
 
     # --------------------------------------------------------
     # Vérification de l'image locale
@@ -3821,16 +3710,16 @@ git_push_docker_image() {
     # Le dépôt doit donc exister AVANT le premier docker push.
     # --------------------------------------------------------
 
-    forgejo_api_base="${REMOTE_BASE_URL%/}/api/v1"
-    forgejo_repository_api="${forgejo_api_base}/repos/${REMOTE_OWNER}/${REMOTE_REPOSITORY}"
+    forgejo_api_base="${REMOTE_FORGEJO_BASE_URL%/}/api/v1"
+    forgejo_repository_api="${forgejo_api_base}/repos/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}"
 
     print_title "Vérification du dépôt Forgejo"
 
     printf '%-22s : %s\n' \
-        "Owner" "${REMOTE_OWNER}"
+        "Owner" "${REMOTE_FORGEJO_OWNER}"
 
     printf '%-22s : %s\n' \
-        "Dépôt" "${REMOTE_REPOSITORY}"
+        "Dépôt" "${REMOTE_FORGEJO_REPOSITORY}"
 
     forgejo_repository_http_code="$(
         curl \
@@ -3846,18 +3735,18 @@ git_push_docker_image() {
 
         200)
             print_success \
-                "Dépôt Forgejo ${REMOTE_OWNER}/${REMOTE_REPOSITORY} disponible."
+                "Dépôt Forgejo ${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY} disponible."
             ;;
 
         404)
             print_error \
-                "Le dépôt Forgejo ${REMOTE_OWNER}/${REMOTE_REPOSITORY} n'existe pas."
+                "Le dépôt Forgejo ${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY} n'existe pas."
 
             print_error \
                 "Publication Docker refusée afin d'éviter la création d'un package non lié."
 
             print_info \
-                "Publiez d'abord le dépôt Git avec gitp."
+                "Publiez d'abord le dépôt Git avec projects forgejo push."
 
             unset forgejo_token
             return 1
@@ -3865,7 +3754,7 @@ git_push_docker_image() {
 
         401|403)
             print_error \
-                "Accès refusé au dépôt Forgejo ${REMOTE_OWNER}/${REMOTE_REPOSITORY}."
+                "Accès refusé au dépôt Forgejo ${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}."
 
             print_error \
                 "Code HTTP Forgejo : ${forgejo_repository_http_code}"
@@ -3914,10 +3803,10 @@ git_push_docker_image() {
         "Utilisateur Forgejo" "${forgejo_username}"
 
     printf '%-22s : %s\n' \
-        "Owner cible" "${REMOTE_OWNER}"
+        "Owner cible" "${REMOTE_FORGEJO_OWNER}"
 
     printf '%-22s : %s\n' \
-        "Dépôt associé" "${REMOTE_OWNER}/${REMOTE_REPOSITORY}"
+        "Dépôt associé" "${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}"
 
     # --------------------------------------------------------
     # Création du tag Docker versionné
@@ -4113,7 +4002,7 @@ git_push_docker_image() {
         "Latest" "${remote_image_latest}"
 
     printf '%-22s : %s\n' \
-        "Dépôt Forgejo" "${REMOTE_OWNER}/${REMOTE_REPOSITORY}"
+        "Dépôt Forgejo" "${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}"
 
     return 0
 }
@@ -4192,13 +4081,7 @@ git_status() {
         PROJECT_DOCKERED \
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
-        GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        GIT_USER_EMAIL
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -4226,13 +4109,7 @@ git_status() {
             PROJECT_DOCKERED \
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
-            GIT_USER_EMAIL \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH
+            GIT_USER_EMAIL
 
         # shellcheck disable=SC1090
         source "${project_env}"
@@ -4447,18 +4324,18 @@ git_update() {
     local git_user_name=""
     local git_user_email=""
 
-    local remote_git_type=""
-    local remote_base_url=""
-    local remote_owner=""
-    local remote_repository=""
-    local remote_name="origin"
-    local remote_default_branch="main"
+    local legacy_remote_base_url=""
+    local legacy_remote_owner=""
+    local legacy_remote_repository=""
+    local legacy_remote_name=""
+    local legacy_remote_default_branch=""
     local remote_gitlab_base_url=""
     local remote_gitlab_owner=""
     local remote_gitlab_repository=""
     local remote_gitlab_name="origin"
     local remote_gitlab_branch="main"
     local gitlab_mode="No"
+    local gitlab_config_present="No"
     local remote_forgejo_base_url=""
     local remote_forgejo_owner=""
     local remote_forgejo_repository=""
@@ -4565,22 +4442,21 @@ git_update() {
         git_user_name="${GIT_USER_NAME:-}"
         git_user_email="${GIT_USER_EMAIL:-}"
 
-        remote_git_type="${REMOTE_GIT_TYPE:-}"
-        remote_base_url="${REMOTE_BASE_URL:-}"
-        remote_owner="${REMOTE_OWNER:-}"
-        remote_repository="${REMOTE_REPOSITORY:-}"
-        remote_name="${REMOTE_NAME:-origin}"
-        remote_default_branch="${REMOTE_DEFAULT_BRANCH:-main}"
+        legacy_remote_base_url="${REMOTE_BASE_URL:-}"
+        legacy_remote_owner="${REMOTE_OWNER:-}"
+        legacy_remote_repository="${REMOTE_REPOSITORY:-}"
+        legacy_remote_name="${REMOTE_NAME:-}"
+        legacy_remote_default_branch="${REMOTE_DEFAULT_BRANCH:-}"
         remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-}"
         remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-}"
         remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${project_id}}"
         remote_gitlab_name="${REMOTE_GITLAB_NAME:-origin}"
         remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-main}"
-        remote_forgejo_base_url="${REMOTE_FORGEJO_BASE_URL:-}"
-        remote_forgejo_owner="${REMOTE_FORGEJO_OWNER:-}"
-        remote_forgejo_repository="${REMOTE_FORGEJO_REPOSITORY:-${project_id}}"
-        remote_forgejo_name="${REMOTE_FORGEJO_NAME:-origin}"
-        remote_forgejo_branch="${REMOTE_FORGEJO_BRANCH:-main}"
+        remote_forgejo_base_url="${REMOTE_FORGEJO_BASE_URL:-${legacy_remote_base_url}}"
+        remote_forgejo_owner="${REMOTE_FORGEJO_OWNER:-${legacy_remote_owner}}"
+        remote_forgejo_repository="${REMOTE_FORGEJO_REPOSITORY:-${legacy_remote_repository:-${project_id}}}"
+        remote_forgejo_name="${REMOTE_FORGEJO_NAME:-${legacy_remote_name:-origin}}"
+        remote_forgejo_branch="${REMOTE_FORGEJO_BRANCH:-${legacy_remote_default_branch:-main}}"
         remote_forgejo_ssl_verify="${REMOTE_FORGEJO_SSL_VERIFY:-No}"
         remote_github_base_url="${REMOTE_GITHUB_BASE_URL:-}"
         remote_github_owner="${REMOTE_GITHUB_OWNER:-}"
@@ -4589,6 +4465,22 @@ git_update() {
         remote_github_branch="${REMOTE_GITHUB_BRANCH:-main}"
 
         if [[ \
+            -n "${REMOTE_GITLAB_BASE_URL+x}" ||
+            -n "${REMOTE_GITLAB_OWNER+x}" ||
+            -n "${REMOTE_GITLAB_REPOSITORY+x}" ||
+            -n "${REMOTE_GITLAB_NAME+x}" ||
+            -n "${REMOTE_GITLAB_BRANCH+x}" \
+        ]]; then
+            gitlab_config_present="Yes"
+        fi
+
+        if [[ \
+            -n "${REMOTE_GIT_TYPE+x}" ||
+            -n "${REMOTE_BASE_URL+x}" ||
+            -n "${REMOTE_OWNER+x}" ||
+            -n "${REMOTE_REPOSITORY+x}" ||
+            -n "${REMOTE_NAME+x}" ||
+            -n "${REMOTE_DEFAULT_BRANCH+x}" ||
             -n "${REMOTE_FORGEJO_BASE_URL+x}" ||
             -n "${REMOTE_FORGEJO_OWNER+x}" ||
             -n "${REMOTE_FORGEJO_REPOSITORY+x}" ||
@@ -4607,10 +4499,6 @@ git_update() {
             -n "${REMOTE_GITHUB_BRANCH+x}" \
         ]]; then
             github_config_present="Yes"
-        fi
-
-        if [[ "${remote_git_type}" == "gitlab" ]]; then
-            gitlab_mode="Yes"
         fi
 
         if [[ \
@@ -4715,9 +4603,7 @@ git_update() {
             "GIT_USER_EMAIL : " git_user_email
     done
 
-    if [[ "${gitlab_mode}" == "Yes" ]]; then
-        remote_git_type="gitlab"
-
+    if [[ "${gitlab_mode}" == "Yes" || "${gitlab_config_present}" == "Yes" ]]; then
         print_title "Configuration du dépôt distant GitLab"
 
         value=""
@@ -4775,61 +4661,52 @@ git_update() {
             remote_gitlab_branch="${value}"
         fi
         remote_gitlab_branch="${remote_gitlab_branch:-main}"
-    else
-        # REMOTE_GIT_TYPE
+    fi
+
+    if [[ "${gitlab_mode}" != "Yes" ]]; then
+        print_title "Configuration du dépôt distant Forgejo"
+
+        # REMOTE_FORGEJO_BASE_URL
         value=""
         read -r -p \
-            "REMOTE_GIT_TYPE [${remote_git_type}] : " value
+            "REMOTE_FORGEJO_BASE_URL [${remote_forgejo_base_url}] : " value
 
         if [[ -n "${value}" ]]; then
-            remote_git_type="${value}"
+            remote_forgejo_base_url="${value}"
         fi
 
-        # REMOTE_BASE_URL
+        remote_forgejo_base_url="${remote_forgejo_base_url%/}"
+
         value=""
         read -r -p \
-            "REMOTE_BASE_URL [${remote_base_url}] : " value
+            "REMOTE_FORGEJO_OWNER [${remote_forgejo_owner}] : " value
 
         if [[ -n "${value}" ]]; then
-            remote_base_url="${value}"
+            remote_forgejo_owner="${value}"
         fi
 
-        remote_base_url="${remote_base_url%/}"
-
-        # REMOTE_OWNER
         value=""
         read -r -p \
-            "REMOTE_OWNER [${remote_owner}] : " value
+            "REMOTE_FORGEJO_REPOSITORY [${remote_forgejo_repository}] : " value
 
         if [[ -n "${value}" ]]; then
-            remote_owner="${value}"
+            remote_forgejo_repository="${value}"
         fi
 
-        # REMOTE_REPOSITORY
         value=""
         read -r -p \
-            "REMOTE_REPOSITORY [${remote_repository}] : " value
+            "REMOTE_FORGEJO_NAME [${remote_forgejo_name}] : " value
 
         if [[ -n "${value}" ]]; then
-            remote_repository="${value}"
+            remote_forgejo_name="${value}"
         fi
 
-        # REMOTE_NAME
         value=""
         read -r -p \
-            "REMOTE_NAME [${remote_name}] : " value
+            "REMOTE_FORGEJO_BRANCH [${remote_forgejo_branch}] : " value
 
         if [[ -n "${value}" ]]; then
-            remote_name="${value}"
-        fi
-
-        # REMOTE_DEFAULT_BRANCH
-        value=""
-        read -r -p \
-            "REMOTE_DEFAULT_BRANCH [${remote_default_branch}] : " value
-
-        if [[ -n "${value}" ]]; then
-            remote_default_branch="${value}"
+            remote_forgejo_branch="${value}"
         fi
     fi
 
@@ -4935,11 +4812,11 @@ git_update() {
         done
 
         if [[ \
-            -n "${remote_name}" &&
-            "${remote_name}" == "${remote_clone_name}" \
+            -n "${remote_forgejo_name}" &&
+            "${remote_forgejo_name}" == "${remote_clone_name}" \
         ]]; then
             print_error \
-                "REMOTE_NAME et REMOTE_CLONE_NAME doivent être différents."
+                "REMOTE_FORGEJO_NAME et REMOTE_CLONE_NAME doivent être différents."
             return 1
         fi
     fi
@@ -4963,8 +4840,6 @@ git_update() {
 
     printf '\n'
 
-    printf '%-30s : %s\n' \
-        "REMOTE_GIT_TYPE" "${remote_git_type}"
     if [[ "${gitlab_mode}" == "Yes" ]]; then
         printf '%-30s : %s\n' \
             "REMOTE_GITLAB_BASE_URL" "${remote_gitlab_base_url}"
@@ -4976,17 +4851,23 @@ git_update() {
             "REMOTE_GITLAB_NAME" "${remote_gitlab_name}"
         printf '%-30s : %s\n' \
             "REMOTE_GITLAB_BRANCH" "${remote_gitlab_branch}"
-    else
+    fi
+
+    if [[ "${gitlab_mode}" != "Yes" || "${forgejo_config_present}" == "Yes" ]]; then
+        printf '\n'
+        print_title "Configuration du dépôt distant Forgejo"
         printf '%-30s : %s\n' \
-            "REMOTE_BASE_URL" "${remote_base_url}"
+            "REMOTE_FORGEJO_BASE_URL" "${remote_forgejo_base_url}"
         printf '%-30s : %s\n' \
-            "REMOTE_OWNER" "${remote_owner}"
+            "REMOTE_FORGEJO_OWNER" "${remote_forgejo_owner}"
         printf '%-30s : %s\n' \
-            "REMOTE_REPOSITORY" "${remote_repository}"
+            "REMOTE_FORGEJO_REPOSITORY" "${remote_forgejo_repository}"
         printf '%-30s : %s\n' \
-            "REMOTE_NAME" "${remote_name}"
+            "REMOTE_FORGEJO_NAME" "${remote_forgejo_name}"
         printf '%-30s : %s\n' \
-            "REMOTE_DEFAULT_BRANCH" "${remote_default_branch}"
+            "REMOTE_FORGEJO_BRANCH" "${remote_forgejo_branch}"
+        printf '%-30s : %s\n' \
+            "REMOTE_FORGEJO_SSL_VERIFY" "${remote_forgejo_ssl_verify}"
     fi
 
     if [[ "${clone_config_present}" == "Yes" ]]; then
@@ -5026,11 +4907,9 @@ git_update() {
         printf 'GIT_USER_EMAIL=%q\n' \
             "${git_user_email}"
 
-        printf '\n'
-        printf '# Git distant\n'
-        printf 'REMOTE_GIT_TYPE=%q\n' \
-            "${remote_git_type}"
-        if [[ "${gitlab_mode}" == "Yes" ]]; then
+        if [[ "${gitlab_mode}" == "Yes" || "${gitlab_config_present}" == "Yes" ]]; then
+            printf '\n'
+            printf '# GitLab distant\n'
             printf 'REMOTE_GITLAB_BASE_URL=%q\n' \
                 "${remote_gitlab_base_url}"
             printf 'REMOTE_GITLAB_OWNER=%q\n' \
@@ -5041,20 +4920,9 @@ git_update() {
                 "${remote_gitlab_name}"
             printf 'REMOTE_GITLAB_BRANCH=%q\n' \
                 "${remote_gitlab_branch}"
-        else
-            printf 'REMOTE_BASE_URL=%q\n' \
-                "${remote_base_url}"
-            printf 'REMOTE_OWNER=%q\n' \
-                "${remote_owner}"
-            printf 'REMOTE_REPOSITORY=%q\n' \
-                "${remote_repository}"
-            printf 'REMOTE_NAME=%q\n' \
-                "${remote_name}"
-            printf 'REMOTE_DEFAULT_BRANCH=%q\n' \
-                "${remote_default_branch}"
         fi
 
-        if [[ "${forgejo_config_present}" == "Yes" ]]; then
+        if [[ "${gitlab_mode}" != "Yes" || "${forgejo_config_present}" == "Yes" ]]; then
             printf '\n'
             printf '# Forgejo distant\n'
             printf 'REMOTE_FORGEJO_BASE_URL=%q\n' \
@@ -5278,12 +5146,11 @@ git_init_clone() {
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
         GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH \
+        REMOTE_FORGEJO_BASE_URL \
+        REMOTE_FORGEJO_OWNER \
+        REMOTE_FORGEJO_REPOSITORY \
+        REMOTE_FORGEJO_NAME \
+        REMOTE_FORGEJO_BRANCH \
         REMOTE_CLONE_GIT_TYPE \
         REMOTE_CLONE_BASE_URL \
         REMOTE_CLONE_OWNER \
@@ -5329,12 +5196,11 @@ git_init_clone() {
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
             GIT_USER_EMAIL \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH \
+            REMOTE_FORGEJO_BASE_URL \
+            REMOTE_FORGEJO_OWNER \
+            REMOTE_FORGEJO_REPOSITORY \
+            REMOTE_FORGEJO_NAME \
+            REMOTE_FORGEJO_BRANCH \
             REMOTE_CLONE_GIT_TYPE \
             REMOTE_CLONE_BASE_URL \
             REMOTE_CLONE_OWNER \
@@ -5427,12 +5293,12 @@ git_init_clone() {
 
     # Vérification des noms des remotes
     if [[ \
-        -n "${REMOTE_NAME:-}" &&
-        "${REMOTE_NAME}" == "${REMOTE_CLONE_NAME}" \
+        -n "${REMOTE_FORGEJO_NAME:-}" &&
+        "${REMOTE_FORGEJO_NAME}" == "${REMOTE_CLONE_NAME}" \
     ]]; then
 
         print_error \
-            "REMOTE_NAME et REMOTE_CLONE_NAME doivent être différents."
+            "REMOTE_FORGEJO_NAME et REMOTE_CLONE_NAME doivent être différents."
         return 1
     fi
 
@@ -5442,7 +5308,7 @@ git_init_clone() {
     git_user_name="${GIT_USER_NAME}"
     git_user_email="${GIT_USER_EMAIL}"
 
-    remote_name="${REMOTE_NAME:-origin}"
+    remote_name="${REMOTE_FORGEJO_NAME:-origin}"
 
     remote_clone_git_type="${REMOTE_CLONE_GIT_TYPE}"
     remote_clone_base_url="${REMOTE_CLONE_BASE_URL%/}"

@@ -62,13 +62,7 @@ create_project() {
         PROJECT_DOCKERED \
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
-        GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        GIT_USER_EMAIL
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -1346,12 +1340,6 @@ delete_project() {
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
             GIT_USER_EMAIL \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH \
             REMOTE_CLONE_GIT_TYPE \
             REMOTE_CLONE_BASE_URL \
             REMOTE_CLONE_OWNER \

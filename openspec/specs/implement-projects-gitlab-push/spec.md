@@ -16,7 +16,6 @@ Le système DOIT exposer la commande `rid projects gitlab push <ID PROJECT>`.
 - ÉTANT DONNÉ que le projet possède déjà une configuration Forgejo
 - QUAND l'utilisateur exécute `rid projects gitlab push <ID PROJECT>`
 - ALORS la commande sélectionne explicitement le fournisseur GitLab
-- ET elle ne bloque pas en raison de `REMOTE_GIT_TYPE='forgejo'`
 - ET elle utilise ou initialise les variables `REMOTE_GITLAB_*`
 
 ## Exigence : configuration GitLab du projet
@@ -24,7 +23,6 @@ Le système DOIT exposer la commande `rid projects gitlab push <ID PROJECT>`.
 La configuration du projet DOIT utiliser les variables suivantes dans `project.env` :
 
 ```bash
-REMOTE_GIT_TYPE='gitlab'
 REMOTE_GITLAB_BASE_URL='https://gitlab.example'
 REMOTE_GITLAB_OWNER='owner'
 REMOTE_GITLAB_REPOSITORY='diu'
