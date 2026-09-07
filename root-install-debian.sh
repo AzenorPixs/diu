@@ -72,7 +72,6 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
                 'rid projects gitc <ID PROJECT> → Clone ou commit un dépôt Git.' \
                 'rid projects giti <ID PROJECT> → Initialise un dépôt Git.' \
                 'rid projects gitic <ID PROJECT> → Initialise et clone un dépôt Git.' \
-                'rid projects gitp <ID PROJECT> → Pousse un projet vers Forgejo.' \
                 'rid projects gitpdiu <ID PROJECT> → Pousse le projet DIU vers Forgejo.' \
                 'rid projects gitpdi <ID PROJECT> → Pousse un projet vers Forgejo.' \
                 'rid projects gitlab → Gestion des dépôts GitLab.' \
@@ -169,7 +168,7 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
             ;;
         proj:)
-            printf '%s\n' 'rid projects create <PROJET> → Crée un projet.' 'rid projects del <PROJET> → Supprime un projet.' 'rid projects dockerb <PROJET> → Construit son image.' 'rid projects finds <PROJET> → Recherche les conflits.' 'rid projects findads <PROJET> → Supprime les conflits.' 'rid projects gita <PROJET> → Analyse Git.' 'rid projects gitc <PROJET> [COMMIT] → Commite le projet.' 'rid projects giti <PROJET> → Initialise Git.' 'rid projects gitic <PROJET> → Clone le dépôt.' 'rid project gitp <PROJET> → Pousse Git.' 'rid projects gitpdiu → Publie le paquet DIU.' 'rid projects gitpdi <PROJET> → Publie l’image.' 'rid projects gits <PROJET> → Affiche le statut Git.' 'rid projects gitu <PROJET> → Met à jour les variables.' 'rid projects ocro <PROJET> → Lance OpenCode RO.' 'rid projects ocrw <PROJET> → Lance OpenCode RW.' 'rid projects ocsh → Lance le shell OpenCode.' 'rid projects deb → Construit le paquet DIU.' 'rid projects cicddiu → Lance le CI/CD DIU.' 'rid projects cicddr <PROJET> → Lance le CI/CD projet.'
+            printf '%s\n' 'rid projects create <PROJET> → Crée un projet.' 'rid projects del <PROJET> → Supprime un projet.' 'rid projects dockerb <PROJET> → Construit son image.' 'rid projects finds <PROJET> → Recherche les conflits.' 'rid projects findads <PROJET> → Supprime les conflits.' 'rid projects gita <PROJET> → Analyse Git.' 'rid projects gitc <PROJET> [COMMIT] → Commite le projet.' 'rid projects giti <PROJET> → Initialise Git.' 'rid projects gitic <PROJET> → Clone le dépôt.' 'rid projects gitpdiu → Publie le paquet DIU.' 'rid projects gitpdi <PROJET> → Publie l’image.' 'rid projects gits <PROJET> → Affiche le statut Git.' 'rid projects gitu <PROJET> → Met à jour les variables.' 'rid projects ocro <PROJET> → Lance OpenCode RO.' 'rid projects ocrw <PROJET> → Lance OpenCode RW.' 'rid projects ocsh → Lance le shell OpenCode.' 'rid projects deb → Construit le paquet DIU.' 'rid projects cicddiu → Lance le CI/CD DIU.' 'rid projects cicddr <PROJET> → Lance le CI/CD projet.'
             ;;
         system:install|system:remove)
             printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
@@ -560,7 +559,6 @@ EOF
                 'rid projects gitc <ID> → Clone un dépôt Git.' \
                 'rid projects giti <ID> → Initialise un dépôt Git.' \
                 'rid projects gitic <ID> → Initialise et clone un dépôt Git.' \
-                'rid projects gitp <ID> → Pousse un projet vers Forgejo.' \
                 'rid projects gitpdiu <ID> → Pousse le projet DIU vers Forgejo.' \
                 'rid projects gitpdi <ID> → Pousse un projet vers Forgejo.' \
                 'rid projects gits <ID> → Affiche le statut Git.' \
@@ -670,7 +668,6 @@ Utilisation :
   rid projects gitc <ID projectset> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID projectset>
   rid projects giti <ID projectset>                                 →  Initialisation du dépôt Git local dans <ID projectset>.
   rid projects gitic <ID projectset>                                →  Clone du dépôt Git local dans <ID projectset> depuis un Git Distant .
-  rid projects gitp <ID projectset>                                 →  Push le Git local vers un Git distant pour <ID projectset>.
   rid projects gitlab push <ID projectset>                           →  Pousse le Git local vers un dépôt GitLab pour <ID projectset>.
   rid projects github push <ID projectset>                           →  Pousse le Git local vers un dépôt GitHub pour <ID projectset>.
   rid projects github update <ID projectset>                         →  Crée ou modifie les variables GitHub pour <ID projectset>.
@@ -1743,11 +1740,6 @@ manage_project_action() {
                     ;;
             esac
 
-            ;;
-
-        gitp)
-            git_push \
-                "$project_id"
             ;;
 
         gitpdiu)
