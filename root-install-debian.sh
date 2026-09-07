@@ -598,6 +598,7 @@ EOF
                 'rid projects gitic <ID> → Initialise et clone un dépôt Git.' \
                 'rid projects gitpdiu <ID> → Pousse le projet DIU vers Forgejo.' \
                 'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.' \
+                'rid projects gitlab release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers GitLab.' \
                 'rid projects gits <ID> → Affiche le statut Git.' \
                 'rid projects gitu <ID> → Met à jour un projet.' \
                 'rid projects gitlab → Gestion des dépôts GitLab.' \
@@ -633,13 +634,17 @@ EOF
         projects:gitlab:)
             printf '%s\n' \
                 'rid projects gitlab update <ID PROJECT> → Vérifie, modifie ou crée les variables GitLab.' \
-                'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers GitLab.'
+                'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers GitLab.' \
+                'rid projects gitlab release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers GitLab.'
             ;;
         projects:gitlab:update)
             printf '%s\n' 'rid projects gitlab update <ID PROJECT> → Vérifie, modifie ou crée les variables GitLab du projet <ID PROJECT>.'
             ;;
         projects:gitlab:push)
             printf '%s\n' 'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers un dépôt GitLab distant pour le projet <ID PROJECT>.'
+            ;;
+        projects:gitlab:release)
+            printf '%s\n' 'rid projects gitlab release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif du projet <ID PROJECT> vers GitLab.'
             ;;
         projects:github:)
             printf '%s\n' \
@@ -736,6 +741,7 @@ Utilisation :
   rid projects forgejo update <ID projectset>                        →  Crée ou modifie les variables Forgejo pour <ID projectset>.
   rid projects gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
   rid projects forgejo release <ID projectset>                       →  Publie l'image Docker et/ou le paquet applicatif vers Forgejo.
+  rid projects gitlab release <ID projectset>                         →  Pousse l'image Docker et/ou le paquet applicatif vers GitLab.
   rid projects gits <ID projectset>                                 →  Statut du Git local pour <ID projectset>.
   rid projects gitu <ID projectset>                                 →  Met à jour les variables du projectset pour <ID projectset>.
   rid projects ocro <ID projectset>                                 →  Démarre OpenCode en RO dans le projectset <ID projectset>.
@@ -1766,8 +1772,12 @@ manage_project_action() {
                     gitlab_push \
                         "$project_id"
                     ;;
+                release)
+                    projects_gitlab_release \
+                        "${project_id}"
+                    ;;
                 help|?)
-                    display_help_context projects gitlab push
+                    display_help_context projects gitlab
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects gitlab' : ${project_subaction}"
