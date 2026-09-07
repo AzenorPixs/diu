@@ -17,16 +17,16 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 # absente ou inaccessible.
 if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
     printf '%s\n' \
-        'rid devops  → Outils DevOps et OpenSpec.' \
-        'rid docker  → Gestion Docker root et rootless.' \
-        'rid ia      → Gestion des agents IA.' \
-        'rid os      → Validation OpenSpec.' \
-        'rid proj    → Gestion des projets et publications.' \
-        'rid install → Installation de logiciels.' \
-        'rid remove  → Suppression de logiciels.' \
-        'rid update  → Mise à jour des composants.' \
+        'rid devops    →  Outils DevOps et OpenSpec.' \
+        'rid docker    → Gestion Docker root et rootless.' \
+        'rid ia        → Gestion des agents IA.' \
+        'rid os        → Validation OpenSpec.' \
+        'rid projects  → Gestion des projets et publications.' \
+        'rid install   → Installation de logiciels.' \
+        'rid remove    → Suppression de logiciels.' \
+        'rid update    → Mise à jour des composants.' \
         'rid softwares → Gestion et installation des logiciels.' \
-        'rid system  → Gestion du système Debian.' \
+        'rid system    → Gestion du système Debian.' \
         'rid version   → Affiche la version du DIU.'
     exit 0
 fi
@@ -109,7 +109,7 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
             ;;
         proj:)
-            printf '%s\n' 'rid proj create <PROJET> → Crée un projet.' 'rid proj del <PROJET> → Supprime un projet.' 'rid proj dockerb <PROJET> → Construit son image.' 'rid proj finds <PROJET> → Recherche les conflits.' 'rid proj findads <PROJET> → Supprime les conflits.' 'rid proj gita <PROJET> → Analyse Git.' 'rid proj gitc <PROJET> [COMMIT] → Commite le projet.' 'rid proj giti <PROJET> → Initialise Git.' 'rid proj gitic <PROJET> → Clone le dépôt.' 'rid proj gitp <PROJET> → Pousse Git.' 'rid proj gitpdiu → Publie le paquet DIU.' 'rid proj gitpdi <PROJET> → Publie l’image.' 'rid proj gits <PROJET> → Affiche le statut Git.' 'rid proj gitu <PROJET> → Met à jour les variables.' 'rid proj ocro <PROJET> → Lance OpenCode RO.' 'rid proj ocrw <PROJET> → Lance OpenCode RW.' 'rid proj ocsh → Lance le shell OpenCode.' 'rid proj deb → Construit le paquet DIU.' 'rid proj cicddiu → Lance le CI/CD DIU.' 'rid proj cicddr <PROJET> → Lance le CI/CD projet.'
+            printf '%s\n' 'rid projects create <PROJET> → Crée un projet.' 'rid projects del <PROJET> → Supprime un projet.' 'rid projects dockerb <PROJET> → Construit son image.' 'rid projects finds <PROJET> → Recherche les conflits.' 'rid projects findads <PROJET> → Supprime les conflits.' 'rid projects gita <PROJET> → Analyse Git.' 'rid projects gitc <PROJET> [COMMIT] → Commite le projet.' 'rid projects giti <PROJET> → Initialise Git.' 'rid projects gitic <PROJET> → Clone le dépôt.' 'rid project gitp <PROJET> → Pousse Git.' 'rid projects gitpdiu → Publie le paquet DIU.' 'rid projects gitpdi <PROJET> → Publie l’image.' 'rid projects gits <PROJET> → Affiche le statut Git.' 'rid projects gitu <PROJET> → Met à jour les variables.' 'rid projects ocro <PROJET> → Lance OpenCode RO.' 'rid projects ocrw <PROJET> → Lance OpenCode RW.' 'rid projects ocsh → Lance le shell OpenCode.' 'rid projects deb → Construit le paquet DIU.' 'rid projects cicddiu → Lance le CI/CD DIU.' 'rid projects cicddr <PROJET> → Lance le CI/CD projet.'
             ;;
         system:install|system:remove)
             printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
@@ -161,6 +161,7 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
+. "$BASH_SCRIPT_PATH/lib/gitlab-auth.sh"
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
@@ -375,7 +376,7 @@ dispatch_arguments() {
             manage_openspec_action "$@"
             ;;
 
-        proj)
+        projects)
             shift
             manage_project_action "$@"
             ;;
@@ -430,7 +431,7 @@ rid devops                     → Outils DevOps et OpenSpec.
 rid docker                     → Gestion Docker root et rootless.
 rid ia                         → Gestion des agents IA.
 rid os                         → Validation OpenSpec.
-rid proj                       → Gestion des projets et publications.
+rid projects                   → Gestion des projets et publications.
 rid install                    → Installation de logiciels.
 rid remove                     → Suppression de logiciels.
 rid update                     → Mise à jour des composants.
@@ -487,8 +488,35 @@ EOF
         os::)
             printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
             ;;
-        proj::)
-            printf '%s\n' 'rid proj create → Crée un projet.' 'rid proj del → Supprime un projet.' 'rid proj git* → Actions Git du projet.' 'rid proj dockerb → Construit son image Docker.' 'rid proj deb → Construit le paquet DIU.' 'rid proj cicddiu → Lance le CI/CD du DIU.'
+        projects::)
+            printf '%s\n' \
+                'rid projects create → Crée un projet.' \
+                'rid projects del → Supprime un projet.' \
+                'rid projects dockerb → Construit les images Docker.' \
+                'rid projects finds → Recherche les projets.' \
+                'rid projects findads → Recherche les adresses des projets.' \
+                'rid projects gita <ID> → Affiche les actions Git disponibles.' \
+                'rid projects gitc <ID> → Clone un dépôt Git.' \
+                'rid projects giti <ID> → Initialise un dépôt Git.' \
+                'rid projects gitic <ID> → Initialise et clone un dépôt Git.' \
+                'rid projects gitp <ID> → Pousse un projet vers Forgejo.' \
+                'rid projects gitpdiu <ID> → Pousse le projet DIU vers Forgejo.' \
+                'rid projects gitpdi <ID> → Pousse un projet vers Forgejo.' \
+                'rid projects gits <ID> → Affiche le statut Git.' \
+                'rid projects gitu <ID> → Met à jour un projet.' \
+                'rid projects gitlab → Gestion des dépôts GitLab.' \
+                'rid projects ocro <ID> → Ouvre le projet en lecture seule.' \
+                'rid projects ocrw <ID> → Ouvre le projet en lecture-écriture.' \
+                'rid projects ocsh <ID> → Ouvre un shell dans le projet.' \
+                'rid projects deb <ID> → Construit le paquet Debian.' \
+                'rid projects cicddiu <ID> → Lance la CI/CD du projet DIU.' \
+                'rid projects cicddr <ID> → Lance la CI/CD du projet.'
+            ;;
+        projects:gitlab:)
+            printf '%s\n' 'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers GitLab.'
+            ;;
+        projects:gitlab:push)
+            printf '%s\n' 'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers un dépôt GitLab distant pour le projet <ID PROJECT>.'
             ;;
         install::|remove::)
             printf '%s\n' "rid $context deb <SOFTWARE> → Opération sur un paquet Debian." "rid $context apt <SOFTWARE> → Opération sur un logiciel tiers."
@@ -542,23 +570,24 @@ Utilisation :
   rid docker rootless unconfigure <USER>                    →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
 
   rid os validate <ID Projet> <Spec>                        →  Valide la <Spec> validate pour le <Projet>.
-  rid proj deb                                              →  Construit le paquet Debian DIU dans dist/.
-  rid proj bash <ID Projet>                                 →  Crée un projet dans /home/<DEVOPS USER>/datas/<ID Projet>
-  rid proj del <ID Projet>                                  →  Supprime le projet <ID Projet>
-  rid proj dockerb <ID Projet>                              →  Construit le docker <ID Projet> à partir de <Docker File>
-  rid proj findads <ID Projet>                              →  cherche et supprime les motifs *sync-conflict* dans <ID Projet>
-  rid proj finds <ID Projet>                                →  cherche les motifs *sync-conflict* dans <ID Projet>
-  rid proj gita <ID Projet>                                 →  Analyse le Git local pour <ID Projet>
-  rid proj gitc <ID Projet> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID Projet>
-  rid proj giti <ID Projet>                                 →  Initialisation du dépôt Git local dans <ID Projet>.
-  rid proj gitic <ID Projet>                                →  Clone du dépôt Git local dans <ID Projet> depuis un Git Distant .
-  rid proj gitp <ID Projet>                                 →  Push le Git local vers un Git distant pour <ID Projet>.
-  rid proj gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
-  rid proj gitpdi <ID Projet>                               →  Publie l'image docker vers le Git Distant pour <ID Projet>.
-  rid proj gits <ID Projet>                                 →  Statut du Git local pour <ID Projet>.
-  rid proj gitu <ID Projet>                                 →  Met à jour les variables du projet pour <ID Projet>.
-  rid proj ocro <ID Projet>                                 →  Démarre OpenCode en RO dans le projet <ID Projet>.
-  rid proj ocrw <ID Projet>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
+  rid projects deb                                              →  Construit le paquet Debian DIU dans dist/.
+  rid projects bash <ID projectset>                                 →  Crée un projectset dans /home/<DEVOPS USER>/datas/<ID projectset>
+  rid projects del <ID projectset>                                  →  Supprime le projectset <ID projectset>
+  rid projects dockerb <ID projectset>                              →  Construit le docker <ID projectset> à partir de <Docker File>
+  rid projects findads <ID projectset>                              →  cherche et supprime les motifs *sync-conflict* dans <ID projectset>
+  rid projects finds <ID projectset>                                →  cherche les motifs *sync-conflict* dans <ID projectset>
+  rid projects gita <ID projectset>                                 →  Analyse le Git local pour <ID projectset>
+  rid projects gitc <ID projectset> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID projectset>
+  rid projects giti <ID projectset>                                 →  Initialisation du dépôt Git local dans <ID projectset>.
+  rid projects gitic <ID projectset>                                →  Clone du dépôt Git local dans <ID projectset> depuis un Git Distant .
+  rid projects gitp <ID projectset>                                 →  Push le Git local vers un Git distant pour <ID projectset>.
+  rid projects gitlab push <ID projectset>                           →  Pousse le Git local vers un dépôt GitLab pour <ID projectset>.
+  rid projects gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
+  rid projects gitpdi <ID projectset>                               →  Publie l'image docker vers le Git Distant pour <ID projectset>.
+  rid projects gits <ID projectset>                                 →  Statut du Git local pour <ID projectset>.
+  rid projects gitu <ID projectset>                                 →  Met à jour les variables du projectset pour <ID projectset>.
+  rid projects ocro <ID projectset>                                 →  Démarre OpenCode en RO dans le projectset <ID projectset>.
+  rid projects ocrw <ID projectset>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
 
   rid install deb <SOFTWARE>                                →  Installe un paquet officiel Debian
   rid remove deb <SOFTWARE>                                 →  Désinstalle un paquet officiel Debian
@@ -569,12 +598,12 @@ Utilisation :
   rid update                                                →  Mise à jour de tous les modules pris en charge
   rid update diu                                            →  Mise à jour du DIU
 
-  ridt proj cicddiu                                         → Flux CI/CD pour le DIU
-  ridt proj cicddr <ID Projet>                              → Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
+  ridt projects cicddiu                                         → Flux CI/CD pour le DIU
+  ridt projects cicddr <ID Projet>                              → Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
 
 Structure générale :  rid <classe> <action> <subaction> <variable>
 
-Classe disponibles :  Classe :  ia | docker | proj | update
+Classe disponibles :  Classe :  ia | docker | projects | update
 EOF
 }
 
@@ -1454,6 +1483,7 @@ manage_project_action() {
 
     local action="${1:-}"
     local project_id="${2:-}"
+    local project_subaction="${2:-}"
     local commit_name=""
     local commit_tag=""
     local commit_timestamp=""
@@ -1534,6 +1564,30 @@ manage_project_action() {
                 "$project_id"
             ;;
 
+        gitlab)
+            if [[ "${project_subaction}" == "help" || "${project_subaction}" == "?" ]]; then
+                display_help_context projects gitlab
+                exit 0
+            fi
+
+            project_id="${3:-}"
+
+            case "${project_subaction}" in
+                push)
+                    gitlab_push \
+                        "$project_id"
+                    ;;
+                help|?)
+                    display_help_context projects gitlab push
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects gitlab' : ${project_subaction}"
+                    display_usage
+                    exit 2
+                    ;;
+            esac
+
+            ;;
 
         gitp)
             git_push \
@@ -6810,9 +6864,9 @@ then
 
 	echo "" >> /root/.zshrc
 	echo "# DIU #" >> /root/.zshrc
-	echo "alias rcicddiu='ridt proj cicddiu'" >> /root/.zshrc
-	echo "alias rcicddr='ridt proj cicddr'" >> /root/.zshrc
-	echo "alias rido='rid proj ocrw'" >> /root/.zshrc
+	echo "alias rcicddiu='ridt projects cicddiu'" >> /root/.zshrc
+	echo "alias rcicddr='ridt projects cicddr'" >> /root/.zshrc
+	echo "alias rido='rid projects ocrw'" >> /root/.zshrc
 	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
 	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
 	echo "alias ridu='rid update'" >> /root/.zshrc
