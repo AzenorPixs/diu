@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-publish_release_diu() {
-    local project_id="diu"
+publish_release_debian() {
+    local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
@@ -53,6 +53,11 @@ publish_release_diu() {
 
     local -a missing_tools=()
     local -a dist_files=()
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : publish_release_debian <project_id>"
+        return 1
+    fi
 
     # ==========================================================
     # Fonction locale d'appel API Forgejo
@@ -440,20 +445,20 @@ publish_release_diu() {
         find "${project_path}/dist" \
             -maxdepth 1 \
             -type f \
-            -name "${project_id}_*_all.deb" \
+            -name '*.deb' \
             -print0 \
             2>/dev/null
     )
 
     if [[ ${#dist_files[@]} -eq 0 ]]; then
         print_error \
-            "Aucun paquet ${project_id}_*_all.deb trouvé dans ${project_path}/dist/"
+            "Aucun paquet Debian trouvé dans ${project_path}/dist/"
         return 1
     fi
 
     if [[ ${#dist_files[@]} -gt 1 ]]; then
         print_error \
-            "Plusieurs paquets ${project_id}_*_all.deb sont présents :"
+            "Plusieurs paquets Debian sont présents dans ${project_path}/dist/ :"
 
         for deb_file in "${dist_files[@]}"; do
             printf '  %s\n' "$(basename "${deb_file}")"
@@ -1128,7 +1133,7 @@ publish_release_diu() {
     printf '\n'
 
     print_success \
-        "Release DIU ${deb_version} publiée avec succès."
+        "Release Debian ${project_id} ${deb_version} publiée avec succès."
 
     printf '%-12s : %s\n' \
         "Projet" "${project_name}"
@@ -1149,4 +1154,9 @@ publish_release_diu() {
         "Asset" "${deb_filename}"
 
     return 0
+}
+
+# Compatibilité avec le parcours historique de publication du paquet DIU.
+publish_release_diu() {
+    publish_release_debian "diu"
 }
