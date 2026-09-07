@@ -3668,6 +3668,794 @@ projects_forgejo_release() {
     return 0
 }
 
+# Publication vers GitLab des artefacts du projet <PROJECT_ID>.
+projects_gitlab_release() {
+    local project_id="${1:-}"
+    local project_path=""
+    local project_env=""
+    local docker_enabled="No"
+    local debian_enabled="No"
+    local debian_file=""
+    local -a debian_files=()
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : projects_gitlab_release <project_id>"
+        return 1
+    fi
+
+    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_path}/project.env"
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Projet introuvable : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_info "Configuration générale absente ; initialisation du projet."
+        if ! update_projects "${project_id}"; then
+            print_error "Impossible d'initialiser la configuration du projet."
+            return 1
+        fi
+    fi
+
+    unset \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        PROJECT_DOCKERED \
+        PROJECT_DEBIAN_PACKAGE \
+        REMOTE_GITLAB_BASE_URL \
+        REMOTE_GITLAB_OWNER \
+        REMOTE_GITLAB_REPOSITORY \
+        REMOTE_GITLAB_NAME \
+        REMOTE_GITLAB_BRANCH \
+        REMOTE_GITLAB_SSL_VERIFY
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ -z "${PROJECT_ID:-}" ||
+        "${PROJECT_ID}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ||
+        -z "${PROJECT_DEBIAN_PACKAGE:-}" ]]; then
+
+        print_info "Configuration générale incomplète ; mise à jour du projet."
+        if ! update_projects "${project_id}"; then
+            print_error "Impossible de compléter la configuration du projet."
+            return 1
+        fi
+
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            PROJECT_DEBIAN_PACKAGE \
+            REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_OWNER \
+            REMOTE_GITLAB_REPOSITORY \
+            REMOTE_GITLAB_NAME \
+            REMOTE_GITLAB_BRANCH \
+            REMOTE_GITLAB_SSL_VERIFY
+        # shellcheck disable=SC1090
+        source "${project_env}"
+    fi
+
+    if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_OWNER:-}" ||
+        -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
+        -z "${REMOTE_GITLAB_NAME:-}" ||
+        -z "${REMOTE_GITLAB_BRANCH:-}" ||
+        -z "${REMOTE_GITLAB_SSL_VERIFY:-}" ]]; then
+
+        print_info "Configuration GitLab incomplète ; mise à jour GitLab."
+        if ! gitlab_update "${project_id}"; then
+            print_error "Impossible de compléter la configuration GitLab."
+            return 1
+        fi
+
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            PROJECT_DEBIAN_PACKAGE \
+            REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_OWNER \
+            REMOTE_GITLAB_REPOSITORY \
+            REMOTE_GITLAB_NAME \
+            REMOTE_GITLAB_BRANCH \
+            REMOTE_GITLAB_SSL_VERIFY
+        # shellcheck disable=SC1090
+        source "${project_env}"
+    fi
+
+    if [[ "${PROJECT_ID:-}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ||
+        -z "${PROJECT_DEBIAN_PACKAGE:-}" ]]; then
+        print_error "Configuration générale invalide après mise à jour."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_OWNER:-}" ||
+        -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
+        -z "${REMOTE_GITLAB_NAME:-}" ||
+        -z "${REMOTE_GITLAB_BRANCH:-}" ||
+        -z "${REMOTE_GITLAB_SSL_VERIFY:-}" ]]; then
+        print_error "Configuration GitLab invalide après mise à jour."
+        return 1
+    fi
+
+    docker_enabled="${PROJECT_DOCKERED}"
+    debian_enabled="${PROJECT_DEBIAN_PACKAGE}"
+
+    case "${docker_enabled}" in
+        Yes|YES|1)
+            docker_enabled="Yes"
+            ;;
+        *)
+            docker_enabled="No"
+            ;;
+    esac
+
+    case "${debian_enabled}" in
+        Yes|YES|1)
+            debian_enabled="Yes"
+            ;;
+        *)
+            debian_enabled="No"
+            ;;
+    esac
+
+    if [[ "${docker_enabled}" == "No" && "${debian_enabled}" == "No" ]]; then
+        print_error "Aucun artefact Docker ou Debian n'est activé pour ${project_id}."
+        return 1
+    fi
+
+    if [[ "${docker_enabled}" == "Yes" ]]; then
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            docker image inspect "${PROJECT_ID}:latest" >/dev/null 2>&1; then
+            print_error "Image Docker locale introuvable : ${PROJECT_ID}:latest"
+            return 1
+        fi
+    fi
+
+    if [[ "${debian_enabled}" == "Yes" ]]; then
+        if [[ ! -d "${project_path}/dist" ]]; then
+            print_error "Répertoire dist/ introuvable : ${project_path}/dist"
+            return 1
+        fi
+
+        while IFS= read -r -d '' debian_file; do
+            debian_files+=("${debian_file}")
+        done < <(
+            find "${project_path}/dist" \
+                -maxdepth 1 \
+                -type f \
+                -name '*.deb' \
+                -print0 \
+                2>/dev/null
+        )
+
+        if [[ ${#debian_files[@]} -eq 0 ]]; then
+            print_error "Aucun paquet Debian trouvé dans ${project_path}/dist/"
+            return 1
+        fi
+
+        if [[ ${#debian_files[@]} -gt 1 ]]; then
+            print_error "Plusieurs paquets Debian sont présents dans dist/ :"
+            for debian_file in "${debian_files[@]}"; do
+                printf '  %s\n' "$(basename "${debian_file}")"
+            done
+            return 1
+        fi
+    fi
+
+    if [[ "${docker_enabled}" == "Yes" ]]; then
+        if ! projects_gitlab_release_docker "${project_id}"; then
+            return 1
+        fi
+    fi
+
+    if [[ "${debian_enabled}" == "Yes" ]]; then
+        if ! projects_gitlab_release_debian "${project_id}"; then
+            return 1
+        fi
+    fi
+
+    print_success "Release GitLab du projet ${project_id} terminée."
+    return 0
+}
+
+# Publication de l'image Docker d'un projet vers GitLab.
+projects_gitlab_release_docker() {
+    local project_id="${1:-}"
+
+    local project_dir=""
+    local project_env=""
+
+    local git_tag=""
+    local git_tags_count=0
+    local docker_version=""
+
+    local local_image=""
+    local remote_registry=""
+    local remote_host=""
+    local remote_image_version=""
+    local remote_image_latest=""
+    local docker_publish_rc=0
+    local docker_config=""
+
+    local remote_gitlab_base_url=""
+    local remote_gitlab_owner=""
+    local remote_gitlab_repository=""
+    local remote_gitlab_name=""
+    local remote_gitlab_branch=""
+
+    local gitlab_username=""
+    local gitlab_token=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error \
+            "Usage : projects_gitlab_release_docker <project_id>"
+        return 1
+    fi
+
+    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_dir}/project.env"
+
+    if [[ ! -d "${project_dir}" ]]; then
+        print_error \
+            "Projet introuvable : ${project_dir}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_error \
+            "Fichier project.env introuvable : ${project_env}"
+        return 1
+    fi
+
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    case "${PROJECT_DOCKERED:-No}" in
+        Yes|YES|1)
+            ;;
+        *)
+            print_error \
+                "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+            return 1
+            ;;
+    esac
+
+    remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-}"
+    remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-}"
+    remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${project_id}}"
+    remote_gitlab_name="${REMOTE_GITLAB_NAME:-origin}"
+    remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-main}"
+
+    if [[ -z "${remote_gitlab_base_url}" ||
+        -z "${remote_gitlab_owner}" ||
+        -z "${remote_gitlab_repository}" ||
+        -z "${remote_gitlab_name}" ||
+        -z "${remote_gitlab_branch}" ]]; then
+        print_error "Configuration GitLab incomplète."
+        return 1
+    fi
+
+    # Vérification du dépôt Git
+    if ! command -v git >/dev/null 2>&1; then
+        print_error "Git n'est pas installé."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_dir}" \
+        rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        print_error "Le projet n'est pas un dépôt Git valide : ${project_dir}"
+        return 1
+    fi
+
+    git_tags_count="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD 2>/dev/null |
+            sed '/^[[:space:]]*$/d' |
+            wc -l
+    )"
+
+    if [[ "${git_tags_count}" -eq 0 ]]; then
+        print_error "Aucun tag Git associé au dernier commit."
+        return 1
+    fi
+
+    if [[ "${git_tags_count}" -gt 1 ]]; then
+        print_error "Plusieurs tags Git sont associés au dernier commit."
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD
+        return 1
+    fi
+
+    git_tag="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
+    if [[ -z "${git_tag}" ]]; then
+        print_error "Impossible de déterminer le tag Git du dernier commit."
+        return 1
+    fi
+
+    docker_version="${git_tag#v}"
+
+    if [[ -z "${docker_version}" ]]; then
+        print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
+        return 1
+    fi
+
+    remote_host="${remote_gitlab_base_url#https://}"
+    remote_host="${remote_host#http://}"
+    remote_host="${remote_host%/}"
+    remote_registry="registry.${remote_host}"
+
+    local_image="${PROJECT_ID:-${project_id}}:latest"
+    remote_image_version="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:${docker_version}"
+    remote_image_latest="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:latest"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker image inspect "${local_image}" >/dev/null 2>&1; then
+        print_error "Image Docker locale introuvable : ${local_image}"
+        return 1
+    fi
+
+    if ! _gitlab_read_username "${project_dir}"; then
+        print_error "Impossible de lire le nom d'utilisateur GitLab."
+        return 1
+    fi
+
+    if ! _gitlab_read_token "${project_dir}"; then
+        print_error "Impossible de lire le token GitLab."
+        return 1
+    fi
+
+    if [[ -z "${gitlab_username}" ]]; then
+        print_error "Nom d'utilisateur GitLab vide."
+        return 1
+    fi
+
+    if [[ -z "${gitlab_token}" ]]; then
+        print_error "Token GitLab vide."
+        return 1
+    fi
+
+    if ! command -v docker >/dev/null 2>&1; then
+        print_error "Docker n'est pas installé."
+        unset gitlab_token
+        return 1
+    fi
+
+    if ! printf '%s' "${gitlab_token}" | \
+        runuser -u "${DEVOPS_USER}" -- \
+            docker login \
+                "${remote_registry}" \
+                --username "${gitlab_username}" \
+                --password-stdin; then
+        print_error \
+            "Échec de l'authentification Docker auprès de ${remote_registry}."
+        unset gitlab_token
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag \
+            "${local_image}" \
+            "${remote_image_version}"; then
+        print_error "Échec du tag Docker versionné."
+        unset gitlab_token
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag \
+            "${local_image}" \
+            "${remote_image_latest}"; then
+        print_error "Échec du tag Docker latest."
+        unset gitlab_token
+        return 1
+    fi
+
+    docker_config="$(mktemp -d)" || {
+        print_error "Impossible de créer le DOCKER_CONFIG temporaire."
+        unset gitlab_token
+        return 1
+    }
+
+    if [[ -z "${docker_config}" ]] || [[ ! -d "${docker_config}" ]]; then
+        print_error "DOCKER_CONFIG temporaire invalide."
+        rm -rf "${docker_config}"
+        unset gitlab_token
+        return 1
+    fi
+
+    if ! chmod 700 "${docker_config}"; then
+        print_error "Impossible de sécuriser ${docker_config}"
+        rm -rf "${docker_config}"
+        unset gitlab_token
+        return 1
+    fi
+
+    docker_publish_rc=0
+
+    (
+        trap 'rm -rf "${docker_config}"' EXIT
+
+        if ! printf '%s' "${gitlab_token}" | \
+            runuser -u "${DEVOPS_USER}" -- \
+                env "DOCKER_CONFIG=${docker_config}" \
+                docker login \
+                    "${remote_registry}" \
+                    --username "${gitlab_username}" \
+                    --password-stdin; then
+            print_error \
+                "Échec de l'authentification Docker auprès de ${remote_registry}."
+            exit 1
+        fi
+
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" \
+            docker push "${remote_image_version}"; then
+            print_error \
+                "Échec de la publication de ${remote_image_version}."
+            exit 1
+        fi
+
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" \
+            docker push "${remote_image_latest}"; then
+            print_error \
+                "Échec de la publication de ${remote_image_latest}."
+            exit 1
+        fi
+
+        exit 0
+    ) || docker_publish_rc=$?
+
+    unset gitlab_token
+
+    if [[ "${docker_publish_rc}" -ne 0 ]]; then
+        print_error "Échec de la publication de la Release Docker GitLab."
+        return "${docker_publish_rc}"
+    fi
+
+    print_success \
+        "Release Docker publiée avec succès vers GitLab."
+    return 0
+}
+
+# Publication du paquet Debian d'un projet via une release GitLab.
+projects_gitlab_release_debian() {
+    local project_id="${1:-}"
+    local project_path=""
+    local project_env=""
+    local project_name=""
+    local deb_file=""
+    local deb_filename=""
+    local remote_api_base=""
+    local remote_project=""
+    local remote_project_encoded=""
+    local git_tag=""
+    local git_tags_count=0
+    local release_payload=""
+    local upload_body=""
+    local upload_response=""
+    local upload_url=""
+    local link_payload=""
+    local release_body=""
+    local release_http_code=""
+    local upload_http_code=""
+    local link_http_code=""
+    local gitlab_username=""
+    local gitlab_token=""
+    local local_api_url=""
+    local asset_url=""
+    local missing_fields=()
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : projects_gitlab_release_debian <project_id>"
+        return 1
+    fi
+
+    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_path}/project.env"
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Projet introuvable : ${project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        print_error "Fichier project.env introuvable : ${project_env}"
+        return 1
+    fi
+
+    unset \
+        PROJECT_DOCKERED \
+        PROJECT_DEBIAN_PACKAGE \
+        PROJECT_ID \
+        PROJECT_NAME \
+        PROJECT_TYPE \
+        REMOTE_GITLAB_BASE_URL \
+        REMOTE_GITLAB_OWNER \
+        REMOTE_GITLAB_REPOSITORY \
+        REMOTE_GITLAB_NAME \
+        REMOTE_GITLAB_BRANCH \
+        REMOTE_GITLAB_SSL_VERIFY
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    project_name="${PROJECT_NAME:-}"
+
+    if [[ -z "${project_name}" ||
+        -z "${PROJECT_ID:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ||
+        -z "${PROJECT_DEBIAN_PACKAGE:-}" ]]; then
+        print_error "Configuration générale incomplète."
+        return 1
+    fi
+
+    if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_OWNER:-}" ||
+        -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
+        -z "${REMOTE_GITLAB_NAME:-}" ||
+        -z "${REMOTE_GITLAB_BRANCH:-}" ||
+        -z "${REMOTE_GITLAB_SSL_VERIFY:-}" ]]; then
+        print_error "Configuration GitLab incomplète."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" \
+        tag --points-at HEAD >/dev/null 2>&1; then
+        print_error "Impossible de lire les tags Git du projet."
+        return 1
+    fi
+
+    git_tags_count="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            tag --points-at HEAD 2>/dev/null |
+            sed '/^[[:space:]]*$/d' |
+            wc -l
+    )"
+
+    if [[ "${git_tags_count}" -eq 0 ]]; then
+        print_error "Aucun tag Git associé au dernier commit."
+        return 1
+    fi
+
+    if [[ "${git_tags_count}" -gt 1 ]]; then
+        print_error "Plusieurs tags Git sont associés au dernier commit."
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            tag --points-at HEAD
+        return 1
+    fi
+
+    git_tag="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" \
+            tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
+    if [[ -z "${git_tag}" ]]; then
+        print_error "Impossible de déterminer le tag Git du dernier commit."
+        return 1
+    fi
+
+    local debian_file_path
+    debian_file_path="$(find "${project_path}/dist" -maxdepth 1 -type f -name '*.deb' -print -quit 2>/dev/null || true)"
+
+    if [[ -z "${debian_file_path}" ]]; then
+        print_error "Aucun paquet Debian trouvé dans dist/"
+        return 1
+    fi
+
+    if [[ -n "$(
+        find "${project_path}/dist" \
+            -maxdepth 1 \
+            -type f \
+            -name '*.deb' \
+            | tail -n +2 \
+            | sed -n '1p'
+    )" ]]; then
+        print_error "Plusieurs paquets Debian sont présents dans dist/."
+        return 1
+    fi
+
+    deb_file="${debian_file_path}"
+    deb_filename="$(basename "${deb_file}")"
+
+    case "${PROJECT_DEBIAN_PACKAGE:-No}" in
+        Yes|YES|1)
+            ;;
+        *)
+            print_error "Le projet '${project_id}' n'est pas déclaré comme paquet Debian."
+            return 1
+            ;;
+    esac
+
+    if ! command -v dpkg-deb >/dev/null 2>&1; then
+        print_error "dpkg-deb n'est pas installé."
+        return 1
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        print_error "jq n'est pas installé."
+        return 1
+    fi
+
+    if ! _gitlab_ensure_credentials "${project_path}" "${REMOTE_GITLAB_NAME:-origin}"; then
+        print_error "Impossible d'obtenir les identifiants GitLab."
+        return 1
+    fi
+    _gitlab_read_username "${project_path}" || return 1
+    _gitlab_read_token "${project_path}" || return 1
+
+    if [[ -z "${gitlab_username}" || -z "${gitlab_token}" ]]; then
+        print_error "Identifiants GitLab incomplets."
+        return 1
+    fi
+
+    remote_api_base="${REMOTE_GITLAB_BASE_URL%/}/api/v4/projects"
+    remote_project="${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}"
+    remote_project_encoded="$(printf '%s' "${remote_project}" | sed 's|%|%25|g; s|/|%2F|g')"
+
+    local_api_url="${remote_api_base}/${remote_project_encoded}"
+
+    _gitlab_release_api() {
+        local method="${1:-GET}"
+        local url="${2:-}"
+        local payload="${3:-}"
+        local form_file="${4:-}"
+        local response=""
+        local curl_rc=0
+
+        if [[ -z "${url}" ]]; then
+            print_error "_gitlab_release_api : URL vide."
+            return 1
+        fi
+
+        if [[ -n "${payload}" ]]; then
+            if response="$(
+                curl \
+                    --silent \
+                    --show-error \
+                    --write-out '\n%{http_code}' \
+                    --header "PRIVATE-TOKEN: ${gitlab_token}" \
+                    --header "Content-Type: application/json" \
+                    -X "${method}" \
+                    -d "${payload}" \
+                    "${url}" \
+                    2>/dev/null
+            )"; then
+                curl_rc=0
+            else
+                curl_rc=$?
+            fi
+        elif [[ -n "${form_file}" ]]; then
+            if response="$(
+                curl \
+                    --silent \
+                    --show-error \
+                    --write-out '\n%{http_code}' \
+                    --header "PRIVATE-TOKEN: ${gitlab_token}" \
+                    -X "${method}" \
+                    --form "file=@${form_file}" \
+                    "${url}" \
+                    2>/dev/null
+            )"; then
+                curl_rc=0
+            else
+                curl_rc=$?
+            fi
+        else
+            if response="$(
+                curl \
+                    --silent \
+                    --show-error \
+                    --write-out '\n%{http_code}' \
+                    --header "PRIVATE-TOKEN: ${gitlab_token}" \
+                    -X "${method}" \
+                    "${url}" \
+                    2>/dev/null
+            )"; then
+                curl_rc=0
+            else
+                curl_rc=$?
+            fi
+        fi
+
+        if [[ "${curl_rc}" -ne 0 ]]; then
+            print_error "_gitlab_release_api : erreur réseau (curl=${curl_rc})."
+            return 1
+        fi
+
+        printf '%s' "${response}"
+        return 0
+    }
+
+    release_body="$(_gitlab_release_api GET "${local_api_url}/releases/${git_tag}")"
+    release_http_code="$(printf '%s' "${release_body##*$'\n'}")"
+
+    if [[ "${release_http_code}" == "200" ]]; then
+        print_info "Release GitLab '${git_tag}' existante détectée."
+    else
+        release_payload="$(
+            jq -n \
+                --arg tag_name "${git_tag}" \
+                --arg name "Release ${git_tag}" \
+                --arg description "Release du projet ${project_name} (${git_tag})." \
+                --arg ref "${git_tag}" \
+                '{tag_name:$tag_name,name:$name,description:$description,ref:$ref}'
+        )"
+
+        release_body="$(_gitlab_release_api POST "${local_api_url}/releases" "${release_payload}")"
+        release_http_code="$(printf '%s' "${release_body##*$'\n'}")"
+
+        if [[ "${release_http_code}" -ne 201 && "${release_http_code}" -ne 200 ]]; then
+            print_error "Échec de création/validation de la release GitLab."
+            print_error "${release_body%$'\n'*}"
+            return 1
+        fi
+    fi
+
+    upload_response="$(_gitlab_release_api POST "${local_api_url}/uploads" "" "${deb_file}")"
+    upload_http_code="$(printf '%s' "${upload_response##*$'\n'}")"
+
+    if [[ "${upload_http_code}" -ne 201 ]]; then
+        print_error "Échec de l'upload du paquet Debian."
+        print_error "${upload_response%$'\n'*}"
+        return 1
+    fi
+
+    upload_body="${upload_response%$'\n'*}"
+    upload_url="$(jq -r '.url // empty' <<< "${upload_body}")"
+
+    if [[ -z "${upload_url}" ]]; then
+        print_error "Réponse d'upload GitLab invalide."
+        return 1
+    fi
+
+    asset_url="${REMOTE_GITLAB_BASE_URL%/}${upload_url}"
+    link_payload="$(
+        jq -n \
+            --arg name "${deb_filename}" \
+            --arg url "${asset_url}" \
+            --arg link_type "package" \
+            '{name:$name,url:$url,link_type:$link_type}'
+    )"
+
+    _gitlab_release_api POST "${local_api_url}/releases/${git_tag}/assets/links" "${link_payload}" >/dev/null || {
+        local_api_url="${local_api_url}"
+        print_error "Échec de création du lien d'asset GitLab."
+        return 1
+    }
+
+    print_success "Paquet Debian publié sur la Release GitLab ${git_tag}."
+    return 0
+}
+
 # Publication de l'image Docker d'un projet vers Forgejo.
 projects_forgejo_release_docker() {
 
