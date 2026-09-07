@@ -453,7 +453,7 @@ AND la fonction retourne le code 1
 ### Requirement: Indépendance fonctionnelle
 
 La fonction `publish_release()` SHALL rester totalement indépendante
-de `git_push()` et `build_deb()`.
+des parcours de publication Git et de `build_deb()`.
 
 La fonction ne SHALL :
 

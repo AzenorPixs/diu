@@ -166,14 +166,14 @@ AND détermine `forgejo_username`
 AND transmet les informations au cœur `git-auth`
 AND le cœur exécute `git push` sous DEVOPS_USER
 
-### Requirement: Authentification Forgejo de git_push()
+### Requirement: Authentification Forgejo de forgejo_push()
 
-La fonction `git_push()` SHALL utiliser `forgejo-auth`/`git-auth` pour
+La fonction `forgejo_push()` SHALL utiliser `forgejo-auth`/`git-auth` pour
 exécuter le push HTTPS authentifié.
 
 #### Scenario: Push avec token valide
 
-WHEN `git_push()` est exécutée sur un remote Forgejo HTTPS
+WHEN `forgejo_push()` est exécutée sur un remote Forgejo HTTPS
 AND `config/forgejo.token` existe et est valide
 AND `config/forgejo.username` existe et est valide
 THEN le `git push` est exécuté via `forgejo-auth`/`git-auth`
@@ -182,17 +182,17 @@ AND aucun credential n'est stocké de manière persistante
 
 #### Scenario: Push sans token
 
-WHEN `git_push()` est exécutée
+WHEN `forgejo_push()` est exécutée
 AND `config/forgejo.token` est absent
 THEN une erreur explicite est affichée indiquant l'absence du token
 AND aucun `git push` n'est exécuté
-AND aucun bootstrap automatique de token n'est lancé par `git_push()`
+AND aucun bootstrap automatique de token n'est lancé par `forgejo_push()`
 AND aucune invite Username/Password n'est affichée
 AND la fonction retourne le code 1
 
 #### Scenario: Push avec permissions invalides
 
-WHEN `git_push()` est exécutée
+WHEN `forgejo_push()` est exécutée
 AND `config/forgejo.token` existe mais ses permissions ne sont pas 600
 THEN une erreur de sécurité explicite est affichée
 AND aucun `git push` n'est exécuté
@@ -200,7 +200,7 @@ AND la fonction retourne le code 1
 
 #### Scenario: Push avec token vide
 
-WHEN `git_push()` est exécutée
+WHEN `forgejo_push()` est exécutée
 AND `config/forgejo.token` existe mais est vide
 THEN une erreur explicite est affichée
 AND aucun `git push` n'est exécuté
@@ -253,9 +253,9 @@ Lorsqu'une fonction autre que `publish_release()` utilise `forgejo-auth` et
 que le token est absent, le provider SHALL retourner une erreur sans tenter
 de bootstrap.
 
-#### Scenario: Appel depuis git_push() sans token
+#### Scenario: Appel depuis forgejo_push() sans token
 
-WHEN `forgejo-auth` est appelé depuis `git_push()`
+WHEN `forgejo-auth` est appelé depuis `forgejo_push()`
 AND `config/forgejo.token` est absent
 THEN le provider retourne une erreur
 AND aucun bootstrap n'est tenté
