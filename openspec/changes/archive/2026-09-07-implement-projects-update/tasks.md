@@ -1,0 +1,7 @@
+- [x] Ajouter la spécification des mises à jour ciblées projet et Git local.
+- [x] Implémenter `update_projects()` et la conservation de `project.env`.
+- [x] Adapter `git_update()` au périmètre Git local et préserver les modes historiques.
+- [x] Rediriger la création et les compléments de configuration concernés.
+- [x] Ajouter les dispatchs et refactoriser les aides `projects`.
+- [x] Vérifier la syntaxe, les commandes d’aide et les mises à jour ciblées.
+- [x] Publier la spécification canonique et archiver l’évolution.

@@ -2,6 +2,171 @@
 
 # Gestions des projets géré par le DIU
 
+# Met à jour des affectations ciblées sans réécrire les autres variables.
+project_env_set_variables() {
+    local project_env="${1:-}"
+    local project_env_tmp=""
+    local key=""
+    local value=""
+    local line=""
+    local index=0
+
+    if [[ -z "${project_env}" || "$#" -lt 3 || $(($# % 2)) -ne 1 ]]; then
+        print_error "Usage : project_env_set_variables <fichier> <VARIABLE> <VALEUR>..."
+        return 1
+    fi
+
+    shift
+
+    local -a keys=()
+    local -A replacements=()
+    local -A replaced=()
+
+    while [[ "$#" -gt 0 ]]; do
+        key="$1"
+        value="$2"
+        keys[${index}]="${key}"
+        replacements["${key}"]="$(printf '%q' "${value}")"
+        index=$((index + 1))
+        shift 2
+    done
+
+    project_env_tmp="${project_env}.tmp.$$"
+
+    if ! {
+        if [[ -f "${project_env}" ]]; then
+            while IFS= read -r line || [[ -n "${line}" ]]; do
+                if [[ "${line}" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*= ]]; then
+                    key="${BASH_REMATCH[2]}"
+                    if [[ "${replacements[${key}]+_}" ]]; then
+                        printf '%s=%s\n' "${key}" "${replacements[${key}]}"
+                        replaced["${key}"]=1
+                        continue
+                    fi
+                fi
+
+                printf '%s\n' "${line}"
+            done < "${project_env}"
+        fi
+
+        for key in "${keys[@]}"; do
+            if [[ -z "${replaced[${key}]+_}" ]]; then
+                if [[ "${index}" -gt 0 && "${key}" == "${keys[0]}" ]]; then
+                    printf '\n# Variables du projet ou du dépôt local\n'
+                fi
+                printf '%s=%s\n' "${key}" "${replacements[${key}]}"
+                replaced["${key}"]=1
+            fi
+        done
+    } > "${project_env_tmp}"; then
+        rm -f -- "${project_env_tmp}"
+        print_error "Impossible de préparer ${project_env}."
+        return 1
+    fi
+
+    if ! mv -f -- "${project_env_tmp}" "${project_env}"; then
+        rm -f -- "${project_env_tmp}"
+        print_error "Impossible d'installer ${project_env}."
+        return 1
+    fi
+}
+
+# Génération ou mise à jour des variables générales du <PROJECT_ID>.
+update_projects() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+
+    local project_name=""
+    local project_type="BASH"
+    local project_dockered="No"
+    local project_debian_package="No"
+    local value=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : update_projects <project_id>"
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if [[ -f "${project_env}" ]]; then
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            PROJECT_DEBIAN_PACKAGE
+
+        # shellcheck disable=SC1090
+        source "${project_env}"
+
+        if [[ -n "${PROJECT_ID:-}" && "${PROJECT_ID}" != "${project_id}" ]]; then
+            print_error \
+                "PROJECT_ID '${PROJECT_ID}' ne correspond pas au projet '${project_id}'."
+            return 1
+        fi
+
+        project_name="${PROJECT_NAME:-}"
+        project_type="${PROJECT_TYPE:-BASH}"
+        project_dockered="${PROJECT_DOCKERED:-No}"
+        project_debian_package="${PROJECT_DEBIAN_PACKAGE:-No}"
+    fi
+
+    print_title "Configuration du projet ${project_id}"
+
+    value=""
+    read -r -p "PROJECT_NAME [${project_name}] : " value
+    if [[ -n "${value}" ]]; then
+        project_name="${value}"
+    fi
+
+    while [[ -z "${project_name}" ]]; do
+        print_error "PROJECT_NAME ne peut pas être vide."
+        read -r -p "PROJECT_NAME : " project_name
+    done
+
+    value=""
+    read -r -p "PROJECT_TYPE [${project_type}] : " value
+    if [[ -n "${value}" ]]; then
+        project_type="${value}"
+    fi
+
+    value=""
+    read -r -p "PROJECT_DOCKERED [${project_dockered}] : " value
+    if [[ -n "${value}" ]]; then
+        project_dockered="${value}"
+    fi
+
+    value=""
+    read -r -p "PROJECT_DEBIAN_PACKAGE [${project_debian_package}] : " value
+    if [[ -n "${value}" ]]; then
+        project_debian_package="${value}"
+    fi
+
+    if ! project_env_set_variables \
+        "${project_env}" \
+        PROJECT_ID "${project_id}" \
+        PROJECT_NAME "${project_name}" \
+        PROJECT_TYPE "${project_type}" \
+        PROJECT_DOCKERED "${project_dockered}" \
+        PROJECT_DEBIAN_PACKAGE "${project_debian_package}"; then
+        return 1
+    fi
+
+    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+        ! chmod 660 "${project_env}"; then
+        print_error "Impossible de définir les droits de ${project_env}."
+        return 1
+    fi
+
+    print_success "Variables du projet enregistrées : ${project_env}"
+    return 0
+}
+
 create_project() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -40,10 +205,17 @@ create_project() {
 		return 1
 	fi
 
-	# Générer project.env
-	if ! git_update "${project_id}"; then
+	# Générer les variables générales du projet.
+	if ! update_projects "${project_id}"; then
 		print_error \
 			"Impossible d'initialiser la configuration du projet."
+		return 1
+	fi
+
+	# Générer les variables du dépôt Git local.
+	if ! git_update "${project_id}"; then
+		print_error \
+			"Impossible d'initialiser la configuration Git du projet."
 		return 1
 	fi
 
@@ -60,15 +232,10 @@ create_project() {
         PROJECT_NAME \
         PROJECT_TYPE \
         PROJECT_DOCKERED \
+        PROJECT_DEBIAN_PACKAGE \
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
-        GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        GIT_USER_EMAIL
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -1346,12 +1513,6 @@ delete_project() {
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
             GIT_USER_EMAIL \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH \
             REMOTE_CLONE_GIT_TYPE \
             REMOTE_CLONE_BASE_URL \
             REMOTE_CLONE_OWNER \

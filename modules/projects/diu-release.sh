@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 
-publish_release_diu() {
-    local project_id="diu"
+publish_release_debian() {
+    local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
     local local_default_branch=""
 
-    local remote_git_type=""
     local remote_base_url=""
     local remote_owner=""
     local remote_repository=""
@@ -54,6 +53,11 @@ publish_release_diu() {
 
     local -a missing_tools=()
     local -a dist_files=()
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : publish_release_debian <project_id>"
+        return 1
+    fi
 
     # ==========================================================
     # Fonction locale d'appel API Forgejo
@@ -250,12 +254,12 @@ publish_release_diu() {
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
         GIT_USER_EMAIL \
-        REMOTE_GIT_TYPE \
-        REMOTE_BASE_URL \
-        REMOTE_OWNER \
-        REMOTE_REPOSITORY \
-        REMOTE_NAME \
-        REMOTE_DEFAULT_BRANCH
+        REMOTE_FORGEJO_BASE_URL \
+        REMOTE_FORGEJO_OWNER \
+        REMOTE_FORGEJO_REPOSITORY \
+        REMOTE_FORGEJO_NAME \
+        REMOTE_FORGEJO_BRANCH \
+        REMOTE_FORGEJO_SSL_VERIFY
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -265,12 +269,11 @@ publish_release_diu() {
         -z "${PROJECT_ID:-}" ||
         -z "${PROJECT_NAME:-}" ||
         -z "${LOCAL_DEFAULT_BRANCH:-}" ||
-        -z "${REMOTE_GIT_TYPE:-}" ||
-        -z "${REMOTE_BASE_URL:-}" ||
-        -z "${REMOTE_OWNER:-}" ||
-        -z "${REMOTE_REPOSITORY:-}" ||
-        -z "${REMOTE_NAME:-}" ||
-        -z "${REMOTE_DEFAULT_BRANCH:-}" \
+        -z "${REMOTE_FORGEJO_BASE_URL:-}" ||
+        -z "${REMOTE_FORGEJO_OWNER:-}" ||
+        -z "${REMOTE_FORGEJO_REPOSITORY:-}" ||
+        -z "${REMOTE_FORGEJO_NAME:-}" ||
+        -z "${REMOTE_FORGEJO_BRANCH:-}" \
     ]]; then
 
         print_info \
@@ -291,12 +294,12 @@ publish_release_diu() {
             LOCAL_DEFAULT_BRANCH \
             GIT_USER_NAME \
             GIT_USER_EMAIL \
-            REMOTE_GIT_TYPE \
-            REMOTE_BASE_URL \
-            REMOTE_OWNER \
-            REMOTE_REPOSITORY \
-            REMOTE_NAME \
-            REMOTE_DEFAULT_BRANCH
+            REMOTE_FORGEJO_BASE_URL \
+            REMOTE_FORGEJO_OWNER \
+            REMOTE_FORGEJO_REPOSITORY \
+            REMOTE_FORGEJO_NAME \
+            REMOTE_FORGEJO_BRANCH \
+            REMOTE_FORGEJO_SSL_VERIFY
 
         # shellcheck disable=SC1090
         source "${project_env}"
@@ -321,39 +324,33 @@ publish_release_diu() {
         return 1
     fi
 
-    if [[ -z "${REMOTE_GIT_TYPE:-}" ]]; then
+    if [[ -z "${REMOTE_FORGEJO_BASE_URL:-}" ]]; then
         print_error \
-            "REMOTE_GIT_TYPE n'est pas défini dans project.env."
+            "REMOTE_FORGEJO_BASE_URL n'est pas défini dans project.env."
         return 1
     fi
 
-    if [[ -z "${REMOTE_BASE_URL:-}" ]]; then
+    if [[ -z "${REMOTE_FORGEJO_OWNER:-}" ]]; then
         print_error \
-            "REMOTE_BASE_URL n'est pas défini dans project.env."
+            "REMOTE_FORGEJO_OWNER n'est pas défini dans project.env."
         return 1
     fi
 
-    if [[ -z "${REMOTE_OWNER:-}" ]]; then
+    if [[ -z "${REMOTE_FORGEJO_REPOSITORY:-}" ]]; then
         print_error \
-            "REMOTE_OWNER n'est pas défini dans project.env."
+            "REMOTE_FORGEJO_REPOSITORY n'est pas défini dans project.env."
         return 1
     fi
 
-    if [[ -z "${REMOTE_REPOSITORY:-}" ]]; then
+    if [[ -z "${REMOTE_FORGEJO_NAME:-}" ]]; then
         print_error \
-            "REMOTE_REPOSITORY n'est pas défini dans project.env."
+            "REMOTE_FORGEJO_NAME n'est pas défini dans project.env."
         return 1
     fi
 
-    if [[ -z "${REMOTE_NAME:-}" ]]; then
+    if [[ -z "${REMOTE_FORGEJO_BRANCH:-}" ]]; then
         print_error \
-            "REMOTE_NAME n'est pas défini dans project.env."
-        return 1
-    fi
-
-    if [[ -z "${REMOTE_DEFAULT_BRANCH:-}" ]]; then
-        print_error \
-            "REMOTE_DEFAULT_BRANCH n'est pas défini dans project.env."
+            "REMOTE_FORGEJO_BRANCH n'est pas défini dans project.env."
         return 1
     fi
 
@@ -361,24 +358,14 @@ publish_release_diu() {
     project_name="${PROJECT_NAME}"
     local_default_branch="${LOCAL_DEFAULT_BRANCH}"
 
-    remote_git_type="${REMOTE_GIT_TYPE}"
-    remote_base_url="${REMOTE_BASE_URL%/}"
-    remote_owner="${REMOTE_OWNER}"
-    remote_repository="${REMOTE_REPOSITORY}"
-    remote_name="${REMOTE_NAME}"
-    remote_default_branch="${REMOTE_DEFAULT_BRANCH}"
+    remote_base_url="${REMOTE_FORGEJO_BASE_URL%/}"
+    remote_owner="${REMOTE_FORGEJO_OWNER}"
+    remote_repository="${REMOTE_FORGEJO_REPOSITORY}"
+    remote_name="${REMOTE_FORGEJO_NAME}"
+    remote_default_branch="${REMOTE_FORGEJO_BRANCH}"
 
     remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
     remote_branch_ref="${remote_name}/${remote_default_branch}"
-
-    # Vérification du type de dépôt distant
-    if [[ "${remote_git_type}" != "forgejo" ]]; then
-        print_error \
-            "publish_release_diu nécessite un dépôt Forgejo."
-        print_error \
-            "REMOTE_GIT_TYPE actuel : ${remote_git_type}"
-        return 1
-    fi
 
     # Vérification du dépôt Git local
     if ! runuser -u "${DEVOPS_USER}" -- \
@@ -433,7 +420,7 @@ publish_release_diu() {
     printf '%-22s : %s\n' \
         "Répertoire" "${project_path}"
     printf '%-22s : %s\n' \
-        "Type distant" "${remote_git_type}"
+        "Type distant" "Forgejo"
     printf '%-22s : %s\n' \
         "Dépôt distant" "${remote_name}"
     printf '%-22s : %s\n' \
@@ -458,20 +445,20 @@ publish_release_diu() {
         find "${project_path}/dist" \
             -maxdepth 1 \
             -type f \
-            -name "${project_id}_*_all.deb" \
+            -name '*.deb' \
             -print0 \
             2>/dev/null
     )
 
     if [[ ${#dist_files[@]} -eq 0 ]]; then
         print_error \
-            "Aucun paquet ${project_id}_*_all.deb trouvé dans ${project_path}/dist/"
+            "Aucun paquet Debian trouvé dans ${project_path}/dist/"
         return 1
     fi
 
     if [[ ${#dist_files[@]} -gt 1 ]]; then
         print_error \
-            "Plusieurs paquets ${project_id}_*_all.deb sont présents :"
+            "Plusieurs paquets Debian sont présents dans ${project_path}/dist/ :"
 
         for deb_file in "${dist_files[@]}"; do
             printf '  %s\n' "$(basename "${deb_file}")"
@@ -1146,7 +1133,7 @@ publish_release_diu() {
     printf '\n'
 
     print_success \
-        "Release DIU ${deb_version} publiée avec succès."
+        "Release Debian ${project_id} ${deb_version} publiée avec succès."
 
     printf '%-12s : %s\n' \
         "Projet" "${project_name}"
@@ -1167,4 +1154,9 @@ publish_release_diu() {
         "Asset" "${deb_filename}"
 
     return 0
+}
+
+# Compatibilité avec le parcours historique de publication du paquet DIU.
+publish_release_diu() {
+    publish_release_debian "diu"
 }
