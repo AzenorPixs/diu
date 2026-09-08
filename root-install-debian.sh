@@ -1177,8 +1177,7 @@ launch_ocro() {
       --memory 2g \
       --cpus 2 \
       --group-add ${docker_gid} \
-      --network internal \
-      --network proxy \
+      --network=host \
       -e OPENCODE_UID=$(id -u "${ENV_DEVOPS_USER}") \
       -e OPENCODE_GID=$(id -g "${ENV_DEVOPS_USER}") \
       -e HOME=/home/opencode \
