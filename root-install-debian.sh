@@ -1239,8 +1239,7 @@ launch_ocrw() {
       --memory 2g \
       --cpus 2 \
       --group-add ${docker_gid} \
-      --network internal \
-      --network proxy \
+      --network=host \
       -e OPENCODE_UID=${opencode_uid} \
       -e OPENCODE_GID=${opencode_gid} \
       -e DOCKER_GID=${docker_gid} \
