@@ -4045,18 +4045,6 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    if ! printf '%s' "${gitlab_token}" | \
-        runuser -u "${DEVOPS_USER}" -- \
-            docker login \
-                "${remote_registry}" \
-                --username "${gitlab_username}" \
-                --password-stdin; then
-        print_error \
-            "Échec de l'authentification Docker auprès de ${remote_registry}."
-        unset gitlab_token
-        return 1
-    fi
-
     if ! runuser -u "${DEVOPS_USER}" -- \
         docker tag \
             "${local_image}" \
@@ -4075,7 +4063,7 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    docker_config="$(mktemp -d)" || {
+    docker_config="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)" || {
         print_error "Impossible de créer le DOCKER_CONFIG temporaire."
         unset gitlab_token
         return 1
