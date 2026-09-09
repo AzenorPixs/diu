@@ -5,11 +5,12 @@
 	"autoupdate": false,
 	"mcp": {
 		"cgpt-validation": {
-			"type": "remote",
-			"url": "http://127.0.0.1:8787/mcp",
-			"enabled": true,
-			"oauth": false,
-			"timeout": 30000
+			"type": "local",
+			"command": [
+				"python3",
+				"/workspace/tools/cgpt-approval-bridge/server.py"
+			],
+			"enabled": true
 		}
 	},
 	"agent": {
@@ -134,6 +135,8 @@
 			"sed *": "ask",
 			"shellcheck": "allow",
 			"shellcheck *": "allow",
+			"sleep": "allow",
+			"sleep *": "allow",
 			"tail": "allow",
 			"tail *": "allow",
 			"touch": "ask",
