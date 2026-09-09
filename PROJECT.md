@@ -100,3 +100,36 @@ charge par le projet.
 
 Les scripts privilégient les outils disponibles dans une installation Debian
 standard et doivent rester simples, portables, explicites et reproductibles.
+
+## Chaine de Développements
+
+Outils :
+
+* OpenSpec : spécifications ;
+* OpenCode : agent de codage ;
+* Codex    : orchestrateur ;
+* Git local et distant : versionnement ;
+* VS Code / Geany : développement ;
+
+Architecture :
+
+```text
+                    Développeur
+                        │
+              interaction / validation
+                        │
+             ┌──────────┴──────────┐
+             ▼                     ▼
+         OpenCode               Codex
+      Agent de codage        Orchestrateur
+             ▲                     │
+             └────── API ──────────┘
+                                   │
+                                   ▼
+                                  GPT
+                     Analyse / Revue / Validation
+```
+
+OpenCode reste l'agent de codage du projet.
+
+Codex intervient en analyse, en revue de code, et en validateur.
