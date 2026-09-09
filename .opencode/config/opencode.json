@@ -194,7 +194,7 @@
 			"openspec/changes/**": "ask",
 			"openspec/specs/**": "ask",
 			"output/**": "ask",
-			"PROJECT.md": "ask"
+			"PROJECT.md": "ask",
 			"README.md": "ask",
 			"TECHNICAL.md": "ask",
 			"reports/**": "ask",
