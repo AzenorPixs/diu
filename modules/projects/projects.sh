@@ -523,14 +523,34 @@ EOF
 	"share": "disabled",
 	"snapshot": false,
 	"autoupdate": false,
+	"mcp": {
+		"cgpt-validation": {
+			"type": "remote",
+			"url": "http://127.0.0.1:8787/mcp",
+			"enabled": true,
+			"oauth": false,
+			"timeout": 30000
+		}
+	},
+	"agent": {
+		"plan": {
+			"model": "opencode-go/qwen3.8-flash",
+			"reasoningEffort": "low"
+		},
+		"build": {
+			"model": "opencode-go/qwen3.8-flash",
+			"reasoningEffort": "low"
+		}
+	},
 	"permission": {
 		"*": "ask",
+		"cgpt-validation_request_validation": "allow",
 		"skill": {
 			"*": "ask",
 			"openspec-*": "allow"
 		},
 		"bash": {
-			"*": "deny",
+			"*": "ask",
 			"awk": "ask",
 			"awk *": "ask",
 			"bash /tmp/opencode/*": "ask",
@@ -539,10 +559,12 @@ EOF
 			"cat *": "allow",
 			"chmod": "ask",
 			"chmod *": "ask",
+			"chown": "ask",
+			"chown *": "ask",
 			"command -v": "allow",
 			"command -v *": "allow",
-			"cp": "ask",
-			"cp *": "ask",
+			"cp": "allow",
+			"cp *": "allow",
 			"diff": "allow",
 			"diff *": "allow",
 			"docker": "ask",
@@ -611,11 +633,6 @@ EOF
 			"openspec archive *": "ask",
 			"openspec status *": "allow",
 			"openspec instructions *": "ask",
-			"openspec instructions apply *": "allow",
-			"openspec instructions design *": "allow",
-			"openspec instructions proposal *": "allow",
-			"openspec instructions specs *": "allow",
-			"openspec instructions tasks *": "allow",
 			"openspec list": "allow",
 			"openspec list *": "allow",
 			"openspec show": "allow",
@@ -624,9 +641,13 @@ EOF
 			"openspec status *": "allow",
 			"openspec view": "allow",
 			"openspec view *": "allow",
-			"openspec validate": "allow",
-			"openspec validate *": "allow",
+			"openspec validate": "ask",
+			"openspec validate *": "ask",
+			"/opt/devops/npm/bin/openspec validate": "ask",
+			"/opt/devops/npm/bin/openspec validate *": "ask",
 			"pwd": "allow",
+			"python3": "ask",
+			"python3 *": "ask",
 			"rm": "ask",
 			"rm *": "ask",
 			"sed": "ask",
@@ -637,8 +658,8 @@ EOF
 			"tail *": "allow",
 			"touch": "ask",
 			"touch *": "ask",
-			"tree": "ask",
-			"tree *": "ask",
+			"tree": "allow",
+			"tree *": "allow",
 			"wc": "allow",
 			"wc *": "allow",
 			"which": "allow",
@@ -678,13 +699,14 @@ EOF
 			".python-version": "deny",
 			".ruff_cache/**": "deny",
 			".stfolder/**": "deny",
-			".stignore": "deny",
+			".stignore": "ask",
 			".venv/**": "deny",
 			".vscode/**": "deny",
 			"AGENTS.md": "ask",
+			"BUILD.md": "ask",
 			"env/**": "deny",
 			"LICENSE": "ask",
-			"logs/**": "deny",
+			"logs/**": "ask",
 			"node_modules/**": "deny",
 			"openspec/**": "deny",
 			"openspec/AGENTS.md": "ask",
@@ -692,13 +714,15 @@ EOF
 			"openspec/changes/**": "ask",
 			"openspec/specs/**": "ask",
 			"output/**": "ask",
+			"PROJECT.md": "ask"
 			"README.md": "ask",
+			"TECHNICAL.md": "ask",
 			"reports/**": "ask",
-			"tmp/**": "deny",
+			"tmp/**": "ask",
 			"venv/**": "deny"
 		},
 		"external_directory": {
-			"*": "deny",
+			"*": "ask",
 			"/tmp/opencode/**": "allow"
 		},
 		"glob": "allow",
@@ -743,6 +767,7 @@ EOF
 			".venv/**": "deny",
 			".vscode/**": "deny",
 			"AGENTS.md": "allow",
+			"BUILD.md": "allow",
 			"env/**": "deny",
 			"LICENSE": "allow",
 			"logs/**": "deny",
@@ -755,7 +780,9 @@ EOF
 			"openspec/specs": "allow",
 			"openspec/specs/**": "allow",
 			"output/**": "allow",
+			"PROJECT.md": "allow",
 			"README.md": "allow",
+			"TECHNICAL.md": "allow",
 			"reports/**": "allow",
 			"tmp/**": "deny",
 			"venv/**": "deny"
