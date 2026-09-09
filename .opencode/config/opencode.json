@@ -196,9 +196,9 @@
 			"output/**": "ask",
 			"PROJECT.md": "ask"
 			"README.md": "ask",
+			"TECHNICAL.md": "ask",
 			"reports/**": "ask",
 			"tmp/**": "ask",
-			"TECHNICAL.md": "ask",
 			"venv/**": "deny"
 		},
 		"external_directory": {
@@ -247,6 +247,7 @@
 			".venv/**": "deny",
 			".vscode/**": "deny",
 			"AGENTS.md": "allow",
+			"BUILD.md": "allow",
 			"env/**": "deny",
 			"LICENSE": "allow",
 			"logs/**": "deny",
@@ -259,7 +260,9 @@
 			"openspec/specs": "allow",
 			"openspec/specs/**": "allow",
 			"output/**": "allow",
+			"PROJECT.md": "allow",
 			"README.md": "allow",
+			"TECHNICAL.md": "allow",
 			"reports/**": "allow",
 			"tmp/**": "deny",
 			"venv/**": "deny"
