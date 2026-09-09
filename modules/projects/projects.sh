@@ -716,9 +716,9 @@ EOF
 			"output/**": "ask",
 			"PROJECT.md": "ask"
 			"README.md": "ask",
+			"TECHNICAL.md": "ask",
 			"reports/**": "ask",
 			"tmp/**": "ask",
-			"TECHNICAL.md": "ask",
 			"venv/**": "deny"
 		},
 		"external_directory": {
