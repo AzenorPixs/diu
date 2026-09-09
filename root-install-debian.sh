@@ -1264,7 +1264,7 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash docker docker-cli-compose git nodejs npm shellcheck util-linux && \
+      -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git libffi-dev nodejs npm openssl-dev python3 py3-pip py3-virtualenv ripgrep shellcheck util-linux && \
           exec setpriv \
             --reuid=\"\$OPENCODE_UID\" \
             --regid=\"\$OPENCODE_GID\" \
