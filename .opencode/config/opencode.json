@@ -26,6 +26,8 @@
 	"permission": {
 		"*": "ask",
 		"cgpt-validation_request_validation": "allow",
+		"cgpt-validation_poll_approval": "allow",
+		"cgpt-validation_get_approval": "allow",
 		"skill": {
 			"*": "ask",
 			"openspec-*": "allow"
@@ -38,6 +40,12 @@
 			"bash -n *": "allow",
 			"cat": "allow",
 			"cat *": "allow",
+      "cgpt-validation_request_validation": "allow",
+      "cgpt-validation_request_validation *": "allow",
+      "cgpt-validation_poll_approval": "allow",
+      "cgpt-validation_poll_approval *": "allow",
+      "cgpt-validation_get_approval": "allow",
+      "cgpt-validation_get_approval *": "allow",
 			"chmod": "ask",
 			"chmod *": "ask",
 			"chown": "ask",
@@ -195,6 +203,9 @@
 			"openspec/AGENTS.md": "ask",
 			"openspec/config.yaml": "ask",
 			"openspec/changes/**": "ask",
+			"openspec/changes/modify-pldap-manage-schemas/**": "allow",
+			"dockerfile": "allow",
+			"entrypoint.sh": "allow",
 			"openspec/specs/**": "ask",
 			"output/**": "ask",
 			"PROJECT.md": "ask",
