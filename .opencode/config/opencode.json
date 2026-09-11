@@ -9,12 +9,12 @@
 		  "type": "local",
 		  "command": [
 			"python3",
-			"/workspace/tools/cgpt-approval-bridge/server.py"
+			"/opt/tools/cab/cgpt_approval_bridge_server.py"
 		  ],
 		  "cwd": "/workspace"
 		}
 	  }
-	}
+	},
 	"agent": {
 		"plan": {
 			"model": "opencode-go/qwen3.8-flash",
