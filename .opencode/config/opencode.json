@@ -12,7 +12,7 @@
 			"/opt/tools/cab/cgpt_approval_bridge_server.py"
 		  ],
 		  "cwd": "/workspace"
-		}
+      }
 	  }
 	},
 	"agent": {
