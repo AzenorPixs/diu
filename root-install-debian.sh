@@ -1261,6 +1261,7 @@ launch_ocrw() {
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
       -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
+      -v /home/devops/datas/cab/src:/opt/tools/cab:ro \
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \

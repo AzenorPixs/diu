@@ -14,6 +14,7 @@ import os
 import sys
 import uuid
 from datetime import datetime, timezone
+from urllib import error, parse, request
 
 
 SERVER_NAME = "cgpt-approval-bridge"
@@ -22,6 +23,7 @@ MCP_PROTOCOL_VERSION = "2024-11-05"
 
 DEFAULT_STORE = "/tmp/opencode/cgpt-approvals.json"
 DEFAULT_TTL_SECONDS = 86400
+DEFAULT_CONTROLLER_URL = "http://127.0.0.1:8788"
 
 VALID_STATES = ("PENDING", "APPROVED", "REJECTED", "CANCELLED", "EXPIRED")
 DECIDABLE = ("PENDING",)
@@ -76,6 +78,42 @@ def save_store(path, data):
                 os.remove(tmp_path)
         except OSError:
             pass
+
+
+def notify_controller(item):
+    """Notifie le controleur local sans affecter la reponse MCP stdio."""
+    controller_url = os.environ.get("CGPT_CONTROLLER_URL", DEFAULT_CONTROLLER_URL)
+    payload = json.dumps(
+        {"event": "validation.request", "approval": item},
+        ensure_ascii=False,
+    ).encode("utf-8")
+    http_request = request.Request(
+        controller_url.rstrip("/") + "/validation/request",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with request.urlopen(http_request, timeout=2) as response:
+            return 200 <= response.status < 300
+    except (error.URLError, OSError):
+        return False
+
+
+def controller_decision(approval_id):
+    """Lit une decision unique du controleur pour le prochain sondage OC."""
+    controller_url = os.environ.get("CGPT_CONTROLLER_URL", DEFAULT_CONTROLLER_URL)
+    url = controller_url.rstrip("/") + "/decision/" + parse.quote(approval_id, safe="")
+    try:
+        with request.urlopen(url, timeout=2) as response:
+            if response.status != 200:
+                return None
+            payload = json.loads(response.read().decode("utf-8"))
+    except (error.URLError, error.HTTPError, OSError, ValueError):
+        return None
+    if payload.get("decision") not in ("approved", "rejected"):
+        return None
+    return payload
 
 
 class StoreError(Exception):
@@ -138,9 +176,17 @@ def do_propose(args):
         raise ValidationError("parametre 'summary' : chaine attendue")
     summary = (summary or "")[:2000]
     approval_id = args.get("approval_id", "")
+    request_id = args.get("requestId", "")
     if approval_id is not None and approval_id != "" and not isinstance(approval_id, str):
         raise ValidationError("parametre 'approval_id' : chaine attendue")
+    if request_id is not None and request_id != "" and not isinstance(request_id, str):
+        raise ValidationError("parametre 'requestId' : chaine attendue")
     approval_id = approval_id.strip() if isinstance(approval_id, str) else ""
+    request_id = request_id.strip() if isinstance(request_id, str) else ""
+    if approval_id and request_id and approval_id != request_id:
+        raise ValidationError("approval_id et requestId doivent etre identiques")
+    if not approval_id:
+        approval_id = request_id
     ttl = args.get("ttl_seconds", DEFAULT_TTL_SECONDS)
     if not isinstance(ttl, int) or ttl < 60 or ttl > 604800:
         raise ValidationError("parametre 'ttl_seconds' : entier entre 60 et 604800")
@@ -163,6 +209,7 @@ def do_propose(args):
     now = utc_now()
     item = {
         "approval_id": approval_id,
+        "requestId": approval_id,
         "change_id": change_id,
         "title": title,
         "files": files,
@@ -181,6 +228,7 @@ def do_propose(args):
     ).isoformat().replace("+00:00", "Z")
     approvals[approval_id] = item
     save_store(path, data)
+    notify_controller(item)
     return item
 
 
@@ -193,6 +241,13 @@ def do_get(args):
     if item is None:
         raise ValidationError("approval_id '%s' inconnu" % approval_id)
     item = check_expired(item)
+    if item.get("status") == "PENDING":
+        decision = controller_decision(approval_id)
+        if decision is not None:
+            item["status"] = "APPROVED" if decision["decision"] == "approved" else "REJECTED"
+            item["reviewer"] = decision.get("reviewer", "CGPT")
+            item["comment"] = decision.get("comment", "")
+            item["updated_at"] = utc_now()
     save_store(path, data)
     return item
 
@@ -279,6 +334,7 @@ TOOLS = [
                 "files": {"type": "array", "items": {"type": "string"}},
                 "summary": {"type": "string"},
                 "approval_id": {"type": "string"},
+                "requestId": {"type": "string"},
                 "ttl_seconds": {"type": "integer"},
             },
             "required": ["change_id", "title", "files"],
@@ -359,6 +415,7 @@ TOOLS = [
                 "files": {"type": "array", "items": {"type": "string"}},
                 "summary": {"type": "string"},
                 "approval_id": {"type": "string"},
+                "requestId": {"type": "string"},
                 "ttl_seconds": {"type": "integer"},
             },
             "required": ["change_id", "title", "files"],
