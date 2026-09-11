@@ -1071,6 +1071,9 @@ git_commit() {
     local project_env="${project_path}/project.env"
 
     local project_name=""
+    local git_user_name=""
+    local git_user_email=""
+    local -a git_local_command=(env -u GIT_COMMON_DIR git)
 
     # Vérification des paramètres
     if [[ \
@@ -1134,7 +1137,9 @@ git_commit() {
         PROJECT_NAME \
         PROJECT_TYPE \
         PROJECT_DOCKERED \
-        LOCAL_DEFAULT_BRANCH
+        LOCAL_DEFAULT_BRANCH \
+        GIT_USER_NAME \
+        GIT_USER_EMAIL
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -1142,7 +1147,9 @@ git_commit() {
     # Vérification des variables essentielles
     if [[ \
         -z "${PROJECT_ID:-}" ||
-        -z "${PROJECT_NAME:-}" \
+        -z "${PROJECT_NAME:-}" ||
+        -z "${GIT_USER_NAME:-}" ||
+        -z "${GIT_USER_EMAIL:-}" \
     ]]; then
 
         print_info \
@@ -1160,7 +1167,9 @@ git_commit() {
             PROJECT_NAME \
             PROJECT_TYPE \
             PROJECT_DOCKERED \
-            LOCAL_DEFAULT_BRANCH
+            LOCAL_DEFAULT_BRANCH \
+            GIT_USER_NAME \
+            GIT_USER_EMAIL
 
         # shellcheck disable=SC1090
         source "${project_env}"
@@ -1183,14 +1192,26 @@ git_commit() {
         return 1
     fi
 
+    if [[ -z "${GIT_USER_NAME:-}" ]]; then
+        print_error "GIT_USER_NAME n'est pas défini dans project.env."
+        return 1
+    fi
+
+    if [[ -z "${GIT_USER_EMAIL:-}" ]]; then
+        print_error "GIT_USER_EMAIL n'est pas défini dans project.env."
+        return 1
+    fi
+
     # Affectation locale de la configuration du projet
     project_name="${PROJECT_NAME}"
+    git_user_name="${GIT_USER_NAME}"
+    git_user_email="${GIT_USER_EMAIL}"
 
     print_title "Commit Git ${project_name} : ${project_path}"
 
     # Vérification du dépôt Git local
     if [[ "$(runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" rev-parse \
+        "${git_local_command[@]}" -C "${project_path}" rev-parse \
         --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
 
         print_error "Aucun dépôt Git initialisé."
@@ -1206,11 +1227,28 @@ git_commit() {
         return 1
     fi
 
+    # Configuration de l'identité Git locale du projet
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
+        user.name "${git_user_name}"; then
+
+        print_error "Échec de la configuration de user.name."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
+        user.email "${git_user_email}"; then
+
+        print_error "Échec de la configuration de user.email."
+        return 1
+    fi
+
     # Ajout des fichiers
     print_info "Ajout des modifications..."
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" add .; then
+        "${git_local_command[@]}" -C "${project_path}" add .; then
 
         print_error "Échec du git add."
         return 1
@@ -1218,7 +1256,7 @@ git_commit() {
 
     # Vérification des modifications
     if runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" diff \
+        "${git_local_command[@]}" -C "${project_path}" diff \
         --cached --quiet; then
 
         print_info "Aucune modification à enregistrer."
@@ -1229,7 +1267,7 @@ git_commit() {
     print_title "Résumé des modifications"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" status --short; then
+        "${git_local_command[@]}" -C "${project_path}" status --short; then
 
         print_error \
             "Impossible d'afficher le résumé des modifications."
@@ -1240,7 +1278,7 @@ git_commit() {
     print_title "Création du commit"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" commit \
+        "${git_local_command[@]}" -C "${project_path}" commit \
         -m "${commit_name}"; then
 
         print_error "Échec du commit Git."
@@ -1251,7 +1289,7 @@ git_commit() {
     print_title "Création du tag Git"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" tag \
+        "${git_local_command[@]}" -C "${project_path}" tag \
         -a "${commit_tag}" \
         -m "${commit_name}"; then
 
