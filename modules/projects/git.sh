@@ -1295,6 +1295,7 @@ git_init() {
     local git_user_name=""
     local git_user_email=""
     local confirmation=""
+    local -a git_local_command=(env -u GIT_COMMON_DIR git)
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
@@ -1453,7 +1454,7 @@ git_init() {
 
     # Vérification d'un dépôt Git local existant
     if runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" rev-parse \
+        "${git_local_command[@]}" -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
         print_info "Le dépôt Git est déjà initialisé."
@@ -1489,7 +1490,7 @@ git_init() {
     print_title "Initialisation du dépôt Git local"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" \
+        "${git_local_command[@]}" -C "${project_path}" \
         init -b "${local_default_branch}"; then
 
         print_error \
@@ -1499,7 +1500,7 @@ git_init() {
 
     # Configuration de user.name
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config --local \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
         user.name "${git_user_name}"; then
 
         print_error \
@@ -1509,7 +1510,7 @@ git_init() {
 
     # Configuration de user.email
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config --local \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
         user.email "${git_user_email}"; then
 
         print_error \
@@ -1519,7 +1520,7 @@ git_init() {
 
     # Configuration de core.fileMode
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config --local \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
         core.fileMode false; then
 
         print_error \
@@ -1529,7 +1530,7 @@ git_init() {
 
     # Configuration de core.autocrlf
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config --local \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
         core.autocrlf false; then
 
         print_error \
@@ -1539,7 +1540,7 @@ git_init() {
 
     # Configuration de core.eol
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config --local \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
         core.eol lf; then
 
         print_error \
@@ -1549,7 +1550,7 @@ git_init() {
 
     # Configuration de i18n.commitEncoding
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config --local \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
         i18n.commitEncoding utf-8; then
 
         print_error \
@@ -1559,7 +1560,7 @@ git_init() {
 
     # Configuration de i18n.logOutputEncoding
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config --local \
+        "${git_local_command[@]}" -C "${project_path}" config --local \
         i18n.logOutputEncoding utf-8; then
 
         print_error \
@@ -1571,7 +1572,7 @@ git_init() {
     print_title "Configuration Git locale"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" config \
+        "${git_local_command[@]}" -C "${project_path}" config \
         --list --local; then
 
         print_error \
@@ -1581,14 +1582,14 @@ git_init() {
 
     # Vérification de l'absence de dépôt distant
     if runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" remote |
+        "${git_local_command[@]}" -C "${project_path}" remote |
         grep -q .; then
 
         print_error \
             "Un dépôt distant est déjà configuré alors que l'initialisation doit rester locale."
 
         runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" remote -v
+            "${git_local_command[@]}" -C "${project_path}" remote -v
 
         return 1
     fi
@@ -1597,7 +1598,7 @@ git_init() {
     print_title "Ajout des fichiers au dépôt Git local"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" add .; then
+        "${git_local_command[@]}" -C "${project_path}" add .; then
 
         print_error \
             "Échec de l'ajout des fichiers à l'index Git."
@@ -1608,7 +1609,7 @@ git_init() {
     print_title "État du dépôt Git"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" status --short; then
+        "${git_local_command[@]}" -C "${project_path}" status --short; then
 
         print_error \
             "Impossible d'afficher l'état du dépôt Git."
@@ -1619,7 +1620,7 @@ git_init() {
     print_title "Fichiers suivis"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" ls-files; then
+        "${git_local_command[@]}" -C "${project_path}" ls-files; then
 
         print_error \
             "Impossible d'afficher les fichiers du dépôt Git."
@@ -1631,7 +1632,7 @@ git_init() {
 
     # Vérification du contenu du premier commit
     if runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" diff \
+        "${git_local_command[@]}" -C "${project_path}" diff \
         --cached --quiet; then
 
         print_error \
@@ -1643,7 +1644,7 @@ git_init() {
     print_title "Création du premier commit"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" commit \
+        "${git_local_command[@]}" -C "${project_path}" commit \
         -m "Initialisation du projet ${project_name}"; then
 
         print_error \
@@ -1655,7 +1656,7 @@ git_init() {
     print_title "Historique Git"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" log \
+        "${git_local_command[@]}" -C "${project_path}" log \
         --oneline \
         --decorate \
         -5; then
