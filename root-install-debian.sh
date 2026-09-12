@@ -13,238 +13,41 @@ set -Eeuo pipefail
 # Le chemin où je me trouve est
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 
-# L'aide racine reste disponible même si la configuration de production est
-# absente ou inaccessible.
+# shellcheck source=lib/rid-help.sh
+. "$BASH_SCRIPT_PATH/lib/rid-help.sh"
+
 if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
-    printf '%s\n' \
-        'rid devops    →  Outils DevOps et OpenSpec.' \
-        'rid docker    → Gestion Docker root et rootless.' \
-        'rid ia        → Gestion des agents IA.' \
-        'rid os        → Validation OpenSpec.' \
-        'rid projects  → Gestion des projets et publications.' \
-        'rid install   → Installation de logiciels.' \
-        'rid remove    → Suppression de logiciels.' \
-        'rid update    → Mise à jour des composants.' \
-        'rid softwares → Gestion et installation des logiciels.' \
-        'rid system    → Gestion du système Debian.' \
-        'rid version   → Affiche la version du DIU.'
-    exit 0
-fi
-
-if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
-    case "${1:-}" in
-        system)
-            printf '%s\n' \
-                'rid system install apt <Dépôt> → Installe un dépôt APT.' \
-                'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
-                'rid system update              → Met à jour le module système du DIU.' \
-                'rid system update apt          → Régénère tous les dépôts APT.' \
-                'rid system apt update          → Mise à jour du systeme APT Debian.'
-            ;;
-        docker)
-            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
-            ;;
-        ia)
-            printf '%s\n' 'rid ia configure → Configure Hermès.' 'rid ia install → Installe Hermès.' 'rid ia start → Démarre Hermès.' 'rid ia stop → Arrête Hermès.' 'rid ia update → Met à jour Hermès.' 'rid ia uninstall → Désinstalle Hermès.'
-            ;;
-        update)
-            printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
-            ;;
-        softwares)
-            printf '%s\n' \
-                'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
-                'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
-                'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
-                'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
-                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.' \
-                'rid softwares install github <SOFTWARE> → Installer depuis une release GitHub.' \
-                'rid softwares remove github <SOFTWARE>  → Désinstaller un logiciel GitHub.' \
-                'rid softwares update github [SOFTWARE]  → Mettre à jour un ou tous les logiciels GitHub.'
-            ;;
-        projects)
-            printf '%s\n' \
-                'rid projects create <ID PROJECT> → Crée un projet.' \
-                'rid projects del <ID PROJECT> → Supprime un projet.' \
-                'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet.' \
-                'rid projects docker → Gestion Docker des projets.' \
-                'rid projects finds <ID PROJECT> → Recherche les projets.' \
-                'rid projects findads <ID PROJECT> → Recherche les adresses des projets.' \
-                'rid projects gita <ID PROJECT> → Affiche les actions Git disponibles.' \
-                'rid projects git → Gestion des variables du dépôt local Git.' \
-                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git.' \
-                'rid projects gitc <ID PROJECT> → Clone ou commit un dépôt Git.' \
-                'rid projects giti <ID PROJECT> → Initialise un dépôt Git.' \
-                'rid projects gitic <ID PROJECT> → Initialise et clone un dépôt Git.' \
-                'rid projects gitpdiu <ID PROJECT> → Pousse le projet DIU vers Forgejo.' \
-                'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.' \
-                'rid projects gitlab → Gestion des dépôts GitLab.' \
-                'rid projects github → Gestion des dépôts GitHub.' \
-                'rid projects forgejo → Gestion des dépôts Forgejo.' \
-                'rid projects gits <ID PROJECT> → Affiche le statut Git.' \
-                'rid projects gitu <ID PROJECT> → Met à jour un projet.' \
-                'rid projects ocro <ID PROJECT> → Ouvre le projet en lecture seule.' \
-                'rid projects ocrw <ID PROJECT> → Ouvre le projet en lecture-écriture.' \
-                'rid projects ocsh <ID PROJECT> → Ouvre un shell dans le projet.' \
-                'rid projects deb <ID PROJECT> → Construit le paquet Debian.' \
-                'rid projects cicddiu <ID PROJECT> → Lance la CI/CD du projet DIU.' \
-                'rid projects cicddr <ID PROJECT> → Lance la CI/CD du projet.'
-            ;;
-        *)
-            printf 'rid %s → Affiche les sous-commandes disponibles.\n' "${1:-}"
-            ;;
-    esac
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == github && "${3:-}" == help ]]; then
-    printf '%s\n' \
-        "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub." \
-        'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == github && "${3:-}" == push && "${4:-}" == help ]]; then
-    printf '%s\n' 'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub distant pour le projet <ID PROJECT>.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == github && "${3:-}" == update && "${4:-}" == help ]]; then
-    printf '%s\n' "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub pour le projet <ID PROJECT>."
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == help ]]; then
-    printf '%s\n' \
-        "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo." \
-        'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.' \
-        'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == push && "${4:-}" == help ]]; then
-    printf '%s\n' 'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo distant pour le projet <ID PROJECT>.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == release && "${4:-}" == help ]]; then
-    printf '%s\n' 'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif du projet <ID PROJECT> vers Forgejo.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == forgejo && "${3:-}" == update && "${4:-}" == help ]]; then
-    printf '%s\n' "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo pour le projet <ID PROJECT>."
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == update && "${3:-}" == help ]]; then
-    printf '%s\n' 'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet <ID PROJECT>.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == git && "${3:-}" == help ]]; then
-    printf '%s\n' 'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == git && "${3:-}" == update && "${4:-}" == help ]]; then
-    printf '%s\n' 'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == docker && "${3:-}" == help ]]; then
-    printf '%s\n' "rid projects docker build <ID PROJECT> → Construit l'image Docker du projet <ID PROJECT>."
-    exit 0
-fi
-
-if [[ "${1:-}" == projects && "${2:-}" == docker && "${3:-}" == build && "${4:-}" == help ]]; then
-    printf '%s\n' "rid projects docker build <ID PROJECT> → Construit l'image Docker du projet <ID PROJECT>."
+    rid_display_help_context
     exit 0
 fi
 
 if [[ "${!#}" == help || "${!#}" == "?" ]]; then
-    if [[ "${1:-}" == system && ( "${2:-}" == install || "${2:-}" == remove ) && "${3:-}" == apt ]]; then
-        operation="${2}"
-        verb="$([[ "$operation" == install ]] && printf 'Installe' || printf 'Supprime')"
-        printf '%s\n' \
-            "rid system ${operation} apt crowdsec → ${verb} le dépôt APT CrowdSec." \
-            "rid system ${operation} apt docker → ${verb} le dépôt APT Docker." \
-            "rid system ${operation} apt lemonldap → ${verb} le dépôt APT LemonLDAP." \
-            "rid system ${operation} apt mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8 → ${verb} le dépôt APT MongoDB." \
-            "rid system ${operation} apt nodejs → ${verb} le dépôt APT NodeSource." \
-            "rid system ${operation} apt nvidia → ${verb} les dépôts APT NVIDIA." \
-            "rid system ${operation} apt proxmox → ${verb} le dépôt APT Proxmox." \
-            "rid system ${operation} apt vscode → ${verb} le dépôt APT VS Code." \
-            "rid system ${operation} apt wazuh-4 → ${verb} le dépôt APT Wazuh." \
-            "rid system ${operation} apt webmin → ${verb} le dépôt APT Webmin." \
-            "rid system ${operation} apt cgpt → ${verb} les dépôts APT OpenAI."
-        exit 0
-    fi
-    case "${1:-}:${2:-}" in
-        devops:)
-            printf '%s\n' 'rid devops info → Affiche les informations DevOps.' 'rid devops os → Gère OpenSpec pour un projet.'
-            ;;
-        docker:)
-            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
-            ;;
-        docker:root)
-            printf '%s\n' 'rid docker root check-containers → Liste les conteneurs actifs.' 'rid docker root test <USER> → Teste Docker pour un utilisateur.' 'rid docker root diag <USER> → Diagnostique Docker.'
-            ;;
-        docker:rootless)
-            printf '%s\n' 'rid docker rootless analyse <USER> → Analyse Docker rootless.' 'rid docker rootless configure <USER> → Configure Docker rootless.' 'rid docker rootless delete-state <USER> → Supprime son état.' 'rid docker rootless diag <USER> → Diagnostique Docker rootless.' 'rid docker rootless exec <USER> <CONTAINER> → Exécute dans un conteneur.' 'rid docker rootless inspect <USER> <CONTAINER> → Inspecte un conteneur.' 'rid docker rootless log <USER> <CONTAINER> → Affiche ses journaux.' 'rid docker rootless ps <USER> → Liste les conteneurs.' 'rid docker rootless test <USER> → Teste Docker rootless.' 'rid docker rootless unconfigure <USER> → Déconfigure Docker rootless.' 'rid docker rootless restore-state <USER> → Restaure son état.' 'rid docker rootless save-state <USER> → Sauvegarde son état.'
-            ;;
-        ia:)
-            printf '%s\n' 'rid ia configure hm → Configure Hermès.' 'rid ia install hm → Installe Hermès.' 'rid ia start hm → Démarre Hermès.' 'rid ia stop hm → Arrête Hermès.' 'rid ia update hm → Met à jour Hermès.' 'rid ia uninstall hm → Désinstalle Hermès.'
-            ;;
-        ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall)
-            printf '%s\n' "rid ia ${2} hm → ${2^} l’agent Hermès."
-            ;;
-        os:)
-            printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
-            ;;
-        proj:)
-            printf '%s\n' 'rid projects create <PROJET> → Crée un projet.' 'rid projects del <PROJET> → Supprime un projet.' 'rid projects docker → Gestion Docker des projets.' 'rid projects finds <PROJET> → Recherche les conflits.' 'rid projects findads <PROJET> → Supprime les conflits.' 'rid projects gita <PROJET> → Analyse Git.' 'rid projects gitc <PROJET> [COMMIT] → Commite le projet.' 'rid projects giti <PROJET> → Initialise Git.' 'rid projects gitic <PROJET> → Clone le dépôt.' 'rid projects gitpdiu → Publie le paquet DIU.' 'rid projects forgejo release <PROJET> → Publie l’image et/ou le paquet vers Forgejo.' 'rid projects gits <PROJET> → Affiche le statut Git.' 'rid projects gitu <PROJET> → Met à jour les variables.' 'rid projects ocro <PROJET> → Lance OpenCode RO.' 'rid projects ocrw <PROJET> → Lance OpenCode RW.' 'rid projects ocsh → Lance le shell OpenCode.' 'rid projects deb → Construit le paquet DIU.' 'rid projects cicddiu → Lance le CI/CD DIU.' 'rid projects cicddr <PROJET> → Lance le CI/CD projet.'
-            ;;
-        system:install|system:remove)
-            printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
-                "${2}" "$([[ "${2}" == install ]] && printf 'Installe' || printf 'Supprime')"
-            ;;
-        system:apt)
-            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
-            ;;
-        system:apt:update)
-            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
-            ;;
-        system:install:apt|system:remove:apt)
-            operation="${2}"
-            printf '%s\n' \
-                "rid system ${operation} apt crowdsec → ${operation^} le dépôt APT CrowdSec." \
-                "rid system ${operation} apt docker → ${operation^} le dépôt APT Docker." \
-                "rid system ${operation} apt lemonldap → ${operation^} le dépôt APT LemonLDAP." \
-                "rid system ${operation} apt mongodb-4|5|6|7|8 → ${operation^} le dépôt APT MongoDB." \
-                "rid system ${operation} apt nodejs → ${operation^} le dépôt APT NodeSource." \
-                "rid system ${operation} apt nvidia → ${operation^} les dépôts APT NVIDIA." \
-                "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
-                "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
-                "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
-                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin." \
-                "rid system ${operation} apt cgpt → ${operation^} les dépôts APT OpenAI."
-            ;;
-        system:update)
-            printf '%s\n' \
-                'rid system update apt → Met à jour APT.' \
-                'rid system update apt debian → Met à jour les paquets Debian.'
-            ;;
-        install:|remove:)
-            printf '%s\n' "rid ${1} deb <SOFTWARE> → Opération sur Debian." "rid ${1} apt <SOFTWARE> → Opération sur un logiciel tiers."
-            ;;
-        update:)
-            printf '%s\n' 'rid update → Mise à jour de tous les modules du DIU.'
+    help_arguments=("$@")
+    unset 'help_arguments[${#help_arguments[@]} - 1]'
+    rid_display_help_context "${help_arguments[@]}"
+    exit $?
+fi
+
+case "${1:-}" in
+    ''|devops|docker|ia|os|projects|install|remove|softwares|system|update|version)
+        ;;
+    *)
+        printf "❌ Classe d'actions inconnue : %s\n" "$1"
+        rid_display_command_error
+        exit 2
+        ;;
+esac
+
+if [[ "${1:-}" == softwares ]]; then
+    case "${2:-}" in
+        install|remove|update|apt)
             ;;
         *)
-            printf 'rid %s %s → Affiche les sous-commandes disponibles.\n' "${1:-}" "${2:-}"
+            printf "❌ Action inconnue pour la classe 'softwares' : %s\n" "${2:-}"
+            rid_display_command_error softwares
+            exit 2
             ;;
     esac
-    exit 0
 fi
 
 # shellcheck source=modules/system/variables-cleanup.sh
@@ -504,7 +307,7 @@ dispatch_arguments() {
 
         *)
             echo "❌ Classe d'actions inconnue : $argument_class"
-            display_usage
+            rid_display_command_error
             exit 2
             ;;
 
@@ -516,253 +319,7 @@ dispatch_arguments() {
 }
 
 display_help_context() {
-    local context="${1:-}" subcontext="${2:-}" leaf="${3:-}"
-
-    case "$context:$subcontext:$leaf" in
-        :) cat <<'EOF'
-rid                            → Affiche l'aide des commandes rid.
-rid devops                     → Outils DevOps et OpenSpec.
-rid docker                     → Gestion Docker root et rootless.
-rid ia                         → Gestion des agents IA.
-rid os                         → Validation OpenSpec.
-rid projects                   → Gestion des projets et publications.
-rid install                    → Installation de logiciels.
-rid remove                     → Suppression de logiciels.
-rid update                     → Mise à jour des composants.
-rid system                     → Gestion du système Debian.
-rid version                  → Affiche la version du DIU.
-EOF
-            ;;
-        system::)
-            printf '%s\n' \
-                'rid system install apt <Dépôt> → Installe un dépôt APT.' \
-                'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
-                'rid system update              → Met à jour le module système du DIU.' \
-                'rid system update apt          → Régénère tous les dépôts APT.' \
-                'rid system apt update          → Mise à jour du systeme APT Debian.'
-            ;;
-        system:install:|system:remove:)
-            printf 'rid system %s apt <repository> → %s un dépôt APT.\n' \
-                "$subcontext" "$([[ "$subcontext" == install ]] && printf 'Installe' || printf 'Supprime')"
-            ;;
-        system:install:apt|system:remove:apt)
-            local operation="$subcontext"
-            printf '%s\n' \
-                "rid system ${operation} apt crowdsec → ${operation^} le dépôt APT CrowdSec." \
-                "rid system ${operation} apt docker → ${operation^} le dépôt APT Docker." \
-                "rid system ${operation} apt lemonldap → ${operation^} le dépôt APT LemonLDAP." \
-                "rid system ${operation} apt mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8 → ${operation} le dépôt APT MongoDB." \
-                "rid system ${operation} apt nodejs → ${operation^} le dépôt APT NodeSource." \
-                "rid system ${operation} apt nvidia → ${operation^} les dépôts APT NVIDIA." \
-                "rid system ${operation} apt proxmox → ${operation^} le dépôt APT Proxmox." \
-                "rid system ${operation} apt vscode → ${operation^} le dépôt APT VS Code." \
-                "rid system ${operation} apt wazuh-4 → ${operation^} le dépôt APT Wazuh." \
-                "rid system ${operation} apt webmin → ${operation^} le dépôt APT Webmin."
-            ;;
-        system:update:)
-            printf '%s\n' \
-                'rid system update apt      → Met à jour APT.' \
-                'rid system update apt debian → Met à jour les paquets Debian.'
-            ;;
-        system:apt:)
-            printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
-            ;;
-        system:update:apt)
-            printf '%s\n' 'rid system update apt debian → Met à jour les paquets Debian.'
-            ;;
-        docker::)
-            printf '%s\n' 'rid docker root → Actions Docker root.' 'rid docker rootless → Actions Docker rootless.'
-            ;;
-        ia::)
-            printf '%s\n' 'rid ia configure → Configure Hermès.' 'rid ia install → Installe Hermès.' 'rid ia start → Démarre Hermès.' 'rid ia stop → Arrête Hermès.' 'rid ia update → Met à jour Hermès.' 'rid ia uninstall → Désinstalle Hermès.'
-            ;;
-        devops::)
-            printf '%s\n' 'rid devops info → Affiche les informations DevOps.' 'rid devops os → Gère OpenSpec pour un projet.'
-            ;;
-        os::)
-            printf '%s\n' 'rid os validate <PROJET> <SPEC> → Valide une spécification.'
-            ;;
-        projects::)
-            printf '%s\n' \
-                'rid projects create → Crée un projet.' \
-                'rid projects del → Supprime un projet.' \
-                'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet.' \
-                'rid projects docker → Gestion Docker des projets.' \
-                'rid projects finds → Recherche les projets.' \
-                'rid projects findads → Recherche les adresses des projets.' \
-                'rid projects gita <ID> → Affiche les actions Git disponibles.' \
-                'rid projects git → Gestion des variables du dépôt local Git.' \
-                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git.' \
-                'rid projects gitc <ID> → Clone un dépôt Git.' \
-                'rid projects giti <ID> → Initialise un dépôt Git.' \
-                'rid projects gitic <ID> → Initialise et clone un dépôt Git.' \
-                'rid projects gitpdiu <ID> → Pousse le projet DIU vers Forgejo.' \
-                'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.' \
-                'rid projects gitlab release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers GitLab.' \
-                'rid projects gits <ID> → Affiche le statut Git.' \
-                'rid projects gitu <ID> → Met à jour un projet.' \
-                'rid projects gitlab → Gestion des dépôts GitLab.' \
-                'rid projects github → Gestion des dépôts GitHub.' \
-                'rid projects forgejo → Gestion des dépôts Forgejo.' \
-                'rid projects ocro <ID> → Ouvre le projet en lecture seule.' \
-                'rid projects ocrw <ID> → Ouvre le projet en lecture-écriture.' \
-                'rid projects ocsh <ID> → Ouvre un shell dans le projet.' \
-                'rid projects deb <ID> → Construit le paquet Debian.' \
-                'rid projects cicddiu <ID> → Lance la CI/CD du projet DIU.' \
-                'rid projects cicddr <ID> → Lance la CI/CD du projet.'
-            ;;
-        projects:update:)
-            printf '%s\n' \
-                'rid projects update <ID PROJECT> → Crée ou met à jour les variables du projet <ID PROJECT>.'
-            ;;
-        projects:git:)
-            printf '%s\n' \
-                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
-            ;;
-        projects:git:update)
-            printf '%s\n' \
-                'rid projects git update <ID PROJECT> → Crée ou met à jour les variables du dépôt local Git du projet <ID PROJECT>.'
-            ;;
-        projects:docker:)
-            printf '%s\n' \
-                "rid projects docker build <ID PROJECT> → Construire l'image Docker du projet <ID PROJECT>."
-            ;;
-        projects:docker:build)
-            printf '%s\n' \
-                "rid projects docker build <ID PROJECT> → Construire l'image Docker du projet <ID PROJECT>."
-            ;;
-        projects:gitlab:)
-            printf '%s\n' \
-                'rid projects gitlab update <ID PROJECT> → Vérifie, modifie ou crée les variables GitLab.' \
-                'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers GitLab.' \
-                'rid projects gitlab release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers GitLab.'
-            ;;
-        projects:gitlab:update)
-            printf '%s\n' 'rid projects gitlab update <ID PROJECT> → Vérifie, modifie ou crée les variables GitLab du projet <ID PROJECT>.'
-            ;;
-        projects:gitlab:push)
-            printf '%s\n' 'rid projects gitlab push <ID PROJECT> → Pousse le dépôt Git local vers un dépôt GitLab distant pour le projet <ID PROJECT>.'
-            ;;
-        projects:gitlab:release)
-            printf '%s\n' 'rid projects gitlab release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif du projet <ID PROJECT> vers GitLab.'
-            ;;
-        projects:github:)
-            printf '%s\n' \
-                "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub." \
-                'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub.'
-            ;;
-        projects:github:update)
-            printf '%s\n' "rid projects github update <ID PROJECT> → Crée, ou modifie les variables d'environnement GitHub pour le projet <ID PROJECT>."
-            ;;
-        projects:github:push)
-            printf '%s\n' 'rid projects github push <ID PROJECT> → Pousse le dépôt Git local vers GitHub distant pour le projet <ID PROJECT>.'
-            ;;
-        projects:forgejo:)
-            printf '%s\n' \
-                "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo." \
-                'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo.' \
-                'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif vers Forgejo.'
-            ;;
-        projects:forgejo:update)
-            printf '%s\n' "rid projects forgejo update <ID PROJECT> → Crée, ou modifie les variables d'environnement Forgejo pour le projet <ID PROJECT>."
-            ;;
-        projects:forgejo:push)
-            printf '%s\n' 'rid projects forgejo push <ID PROJECT> → Pousse le dépôt Git local vers Forgejo distant pour le projet <ID PROJECT>.'
-            ;;
-        projects:forgejo:release)
-            printf '%s\n' 'rid projects forgejo release <ID PROJECT> → Pousse l’image Docker et/ou le paquet applicatif du projet <ID PROJECT> vers Forgejo.'
-            ;;
-        install::|remove::)
-            printf '%s\n' "rid $context deb <SOFTWARE> → Opération sur un paquet Debian." "rid $context apt <SOFTWARE> → Opération sur un logiciel tiers."
-            ;;
-        update::)
-            printf '%s\n' 'rid update → Mise à jour du système.'
-            ;;
-        softwares::)
-            printf '%s\n' \
-                'rid softwares install apt <SOFTWARE> → Installer le logiciel <SOFTWARE>.' \
-                'rid softwares remove apt <SOFTWARE>  → Désinstaller le logiciel <SOFTWARE>.' \
-                'rid softwares update apt <SOFTWARE>  → Mettre à jour le logiciel <SOFTWARE>.' \
-                'rid softwares update apt             → Met à jour APT puis les logiciels APT installés.' \
-                'rid softwares apt update             → Mise à jour de tous les paquets installés avec APT.' \
-                'rid softwares install github <SOFTWARE> → Installer depuis une release GitHub.' \
-                'rid softwares remove github <SOFTWARE>  → Désinstaller un logiciel GitHub.' \
-                'rid softwares update github [SOFTWARE]  → Mettre à jour un ou tous les logiciels GitHub.'
-            ;;
-        *)
-            display_usage
-            ;;
-    esac
-}
-
-display_usage() {
-    cat <<'EOF'
-
-Utilisation :
-
-  rid																→  Exécute normalement l'installation Debian.
-
-  rid ia configure hm                                       →  Configure Agent Hermès
-  rid ia docker ps                                          →  Execute un docker PS dans l'environnement IA
-  rid ia install hm                                         →  Install Agent Hermes
-  rid ia start hm                                           →  Start Agent Hermes
-  rid ia stop hm                                            →  Stop Agent Hermes
-  rid ia update hm                                          →  Mise à jour Agent Hermes
-  rid ia uninstall hm                                       →  Uninstall Agent Hermes
-
-  rid docker root check-containers                          →   Vérification des containers Docker Up
-  rid docker root diag <USER>                               →   Diagnostic Docker pour <USER>  
-  rid docker root test <USER>                               →   Teste l'état Docker pour <USER>
-  rid docker rootless analyse <USER>                        →   Analyse l'état Docker Rootless pour <USER>
-  rid docker rootless configure <USER>                      →   Configure Docker Rootless pour <USER>
-  rid docker rootless diag <USER>                           →   Diagnostic Docker Rootless pour <USER>
-  rid docker rootless exec <USER> <CONTAINER>               →   Exécute une commande Docker Rootless pour <USER> dans <CONTAINER>
-  rid docker rootless inspect <USER> <CONTAINER>            →   Inspecte le containers <CONTAINER> Docker Rootless pour <USER>
-  rid docker rootless log <USER> <CONTAINER>                →   Journaux du container <CONTAINER> Docker Rootless pour <USER>
-  rid docker rootless ps <USER>                             →   Liste des des container Up Docker Rootless pour <USER>
-  rid docker rootless test <USER>                           →   Teste Docker Rootless pour <USER>
-  rid docker rootless unconfigure <USER>                    →   Déconfigure Docker Rootless pour <USER> et restaure l'état initial
-
-  rid os validate <ID Projet> <Spec>                        →  Valide la <Spec> validate pour le <Projet>.
-  rid projects deb                                              →  Construit le paquet Debian DIU dans dist/.
-  rid projects bash <ID projectset>                                 →  Crée un projectset dans /home/<DEVOPS USER>/datas/<ID projectset>
-  rid projects del <ID projectset>                                  →  Supprime le projectset <ID projectset>
-  rid projects docker build <ID projectset>                         →  Construit le docker <ID projectset> à partir de <Docker File>
-  rid projects findads <ID projectset>                              →  cherche et supprime les motifs *sync-conflict* dans <ID projectset>
-  rid projects finds <ID projectset>                                →  cherche les motifs *sync-conflict* dans <ID projectset>
-  rid projects gita <ID projectset>                                 →  Analyse le Git local pour <ID projectset>
-  rid projects gitc <ID projectset> <Nom du Commit>                 →  Commit vers le dépôt Git local pour <ID projectset>
-  rid projects giti <ID projectset>                                 →  Initialisation du dépôt Git local dans <ID projectset>.
-  rid projects gitic <ID projectset>                                →  Clone du dépôt Git local dans <ID projectset> depuis un Git Distant .
-  rid projects gitlab push <ID projectset>                           →  Pousse le Git local vers un dépôt GitLab pour <ID projectset>.
-  rid projects github push <ID projectset>                           →  Pousse le Git local vers un dépôt GitHub pour <ID projectset>.
-  rid projects github update <ID projectset>                         →  Crée ou modifie les variables GitHub pour <ID projectset>.
-  rid projects forgejo push <ID projectset>                          →  Pousse le Git local vers un dépôt Forgejo pour <ID projectset>.
-  rid projects forgejo update <ID projectset>                        →  Crée ou modifie les variables Forgejo pour <ID projectset>.
-  rid projects gitpdiu                                          →  Publie le paquet Debian DIU vers le Git distant.
-  rid projects forgejo release <ID projectset>                       →  Publie l'image Docker et/ou le paquet applicatif vers Forgejo.
-  rid projects gitlab release <ID projectset>                         →  Pousse l'image Docker et/ou le paquet applicatif vers GitLab.
-  rid projects gits <ID projectset>                                 →  Statut du Git local pour <ID projectset>.
-  rid projects gitu <ID projectset>                                 →  Met à jour les variables du projectset pour <ID projectset>.
-  rid projects ocro <ID projectset>                                 →  Démarre OpenCode en RO dans le projectset <ID projectset>.
-  rid projects ocrw <ID projectset>                                 →  Démarre OpenCode en RW dans le projet <ID Projet>.
-
-  rid install deb <SOFTWARE>                                →  Installe un paquet officiel Debian
-  rid remove deb <SOFTWARE>                                 →  Désinstalle un paquet officiel Debian
-  rid update deb <SOFTWARE>                                 →  Met à jour un paquet officiel Debian
-  rid update deb                                            →  Met à jour les paquets officiels Debian
-  rid <install|remove|update> apt [SOFTWARE]                  →  Réservé au futur moteur de logiciels tiers
-
-  rid update                                                →  Mise à jour de tous les modules pris en charge
-  rid update diu                                            →  Mise à jour du DIU
-
-  ridt projects cicddiu                                         → Flux CI/CD pour le DIU
-  ridt projects cicddr <ID Projet>                              → Flux CI/CD pour le projet <ID Projet> <COMMIT NAME> <COMMIT TAG>
-
-Structure générale :  rid <classe> <action> <subaction> <variable>
-
-Classe disponibles :  Classe :  ia | docker | projects | update
-EOF
+    rid_display_help_context "$@"
 }
 
 display_infos() {
@@ -1296,7 +853,7 @@ manage_devops_action() {
 
         *)
             echo "❌ Action inconnue pour la classe 'devops' : ${action_1}"
-            display_usage
+            rid_display_command_error
             exit 2
             ;;
 
@@ -1329,7 +886,7 @@ manage_openspec_action() {
             ;;
         *)
             echo "❌ Action inconnue pour la classe 'openspec' : $action"
-            display_usage
+            rid_display_command_error
             exit 2
             ;;
     esac
@@ -1356,7 +913,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1367,7 +924,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1377,7 +934,7 @@ manage_docker_action() {
                 *)
 
                     echo "❌ Action root inconnue : ${subaction}"
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
 
@@ -1392,7 +949,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1403,7 +960,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1414,7 +971,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1425,7 +982,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1436,7 +993,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1447,7 +1004,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1458,7 +1015,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1469,7 +1026,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1480,7 +1037,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1491,7 +1048,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1502,7 +1059,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1513,7 +1070,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        display_usage
+                        rid_display_command_error
                         exit 2
                     fi
 
@@ -1523,7 +1080,7 @@ manage_docker_action() {
                 *)
 
                     echo "❌ Action rootless inconnue : ${subaction}"
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
 
@@ -1533,7 +1090,7 @@ manage_docker_action() {
         *)
 
             echo "❌ Action inconnue pour la classe 'docker' : ${action}"
-            display_usage
+            rid_display_command_error
             exit 2
             ;;
 
@@ -1556,7 +1113,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1569,7 +1126,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1582,7 +1139,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1595,7 +1152,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1608,7 +1165,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1621,7 +1178,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1629,7 +1186,7 @@ manage_ia_action() {
 
         *)
             echo "❌ Action (${action}) inconnue pour la classe 'ia'."
-            display_usage
+            rid_display_command_error
             exit 2
             ;;
 
@@ -1693,7 +1250,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects docker' : ${project_subaction}"
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1743,7 +1300,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects git' : ${project_subaction}"
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1780,7 +1337,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects gitlab' : ${project_subaction}"
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1809,7 +1366,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects github' : ${project_subaction}"
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1842,7 +1399,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects forgejo' : ${project_subaction}"
-                    display_usage
+                    rid_display_command_error
                     exit 2
                     ;;
             esac
@@ -1885,7 +1442,7 @@ manage_project_action() {
 
         *)
             echo "❌ Action inconnue pour la classe 'proj' : ${action}"
-            display_usage
+            rid_display_command_error
             exit 2
             ;;
 
@@ -2468,14 +2025,6 @@ EOF
 	apt autopurge -y
 	apt autoremove -y
 	echo ""
-
-	if dpkg -s flatpak &>/dev/null
-	then
-
-		echo "🔧 UPDATE FLATPAK"
-		flatpak update -y
-
-	fi
 
 fi
 
@@ -4412,22 +3961,6 @@ EOF
 		echo "🔧 INSTALL GEANY"
 		apt install geany geany-plugin-addons -y
 
-	fi
-
-	if dpkg -s flatpak &>/dev/null
-	then
-		echo "FLATPAK IS OK ✅"
-		if flatpak info com.github.dail8859.NotepadNext &>/dev/null
-		then
-			echo "NOTEPADNEXT IS OK ✅"
-		else
-			echo "🔧 INSTALL NOTEPADNEXT"
-			flatpak install flathub com.github.dail8859.NotepadNext -y
-		fi
-	else
-		echo "🔧 INSTALL FLATPAK"
-		apt install flatpak -y
-		flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 	fi
 
 	if command -v guake >/dev/null 2>&1; then

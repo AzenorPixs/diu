@@ -2258,6 +2258,14 @@ git_push_provider() {
     elif [[ "${remote_git_type}" == "github" ]]; then
         configured_remote_url="${remote_base_url}/${remote_owner}/${remote_repository}.git"
 
+        if ! github_repository_ensure \
+            "${project_path}" \
+            "${remote_base_url}" \
+            "${remote_owner}" \
+            "${remote_repository}"; then
+            return 1
+        fi
+
         if ! github_remote_ensure \
             "${project_path}" \
             "${remote_name}" \
