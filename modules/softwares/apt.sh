@@ -156,6 +156,14 @@ manage_softwares_action() {
             [[ $# -eq 3 ]] || { print_error "Usage : rid softwares $action github <SOFTWARE>"; return 2; }
             software_github_action "$action" "$software"
             ;;
+        install:flatpak|remove:flatpak)
+            [[ $# -eq 3 ]] || { print_error "Usage : rid softwares $action flatpak <SOFTWARE>"; return 2; }
+            software_flatpak_action "$action" "$software"
+            ;;
+        flatpak:update)
+            [[ $# -eq 2 ]] || { print_error "Usage : rid softwares flatpak update"; return 2; }
+            software_flatpak_update_all
+            ;;
         update:github)
             if [[ $# -eq 3 ]]; then software_github_action update "$software"; elif [[ $# -eq 2 ]]; then software_github_update_all; else print_error "Usage : rid softwares update github [SOFTWARE]"; return 2; fi
             ;;
@@ -164,6 +172,7 @@ manage_softwares_action() {
             local result=0
             software_apt_update_all || result=1
             software_github_update_all || result=1
+            software_flatpak_update_all || result=1
             return "$result"
             ;;
         *)

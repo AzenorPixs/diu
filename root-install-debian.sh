@@ -40,7 +40,7 @@ esac
 
 if [[ "${1:-}" == softwares ]]; then
     case "${2:-}" in
-        install|remove|update|apt)
+        install|remove|update|apt|flatpak)
             ;;
         *)
             printf "❌ Action inconnue pour la classe 'softwares' : %s\n" "${2:-}"
@@ -68,6 +68,7 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/apt.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/github.sh"
+. "$BASH_SCRIPT_PATH/modules/softwares/flatpak.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/find.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
