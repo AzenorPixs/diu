@@ -216,6 +216,89 @@ system_apt_update() {
 
 system_update() {
     system_apt_update
+    system_flatpak_apply
+}
+
+system_flatpak_package_state() {
+    local status result
+
+    command -v dpkg-query >/dev/null 2>&1 || {
+        print_error "La commande dpkg-query est indisponible."
+        return 1
+    }
+    result=0
+    status="$(dpkg-query -W -f='${db:Status-Status}' flatpak 2>/dev/null)" || result=$?
+    if [[ "$result" -eq 0 ]]; then
+        [[ "$status" == installed ]] && printf '%s\n' installed || printf '%s\n' absent
+        return 0
+    fi
+    if [[ "$result" -eq 1 ]]; then
+        printf '%s\n' absent
+        return 0
+    fi
+    print_error "Impossible de déterminer l'état du paquet Flatpak."
+    return 1
+}
+
+system_flatpak_persist_state() {
+    local value="$1" variable_config_file="${SYSTEM_FLATPAK_CONFIG_FILE:-/root/diu/config/system.env}"
+
+    [[ "$value" =~ ^(0|1|UNSET)$ ]] || return 1
+    install -d -m 0755 "$(dirname "$variable_config_file")"
+    [[ -f "$variable_config_file" ]] && sed -i '/^export SYSTEM_FLATPAK=/d' "$variable_config_file"
+    printf 'export SYSTEM_FLATPAK=%s\n' "$value" >> "$variable_config_file"
+    export SYSTEM_FLATPAK="$value"
+}
+
+system_flatpak_ensure_installed() {
+    local state
+
+    state="$(system_flatpak_package_state)" || return 1
+    if [[ "$state" == absent ]]; then
+        apt-get install -y -- flatpak || return 1
+    fi
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+}
+
+system_flatpak_ensure_removed() {
+    local state
+
+    state="$(system_flatpak_package_state)" || return 1
+    if [[ "$state" == absent ]]; then
+        print_info "Flatpak est déjà absent."
+        return 0
+    fi
+    apt-get remove -y -- flatpak
+}
+
+system_flatpak_apply() {
+    case "${SYSTEM_FLATPAK:-UNSET}" in
+        1) system_flatpak_ensure_installed ;;
+        0) system_flatpak_ensure_removed ;;
+        UNSET) print_info "Flatpak : état non défini, aucune action." ;;
+        *) print_error "SYSTEM_FLATPAK : valeur invalide : ${SYSTEM_FLATPAK}"; return 2 ;;
+    esac
+}
+
+system_flatpak_install() {
+    system_flatpak_ensure_installed || return 1
+    system_flatpak_persist_state 1
+}
+
+system_flatpak_remove() {
+    system_flatpak_ensure_removed || return 1
+    system_flatpak_persist_state 0
+}
+
+system_flatpak_update() {
+    local state
+
+    state="$(system_flatpak_package_state)" || return 1
+    if [[ "$state" == absent ]]; then
+        print_info "Flatpak est absent : aucune mise à jour à appliquer."
+        return 0
+    fi
+    apt-get install --only-upgrade -y -- flatpak
 }
 
 system_apt_repository_variable() {
@@ -283,8 +366,16 @@ manage_system_action() {
     local action="${1:-}" repository=""
     case "$action" in
         install|remove)
+            if [[ "${2:-}" == flatpak && $# -eq 2 ]]; then
+                if [[ "$action" == install ]]; then
+                    system_flatpak_install
+                else
+                    system_flatpak_remove
+                fi
+                return
+            fi
             [[ "${2:-}" == apt && $# -eq 3 ]] || {
-                print_error "Usage : diu system ${action} apt <repository>"
+                print_error "Usage : diu system ${action} {flatpak|apt <repository>}"
                 return 2
             }
             repository="$3"
@@ -296,6 +387,10 @@ manage_system_action() {
             ;;
         update)
             shift
+            if [[ "${1:-}" == flatpak && $# -eq 1 ]]; then
+                system_flatpak_update
+                return
+            fi
             if [[ "${1:-}" == apt ]]; then
                 shift
             fi
@@ -304,8 +399,8 @@ manage_system_action() {
                     [[ $# -eq 1 ]] || { print_error "Usage : diu system update apt"; return 2; }
                     system_apt_update
                     ;;
-                '') system_apt_update ;;
-                *) print_error "Usage : diu system update apt [debian]"; return 2 ;;
+                '') system_update ;;
+                *) print_error "Usage : diu system update {flatpak|apt [debian]}"; return 2 ;;
             esac
             ;;
         apt)
@@ -314,6 +409,6 @@ manage_system_action() {
             system_apt_update
             ;;
         '') system_update ;;
-        *) print_error "Usage : diu system {install|remove} apt <repository> | update [apt [debian]]"; return 2 ;;
+        *) print_error "Usage : diu system {install|remove} {flatpak|apt <repository>} | update [flatpak|apt [debian]]"; return 2 ;;
     esac
 }
