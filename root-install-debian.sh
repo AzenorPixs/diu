@@ -37,6 +37,9 @@ if [[ "${2:-}" == help || "${2:-}" == "?" ]]; then
             printf '%s\n' \
                 'rid system install apt <Dépôt> → Installe un dépôt APT.' \
                 'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
+                'rid system install flatpak     → Installe Flatpak et Flathub.' \
+                'rid system remove flatpak      → Désinstalle le paquet Flatpak.' \
+                'rid system update flatpak      → Met à jour le paquet Flatpak.' \
                 'rid system update              → Met à jour le module système du DIU.' \
                 'rid system update apt          → Régénère tous les dépôts APT.' \
                 'rid system apt update          → Mise à jour du systeme APT Debian.'
@@ -162,6 +165,18 @@ if [[ "${1:-}" == projects && "${2:-}" == docker && "${3:-}" == build && "${4:-}
 fi
 
 if [[ "${!#}" == help || "${!#}" == "?" ]]; then
+    if [[ "${1:-}" == system && ( "${2:-}" == install || "${2:-}" == remove ) && "${3:-}" == flatpak ]]; then
+        if [[ "${2}" == install ]]; then
+            printf '%s\n' 'rid system install flatpak → Installe le paquet Debian Flatpak et configure Flathub.'
+        else
+            printf '%s\n' 'rid system remove flatpak → Supprime le paquet Debian Flatpak.'
+        fi
+        exit 0
+    fi
+    if [[ "${1:-}" == system && "${2:-}" == update && "${3:-}" == flatpak ]]; then
+        printf '%s\n' 'rid system update flatpak → Met à jour uniquement le paquet Debian Flatpak.'
+        exit 0
+    fi
     if [[ "${1:-}" == system && ( "${2:-}" == install || "${2:-}" == remove ) && "${3:-}" == apt ]]; then
         operation="${2}"
         verb="$([[ "$operation" == install ]] && printf 'Installe' || printf 'Supprime')"
@@ -205,8 +220,9 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             printf '%s\n' 'rid projects create <PROJET> → Crée un projet.' 'rid projects del <PROJET> → Supprime un projet.' 'rid projects docker → Gestion Docker des projets.' 'rid projects finds <PROJET> → Recherche les conflits.' 'rid projects findads <PROJET> → Supprime les conflits.' 'rid projects gita <PROJET> → Analyse Git.' 'rid projects gitc <PROJET> [COMMIT] → Commite le projet.' 'rid projects giti <PROJET> → Initialise Git.' 'rid projects gitic <PROJET> → Clone le dépôt.' 'rid projects gitpdiu → Publie le paquet DIU.' 'rid projects forgejo release <PROJET> → Publie l’image et/ou le paquet vers Forgejo.' 'rid projects gits <PROJET> → Affiche le statut Git.' 'rid projects gitu <PROJET> → Met à jour les variables.' 'rid projects ocro <PROJET> → Lance OpenCode RO.' 'rid projects ocrw <PROJET> → Lance OpenCode RW.' 'rid projects ocsh → Lance le shell OpenCode.' 'rid projects deb → Construit le paquet DIU.' 'rid projects cicddiu → Lance le CI/CD DIU.' 'rid projects cicddr <PROJET> → Lance le CI/CD projet.'
             ;;
         system:install|system:remove)
-            printf 'rid system %s apt <Dépôt> → %s un dépôt APT.\n' \
-                "${2}" "$([[ "${2}" == install ]] && printf 'Installe' || printf 'Supprime')"
+            printf '%s\n' \
+                "rid system ${2} flatpak → $([[ "${2}" == install ]] && printf 'Installe Flatpak et configure Flathub' || printf 'Supprime le paquet Flatpak')." \
+                "rid system ${2} apt <Dépôt> → $([[ "${2}" == install ]] && printf 'Installe' || printf 'Supprime') un dépôt APT."
             ;;
         system:apt)
             printf '%s\n' 'rid system apt update → Mise à jour du systeme APT Debian.'
@@ -231,6 +247,7 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
             ;;
         system:update)
             printf '%s\n' \
+                'rid system update flatpak → Met à jour uniquement le paquet Debian Flatpak.' \
                 'rid system update apt → Met à jour APT.' \
                 'rid system update apt debian → Met à jour les paquets Debian.'
             ;;
@@ -537,13 +554,17 @@ EOF
             printf '%s\n' \
                 'rid system install apt <Dépôt> → Installe un dépôt APT.' \
                 'rid system remove apt <Dépôt>  → Supprime un dépôt APT.' \
+                'rid system install flatpak     → Installe Flatpak et Flathub.' \
+                'rid system remove flatpak      → Désinstalle le paquet Flatpak.' \
+                'rid system update flatpak      → Met à jour le paquet Flatpak.' \
                 'rid system update              → Met à jour le module système du DIU.' \
                 'rid system update apt          → Régénère tous les dépôts APT.' \
                 'rid system apt update          → Mise à jour du systeme APT Debian.'
             ;;
         system:install:|system:remove:)
-            printf 'rid system %s apt <repository> → %s un dépôt APT.\n' \
-                "$subcontext" "$([[ "$subcontext" == install ]] && printf 'Installe' || printf 'Supprime')"
+            printf '%s\n' \
+                "rid system ${subcontext} flatpak → $([[ "$subcontext" == install ]] && printf 'Installe Flatpak et configure Flathub' || printf 'Supprime le paquet Flatpak')." \
+                "rid system ${subcontext} apt <repository> → $([[ "$subcontext" == install ]] && printf 'Installe' || printf 'Supprime') un dépôt APT."
             ;;
         system:install:apt|system:remove:apt)
             local operation="$subcontext"
@@ -561,6 +582,7 @@ EOF
             ;;
         system:update:)
             printf '%s\n' \
+                'rid system update flatpak  → Met à jour le paquet Debian Flatpak.' \
                 'rid system update apt      → Met à jour APT.' \
                 'rid system update apt debian → Met à jour les paquets Debian.'
             ;;
@@ -2468,14 +2490,6 @@ EOF
 	apt autopurge -y
 	apt autoremove -y
 	echo ""
-
-	if dpkg -s flatpak &>/dev/null
-	then
-
-		echo "🔧 UPDATE FLATPAK"
-		flatpak update -y
-
-	fi
 
 fi
 
@@ -4412,22 +4426,6 @@ EOF
 		echo "🔧 INSTALL GEANY"
 		apt install geany geany-plugin-addons -y
 
-	fi
-
-	if dpkg -s flatpak &>/dev/null
-	then
-		echo "FLATPAK IS OK ✅"
-		if flatpak info com.github.dail8859.NotepadNext &>/dev/null
-		then
-			echo "NOTEPADNEXT IS OK ✅"
-		else
-			echo "🔧 INSTALL NOTEPADNEXT"
-			flatpak install flathub com.github.dail8859.NotepadNext -y
-		fi
-	else
-		echo "🔧 INSTALL FLATPAK"
-		apt install flatpak -y
-		flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 	fi
 
 	if command -v guake >/dev/null 2>&1; then
