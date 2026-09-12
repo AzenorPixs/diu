@@ -1,5 +1,7 @@
 # AGENTS.md — DIU
 
+Version : 0.2
+
 ## 1. Contexte
 
 * Projet : `DIU` ;
@@ -181,6 +183,11 @@ Toute modification de la configuration OpenCode nécessite une validation explic
 ## 8. Arborescence et fichiers
 
 L'agent DOIT préserver l'arborescence et les conventions existantes.
+
+Toute référence à un prompt renvoie automatiquement au dossier `PROMPTS/` du
+projet. Ce dossier et son contenu ne sont pas versionnés et sont protégés :
+leur création, modification, déplacement ou suppression nécessite une
+validation explicite du développeur.
 
 Le renommage, déplacement ou la suppression d'un fichier ou répertoire nécessite une validation explicite du développeur.
 

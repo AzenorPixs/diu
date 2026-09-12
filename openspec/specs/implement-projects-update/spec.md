@@ -1,8 +1,14 @@
-## ADDED Requirements
+# Mise à jour de la configuration générale des projets
+
+## Purpose
+
+Définir la mise à jour des variables générales d'un projet DIU.
+
+## Requirements
 
 ### Requirement: mise à jour des variables générales d'un projet
 
-Le système DOIT exposer `rid projects update <ID PROJECT>` et la fonction
+Le système MUST exposer `rid projects update <ID PROJECT>` et la fonction
 `update_projects()`.
 
 La fonction DOIT gérer les variables `PROJECT_ID`, `PROJECT_NAME`,
@@ -30,7 +36,7 @@ La fonction DOIT gérer les variables `PROJECT_ID`, `PROJECT_NAME`,
 
 ### Requirement: aide des commandes projects
 
-`rid projects help` DOIT afficher toutes les sous-commandes de premier niveau
+`rid projects help` MUST afficher toutes les sous-commandes de premier niveau
 de `projects` avec leur description, notamment `update` et `git`.
 
 #### Scenario: aide générale des projets

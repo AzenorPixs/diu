@@ -1,25 +1,38 @@
 # Configuration différentielle GitLab des projets DIU
 
-## Exigence : séparation des configurations
+## Purpose
 
-La configuration générale d'un projet et sa configuration GitLab DOIVENT être traitées par deux fonctions distinctes.
+Définir la séparation entre les configurations générale et GitLab d'un projet.
 
-La fonction générique `git_update()` DOIT rester responsable des variables générales du projet et des variables Forgejo existantes. La fonction `gitlab_update()` DOIT être limitée aux variables `REMOTE_GITLAB_*`.
+## Requirements
 
-## Exigence : validation préalable de la configuration générale
+### Requirement: séparation des configurations
 
-Avant de compléter GitLab, `gitlab_update()` DOIT vérifier la présence et la conformité de `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` et `PROJECT_DOCKERED` dans `project.env`.
+La configuration générale d'un projet et sa configuration GitLab MUST être traitées par deux fonctions distinctes.
 
-### Scénario : configuration générale absente ou incomplète
+La fonction générique `git_update()` MUST rester responsable des variables générales du projet et des variables Forgejo existantes. La fonction `gitlab_update()` MUST être limitée aux variables `REMOTE_GITLAB_*`.
+
+#### Scenario: responsabilités séparées
+
+- ÉTANT DONNÉ qu'une mise à jour de configuration est demandée
+- QUAND la configuration GitLab est traitée
+- ALORS `gitlab_update()` ne modifie que les variables `REMOTE_GITLAB_*`
+- ET `git_update()` conserve sa responsabilité sur les autres variables définies
+
+### Requirement: validation préalable de la configuration générale
+
+Avant de compléter GitLab, `gitlab_update()` MUST vérifier la présence et la conformité de `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` et `PROJECT_DOCKERED` dans `project.env`.
+
+#### Scenario: configuration générale absente ou incomplète
 
 - ÉTANT DONNÉ que `project.env` est absent ou qu'une variable générale essentielle est absente
 - QUAND `rid projects gitlab push <ID PROJECT>` est exécuté
 - ALORS `gitlab_update()` appelle `git_update()` pour compléter la configuration générale
 - ET la configuration GitLab n'est traitée qu'après cette complétion
 
-## Exigence : complément GitLab ciblé
+### Requirement: complément GitLab ciblé
 
-`gitlab_update()` DOIT demander et enregistrer uniquement les variables suivantes :
+`gitlab_update()` MUST demander et enregistrer uniquement les variables suivantes :
 
 ```bash
 REMOTE_GITLAB_BASE_URL=
@@ -31,7 +44,7 @@ REMOTE_GITLAB_BRANCH="main"
 
 La fonction DOIT préserver toutes les autres lignes de `project.env`, notamment les variables générales et Forgejo.
 
-### Scénario : configuration GitLab absente
+#### Scenario: configuration GitLab absente
 
 - ÉTANT DONNÉ que la configuration générale est conforme
 - ET que les variables GitLab sont absentes ou incomplètes
@@ -39,6 +52,13 @@ La fonction DOIT préserver toutes les autres lignes de `project.env`, notamment
 - ALORS seules les valeurs GitLab manquantes sont demandées avec leurs valeurs par défaut
 - ET les variables GitLab sont ajoutées ou remplacées sans réécrire le reste de `project.env`
 
-## Exigence : contrôle avant publication
+### Requirement: contrôle avant publication
 
-Après `gitlab_update()`, la commande GitLab DOIT recharger `project.env`, revérifier les variables générales essentielles, puis vérifier la complétude des variables `REMOTE_GITLAB_*` avant tout push.
+Après `gitlab_update()`, la commande GitLab MUST recharger `project.env`, revérifier les variables générales essentielles, puis vérifier la complétude des variables `REMOTE_GITLAB_*` avant tout push.
+
+#### Scenario: contrôle avant push GitLab
+
+- ÉTANT DONNÉ que `gitlab_update()` vient de terminer
+- QUAND un push GitLab est sur le point de démarrer
+- ALORS `project.env` est rechargé et les variables requises sont vérifiées
+- ET aucun push ne commence si la configuration est incomplète

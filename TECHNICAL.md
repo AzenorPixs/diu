@@ -120,7 +120,7 @@ publie les artefacts activés par `PROJECT_DOCKERED` et
 
 Le dépôt reste en transition vers cette architecture. Une partie importante
 des fonctions historiques est encore présente dans `root-install-debian.sh`.
-Les répertoires `modules/desktop/` et `modules/environment/` existent dans
+Les répertoires `modules/desktop/` et `modules/environments/` existent dans
 l'arborescence, mais ne fournissent pas actuellement de module spécialisé
 chargé par le bootstrap principal. L'architecture cible décrite dans
 `PROJECT.md` ne doit pas être interprétée comme l'existence d'implémentations

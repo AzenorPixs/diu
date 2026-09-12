@@ -9,7 +9,7 @@ dans la hiérarchie de commandes `projects docker`.
 
 ### Requirement: fonction de construction Docker
 
-Le module `projects` DOIT exposer la fonction `projects_docker_build` pour
+Le module `projects` MUST exposer la fonction `projects_docker_build` pour
 construire l'image Docker d'un projet. Le code actif NE DOIT plus exposer ni
 appeler `proj_docker_build`.
 
@@ -22,7 +22,7 @@ appeler `proj_docker_build`.
 
 ### Requirement: commande Docker du projet
 
-Le système DOIT accepter la commande
+Le système MUST accepter la commande
 `rid projects docker build <ID PROJECT>` pour construire l'image Docker du
 projet identifié.
 
@@ -41,7 +41,7 @@ projet identifié.
 
 ### Requirement: activation Docker du projet
 
-`projects_docker_build` DOIT charger `project.env` puis vérifier en premier
+`projects_docker_build` MUST charger `project.env` puis vérifier en premier
 parmi les contrôles de construction que `PROJECT_DOCKERED` vaut exactement
 `Yes`, `YES` ou `1`. Toute autre valeur, y compris une valeur absente, DOIT
 arrêter la fonction avec un code non nul avant la vérification du Dockerfile,
@@ -62,7 +62,7 @@ de `entrypoint.sh` ou l'appel à Docker.
 
 ### Requirement: fichiers requis pour la construction
 
-Après la validation de `PROJECT_DOCKERED`, la fonction DOIT vérifier la
+Après la validation de `PROJECT_DOCKERED`, la fonction MUST vérifier la
 présence du Dockerfile configuré et de `entrypoint.sh` à la racine du projet.
 Un fichier absent DOIT provoquer un échec explicite avant `docker build`.
 
@@ -76,7 +76,7 @@ Un fichier absent DOIT provoquer un échec explicite avant `docker build`.
 
 ### Requirement: aides des commandes
 
-Les aides DOIVENT décrire la nouvelle hiérarchie sans présenter `dockerb` :
+Les aides MUST décrire la nouvelle hiérarchie sans présenter `dockerb` :
 
 - `rid projects help` DOIT présenter `rid projects docker` et sa description ;
 - `rid projects docker help` DOIT présenter `rid projects docker build <ID PROJECT>`
