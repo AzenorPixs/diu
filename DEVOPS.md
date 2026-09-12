@@ -1,27 +1,29 @@
-# DEVOPS.md — DIU
+# DEVOPS.md — Debian Installer Unified
 
 Version : 0.1
 
 
-# Debian Version
+# Système d'exploitation
 
 ## Environnement conteneurisé
 
-  * 13
+  * Alpine Linux v3.24
 
 ## Environnement non conteneurisé
 
-  * 13
+  * Debian Linux v13
 
 
 # Go
 
 ## Environnement conteneurisé
 
+  * 1.27.1
   * /opt/devops/go
 
 ## Environnement non conteneurisé
 
+  * 1.27.1
   * /home/devops/go/current 
 
 
@@ -29,30 +31,47 @@ Version : 0.1
 
 ## Environnement conteneurisé
 
+  * 24.21.0
   * /opt/devops/node
 
 ## Environnement non conteneurisé
 
+  * 24.21.0
   * /home/devops/node/current
 
 
-# NPM
+# OpenSpec
 
 ## Environnement conteneurisé
 
-  * /opt/devops/npm
+  * v1.13
+  * /opt/devops/npm/bin/openspec
 
 ## Environnement non conteneurisé
 
-  * /home/devops/.local/npm
+  * v1.13
+  * /home/devops/.local/npm/bin/openspec
+  
+
+# PostgreSQL
+
+## Environnement conteneurisé
+
+  * v16
+
+## Environnement non conteneurisé
+
+  * v16 
 
 
 # Python
 
 ## Environnement conteneurisé
 
+  * v3.14.7
   * /opt/devops/python
 
 ## Environnement non conteneurisé
 
-  * /home/devops/python/current 
+  * v3.14.7
+  * /home/devops/python/current
