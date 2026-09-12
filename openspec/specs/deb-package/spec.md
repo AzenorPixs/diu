@@ -1,3 +1,5 @@
+# Paquet Debian du DIU
+
 ## Purpose
 
 Construire un paquet Debian de production contenant les fichiers nécessaires au
@@ -50,7 +52,6 @@ du DIU. Le contenu est défini par une liste blanche.
 Les éléments inclus dans le paquet sont :
 
 - `root-install-debian.sh`
-- `config/` (si présent et nécessaire à la production)
 - `lib/` (ensemble des fichiers)
 - `modules/` (ensemble des fichiers)
 
@@ -69,6 +70,7 @@ THEN les éléments suivants ne sont pas inclus dans le paquet :
 - `.git/`
 - `.opencode/`
 - `openspec/`
+- `config/`
 - les caches, journaux, secrets et fichiers temporaires
 - `variables.sh`
 
@@ -134,7 +136,7 @@ AND le nouveau paquet n'est publié dans `dist/` qu'après succès de
 
 ### Requirement: Rôle du répertoire deb/
 
-Le répertoire `deb/` est un répertoire runtime servant de cache aux paquets
+Le répertoire `deb/` SHALL être un répertoire runtime servant de cache aux paquets
 Debian externes téléchargés et consommés par le DIU. Il est recréable et ne
 constitue pas un élément de distribution du DIU.
 

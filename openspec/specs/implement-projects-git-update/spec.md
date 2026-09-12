@@ -1,8 +1,14 @@
-## ADDED Requirements
+# Mise à jour de la configuration Git locale des projets
+
+## Purpose
+
+Définir la mise à jour de la configuration Git locale des projets DIU.
+
+## Requirements
 
 ### Requirement: mise à jour du dépôt Git local
 
-Le système DOIT exposer `rid projects git update <ID PROJECT>` et la fonction
+Le système MUST exposer `rid projects git update <ID PROJECT>` et la fonction
 `git_update()` en mode local.
 
 La fonction DOIT gérer `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et
@@ -28,7 +34,7 @@ La fonction DOIT gérer `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et
 ### Requirement: compatibilité des appels existants
 
 Les modes historiques nécessaires aux opérations de clonage et de configuration
-GitLab DOIVENT rester disponibles, sans supprimer les mises à jour distantes
+GitLab MUST rester disponibles, sans supprimer les mises à jour distantes
 déjà prises en charge par leurs fonctions dédiées.
 
 #### Scenario: appel historique avec mode explicite
