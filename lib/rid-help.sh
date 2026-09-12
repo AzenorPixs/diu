@@ -29,10 +29,14 @@ rid_display_help_context() {
             rid_help_line 'rid softwares install github <SOFTWARE>' 'Installe depuis une release GitHub.'
             rid_help_line 'rid softwares remove github <SOFTWARE>' 'Désinstalle un logiciel GitHub.'
             rid_help_line 'rid softwares update github [SOFTWARE]' 'Met à jour un ou tous les logiciels GitHub.'
+            rid_help_line 'rid softwares install flatpak <SOFTWARE>' 'Installe un logiciel Flatpak.'
+            rid_help_line 'rid softwares remove flatpak <SOFTWARE>' 'Désinstalle un logiciel Flatpak.'
+            rid_help_line 'rid softwares flatpak update' 'Met à jour les paquets installés avec Flatpak.'
             ;;
         softwares:install:|softwares:remove:)
             rid_help_line "rid softwares ${subcontext} apt <SOFTWARE>" 'Opération sur un logiciel APT.'
             rid_help_line "rid softwares ${subcontext} github <SOFTWARE>" 'Opération sur un logiciel GitHub.'
+            rid_help_line "rid softwares ${subcontext} flatpak <SOFTWARE>" 'Opération sur un logiciel Flatpak.'
             ;;
         softwares:update:)
             rid_help_line 'rid softwares update apt [SOFTWARE]' 'Met à jour les logiciels APT.'
@@ -41,7 +45,13 @@ rid_display_help_context() {
         softwares:apt:update)
             rid_help_line 'rid softwares apt update' 'Met à jour les paquets installés avec APT.'
             ;;
-        softwares:install:apt|softwares:remove:apt|softwares:install:github|softwares:remove:github|softwares:update:apt|softwares:update:github)
+        softwares:flatpak:)
+            rid_help_line 'rid softwares flatpak update' 'Met à jour les paquets installés avec Flatpak.'
+            ;;
+        softwares:flatpak:update)
+            rid_help_line 'rid softwares flatpak update' 'Met à jour les paquets installés avec Flatpak.'
+            ;;
+        softwares:install:apt|softwares:remove:apt|softwares:install:github|softwares:remove:github|softwares:update:apt|softwares:update:github|softwares:install:flatpak|softwares:remove:flatpak)
             rid_help_line "rid softwares ${subcontext} ${leaf} <SOFTWARE>" "Exécute l'opération demandée sur le logiciel."
             ;;
         system::)
@@ -178,7 +188,7 @@ rid_display_command_error() {
 
     if [[ -z "$subcontext" ]]; then
         case "$context:${action:-}" in
-            docker:root|docker:rootless|ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall|system:install|system:remove|system:update|system:apt|softwares:install|softwares:remove|softwares:update|softwares:apt|projects:docker|projects:git|projects:gitlab|projects:github|projects:forgejo)
+            docker:root|docker:rootless|ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall|system:install|system:remove|system:update|system:apt|softwares:install|softwares:remove|softwares:update|softwares:apt|softwares:flatpak|projects:docker|projects:git|projects:gitlab|projects:github|projects:forgejo)
                 subcontext="$action"
                 ;;
         esac

@@ -29,6 +29,12 @@ class RidHelpTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid softwares install apt <SOFTWARE>', result.stdout)
         self.assertIn('rid softwares update github [SOFTWARE]', result.stdout)
+        self.assertIn('rid softwares flatpak update', result.stdout)
+
+    def test_flatpak_help_is_available_without_configuration(self):
+        result = self.run_rid('softwares', 'flatpak', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid softwares flatpak update', result.stdout)
 
     def test_terminal_help_does_not_publish(self):
         result = self.run_rid('projects', 'github', 'push', 'help')

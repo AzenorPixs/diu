@@ -25,6 +25,16 @@ update_all() {
     if declare -F software_github_update_all >/dev/null 2>&1; then
         if (set -Eeuo pipefail; software_github_update_all); then print_success "softwares/github : terminé."; else print_error "softwares/github : échec."; result=1; fi
     fi
+    if declare -F software_flatpak_update_all >/dev/null 2>&1; then
+        if (set -Eeuo pipefail; software_flatpak_update_all); then
+            print_success "softwares/flatpak : terminé."
+        else
+            print_error "softwares/flatpak : échec."
+            result=1
+        fi
+    else
+        print_info "softwares/flatpak : non chargé dans ce contexte."
+    fi
     for module in desktop environment projects system; do
         print_info "$module : aucune sous-fonction de mise à jour prise en charge."
     done
