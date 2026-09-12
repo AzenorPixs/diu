@@ -823,7 +823,7 @@ launch_ocrw() {
       -v /home/devops/datas/cab/src:/opt/tools/cab:ro \
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       -v /home/devops/go/versions/go1.27.1:/opt/devops/go:ro \
-      -v /home/devops/node/versions/node-v24.21.0 :/opt/devops/node:ro \
+      -v /home/devops/node/versions/node-v24.21.0:/opt/devops/node:ro \
       -v /home/devops/python/3.14.7:/opt/devops/python:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
