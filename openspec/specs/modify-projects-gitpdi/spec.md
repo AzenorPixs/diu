@@ -127,6 +127,14 @@ ni publication Debian ne doit être effectuée.
 La fonction MUST échouer explicitement lorsqu'aucun des indicateurs
 `PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` n'est activé.
 
+#### Scenario: aucun artefact activé
+
+- ÉTANT DONNÉ que `PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` ne sont pas
+  activés
+- QUAND une release Forgejo est demandée
+- ALORS la commande échoue explicitement
+- ET aucune publication n'est exécutée
+
 ### Requirement: aides CLI
 
 `rid projects help` MUST présenter la sous-commande `forgejo` et sa release.

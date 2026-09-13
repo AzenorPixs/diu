@@ -234,8 +234,7 @@ arbitraire depuis l'entrée utilisateur, et SHALL propager les erreurs.
 ### Requirement: Mise à jour globale APT
 
 `rid softwares apt update` SHALL mettre à jour tous les paquets installés avec
-APT. Elle SHALL être exécutée par `rid softwares update` et `rid update`.
-Elle SHALL NOT rejouer les fonctions granulaires `install`, `remove` ou
+APT. Elle SHALL NOT rejouer les fonctions granulaires `install`, `remove` ou
 `update` propres aux logiciels.
 
 #### Scenario: Mise à jour globale
@@ -363,22 +362,16 @@ logiciels absents ou non déclarés SHALL être ignorés sans installation.
 - **THEN** DIU ne rejoue pas sa mise à jour sélective
 - **AND** DIU ne l'installe pas
 
-### Requirement: Intégration aux mises à jour globales
+### Requirement: Dispatch de la mise à jour du module softwares
 
-`rid softwares update` SHALL appeler la même séquence que `rid softwares update
-apt`. `rid update` SHALL inclure cette séquence une seule fois pour le module
-`softwares`.
+`rid softwares update` SHALL lancer les mises à jour des sous-modules
+`softwares` disponibles. Les comportements, prérequis, erreurs et validations
+de chaque sous-module restent définis par leurs spécifications respectives.
 
 #### Scenario: Mise à jour du module softwares
 
 - **WHEN** l'utilisateur invoque `rid softwares update`
-- **THEN** DIU exécute la mise à jour APT puis les mises à jour sélectives
-
-#### Scenario: Mise à jour de tous les modules
-
-- **WHEN** l'utilisateur invoque `rid update`
-- **THEN** DIU exécute la séquence `softwares` après la phase APT
-- **AND** aucune mise à jour sélective n'est rejouée une seconde fois
+- **THEN** DIU lance les mises à jour de ses sous-modules disponibles
 
 ### Requirement: Moteur GitHub pour les logiciels
 
@@ -433,10 +426,10 @@ SHALL not install an absent software.
 - **WHEN** the local version matches or is newer than the latest release
 - **THEN** DIU reports that no update is available without reinstalling
 
-### Requirement: Mise à jour globale des logiciels GitHub
+### Requirement: Mise à jour du sous-module GitHub
 
-`rid softwares update github`, `rid softwares update` and `rid update` SHALL
-process only installed and recognized GitHub software recipes. They SHALL
+`rid softwares update github` SHALL traiter uniquement les recettes GitHub
+reconnues et installées. La commande SHALL
 continue independent recipes after an individual failure and SHALL return a
 non-zero result when at least one recipe fails.
 
@@ -577,6 +570,13 @@ La recette APT de ChatGPT SHALL gérer uniquement le paquet et son dépôt. Elle
 SHALL NOT modifier `/usr/share/applications/chatgpt.desktop` ni utiliser ou
 persister `SOFTWARES_APT_CHATGPT_HOME`. Cette exigence remplace les exigences
 antérieures de personnalisation desktop et de gestion de cette variable.
+
+#### Scenario: Installation sans personnalisation desktop
+
+- **WHEN** `rid softwares install apt chatgpt` réussit
+- **THEN** DIU gère le paquet et son dépôt sans modifier
+  `/usr/share/applications/chatgpt.desktop`
+- **AND** DIU n'utilise ni ne persiste `SOFTWARES_APT_CHATGPT_HOME`
 
 ### Requirement: Cohérence persistée de l'état Codex CLI
 

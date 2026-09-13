@@ -2,6 +2,10 @@
 
 # Gestions des projets géré par le DIU
 
+projects_update() {
+    return 0
+}
+
 # Met à jour des affectations ciblées sans réécrire les autres variables.
 project_env_set_variables() {
     local project_env="${1:-}"

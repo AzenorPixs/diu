@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-13
+goal: Remplacer rid projects gitc par rid projects git commit et aligner l’aide
+  contextuelle.

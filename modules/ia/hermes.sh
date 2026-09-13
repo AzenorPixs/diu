@@ -1031,6 +1031,16 @@ update_agent_hermes() {
     return 0
 }
 
+ia_update() {
+    local hermes_directory=""
+
+    [[ -n "${ENV_IA_USER:-}" ]] || return 0
+
+    hermes_directory="$(_hermes_dir)" || return 1
+    [[ -f "$hermes_directory/compose.yml" ]] || return 0
+
+    update_agent_hermes
+}
 
 # ==========================================================
 # UNINSTALL

@@ -41,6 +41,44 @@ class RidHelpTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid projects github push <ID PROJECT>', result.stdout)
 
+    def test_projects_help_uses_canonical_git_init_command(self):
+        result = self.run_rid('projects', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects git analyse <ID PROJECTS>', result.stdout)
+        self.assertNotIn('rid projects gita <ID PROJECT>', result.stdout)
+        self.assertIn('rid projects git commit <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertNotIn('rid projects gitc <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertIn('rid projects git init <ID PROJECT>', result.stdout)
+        self.assertNotIn('rid projects giti <ID PROJECT>', result.stdout)
+        self.assertIn('rid projects git status <ID PROJECTS>', result.stdout)
+        self.assertNotIn('rid projects gits <ID PROJECTS>', result.stdout)
+        self.assertIn('rid projects git update <ID PROJECT>', result.stdout)
+        self.assertNotIn('rid projects gitu <ID PROJECT>', result.stdout)
+
+    def test_projects_git_help_lists_analyse_init_and_update(self):
+        result = self.run_rid('projects', 'git', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects git analyse <ID PROJECTS>', result.stdout)
+        self.assertIn('rid projects git init <ID PROJECT>', result.stdout)
+        self.assertIn('rid projects git status <ID PROJECTS>', result.stdout)
+        self.assertIn('rid projects git update <ID PROJECT>', result.stdout)
+
+    def test_projects_git_help_lists_commit_command(self):
+        result = self.run_rid('projects', 'git', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects git commit <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertNotIn('rid projects gitc <ID PROJECT> [COMMIT]', result.stdout)
+
+    def test_projects_git_commit_help_describes_canonical_command(self):
+        result = self.run_rid('projects', 'git', 'commit', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects git commit <ID PROJECT> [COMMIT]', result.stdout)
+
+    def test_projects_git_status_help_describes_canonical_command(self):
+        result = self.run_rid('projects', 'git', 'status', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects git status <ID PROJECTS>', result.stdout)
+
     def test_unknown_root_command_suggests_root_help(self):
         result = self.run_rid('inconnue')
         self.assertEqual(result.returncode, 2)

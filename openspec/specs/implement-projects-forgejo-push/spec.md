@@ -54,8 +54,16 @@ REMOTE_FORGEJO_SSL_VERIFY="No"
 
 ### Requirement: identifiants Forgejo
 
-Le système MUST initialiser et utiliser `config/forgejo.username` et
-`config/forgejo.token` selon le parcours sécurisé Forgejo existant.
+Le système MUST utiliser `config/forgejo.username` et
+`config/forgejo.token` selon le parcours sécurisé Forgejo existant. Lorsque
+l'un de ces fichiers est absent, `forgejo_push()` MUST déléguer leur création
+à la fonction dédiée `forgejo_credentials_setup()` avant d'appeler
+`forgejo-auth`.
+
+`forgejo_credentials_setup()` MUST demander une confirmation explicite avant
+toute écriture, puis demander les informations nécessaires de manière
+interactive. `forgejo-auth` reste strict : il ne crée aucun identifiant et
+retourne une erreur lorsque les identifiants attendus sont absents ou invalides.
 
 Les deux fichiers DOIVENT avoir les permissions `600`, ne DOIVENT jamais être
 affichés dans les journaux et le token DOIT être transmis à Git uniquement par
@@ -65,9 +73,19 @@ affichés dans les journaux et le token DOIT être transmis à Git uniquement pa
 
 - ÉTANT DONNÉ que les identifiants Forgejo n'existent pas
 - QUAND un premier push Forgejo est demandé
-- ALORS le parcours d'initialisation Forgejo demande les informations requises
+- ALORS `forgejo_push()` appelle `forgejo_credentials_setup()`
+- ET la fonction demande la confirmation de l'utilisateur
+- ET le parcours d'initialisation demande les informations requises après confirmation
 - ET les fichiers d'identifiants sont créés avec les permissions `600`
 - ET le push n'est tenté qu'après validation des identifiants
+
+#### Scenario: initialisation des identifiants refusée
+
+- ÉTANT DONNÉ que les identifiants Forgejo n'existent pas
+- QUAND `forgejo_credentials_setup()` est refusée par l'utilisateur
+- ALORS aucun fichier d'identifiant n'est créé
+- ET `forgejo-auth` n'est pas appelé
+- ET aucun push n'est tenté
 
 #### Scenario: identifiants invalides
 

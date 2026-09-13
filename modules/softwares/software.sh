@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 # Les moteurs tiers seront ajoutés lorsque leurs recettes seront disponibles.
+softwares_update() {
+    manage_softwares_action update
+}
+
 manage_software_action() {
     local action="${1:-}" engine="${2:-}" software="${3:-}"
     if [[ $# -lt 2 || $# -gt 3 ]] ||

@@ -50,18 +50,13 @@ installation de paquet absent.
 - **THEN** ils sont installés dans l'ordre alphabétique et chaque paquet
   concerné est annoncé
 
-### Requirement: Ordre dans les mises à jour
+### Requirement: Ordre dans le sous-module des prérequis
 
 La fonction SHALL être appelée après la mise à jour des dépôts APT officiels et
-non officiels dans `rid update` et `rid system update`.
+non officiels par le sous-module qui gère les prérequis système.
 
-#### Scenario: Mise à jour système
+#### Scenario: Préparation des prérequis
 
-- **WHEN** `rid system update` est exécuté
+- **WHEN** le sous-module des prérequis système est exécuté
 - **THEN** les index et la transaction APT sont terminés avant l'installation
   des prérequis
-
-#### Scenario: Mise à jour universelle
-
-- **WHEN** `rid update` est exécuté
-- **THEN** l'installation des prérequis intervient après l'actualisation APT

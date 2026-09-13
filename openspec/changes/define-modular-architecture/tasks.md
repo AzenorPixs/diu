@@ -1,18 +1,19 @@
 # Tasks: Définir l'architecture cible modulaire du DIU
 
-## Tâche 1 : Valider l'architecture cible
+- [ ] **Tâche 1 : Valider l'architecture cible**
 
 Présenter l'architecture cible au développeur pour validation.
 
-- Vérifier que la structure de répertoires est conforme à la décision du développeur
+- Vérifier que les rôles de l'arborescence sont conformes à la décision du développeur
 - Vérifier que le rôle de `lib/` et `modules/` est clairement défini
 - Vérifier que les contraintes sont documentées
 
 **Livrable :** Architecture cible validée
 
-## Tâche 2 : Créer la spécification OpenSpec
+- [ ] **Tâche 2 : Créer la spécification OpenSpec**
 
-Créer la spécification `openspec/specs/modular-architecture/spec.md` formalisant :
+Compléter la spécification delta du changement, puis la synchroniser vers
+`openspec/specs/modular-architecture/spec.md` lors de l'archivage, en formalisant :
 
 - L'architecture cible complète
 - Le rôle de `lib/` et `modules/`
@@ -22,9 +23,9 @@ Créer la spécification `openspec/specs/modular-architecture/spec.md` formalisa
 - Le maintien de `variables.sh` à la racine
 - Le principe de changements limités et validés
 
-**Livrable :** Spécification créée et validée
+**Livrable :** Spécification delta créée et validée
 
-## Tâche 3 : Documenter les principes de migration
+- [x] **Tâche 3 : Documenter les principes de migration**
 
 Documenter dans la spécification les principes suivants :
 
@@ -37,13 +38,13 @@ Documenter dans la spécification les principes suivants :
 
 **Livrable :** Principes de migration documentés
 
-## Tâche 4 : Vérifier la cohérence de la spécification
+- [x] **Tâche 4 : Vérifier la cohérence de la spécification**
 
 Relire la spécification pour vérifier :
 
-- L'absence de répertoire ou fichier supplémentaire non autorisé
+- L'absence d'exigence incompatible avec le cadrage technique
 - L'absence de contenu détaillé prématuré (fonctions, préfixes, phases)
-- La conformité avec l'architecture imposée par le développeur
+- La conformité des rôles d'architecture avec la décision du développeur
 - La cohérence entre les quatre artefacts du changement
 
 **Livrable :** Spécification cohérente et conforme
