@@ -1379,6 +1379,16 @@ manage_project_action() {
             project_id="${3:-}"
 
             case "${project_subaction}" in
+                clone)
+                    case "${3:-}" in
+                        help|?)
+                            display_help_context projects gitlab clone
+                            ;;
+                        *)
+                            gitlab_clone "${3:-}"
+                            ;;
+                    esac
+                    ;;
                 update)
                     gitlab_update \
                         "${project_id}"
@@ -1412,6 +1422,16 @@ manage_project_action() {
             project_id="${3:-}"
 
             case "${project_subaction}" in
+                clone)
+                    case "${3:-}" in
+                        help|?)
+                            display_help_context projects github clone
+                            ;;
+                        *)
+                            github_clone "${3:-}"
+                            ;;
+                    esac
+                    ;;
                 update)
                     github_update \
                         "${project_id}"

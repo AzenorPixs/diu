@@ -3674,6 +3674,94 @@ gitlab_push() {
     git_push_provider "${project_id}" "gitlab"
 }
 
+# Crée un projet depuis le modèle puis fusionne son dépôt GitLab distant.
+gitlab_clone() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+    local clone_root=""
+    local clone_path=""
+    local merge_path=""
+    local backup_path=""
+    local remote_url=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : gitlab_clone <ID PROJECT>"
+        return 1
+    fi
+
+    if ! create_project "${project_id}"; then
+        return 1
+    fi
+
+    if ! gitlab_update "${project_id}"; then
+        print_error "Impossible de configurer GitLab pour le projet ${project_id}."
+        return 1
+    fi
+
+    unset REMOTE_GITLAB_BASE_URL REMOTE_GITLAB_OWNER REMOTE_GITLAB_REPOSITORY \
+        REMOTE_GITLAB_BRANCH REMOTE_GITLAB_SSL_VERIFY
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_OWNER:-}" ||
+        -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
+        -z "${REMOTE_GITLAB_BRANCH:-}" ]]; then
+        print_error "La configuration GitLab est incomplète."
+        return 1
+    fi
+
+    remote_url="${REMOTE_GITLAB_BASE_URL%/}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}.git"
+    if ! clone_root="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)"; then
+        print_error "Impossible de créer le répertoire temporaire de clonage."
+        return 1
+    fi
+    clone_path="${clone_root}/repository"
+
+    if ! gitlab_git_clone "${project_path}" "${remote_url}" \
+        "${REMOTE_GITLAB_BRANCH}" "${clone_path}"; then
+        rm -rf -- "${clone_root}"
+        print_error "Échec du clonage du dépôt GitLab distant."
+        return 1
+    fi
+
+    if ! merge_path="$(mktemp -d "${DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-merge.XXXXXX")"; then
+        rm -rf -- "${clone_root}"
+        print_error "Impossible de préparer la fusion GitLab."
+        return 1
+    fi
+
+    if ! cp -a "${project_path}/." "${merge_path}/" ||
+        ! cp -a --remove-destination "${clone_path}/." "${merge_path}/" ||
+        ! find "${merge_path}" -name .git -prune -exec rm -rf -- {} + ||
+        ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${merge_path}"; then
+        rm -rf -- "${clone_root}" "${merge_path}"
+        print_error "Échec de la préparation de la fusion GitLab."
+        return 1
+    fi
+    rm -rf -- "${clone_root}"
+
+    backup_path="${DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-backup.$$"
+    if [[ -e "${backup_path}" ]] || ! mv "${project_path}" "${backup_path}"; then
+        rm -rf -- "${merge_path}"
+        print_error "Impossible de préparer le remplacement du projet."
+        return 1
+    fi
+    if ! mv "${merge_path}" "${project_path}"; then
+        if ! mv "${backup_path}" "${project_path}"; then
+            print_error "Impossible de restaurer le projet après l'échec de la fusion GitLab."
+        fi
+        rm -rf -- "${merge_path}"
+        print_error "Impossible d'installer la fusion GitLab."
+        return 1
+    fi
+    rm -rf -- "${backup_path}"
+
+    print_success "Projet GitLab cloné et fusionné : ${project_path}"
+    return 0
+}
+
 # Push vers le dépôt distant GitHub du projet <PROJECT ID>
 github_push() {
     local project_id="${1:-}"
@@ -3684,6 +3772,94 @@ github_push() {
     fi
 
     git_push_provider "${project_id}" "github"
+}
+
+# Crée un projet depuis le modèle puis fusionne son dépôt GitHub distant.
+github_clone() {
+    local project_id="${1:-}"
+    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_env="${project_path}/project.env"
+    local clone_root=""
+    local clone_path=""
+    local merge_path=""
+    local backup_path=""
+    local remote_url=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : github_clone <ID PROJECT>"
+        return 1
+    fi
+
+    if ! create_project "${project_id}"; then
+        return 1
+    fi
+
+    if ! github_update "${project_id}"; then
+        print_error "Impossible de configurer GitHub pour le projet ${project_id}."
+        return 1
+    fi
+
+    unset REMOTE_GITHUB_BASE_URL REMOTE_GITHUB_OWNER REMOTE_GITHUB_REPOSITORY \
+        REMOTE_GITHUB_BRANCH
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    if [[ -z "${REMOTE_GITHUB_BASE_URL:-}" ||
+        -z "${REMOTE_GITHUB_OWNER:-}" ||
+        -z "${REMOTE_GITHUB_REPOSITORY:-}" ||
+        -z "${REMOTE_GITHUB_BRANCH:-}" ]]; then
+        print_error "La configuration GitHub est incomplète."
+        return 1
+    fi
+
+    remote_url="${REMOTE_GITHUB_BASE_URL%/}/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}.git"
+    if ! clone_root="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)"; then
+        print_error "Impossible de créer le répertoire temporaire de clonage."
+        return 1
+    fi
+    clone_path="${clone_root}/repository"
+
+    if ! github_git_clone "${project_path}" "${remote_url}" \
+        "${REMOTE_GITHUB_BRANCH}" "${clone_path}"; then
+        rm -rf -- "${clone_root}"
+        print_error "Échec du clonage du dépôt GitHub distant."
+        return 1
+    fi
+
+    if ! merge_path="$(mktemp -d "${DEVOPS_PROJECTS_ROOT}/.${project_id}.github-merge.XXXXXX")"; then
+        rm -rf -- "${clone_root}"
+        print_error "Impossible de préparer la fusion GitHub."
+        return 1
+    fi
+
+    if ! cp -a "${project_path}/." "${merge_path}/" ||
+        ! cp -a --remove-destination "${clone_path}/." "${merge_path}/" ||
+        ! find "${merge_path}" -name .git -prune -exec rm -rf -- {} + ||
+        ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${merge_path}"; then
+        rm -rf -- "${clone_root}" "${merge_path}"
+        print_error "Échec de la préparation de la fusion GitHub."
+        return 1
+    fi
+    rm -rf -- "${clone_root}"
+
+    backup_path="${DEVOPS_PROJECTS_ROOT}/.${project_id}.github-backup.$$"
+    if [[ -e "${backup_path}" ]] || ! mv "${project_path}" "${backup_path}"; then
+        rm -rf -- "${merge_path}"
+        print_error "Impossible de préparer le remplacement du projet."
+        return 1
+    fi
+    if ! mv "${merge_path}" "${project_path}"; then
+        if ! mv "${backup_path}" "${project_path}"; then
+            print_error "Impossible de restaurer le projet après l'échec de la fusion GitHub."
+        fi
+        rm -rf -- "${merge_path}"
+        print_error "Impossible d'installer la fusion GitHub."
+        return 1
+    fi
+    rm -rf -- "${backup_path}"
+
+    print_success "Projet GitHub cloné et fusionné : ${project_path}"
+    return 0
 }
 
 # Publie vers Forgejo les artefacts activés du projet <PROJECT ID>.

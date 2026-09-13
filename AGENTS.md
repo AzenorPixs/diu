@@ -1,10 +1,10 @@
-# AGENTS.md — Debian Installer Unified
+# AGENTS.md — Debian Installeur Unifié
 
 Version : 0.3
 
 ## 1. Contexte
 
-* Projet : `Debian Installer Unified` ;
+* Projet : `Debian Installeur Unifié` ;
 * Racine pour les agents conteneurisé : `/workspace` ;
 * Racine pour les agents non conteneurisé : `/home/devops/datas/diu` ;
 * Règles de sécurité et de travails des LLM : `AGENTS.md` ;
@@ -187,7 +187,7 @@ Toute modification de la configuration OpenCode nécessite une validation explic
 
 L'agent DOIT préserver l'arborescence et les conventions existantes.
 
-Toute référence à un prompt renvoie automatiquement au dossier `PROMPTS/` du
+Toute référence à un prompt ou une session renvoie automatiquement au dossier `PROMPTS/` du
 projet, et à son INDEX.md pour la liste des prompts disponible.
 Ce dossier et son contenu ne sont pas versionnés et sont protégés :
 leur création, modification, déplacement ou suppression nécessite une

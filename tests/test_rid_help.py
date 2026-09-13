@@ -126,6 +126,28 @@ forgejo_push_all
         self.assertIn(command, projects_result.stdout)
         self.assertIn(command, clone_result.stdout)
 
+    def test_projects_gitlab_clone_help_does_not_start_cloning(self):
+        projects_result = self.run_rid('projects', 'help')
+        gitlab_result = self.run_rid('projects', 'gitlab', 'help')
+        clone_result = self.run_rid('projects', 'gitlab', 'clone', 'help')
+        question_result = self.run_rid('projects', 'gitlab', 'clone', '?')
+
+        command = 'rid projects gitlab clone <ID PROJECT>'
+        for result in (projects_result, gitlab_result, clone_result, question_result):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(command, result.stdout)
+
+    def test_projects_github_clone_help_does_not_start_cloning(self):
+        projects_result = self.run_rid('projects', 'help')
+        github_result = self.run_rid('projects', 'github', 'help')
+        clone_result = self.run_rid('projects', 'github', 'clone', 'help')
+        question_result = self.run_rid('projects', 'github', 'clone', '?')
+
+        command = 'rid projects github clone <ID PROJECT>'
+        for result in (projects_result, github_result, clone_result, question_result):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(command, result.stdout)
+
     def test_projects_sync_help_describes_synchronization(self):
         projects_result = self.run_rid('projects', 'help')
         sync_result = self.run_rid('projects', 'sync', 'help')
