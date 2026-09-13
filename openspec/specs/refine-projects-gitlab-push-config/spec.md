@@ -10,14 +10,14 @@ Définir la séparation entre les configurations générale et GitLab d'un proje
 
 La configuration générale d'un projet et sa configuration GitLab MUST être traitées par deux fonctions distinctes.
 
-La fonction générique `git_update()` MUST rester responsable des variables générales du projet et des variables Forgejo existantes. La fonction `gitlab_update()` MUST être limitée aux variables `REMOTE_GITLAB_*`.
+La fonction `update_projects()` MUST rester responsable des variables générales du projet. La fonction `git_update()` est limitée aux variables Git locales et `gitlab_update()` MUST être limitée aux variables `REMOTE_GITLAB_*`.
 
 #### Scenario: responsabilités séparées
 
 - ÉTANT DONNÉ qu'une mise à jour de configuration est demandée
 - QUAND la configuration GitLab est traitée
 - ALORS `gitlab_update()` ne modifie que les variables `REMOTE_GITLAB_*`
-- ET `git_update()` conserve sa responsabilité sur les autres variables définies
+- ET `update_projects()` et `git_update()` conservent leurs responsabilités respectives
 
 ### Requirement: validation préalable de la configuration générale
 
@@ -27,7 +27,7 @@ Avant de compléter GitLab, `gitlab_update()` MUST vérifier la présence et la 
 
 - ÉTANT DONNÉ que `project.env` est absent ou qu'une variable générale essentielle est absente
 - QUAND `rid projects gitlab push <ID PROJECT>` est exécuté
-- ALORS `gitlab_update()` appelle `git_update()` pour compléter la configuration générale
+- ALORS `gitlab_update()` appelle `update_projects()` pour compléter la configuration générale
 - ET la configuration GitLab n'est traitée qu'après cette complétion
 
 ### Requirement: complément GitLab ciblé

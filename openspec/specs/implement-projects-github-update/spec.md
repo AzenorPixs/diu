@@ -36,7 +36,7 @@ Le système DOIT exposer la commande `rid projects github update <ID PROJECT>`.
 - ÉTANT DONNÉ que `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` ou
   `PROJECT_DOCKERED` est absent ou incorrect
 - QUAND l'utilisateur exécute `rid projects github update <ID PROJECT>`
-- ALORS la fonction générique `git_update()` est appelée pour compléter la
+- ALORS la fonction `update_projects()` est appelée pour compléter la
   configuration générale
 - ET les variables GitHub sont traitées après cette complétion
 

@@ -425,10 +425,11 @@ PROJECT_TYPE
 PROJECT_DOCKERED
 ```
 
-La configuration Git générale comprend aussi la branche locale par défaut,
-l'identité Git et les paramètres historiques éventuellement nécessaires à la
-compatibilité. `git_update` est responsable de la configuration générale et
-accepte les modes `local`, `clone` et `gitlab`.
+La configuration Git locale comprend la branche locale par défaut et
+l'identité Git. `git_update` est responsable exclusivement de
+`LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et `GIT_USER_EMAIL`. La configuration
+générale du projet relève de `update_projects` ; les parcours de clonage
+utilisent leur configuration interne dédiée.
 
 Les configurations de fournisseurs sont différentielles. Chaque fonction
 `<provider>_update` valide d'abord les variables générales, puis ne modifie que
