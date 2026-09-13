@@ -142,7 +142,9 @@ rid_display_help_context() {
             rid_help_line 'rid projects git status <ID PROJECTS>' 'Affiche le statut Git.'
             rid_help_line 'rid projects git update <ID PROJECT>' 'Met à jour les variables Git.'
             rid_help_line 'rid projects gitlab' 'Gestion des dépôts GitLab.'
+            rid_help_line 'rid projects gitlab clone <ID PROJECT>' 'Crée et fusionne un dépôt GitLab distant.'
             rid_help_line 'rid projects github' 'Gestion des dépôts GitHub.'
+            rid_help_line 'rid projects github clone <ID PROJECT>' 'Crée et fusionne un dépôt GitHub distant.'
             rid_help_line 'rid projects forgejo' 'Gestion des dépôts Forgejo.'
             rid_help_line 'rid projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
             rid_help_line 'rid projects ocro <ID PROJECT>' 'Ouvre le projet en lecture seule.'
@@ -184,12 +186,18 @@ rid_display_help_context() {
         projects:gitlab:|projects:github:|projects:forgejo:)
             rid_help_line "rid projects ${subcontext} update <ID PROJECT>" 'Met à jour la configuration distante.'
             rid_help_line "rid projects ${subcontext} push <ID PROJECT>" 'Pousse le dépôt local.'
+            if [[ "${subcontext}" == "gitlab" ]]; then
+                rid_help_line 'rid projects gitlab clone <ID PROJECT>' 'Crée et fusionne un dépôt GitLab distant.'
+            fi
+            if [[ "${subcontext}" == "github" ]]; then
+                rid_help_line 'rid projects github clone <ID PROJECT>' 'Crée et fusionne un dépôt GitHub distant.'
+            fi
             if [[ "${subcontext}" == "forgejo" ]]; then
                 rid_help_line 'rid projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
             fi
             rid_help_line "rid projects ${subcontext} release <ID PROJECT>" 'Publie les artefacts du projet.'
             ;;
-        projects:docker:build|projects:git:update|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:update|projects:github:push|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
+        projects:docker:build|projects:git:update|projects:gitlab:clone|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:clone|projects:github:update|projects:github:push|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
             rid_help_line "rid projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."
             if [[ "${context}:${subcontext}:${leaf}" == "projects:forgejo:push" ]]; then
                 rid_help_line 'rid projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'

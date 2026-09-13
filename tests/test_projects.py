@@ -10,6 +10,239 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProjectCreationTests(unittest.TestCase):
+    def test_github_clone_calls_creation_update_then_clone_and_merges_remote_files(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_success() { :; }
+create_project() {
+    printf 'create\n'
+    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/replaced.txt"
+    printf 'kept\n' > "${DEVOPS_PROJECTS_ROOT}/$1/template-only.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+github_update() {
+    printf 'update\n'
+    printf '%s\n' \
+        'REMOTE_GITHUB_BASE_URL=https://github.example.test' \
+        'REMOTE_GITHUB_OWNER=owner' \
+        'REMOTE_GITHUB_REPOSITORY=repository' \
+        'REMOTE_GITHUB_BRANCH=main' \
+        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+github_git_clone() {
+    printf 'clone\n'
+    mkdir -p "$4/.git" "$4/nested/.git" "$4/worktree"
+    printf 'remote\n' > "$4/replaced.txt"
+    printf 'hidden\n' > "$4/.hidden"
+    printf 'nested git\n' > "$4/nested/.git/config"
+    printf 'gitdir: elsewhere\n' > "$4/worktree/.git"
+}
+chown() { :; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+DEVOPS_USER="$(id -un)"
+DEVOPS_GROUP="$(id -gn)"
+DEVOPS_PROJECTS_ROOT="$2"
+github_clone project
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            project_path = projects_root / 'project'
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'create\nupdate\nclone\n')
+            self.assertEqual((project_path / 'replaced.txt').read_text(encoding='utf-8'), 'remote\n')
+            self.assertEqual((project_path / 'template-only.txt').read_text(encoding='utf-8'), 'kept\n')
+            self.assertEqual((project_path / '.hidden').read_text(encoding='utf-8'), 'hidden\n')
+            self.assertFalse((project_path / '.git').exists())
+            self.assertFalse((project_path / 'nested' / '.git').exists())
+            self.assertFalse((project_path / 'worktree' / '.git').exists())
+
+    def test_github_clone_preserves_initialized_project_when_clone_or_merge_fails(self):
+        for failing_step in ('clone', 'merge'):
+            with self.subTest(failing_step=failing_step), tempfile.TemporaryDirectory() as temporary_directory:
+                projects_root = Path(temporary_directory) / 'projects'
+                script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { :; }
+print_success() { :; }
+create_project() {
+    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+github_update() {
+    printf '%s\n' \
+        'REMOTE_GITHUB_BASE_URL=https://github.example.test' \
+        'REMOTE_GITHUB_OWNER=owner' \
+        'REMOTE_GITHUB_REPOSITORY=repository' \
+        'REMOTE_GITHUB_BRANCH=main' \
+        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+github_git_clone() { [[ "$3" == merge ]] && mkdir -p "$4"; [[ "$3" != clone ]]; }
+cp() { [[ "$3" != merge ]]; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+DEVOPS_USER="$(id -un)"
+DEVOPS_GROUP="$(id -gn)"
+DEVOPS_PROJECTS_ROOT="$2"
+github_clone project
+'''.replace('$3', failing_step)
+                result = subprocess.run(
+                    ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(
+                    (projects_root / 'project' / 'kept.txt').read_text(encoding='utf-8'),
+                    'template\n',
+                )
+
+    def test_gitlab_clone_calls_creation_update_then_clone_and_merges_remote_files(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_success() { :; }
+create_project() {
+    printf 'create\n'
+    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/replaced.txt"
+    printf 'kept\n' > "${DEVOPS_PROJECTS_ROOT}/$1/template-only.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+gitlab_update() {
+    printf 'update\n'
+    printf '%s\n' \
+        'REMOTE_GITLAB_BASE_URL=https://gitlab.example.test' \
+        'REMOTE_GITLAB_OWNER=owner' \
+        'REMOTE_GITLAB_REPOSITORY=repository' \
+        'REMOTE_GITLAB_BRANCH=main' \
+        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+gitlab_git_clone() {
+    printf 'clone\n'
+    mkdir -p "$4/.git" "$4/nested/.git" "$4/worktree"
+    printf 'remote\n' > "$4/replaced.txt"
+    printf 'hidden\n' > "$4/.hidden"
+    printf 'nested git\n' > "$4/nested/.git/config"
+    printf 'gitdir: elsewhere\n' > "$4/worktree/.git"
+}
+chown() { :; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+DEVOPS_USER="$(id -un)"
+DEVOPS_GROUP="$(id -gn)"
+DEVOPS_PROJECTS_ROOT="$2"
+gitlab_clone project
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            project_path = projects_root / 'project'
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'create\nupdate\nclone\n')
+            self.assertEqual((project_path / 'replaced.txt').read_text(encoding='utf-8'), 'remote\n')
+            self.assertEqual((project_path / 'template-only.txt').read_text(encoding='utf-8'), 'kept\n')
+            self.assertEqual((project_path / '.hidden').read_text(encoding='utf-8'), 'hidden\n')
+            self.assertFalse((project_path / '.git').exists())
+            self.assertFalse((project_path / 'nested' / '.git').exists())
+            self.assertFalse((project_path / 'worktree' / '.git').exists())
+
+    def test_gitlab_clone_preserves_initialized_project_when_remote_clone_fails(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { :; }
+print_success() { :; }
+create_project() {
+    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+gitlab_update() {
+    printf '%s\n' \
+        'REMOTE_GITLAB_BASE_URL=https://gitlab.example.test' \
+        'REMOTE_GITLAB_OWNER=owner' \
+        'REMOTE_GITLAB_REPOSITORY=repository' \
+        'REMOTE_GITLAB_BRANCH=main' \
+        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+gitlab_git_clone() { return 1; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+DEVOPS_USER="$(id -un)"
+DEVOPS_GROUP="$(id -gn)"
+DEVOPS_PROJECTS_ROOT="$2"
+gitlab_clone project
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertEqual(
+                (projects_root / 'project' / 'kept.txt').read_text(encoding='utf-8'),
+                'template\n',
+            )
+
+    def test_gitlab_clone_preserves_initialized_project_when_merge_preparation_fails(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { :; }
+print_success() { :; }
+create_project() {
+    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+gitlab_update() {
+    printf '%s\n' \
+        'REMOTE_GITLAB_BASE_URL=https://gitlab.example.test' \
+        'REMOTE_GITLAB_OWNER=owner' \
+        'REMOTE_GITLAB_REPOSITORY=repository' \
+        'REMOTE_GITLAB_BRANCH=main' \
+        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+gitlab_git_clone() { mkdir -p "$4"; }
+cp() { return 1; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+DEVOPS_USER="$(id -un)"
+DEVOPS_GROUP="$(id -gn)"
+DEVOPS_PROJECTS_ROOT="$2"
+gitlab_clone project
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertEqual(
+                (projects_root / 'project' / 'kept.txt').read_text(encoding='utf-8'),
+                'template\n',
+            )
+
     def test_clone_project_copies_content_without_git_and_updates_project_id(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
