@@ -1232,13 +1232,56 @@ manage_project_action() {
             ;;
 
         create)
-            create_project \
-                "$project_id"
+            case "${project_id}" in
+                help|?)
+                    display_help_context projects create
+                    ;;
+                *)
+                    create_project \
+                        "${project_id}"
+                    ;;
+            esac
             ;;
 
         update)
             update_projects \
                 "$project_id"
+            ;;
+
+        sync)
+            case "${project_id}" in
+                all)
+                    sync_project_all
+                    ;;
+                help|?)
+                    display_help_context projects sync
+                    ;;
+                *)
+                    sync_project \
+                        "${project_id}"
+                    ;;
+            esac
+            ;;
+
+        commit)
+            case "${project_subaction}" in
+                all)
+                    commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+                    commit_name="${commit_timestamp}"
+                    commit_tag="v${commit_timestamp}"
+                    git_commit_all \
+                        "$commit_name" \
+                        "$commit_tag"
+                    ;;
+                help|?)
+                    display_help_context projects commit
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects commit' : ${project_subaction}"
+                    rid_display_command_error
+                    exit 2
+                    ;;
+            esac
             ;;
 
         docker)
@@ -1390,8 +1433,12 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
-                    forgejo_push \
-                        "${project_id}"
+                    if [[ "${project_id}" == "all" ]]; then
+                        forgejo_push_all
+                    else
+                        forgejo_push \
+                            "${project_id}"
+                    fi
                     ;;
                 release)
                     projects_forgejo_release \
