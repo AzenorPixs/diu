@@ -124,6 +124,7 @@ rid_display_help_context() {
             ;;
         projects::)
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
+            rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'
             rid_help_line 'rid projects update <ID PROJECT>' 'Met à jour les variables du projet.'
             rid_help_line 'rid projects sync <ID PROJECT>' 'Synchronise le projet depuis le modèle local.'
@@ -156,6 +157,9 @@ rid_display_help_context() {
             ;;
         projects:create:)
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
+            ;;
+        projects:clone:)
+            rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             ;;
         projects:sync:)
             rid_help_line 'rid projects sync <ID PROJECT>' 'Synchronise le projet depuis le modèle local.'

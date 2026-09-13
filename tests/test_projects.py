@@ -10,6 +10,86 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProjectCreationTests(unittest.TestCase):
+    def test_clone_project_copies_content_without_git_and_updates_project_id(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            projects_root = temporary_path / 'projects'
+            source_path = projects_root / 'source'
+            source_path.mkdir(parents=True)
+            (source_path / '.git').mkdir()
+            (source_path / '.git' / 'config').write_text('source git\n', encoding='utf-8')
+            (source_path / '.hidden').write_text('hidden\n', encoding='utf-8')
+            (source_path / 'project.env').write_text(
+                '# Configuration\nPROJECT_ID=source\nPROJECT_NAME="Projet source"\nCUSTOM=value\n',
+                encoding='utf-8',
+            )
+            nested_path = source_path / 'nested'
+            nested_path.mkdir()
+            (nested_path / 'file.txt').write_text('content\n', encoding='utf-8')
+            (nested_path / '.git').mkdir()
+            (nested_path / '.git' / 'config').write_text('nested git\n', encoding='utf-8')
+
+            script = r'''
+source "$1/modules/projects/projects.sh"
+print_error() { printf 'ERREUR:%s\n' "$*"; }
+print_success() { :; }
+chown() { :; }
+DEVOPS_USER=devops
+DEVOPS_GROUP=devops
+DEVOPS_PROJECTS_ROOT="$2"
+clone_project source destination
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            destination_path = projects_root / 'destination'
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((destination_path / '.hidden').read_text(encoding='utf-8'), 'hidden\n')
+            self.assertEqual(
+                (destination_path / 'nested' / 'file.txt').read_text(encoding='utf-8'),
+                'content\n',
+            )
+            self.assertFalse((destination_path / '.git').exists())
+            self.assertFalse((destination_path / 'nested' / '.git').exists())
+            self.assertEqual(
+                (destination_path / 'project.env').read_text(encoding='utf-8'),
+                '# Configuration\nPROJECT_ID=destination\nPROJECT_NAME="Projet source"\nCUSTOM=value\n',
+            )
+
+    def test_clone_project_refuses_invalid_preconditions_without_destination(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            projects_root = temporary_path / 'projects'
+            source_path = projects_root / 'source'
+            source_path.mkdir(parents=True)
+            (source_path / 'project.env').write_text('PROJECT_ID=source\n', encoding='utf-8')
+
+            script = r'''
+source "$1/modules/projects/projects.sh"
+print_error() { :; }
+print_success() { :; }
+chown() { :; }
+DEVOPS_USER=devops
+DEVOPS_GROUP=devops
+DEVOPS_PROJECTS_ROOT="$2"
+clone_project source destination
+'''
+            destination_path = projects_root / 'destination'
+            destination_path.mkdir()
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse((destination_path / 'project.env').exists())
+
     def test_sync_project_copies_only_managed_resources_and_personalizes_markdown(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
