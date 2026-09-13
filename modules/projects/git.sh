@@ -382,7 +382,8 @@ git_analyse() {
         print_info \
             "Le fichier project.env est absent pour le projet ${project_id}."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible d'initialiser la configuration Git du projet."
             return 1
@@ -417,7 +418,8 @@ git_analyse() {
         print_info \
             "La configuration du projet est incomplète."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible de mettre à jour la configuration Git du projet."
             return 1
@@ -1118,7 +1120,8 @@ git_commit() {
         print_info \
             "Le fichier project.env est absent pour le projet ${project_id}."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible d'initialiser la configuration du projet."
             return 1
@@ -1155,7 +1158,8 @@ git_commit() {
         print_info \
             "La configuration du projet est incomplète."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible de mettre à jour la configuration du projet."
             return 1
@@ -1373,7 +1377,8 @@ git_init() {
         print_info \
             "Le fichier project.env est absent pour le projet ${project_id}."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible d'initialiser la configuration Git du projet."
             return 1
@@ -1411,7 +1416,8 @@ git_init() {
         print_info \
             "La configuration Git locale du projet est incomplète."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible de mettre à jour la configuration Git du projet."
             return 1
@@ -1914,12 +1920,6 @@ git_push_provider() {
         print_info \
             "Le fichier project.env est absent pour le projet ${project_id}."
 
-        git_update_mode="local"
-
-        if [[ -n "${requested_remote_type}" ]]; then
-            git_update_mode="${requested_remote_type}"
-        fi
-
         if [[ "${requested_remote_type}" == "forgejo" ]]; then
             if ! forgejo_update "${project_id}"; then
                 print_error \
@@ -1939,7 +1939,8 @@ git_push_provider() {
                 return 1
             fi
         else
-            if ! git_update "${project_id}" "${git_update_mode}"; then
+            if ! update_projects "${project_id}" ||
+                ! git_update "${project_id}"; then
                 print_error \
                     "Impossible d'initialiser la configuration du projet."
                 return 1
@@ -2063,7 +2064,8 @@ git_push_provider() {
                 return 1
             fi
         else
-            if ! git_update "${project_id}" "${remote_type_to_use}"; then
+            if ! update_projects "${project_id}" ||
+                ! git_update "${project_id}"; then
                 print_error \
                     "Impossible de mettre à jour la configuration du projet."
                 return 1
@@ -2919,7 +2921,7 @@ forgejo_update() {
         print_info \
             "La configuration générale du projet est absente ou incomplète."
 
-        if ! git_update "${project_id}" local; then
+        if ! update_projects "${project_id}"; then
             print_error \
                 "Impossible de compléter la configuration générale du projet."
             return 1
@@ -3150,7 +3152,7 @@ gitlab_update() {
         print_info \
             "La configuration générale du projet est absente ou incomplète."
 
-        if ! git_update "${project_id}" local; then
+        if ! update_projects "${project_id}"; then
             print_error \
                 "Impossible de compléter la configuration générale du projet."
             return 1
@@ -3354,7 +3356,7 @@ github_update() {
         print_info \
             "La configuration générale du projet est absente ou incomplète."
 
-        if ! git_update "${project_id}" local; then
+        if ! update_projects "${project_id}"; then
             print_error \
                 "Impossible de compléter la configuration générale du projet."
             return 1
@@ -5089,7 +5091,8 @@ git_status() {
         print_info \
             "Le fichier project.env est absent pour le projet ${project_id}."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible d'initialiser la configuration Git du projet."
             return 1
@@ -5124,7 +5127,8 @@ git_status() {
         print_info \
             "La configuration du projet est incomplète."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}"; then
             print_error \
                 "Impossible de mettre à jour la configuration Git du projet."
             return 1
@@ -6070,48 +6074,12 @@ git_update_local() {
         return 1
     fi
 
-    if [[ ! -f "${project_env}" ]]; then
-        if ! update_projects "${project_id}"; then
-            print_error \
-                "Impossible de compléter les variables du projet."
-            return 1
-        fi
-    fi
-
     unset \
-        PROJECT_ID \
-        PROJECT_NAME \
-        PROJECT_TYPE \
-        PROJECT_DOCKERED \
-        PROJECT_DEBIAN_PACKAGE \
         LOCAL_DEFAULT_BRANCH \
         GIT_USER_NAME \
         GIT_USER_EMAIL
 
-    # shellcheck disable=SC1090
-    source "${project_env}"
-
-    if [[ "${PROJECT_ID:-}" != "${project_id}" ||
-        -z "${PROJECT_NAME:-}" ||
-        -z "${PROJECT_TYPE:-}" ||
-        -z "${PROJECT_DOCKERED:-}" ||
-        -z "${PROJECT_DEBIAN_PACKAGE:-}" ]]; then
-        if ! update_projects "${project_id}"; then
-            print_error \
-                "Impossible de compléter les variables du projet."
-            return 1
-        fi
-
-        unset \
-            PROJECT_ID \
-            PROJECT_NAME \
-            PROJECT_TYPE \
-            PROJECT_DOCKERED \
-            PROJECT_DEBIAN_PACKAGE \
-            LOCAL_DEFAULT_BRANCH \
-            GIT_USER_NAME \
-            GIT_USER_EMAIL
-
+    if [[ -f "${project_env}" ]]; then
         # shellcheck disable=SC1090
         source "${project_env}"
     fi
@@ -6174,24 +6142,11 @@ git_update_local() {
     return 0
 }
 
-# Point d'entrée public : local par défaut, modes historiques conservés.
+# Point d'entrée public limité à la configuration Git locale.
 git_update() {
     local project_id="${1:-}"
-    local update_mode="${2:-local}"
 
-    case "${update_mode}" in
-        local)
-            git_update_local "${project_id}"
-            ;;
-        clone|gitlab)
-            git_update_legacy "${project_id}" "${update_mode}"
-            ;;
-        *)
-            print_error \
-                "Mode git_update invalide : ${update_mode} (attendu : local, clone ou gitlab)."
-            return 1
-            ;;
-    esac
+    git_update_local "${project_id}"
 }
 
 # Initialise un dépôt local Git pour le projet <PROJECT ID> à partir d'un clone distant.
@@ -6302,7 +6257,7 @@ git_init_clone() {
         print_info \
             "Le fichier project.env est absent pour le projet ${project_id}."
 
-        if ! git_update "${project_id}" clone; then
+        if ! git_update_legacy "${project_id}" clone; then
 
             print_error \
                 "Impossible d'initialiser la configuration Git du projet cloné."
@@ -6361,7 +6316,7 @@ git_init_clone() {
         print_info \
             "La configuration du projet cloné est incomplète."
 
-        if ! git_update "${project_id}" clone; then
+        if ! git_update_legacy "${project_id}" clone; then
 
             print_error \
                 "Impossible de mettre à jour la configuration du projet cloné."

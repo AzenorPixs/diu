@@ -35,9 +35,9 @@ et le format historique pour Bookworm et les versions antérieures.
 - **THEN** `/etc/apt/sources.list` contient les dépôts Debian officiels et
   l'ancien `debian.sources` géré par le DIU est supprimé.
 
-### Requirement: Contextes system
+### Requirement: Mise à jour du sous-module APT
 
-Le contexte `diu system update apt` SHALL régénérer la configuration des
+Le sous-module `rid system update apt` SHALL régénérer la configuration des
 dépôts Debian officiels avant d'actualiser les index et d'exécuter la
 transaction unique `apt-get dist-upgrade -y`. Cette régénération SHALL prendre
 en compte `SYSTEM_APT_DEBIAN_UPDATES`, `SYSTEM_APT_DEBIAN_BACKPORT`,
@@ -68,26 +68,15 @@ en compte `SYSTEM_APT_DEBIAN_UPDATES`, `SYSTEM_APT_DEBIAN_BACKPORT`,
 - **THEN** APT actualise ses index puis exécute une seule transaction
   `dist-upgrade -y`
 
-#### Scenario: Module system
+### Requirement: Isolation de Flatpak du sous-module APT
 
-- **WHEN** `diu system update` est exécuté
-- **THEN** il délègue à `diu system update apt`
+Le sous-module APT de `system` SHALL ne pas appliquer `SYSTEM_FLATPAK` et
+SHALL ne jamais appeler `flatpak update`. Seule la commande explicite
+`rid system update flatpak` SHALL pouvoir mettre à jour le paquet Debian
+`flatpak`.
 
-#### Scenario: Mise à jour DIU
+#### Scenario: Mise à jour APT
 
-- **WHEN** `diu update` est exécuté
-- **THEN** sa partie APT réutilise le contexte APT global avant la mise à jour
-  de DIU
-
-### Requirement: Isolation de Flatpak des mises à jour globales
-
-Les mises à jour globales du module system SHALL ne pas appliquer
-`SYSTEM_FLATPAK` et SHALL ne jamais appeler `flatpak update`. Seule la commande
-explicite `rid system update flatpak` SHALL pouvoir mettre à jour le paquet
-Debian `flatpak`.
-
-#### Scenario: Mise à jour globale
-
-- **WHEN** `rid system update` ou `rid update` est exécuté
+- **WHEN** `rid system update apt` est exécuté
 - **THEN** aucune mise à jour ciblée de Flatpak n'est invoquée
 - **AND** `flatpak update` n'est pas exécuté

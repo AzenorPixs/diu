@@ -232,7 +232,9 @@ publish_release_debian() {
         print_info \
             "Le fichier project.env est absent pour le projet ${project_id}."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}" ||
+            ! forgejo_update "${project_id}"; then
             print_error \
                 "Impossible d'initialiser la configuration du projet."
             return 1
@@ -279,7 +281,9 @@ publish_release_debian() {
         print_info \
             "La configuration du projet est incomplète."
 
-        if ! git_update "${project_id}"; then
+        if ! update_projects "${project_id}" ||
+            ! git_update "${project_id}" ||
+            ! forgejo_update "${project_id}"; then
             print_error \
                 "Impossible de mettre à jour la configuration du projet."
             return 1
