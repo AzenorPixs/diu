@@ -307,6 +307,91 @@ project_env_set_variables() {
     fi
 }
 
+clone_project() {
+    local source_project_id="${1:-}"
+    local destination_project_id="${2:-}"
+    local source_project_path="${DEVOPS_PROJECTS_ROOT}/${source_project_id}"
+    local destination_project_path="${DEVOPS_PROJECTS_ROOT}/${destination_project_id}"
+    local source_project_env="${source_project_path}/project.env"
+    local staging_path=""
+
+    if [[ -z "${source_project_id}" || -z "${destination_project_id}" ]]; then
+        print_error "Usage : clone_project <ID PROJECT SOURCE> <ID PROJECT DESTINATION>"
+        return 1
+    fi
+
+    if [[ "${source_project_id}" == */* || "${destination_project_id}" == */* ||
+        "${source_project_id}" == . || "${source_project_id}" == .. ||
+        "${destination_project_id}" == . || "${destination_project_id}" == .. ]]; then
+        print_error "Les identifiants de projet ne doivent pas contenir de chemin."
+        return 1
+    fi
+
+    if [[ ! -d "${source_project_path}" ]]; then
+        print_error "Le projet source est introuvable : ${source_project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${source_project_env}" ]]; then
+        print_error "Le fichier project.env est introuvable : ${source_project_env}"
+        return 1
+    fi
+
+    if [[ -e "${destination_project_path}" ]]; then
+        print_error "Le projet destination existe déjà : ${destination_project_path}"
+        return 1
+    fi
+
+    staging_path="$(mktemp -d)" || {
+        print_error "Impossible de préparer le clonage du projet."
+        return 1
+    }
+
+    if ! (
+        cd -- "${source_project_path}" &&
+            tar \
+                --exclude='./.git' \
+                --exclude='./.git/*' \
+                --exclude='*/.git' \
+                --exclude='*/.git/*' \
+                -cf - .
+    ) | (
+        cd -- "${staging_path}" && tar -xf -
+    ); then
+        rm -rf -- "${staging_path}"
+        print_error "Impossible de copier le projet source : ${source_project_path}"
+        return 1
+    fi
+
+    if [[ ! -f "${staging_path}/project.env" ]]; then
+        rm -rf -- "${staging_path}"
+        print_error "Le fichier project.env est absent de la copie préparée."
+        return 1
+    fi
+
+    if ! project_env_set_variables \
+        "${staging_path}/project.env" \
+        PROJECT_ID "${destination_project_id}"; then
+        rm -rf -- "${staging_path}"
+        return 1
+    fi
+
+    if ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${staging_path}"; then
+        rm -rf -- "${staging_path}"
+        print_error "Impossible de définir le propriétaire du projet cloné."
+        return 1
+    fi
+
+    if ! mv -- "${staging_path}" "${destination_project_path}"; then
+        rm -rf -- "${staging_path}"
+        print_error "Impossible d'installer le projet cloné : ${destination_project_path}"
+        return 1
+    fi
+
+    print_success "Projet cloné avec succès : ${destination_project_path}"
+    return 0
+}
+
 # Génération ou mise à jour des variables générales du <PROJECT_ID>.
 update_projects() {
     local project_id="${1:-}"

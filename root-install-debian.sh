@@ -1243,6 +1243,19 @@ manage_project_action() {
             esac
             ;;
 
+        clone)
+            case "${project_id}" in
+                help|?)
+                    display_help_context projects clone
+                    ;;
+                *)
+                    clone_project \
+                        "${project_id}" \
+                        "${3:-}"
+                    ;;
+            esac
+            ;;
+
         update)
             update_projects \
                 "$project_id"

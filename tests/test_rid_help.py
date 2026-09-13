@@ -116,6 +116,16 @@ forgejo_push_all
         self.assertIn('rid projects create <ID PROJECT>', result.stdout)
         self.assertIn('modèle local', result.stdout)
 
+    def test_projects_clone_help_describes_clone_command(self):
+        projects_result = self.run_rid('projects', 'help')
+        clone_result = self.run_rid('projects', 'clone', 'help')
+
+        self.assertEqual(projects_result.returncode, 0, projects_result.stderr)
+        self.assertEqual(clone_result.returncode, 0, clone_result.stderr)
+        command = 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>'
+        self.assertIn(command, projects_result.stdout)
+        self.assertIn(command, clone_result.stdout)
+
     def test_projects_sync_help_describes_synchronization(self):
         projects_result = self.run_rid('projects', 'help')
         sync_result = self.run_rid('projects', 'sync', 'help')
