@@ -7,55 +7,6 @@ Architecture cible modulaire du DIU.
 Définir la structure de répertoires cible du DIU et le rôle général de ses
 composants, afin de guider progressivement la séparation fonctionnelle du projet.
 
-## Architecture Cible
-
-L'architecture cible du projet DIU est la suivante :
-
-    /home/devops/datas/diu/
-    ├── config/
-    ├── deb/
-    ├── lib/
-    │   ├── logging.sh
-    │   ├── filesystem.sh
-    │   ├── network.sh
-    │   ├── packages.sh
-    │   └── utils.sh
-    ├── modules/
-    │   ├── desktop/
-    │   ├── environments/
-    │   ├── projects/
-    │   ├── softwares/
-    │   └── system/
-    ├── root-install-debian.sh
-    └── variables.sh
-
-L'organisation cible du répertoire `modules/` est :
-
-    modules/
-    ├── desktop/
-    │   ├── gnome.sh
-    │   └── applications.sh
-    ├── environments/
-    │   ├── docker.sh
-    │   ├── devops.sh
-    │   └── proxmox.sh
-    ├── projects/
-    │   ├── bash.sh
-    │   ├── git.sh
-    │   ├── forgejo.sh
-    │   ├── opencode.sh
-    │   └── openspec.sh
-    ├── softwares/
-    │   ├── vscode.sh
-    │   ├── geany.sh
-    │   └── syncthing.sh
-    └── system/
-        ├── apt.sh
-        ├── locale.sh
-        ├── users.sh
-        ├── network.sh
-        └── security.sh
-
 ## ADDED Requirements
 
 ### Requirement: Point d'entrée principal
@@ -80,15 +31,8 @@ THEN `variables.sh` est situé à la racine du projet
 ### Requirement: Rôle du répertoire lib/
 
 Le répertoire `lib/` SHALL contenir les fonctions génériques et réutilisables
-communes aux différents domaines du DIU.
-
-Les fichiers présents dans `lib/` sont :
-
-- `logging.sh` : fonctions de journalisation et d'affichage
-- `filesystem.sh` : fonctions de manipulation de fichiers et répertoires
-- `network.sh` : fonctions réseau génériques
-- `packages.sh` : fonctions de gestion de paquets
-- `utils.sh` : fonctions utilitaires transverses
+communes aux différents domaines du DIU. Sa composition évolue selon les
+changements OpenSpec validés et reste cohérente avec le cadrage technique.
 
 #### Scenario: Fonctions communes
 
@@ -97,16 +41,10 @@ THEN elle est placée dans le fichier `lib/` correspondant à sa responsabilité
 
 ### Requirement: Rôle du répertoire modules/
 
-Le répertoire `modules/` SHALL contenir les principaux domaines fonctionnels du DIU,
-organisés par sous-répertoire.
-
-Les domaines fonctionnels sont :
-
-- `desktop/` : environnement de bureau (gnome, applications)
-- `environments/` : environnements d'exécution (docker, devops, proxmox)
-- `projects/` : gestion de projets (bash, git, forgejo, opencode, openspec)
-- `softwares/` : installation de logiciels (vscode, geany, syncthing)
-- `system/` : configuration système (apt, locale, utilisateurs, réseau, sécurité)
+Le répertoire `modules/` SHALL contenir les domaines fonctionnels du DIU,
+organisés par sous-répertoire. Les domaines et fichiers effectivement présents
+restent ceux documentés par le cadrage technique et les changements OpenSpec
+validés.
 
 #### Scenario: Domaines fonctionnels
 
@@ -119,8 +57,9 @@ La migration vers l'architecture cible SHALL être réalisée progressivement, p
 changements limités et cohérents.
 
 Chaque étape de migration SHALL faire l'objet d'un changement OpenSpec limité et
-explicitement validé par le développeur. Une étape peut concerner une partie
-seulement d'un futur module.
+explicitement validé par le développeur. Une étape MAY concerner une partie
+seulement d'un futur module. Les commits réalisés pendant chaque étape SHALL
+rester atomiques et respecter les règles définies dans `AGENTS.md`.
 
 #### Scenario: Changements limités et cohérents
 
@@ -145,18 +84,14 @@ WHEN une étape de migration vers l'architecture cible est réalisée
 THEN le comportement fonctionnel du DIU est préservé
 AND les commandes existantes produisent le même résultat
 
-### Requirement: Architecture imposée
+### Requirement: Évolution de l'architecture
 
-L'architecture cible définie dans cette spécification est une décision du développeur.
-
-Les répertoires et fichiers explicitement présents dans cette architecture SHALL NOT
-être remplacés par une architecture alternative.
-
-Aucun répertoire ou fichier supplémentaire ne SHALL être ajouté en dehors de cette
-architecture cible sans validation explicite du développeur.
+L'architecture modulaire est une décision du développeur. Toute évolution de
+son arborescence SHALL être définie par un changement OpenSpec limité, validé
+par le développeur et cohérent avec le cadrage technique.
 
 #### Scenario: Respect de l'architecture
 
 WHEN un refactoring est planifié
-THEN il respecte l'architecture cible définie dans cette spécification
-AND aucun élément supplémentaire n'est ajouté sans validation
+THEN il respecte les rôles définis par cette spécification et le cadrage technique
+AND son arborescence est validée par le développeur

@@ -266,6 +266,10 @@ update_diu() {
     exec dpkg --install "${deb_file}"
 }
 
+diu_update() {
+    (update_diu)
+}
+
 # Affiche la version du DIU
 
 diu_version() {

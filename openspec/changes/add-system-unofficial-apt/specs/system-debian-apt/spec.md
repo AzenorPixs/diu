@@ -1,5 +1,28 @@
 ## ADDED Requirements
 
+### Requirement: Moteur commun des dépôts tiers
+
+Le module `system` SHALL fournir `system_apt_repository_engine` pour
+configurer les dépôts tiers gérés. À partir d'un état, d'un nom, d'une clé GPG,
+d'un type, de suites, d'architectures et d'URI validés, il SHALL installer le
+trousseau dans `/usr/share/keyrings` et écrire un unique fichier géré. Il SHALL
+utiliser le format deb822 (`.sources`) pour Debian Trixie et les versions
+ultérieures, et le format historique (`.list`) pour Bookworm et les versions
+antérieures.
+
+#### Scenario: Dépôt tiers activé
+
+- **WHEN** un dépôt tiers géré est activé
+- **THEN** son trousseau et son unique fichier de configuration correspondant
+  au format de la version Debian sont présents
+- **AND** le format alternatif géré par le DIU est absent
+
+#### Scenario: Dépôt tiers désactivé
+
+- **WHEN** un dépôt tiers géré est désactivé
+- **THEN** ses fichiers `.sources`, `.list` et son trousseau gérés sont supprimés
+- **AND** les fichiers tiers non gérés par le DIU sont préservés
+
 ### Requirement: Dépôts NVIDIA sans composant APT
 
 Pour Debian Trixie et les versions ultérieures, les fichiers deb822 des dépôts

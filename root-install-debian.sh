@@ -63,6 +63,7 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
 . "$BASH_SCRIPT_PATH/modules/diu/update-all.sh"
+. "$BASH_SCRIPT_PATH/modules/environments/update.sh"
 . "$BASH_SCRIPT_PATH/modules/system/apt.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
 . "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
@@ -823,7 +824,7 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git libffi-dev nodejs npm openssl-dev python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
+      -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git go libffi-dev nodejs npm openssl-dev python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
           exec setpriv \
             --reuid=\"\$OPENCODE_UID\" \
             --regid=\"\$OPENCODE_GID\" \
@@ -1268,32 +1269,33 @@ manage_project_action() {
             ;;
 
 
-        gita)
-            git_analyse \
-                "$project_id"
-            ;;
-
-        gitc)
-          commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
-          commit_name="${3:-${commit_timestamp}}"
-          commit_tag="${4:-v${commit_timestamp}}"
-          git_commit \
-            "$project_id" \
-            "$commit_name" \
-            "$commit_tag"
-          ;;
-
-        giti)
-            git_init \
-                "$project_id"
-            ;;
-
         git)
             project_id="${3:-}"
 
             case "${project_subaction}" in
+                analyse)
+                    git_analyse \
+                        "$project_id"
+                    ;;
+                commit)
+                    commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+                    commit_name="${4:-${commit_timestamp}}"
+                    commit_tag="${5:-v${commit_timestamp}}"
+                    git_commit \
+                        "$project_id" \
+                        "$commit_name" \
+                        "$commit_tag"
+                    ;;
+                init)
+                    git_init \
+                        "${project_id}"
+                    ;;
                 update)
                     git_update \
+                        "${project_id}"
+                    ;;
+                status)
+                    git_status \
                         "${project_id}"
                     ;;
                 help|?)
@@ -1409,18 +1411,6 @@ manage_project_action() {
 
         gitpdiu)
             publish_release_diu
-            ;;
-
-        gits)
-            git_status \
-                "$project_id"
-            ;;
-
-        gitu)
-            type_name="${3:-local}"
-            git_update \
-                "$project_id" \
-                "$type_name"
             ;;
 
         ocro)
