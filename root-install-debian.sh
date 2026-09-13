@@ -6548,6 +6548,7 @@ then
 	echo "alias ceh='cat /etc/hosts'" >> /root/.zshrc
 	echo "alias cehc='cat /etc/host.conf'" >> /root/.zshrc
 	echo "alias cel='cat /etc/localtime'" >> /root/.zshrc
+	echo "alias ci='cat /home/devops/datas/template/PROMPTS/INDEX.md'" >> /root/.zshrc
 	echo "alias cm='cat /home/monero/monero.log'" >> /root/.zshrc
 	echo "alias cpmh='cat /proc/meminfo | grep Huge'" >> /root/.zshrc
 	echo "alias cer='cat /etc/rsyslog.conf'" >> /root/.zshrc
@@ -6628,7 +6629,6 @@ then
 
 	echo "" >> /root/.zshrc
 	echo "# CODEX #" >> /root/.zshrc
-	echo "alias ccc='mkdir -p /home/devops/.codex/{skills,plugins} && find \"\$HOME/.codex/skills\" -mindepth 1 -maxdepth 1 ! -name \".system\" -exec /bin/cp -rf --no-preserve=mode,ownership,timestamps,xattr,context {} /home/devops/.codex/skills/ \\; && /bin/cp -rf --no-preserve=mode,ownership,timestamps,xattr,context \"\$HOME/.codex/plugins/.\" /home/devops/.codex/plugins/'" >> /root/.zshrc
 
 	echo "" >> /root/.zshrc
 	echo "# COMMAND #" >> /root/.zshrc
