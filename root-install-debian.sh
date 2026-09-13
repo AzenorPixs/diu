@@ -1269,32 +1269,33 @@ manage_project_action() {
             ;;
 
 
-        gita)
-            git_analyse \
-                "$project_id"
-            ;;
-
-        gitc)
-          commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
-          commit_name="${3:-${commit_timestamp}}"
-          commit_tag="${4:-v${commit_timestamp}}"
-          git_commit \
-            "$project_id" \
-            "$commit_name" \
-            "$commit_tag"
-          ;;
-
-        giti)
-            git_init \
-                "$project_id"
-            ;;
-
         git)
             project_id="${3:-}"
 
             case "${project_subaction}" in
+                analyse)
+                    git_analyse \
+                        "$project_id"
+                    ;;
+                commit)
+                    commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+                    commit_name="${4:-${commit_timestamp}}"
+                    commit_tag="${5:-v${commit_timestamp}}"
+                    git_commit \
+                        "$project_id" \
+                        "$commit_name" \
+                        "$commit_tag"
+                    ;;
+                init)
+                    git_init \
+                        "${project_id}"
+                    ;;
                 update)
                     git_update \
+                        "${project_id}"
+                    ;;
+                status)
+                    git_status \
                         "${project_id}"
                     ;;
                 help|?)
@@ -1410,18 +1411,6 @@ manage_project_action() {
 
         gitpdiu)
             publish_release_diu
-            ;;
-
-        gits)
-            git_status \
-                "$project_id"
-            ;;
-
-        gitu)
-            type_name="${3:-local}"
-            git_update \
-                "$project_id" \
-                "$type_name"
             ;;
 
         ocro)

@@ -129,14 +129,14 @@ rid_display_help_context() {
             rid_help_line 'rid projects docker' 'Gestion Docker des projets.'
             rid_help_line 'rid projects finds <ID PROJECT>' 'Recherche les conflits de synchronisation.'
             rid_help_line 'rid projects findads <ID PROJECT>' 'Supprime les conflits de synchronisation.'
-            rid_help_line 'rid projects gita <ID PROJECT>' 'Analyse le dépôt Git local.'
             rid_help_line 'rid projects git' 'Gestion du dépôt local Git.'
-            rid_help_line 'rid projects gitc <ID PROJECT> [COMMIT]' 'Commit le dépôt Git local.'
-            rid_help_line 'rid projects giti <ID PROJECT>' 'Initialise le dépôt Git local.'
+            rid_help_line 'rid projects git analyse <ID PROJECTS>' 'Analyse le dépôt Git local.'
+            rid_help_line 'rid projects git commit <ID PROJECT> [COMMIT]' 'Commit le dépôt Git local.'
+            rid_help_line 'rid projects git init <ID PROJECT>' 'Initialise le dépôt Git local.'
             rid_help_line 'rid projects gitic <ID PROJECT>' 'Initialise et clone le dépôt Git.'
             rid_help_line 'rid projects gitpdiu' 'Publie le paquet DIU vers Forgejo.'
-            rid_help_line 'rid projects gits <ID PROJECT>' 'Affiche le statut Git.'
-            rid_help_line 'rid projects gitu <ID PROJECT>' 'Met à jour un projet.'
+            rid_help_line 'rid projects git status <ID PROJECTS>' 'Affiche le statut Git.'
+            rid_help_line 'rid projects git update <ID PROJECT>' 'Met à jour les variables Git.'
             rid_help_line 'rid projects gitlab' 'Gestion des dépôts GitLab.'
             rid_help_line 'rid projects github' 'Gestion des dépôts GitHub.'
             rid_help_line 'rid projects forgejo' 'Gestion des dépôts Forgejo.'
@@ -151,7 +151,17 @@ rid_display_help_context() {
             rid_help_line 'rid projects docker build <ID PROJECT>' "Construit l'image Docker du projet."
             ;;
         projects:git:)
+            rid_help_line 'rid projects git analyse <ID PROJECTS>' 'Analyse le dépôt Git local.'
+            rid_help_line 'rid projects git commit <ID PROJECT> [COMMIT]' 'Commit le dépôt Git local.'
+            rid_help_line 'rid projects git init <ID PROJECT>' 'Initialise le dépôt Git local.'
+            rid_help_line 'rid projects git status <ID PROJECTS>' 'Affiche le statut Git.'
             rid_help_line 'rid projects git update <ID PROJECT>' 'Met à jour les variables Git.'
+            ;;
+        projects:git:commit)
+            rid_help_line 'rid projects git commit <ID PROJECT> [COMMIT]' 'Commit le dépôt Git local.'
+            ;;
+        projects:git:status)
+            rid_help_line 'rid projects git status <ID PROJECTS>' 'Affiche le statut Git.'
             ;;
         projects:gitlab:|projects:github:|projects:forgejo:)
             rid_help_line "rid projects ${subcontext} update <ID PROJECT>" 'Met à jour la configuration distante.'

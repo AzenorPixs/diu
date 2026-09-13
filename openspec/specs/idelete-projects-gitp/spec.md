@@ -70,37 +70,19 @@ fonction. Le traitement commun indispensable aux publications dédiées PEUT
   cible
 - ET le flux Forgejo utilise `forgejo_push`
 
-### Requirement: migration de la configuration distante
+### Requirement: conservation de la configuration distante
 
-Lors de l'exécution de `git_update`, le système SHALL supprimer de la
-configuration générée les variables historiques `REMOTE_GIT_TYPE`,
-`REMOTE_BASE_URL`, `REMOTE_OWNER`, `REMOTE_REPOSITORY`, `REMOTE_NAME` et
-`REMOTE_DEFAULT_BRANCH`.
+Lors de l'exécution de `git_update`, le système SHALL conserver toutes les
+variables de configuration distante, y compris les variables historiques. Les
+migrations éventuelles relèvent des fonctions dédiées aux fournisseurs et ne
+sont pas réalisées par la mise à jour Git locale.
 
-Les cinq variables d'adresse historiques SHALL être reprises, lorsqu'elles
-existent, dans les variables Forgejo correspondantes :
-
-- `REMOTE_BASE_URL` vers `REMOTE_FORGEJO_BASE_URL` ;
-- `REMOTE_OWNER` vers `REMOTE_FORGEJO_OWNER` ;
-- `REMOTE_REPOSITORY` vers `REMOTE_FORGEJO_REPOSITORY` ;
-- `REMOTE_NAME` vers `REMOTE_FORGEJO_NAME` ;
-- `REMOTE_DEFAULT_BRANCH` vers `REMOTE_FORGEJO_BRANCH`.
-
-#### Scenario: migration d'un project.env historique
+#### Scenario: mise à jour Git locale
 
 - ÉTANT DONNÉ que `project.env` contient des variables distantes historiques
 - QUAND `git_update <ID PROJECT>` termine avec succès
-- ALORS `project.env` ne contient plus ces six variables historiques
-- ET les valeurs disponibles sont présentes sous les noms Forgejo
-- ET les variables GitLab, GitHub, Clone et Git local sont conservées
-
-#### Scenario: nouvelle configuration
-
-- ÉTANT DONNÉ que la configuration distante historique est absente
-- QUAND `git_update <ID PROJECT>` génère `project.env`
-- ALORS seules les variables Forgejo sont demandées pour le dépôt distant
-- ET les valeurs par défaut du dépôt Forgejo restent `origin` et `main`
-- ET aucun sélecteur distant global n'est écrit
+- ALORS ces variables sont conservées
+- ET seules les variables Git locales sont modifiées
 
 ### Requirement: renommage des consommateurs Forgejo
 

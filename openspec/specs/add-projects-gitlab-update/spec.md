@@ -32,7 +32,7 @@ Le système MUST exposer la commande `rid projects gitlab update <ID PROJECT>`.
 
 - ÉTANT DONNÉ que `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` ou `PROJECT_DOCKERED` est absent ou incorrect
 - QUAND l'utilisateur exécute `rid projects gitlab update <ID PROJECT>`
-- ALORS la fonction générique `git_update()` est appelée pour compléter la configuration générale
+- ALORS la fonction `update_projects()` est appelée pour compléter la configuration générale
 - ET les variables GitLab sont traitées après cette complétion
 
 ### Requirement: conservation de project.env

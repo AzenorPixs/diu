@@ -1,4 +1,4 @@
-# DEVOPS.md — Debian Installer Unified
+# DEVOPS.md — Pixs
 
 Version : 0.1
 
@@ -14,12 +14,45 @@ Version : 0.1
   * Debian Linux v13
 
 
+# Docker
+
+## Environnement conteneurisé
+
+  * 29.5.3
+
+## Environnement non conteneurisé
+
+  * 29.8.0
+
+
+# Docker-Compose
+
+## Environnement conteneurisé
+
+  * 5.1.4
+
+## Environnement non conteneurisé
+
+  * 5.4.0
+
+
+# Git
+
+## Environnement conteneurisé
+
+  * 2.54.0
+
+## Environnement non conteneurisé
+
+  * 2.47.3
+
+
 # Go
 
 ## Environnement conteneurisé
 
-  * 1.27.1
-  * /opt/devops/go
+  * 1.26.8
+  * /usr/bin/go
 
 ## Environnement non conteneurisé
 
@@ -31,13 +64,26 @@ Version : 0.1
 
 ## Environnement conteneurisé
 
-  * 24.21.0
-  * /opt/devops/node
+  * 24.18.1
+  * /usr/bin/node
 
 ## Environnement non conteneurisé
 
   * 24.21.0
   * /home/devops/node/current
+
+
+# NPM
+
+## Environnement conteneurisé
+
+  * 11.12.1
+  * /usr/bin/npm
+
+## Environnement non conteneurisé
+
+  * 11.19
+  * /home/devops/node/current/bin/npm
 
 
 # OpenSpec
@@ -69,9 +115,14 @@ Version : 0.1
 ## Environnement conteneurisé
 
   * v3.14.7
-  * /opt/devops/python
+  * /usr/bin/python3
+  * venv: disponible
+  * pip 26.1.2
+
 
 ## Environnement non conteneurisé
 
   * v3.14.7
   * /home/devops/python/current
+  * venv: disponible
+  * pip 26.2.1
