@@ -1326,6 +1326,90 @@ git_commit() {
     return 0
 }
 
+# Commit vers les dépôts Git locaux de tous les projets configurés
+git_commit_all() {
+    local commit_name="${1:-}"
+    local commit_tag="${2:-}"
+    local project_path=""
+    local project_id=""
+    local project_env=""
+    local failed=0
+    local selected=0
+
+    if [[ -z "${commit_name}" || -z "${commit_tag}" ]]; then
+        print_error "Usage : git_commit_all <commit_name> <commit_tag>"
+        return 1
+    fi
+
+    if [[ ! -d "${DEVOPS_PROJECTS_ROOT}" ]]; then
+        print_error "Répertoire des projets introuvable : ${DEVOPS_PROJECTS_ROOT}"
+        return 1
+    fi
+
+    print_title "Commit Git de tous les projets configurés"
+
+    for project_path in "${DEVOPS_PROJECTS_ROOT}"/*; do
+        if [[ ! -d "${project_path}" ]]; then
+            continue
+        fi
+
+        project_id="$(basename -- "${project_path}")"
+        project_env="${project_path}/project.env"
+
+        if [[ ! -f "${project_env}" ]]; then
+            print_info "Projet ignoré : ${project_id} (project.env absent)."
+            continue
+        fi
+
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            LOCAL_DEFAULT_BRANCH \
+            GIT_USER_NAME \
+            GIT_USER_EMAIL
+
+        # shellcheck disable=SC1090
+        if ! source "${project_env}"; then
+            print_error "Projet ignoré : ${project_id} (project.env illisible)."
+            continue
+        fi
+
+        if [[ \
+            -z "${PROJECT_ID:-}" || \
+            "${PROJECT_ID}" != "${project_id}" || \
+            -z "${PROJECT_NAME:-}" || \
+            -z "${GIT_USER_NAME:-}" || \
+            -z "${GIT_USER_EMAIL:-}" \
+        ]]; then
+
+            print_error "Projet ignoré : ${project_id} (configuration Git incomplète)."
+            continue
+        fi
+
+        selected=$((selected + 1))
+
+        if ! git_commit "${project_id}" "${commit_name}" "${commit_tag}"; then
+            print_error "Échec du commit Git pour le projet ${project_id}."
+            failed=1
+        fi
+    done
+
+    if [[ "${selected}" -eq 0 ]]; then
+        print_info "Aucun projet configuré à traiter."
+        return 0
+    fi
+
+    if [[ "${failed}" -ne 0 ]]; then
+        print_error "Au moins un commit Git a échoué."
+        return 1
+    fi
+
+    print_success "Commit Git terminé pour tous les projets configurés."
+    return 0
+}
+
 # Initialise un dépôt local Git vierge pour le projet <PROJECT ID>
 git_init() {
     local project_id="$1"
@@ -3489,6 +3573,92 @@ forgejo_push() {
     fi
 
     git_push_provider "${project_id}" "forgejo"
+}
+
+# Push vers Forgejo de tous les projets configurés.
+forgejo_push_all() {
+    local projects_root="${DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}"
+    local project_path=""
+    local project_id=""
+    local project_env=""
+    local failed=0
+    local selected=0
+
+    if [[ ! -d "${projects_root}" ]]; then
+        print_error "Répertoire des projets introuvable : ${projects_root}"
+        return 1
+    fi
+
+    print_title "Push Forgejo de tous les projets configurés"
+
+    for project_path in "${projects_root}"/*; do
+        if [[ ! -d "${project_path}" ]]; then
+            continue
+        fi
+
+        project_id="$(basename -- "${project_path}")"
+        project_env="${project_path}/project.env"
+
+        if [[ ! -f "${project_env}" ]]; then
+            print_info "Projet ignoré : ${project_id} (project.env absent)."
+            continue
+        fi
+
+        unset \
+            PROJECT_ID \
+            PROJECT_NAME \
+            PROJECT_TYPE \
+            PROJECT_DOCKERED \
+            REMOTE_FORGEJO_BASE_URL \
+            REMOTE_FORGEJO_OWNER \
+            REMOTE_FORGEJO_REPOSITORY \
+            REMOTE_FORGEJO_NAME \
+            REMOTE_FORGEJO_BRANCH \
+            REMOTE_FORGEJO_SSL_VERIFY
+
+        # shellcheck disable=SC1090
+        if ! source "${project_env}"; then
+            print_error "Projet ignoré : ${project_id} (project.env illisible)."
+            continue
+        fi
+
+        if [[ \
+            -z "${PROJECT_ID:-}" || \
+            "${PROJECT_ID}" != "${project_id}" || \
+            -z "${PROJECT_NAME:-}" || \
+            -z "${PROJECT_TYPE:-}" || \
+            -z "${PROJECT_DOCKERED:-}" || \
+            -z "${REMOTE_FORGEJO_BASE_URL:-}" || \
+            -z "${REMOTE_FORGEJO_OWNER:-}" || \
+            -z "${REMOTE_FORGEJO_REPOSITORY:-}" || \
+            -z "${REMOTE_FORGEJO_NAME:-}" || \
+            -z "${REMOTE_FORGEJO_BRANCH:-}" || \
+            -z "${REMOTE_FORGEJO_SSL_VERIFY:-}" \
+        ]]; then
+            print_error "Projet ignoré : ${project_id} (configuration Forgejo incomplète)."
+            continue
+        fi
+
+        selected=$((selected + 1))
+
+        if ! forgejo_push "${project_id}"; then
+            print_error "Échec du push Forgejo pour le projet ${project_id}."
+            failed=1
+        fi
+    done
+
+    if [[ "${selected}" -eq 0 ]]; then
+        print_info "Aucun projet Forgejo configuré à traiter."
+        return 0
+    fi
+
+    if [[ "${failed}" -ne 0 ]]; then
+        print_error "Au moins un push Forgejo a échoué."
+        return 1
+    fi
+
+    print_success "Push Forgejo terminé pour tous les projets configurés."
+    return 0
 }
 
 # Push vers le dépôt distant GitLab du projet <PROJECT ID>

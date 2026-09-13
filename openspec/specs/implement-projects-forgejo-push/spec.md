@@ -8,7 +8,8 @@ dépôt Forgejo distant configuré.
 
 ### Requirement: commande de publication Forgejo
 
-Le système MUST exposer la commande `rid projects forgejo push <ID PROJECT>`.
+Le système MUST exposer la commande `rid projects forgejo push <ID PROJECT>`
+et la commande groupée `rid projects forgejo push all`.
 
 #### Scenario: publication du dépôt local
 
@@ -17,6 +18,12 @@ Le système MUST exposer la commande `rid projects forgejo push <ID PROJECT>`.
 - ALORS le dépôt local est poussé vers le dépôt Forgejo distant configuré
 - ET la branche distante configurée reçoit la branche locale publiée
 - ET le tag pointant sur le dernier commit, s'il existe, est publié
+
+#### Scenario: publication groupée
+
+- ÉTANT DONNÉ plusieurs projets configurés pour Forgejo
+- QUAND l'utilisateur exécute `rid projects forgejo push all`
+- ALORS chaque projet sélectionné est publié par le parcours Forgejo unitaire
 
 #### Scenario: sélection explicite de Forgejo
 
