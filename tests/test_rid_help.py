@@ -181,17 +181,17 @@ forgejo_push_all
     def test_projects_help_lists_commit_all_command(self):
         result = self.run_rid('projects', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects commit all', result.stdout)
+        self.assertIn('rid projects git commit all', result.stdout)
 
     def test_projects_help_lists_forgejo_push_all_command(self):
         result = self.run_rid('projects', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid projects forgejo push all', result.stdout)
 
-    def test_projects_commit_all_help_describes_command(self):
-        result = self.run_rid('projects', 'commit', 'help')
+    def test_projects_git_commit_all_help_describes_command(self):
+        result = self.run_rid('projects', 'git', 'commit', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects commit all', result.stdout)
+        self.assertIn('rid projects git commit all', result.stdout)
 
     def test_git_commit_all_selects_only_valid_configured_projects(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
