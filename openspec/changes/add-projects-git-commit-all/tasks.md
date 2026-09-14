@@ -1,7 +1,7 @@
 ## 1. Spécification et routage
 
 - [x] 1.1 Ajouter la spécification du commit local groupé et de son aide.
-- [x] 1.2 Router `rid projects commit all` avec un message et un tag communs.
+- [x] 1.2 Router `rid projects git commit all` avec un message et un tag communs.
 
 ## 2. Implémentation et aide
 

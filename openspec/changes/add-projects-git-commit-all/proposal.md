@@ -7,7 +7,7 @@ commande manuellement.
 
 ## What Changes
 
-- Ajouter la commande `rid projects commit all`.
+- Ajouter la commande `rid projects git commit all`.
 - Ajouter `git_commit_all()` afin de sélectionner les projets configurés et
   de déléguer chaque commit à `git_commit()`.
 - Ignorer explicitement les répertoires sans `project.env` ou dont la

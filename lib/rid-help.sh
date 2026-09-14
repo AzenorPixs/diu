@@ -129,7 +129,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects update <ID PROJECT>' 'Met à jour les variables du projet.'
             rid_help_line 'rid projects sync <ID PROJECT>' 'Synchronise le projet depuis le modèle local.'
             rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
-            rid_help_line 'rid projects commit all' 'Commit tous les dépôts Git configurés.'
+            rid_help_line 'rid projects git commit all' 'Commit tous les dépôts Git configurés.'
             rid_help_line 'rid projects docker' 'Gestion Docker des projets.'
             rid_help_line 'rid projects finds <ID PROJECT>' 'Recherche les conflits de synchronisation.'
             rid_help_line 'rid projects findads <ID PROJECT>' 'Supprime les conflits de synchronisation.'
@@ -168,17 +168,19 @@ rid_display_help_context() {
             rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
             ;;
         projects:commit:)
-            rid_help_line 'rid projects commit all' 'Commit tous les dépôts Git configurés.'
+            rid_help_line 'rid projects git commit all' 'Commit tous les dépôts Git configurés.'
             ;;
         projects:git:)
             rid_help_line 'rid projects git analyse <ID PROJECTS>' 'Analyse le dépôt Git local.'
             rid_help_line 'rid projects git commit <ID PROJECT> [COMMIT]' 'Commit le dépôt Git local.'
+            rid_help_line 'rid projects git commit all' 'Commit tous les dépôts Git configurés.'
             rid_help_line 'rid projects git init <ID PROJECT>' 'Initialise le dépôt Git local.'
             rid_help_line 'rid projects git status <ID PROJECTS>' 'Affiche le statut Git.'
             rid_help_line 'rid projects git update <ID PROJECT>' 'Met à jour les variables Git.'
             ;;
         projects:git:commit)
             rid_help_line 'rid projects git commit <ID PROJECT> [COMMIT]' 'Commit le dépôt Git local.'
+            rid_help_line 'rid projects git commit all' 'Commit tous les dépôts Git configurés.'
             ;;
         projects:git:status)
             rid_help_line 'rid projects git status <ID PROJECTS>' 'Affiche le statut Git.'
