@@ -243,7 +243,7 @@ gitlab_clone project
                 'template\n',
             )
 
-    def test_clone_project_copies_content_without_git_and_updates_project_id(self):
+    def test_clone_project_copies_content_without_git_and_updates_project_identifiers(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
             projects_root = temporary_path / 'projects'
@@ -253,7 +253,14 @@ gitlab_clone project
             (source_path / '.git' / 'config').write_text('source git\n', encoding='utf-8')
             (source_path / '.hidden').write_text('hidden\n', encoding='utf-8')
             (source_path / 'project.env').write_text(
-                '# Configuration\nPROJECT_ID=source\nPROJECT_NAME="Projet source"\nCUSTOM=value\n',
+                '# Configuration\n'
+                'PROJECT_ID=source\n'
+                'PROJECT_NAME="Projet source"\n'
+                'REMOTE_REPOSITORY=source\n'
+                'REMOTE_FORGEJO_REPOSITORY=source\n'
+                'REMOTE_GITLAB_REPOSITORY=source\n'
+                'REMOTE_GITHUB_REPOSITORY=source\n'
+                'CUSTOM=value\n',
                 encoding='utf-8',
             )
             nested_path = source_path / 'nested'
@@ -290,7 +297,37 @@ clone_project source destination
             self.assertFalse((destination_path / 'nested' / '.git').exists())
             self.assertEqual(
                 (destination_path / 'project.env').read_text(encoding='utf-8'),
-                '# Configuration\nPROJECT_ID=destination\nPROJECT_NAME="Projet source"\nCUSTOM=value\n',
+                '# Configuration\n'
+                'PROJECT_ID=destination\n'
+                'PROJECT_NAME="Projet source"\n'
+                'REMOTE_REPOSITORY=destination\n'
+                'REMOTE_FORGEJO_REPOSITORY=destination\n'
+                'REMOTE_GITLAB_REPOSITORY=destination\n'
+                'REMOTE_GITHUB_REPOSITORY=destination\n'
+                'CUSTOM=value\n',
+            )
+
+            (source_path / 'project.env').write_text(
+                'PROJECT_ID=source\nCUSTOM=value\n', encoding='utf-8'
+            )
+            result = subprocess.run(
+                [
+                    'bash',
+                    '-c',
+                    script.replace('source destination', 'source without-remote'),
+                    'bash',
+                    str(ROOT),
+                    str(projects_root),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                (projects_root / 'without-remote' / 'project.env').read_text(encoding='utf-8'),
+                'PROJECT_ID=without-remote\nCUSTOM=value\n',
             )
 
     def test_clone_project_refuses_invalid_preconditions_without_destination(self):
