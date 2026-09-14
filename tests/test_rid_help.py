@@ -2,6 +2,7 @@
 """Tests des chemins d'aide rid exécutables sans configuration de production."""
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 
 
@@ -13,6 +14,54 @@ class RidHelpTests(unittest.TestCase):
     def run_rid(self, *arguments):
         return subprocess.run(
             ['bash', str(ENTRYPOINT), *arguments],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def run_git_commit_all(self, projects_root, failing_project=''):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+FAILING_PROJECT="$3"
+git_commit() {
+    printf '%s|%s|%s\\n' "$1" "$2" "$3"
+    if [[ "$1" == "$FAILING_PROJECT" ]]; then
+        return 1
+    fi
+}
+DEVOPS_PROJECTS_ROOT="$2"
+git_commit_all message tag
+'''
+        return subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), failing_project],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def run_forgejo_push_all(self, projects_root, failing_project=''):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+FAILING_PROJECT="$3"
+forgejo_push() {
+    printf '%s\\n' "$1"
+    if [[ "$1" == "$FAILING_PROJECT" ]]; then
+        return 1
+    fi
+}
+DEVOPS_PROJECTS_ROOT="$2"
+forgejo_push_all
+'''
+        return subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), failing_project],
             text=True,
             capture_output=True,
             check=False,
@@ -41,6 +90,12 @@ class RidHelpTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid projects github push <ID PROJECT>', result.stdout)
 
+    def test_forgejo_push_help_describes_grouped_command(self):
+        result = self.run_rid('projects', 'forgejo', 'push', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects forgejo push <ID PROJECT>', result.stdout)
+        self.assertIn('rid projects forgejo push all', result.stdout)
+
     def test_projects_help_uses_canonical_git_init_command(self):
         result = self.run_rid('projects', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -54,6 +109,55 @@ class RidHelpTests(unittest.TestCase):
         self.assertNotIn('rid projects gits <ID PROJECTS>', result.stdout)
         self.assertIn('rid projects git update <ID PROJECT>', result.stdout)
         self.assertNotIn('rid projects gitu <ID PROJECT>', result.stdout)
+
+    def test_projects_create_help_describes_template_creation(self):
+        result = self.run_rid('projects', 'create', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects create <ID PROJECT>', result.stdout)
+        self.assertIn('modèle local', result.stdout)
+
+    def test_projects_clone_help_describes_clone_command(self):
+        projects_result = self.run_rid('projects', 'help')
+        clone_result = self.run_rid('projects', 'clone', 'help')
+
+        self.assertEqual(projects_result.returncode, 0, projects_result.stderr)
+        self.assertEqual(clone_result.returncode, 0, clone_result.stderr)
+        command = 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>'
+        self.assertIn(command, projects_result.stdout)
+        self.assertIn(command, clone_result.stdout)
+
+    def test_projects_gitlab_clone_help_does_not_start_cloning(self):
+        projects_result = self.run_rid('projects', 'help')
+        gitlab_result = self.run_rid('projects', 'gitlab', 'help')
+        clone_result = self.run_rid('projects', 'gitlab', 'clone', 'help')
+        question_result = self.run_rid('projects', 'gitlab', 'clone', '?')
+
+        command = 'rid projects gitlab clone <ID PROJECT>'
+        for result in (projects_result, gitlab_result, clone_result, question_result):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(command, result.stdout)
+
+    def test_projects_github_clone_help_does_not_start_cloning(self):
+        projects_result = self.run_rid('projects', 'help')
+        github_result = self.run_rid('projects', 'github', 'help')
+        clone_result = self.run_rid('projects', 'github', 'clone', 'help')
+        question_result = self.run_rid('projects', 'github', 'clone', '?')
+
+        command = 'rid projects github clone <ID PROJECT>'
+        for result in (projects_result, github_result, clone_result, question_result):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(command, result.stdout)
+
+    def test_projects_sync_help_describes_synchronization(self):
+        projects_result = self.run_rid('projects', 'help')
+        sync_result = self.run_rid('projects', 'sync', 'help')
+
+        self.assertEqual(projects_result.returncode, 0, projects_result.stderr)
+        self.assertEqual(sync_result.returncode, 0, sync_result.stderr)
+        self.assertIn('rid projects sync <ID PROJECT>', projects_result.stdout)
+        self.assertIn('rid projects sync all', projects_result.stdout)
+        self.assertIn('rid projects sync <ID PROJECT>', sync_result.stdout)
+        self.assertIn('rid projects sync all', sync_result.stdout)
 
     def test_projects_git_help_lists_analyse_init_and_update(self):
         result = self.run_rid('projects', 'git', 'help')
@@ -73,6 +177,132 @@ class RidHelpTests(unittest.TestCase):
         result = self.run_rid('projects', 'git', 'commit', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid projects git commit <ID PROJECT> [COMMIT]', result.stdout)
+
+    def test_projects_help_lists_commit_all_command(self):
+        result = self.run_rid('projects', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects commit all', result.stdout)
+
+    def test_projects_help_lists_forgejo_push_all_command(self):
+        result = self.run_rid('projects', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects forgejo push all', result.stdout)
+
+    def test_projects_commit_all_help_describes_command(self):
+        result = self.run_rid('projects', 'commit', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects commit all', result.stdout)
+
+    def test_git_commit_all_selects_only_valid_configured_projects(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            valid_project = projects_root / 'valid'
+            valid_project.mkdir()
+            (valid_project / 'project.env').write_text(
+                'PROJECT_ID=valid\n'
+                'PROJECT_NAME="Projet valide"\n'
+                'GIT_USER_NAME="Utilisateur Git"\n'
+                'GIT_USER_EMAIL=git@example.test\n',
+                encoding='utf-8',
+            )
+
+            incomplete_project = projects_root / 'incomplete'
+            incomplete_project.mkdir()
+            (incomplete_project / 'project.env').write_text(
+                'PROJECT_ID=incomplete\n'
+                'PROJECT_NAME="Projet incomplet"\n',
+                encoding='utf-8',
+            )
+
+            (projects_root / 'without-config').mkdir()
+
+            result = self.run_git_commit_all(projects_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, 'valid|message|tag\n')
+
+    def test_git_commit_all_continues_after_a_commit_failure(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+
+            for project_id in ('first', 'second'):
+                project_path = projects_root / project_id
+                project_path.mkdir()
+                (project_path / 'project.env').write_text(
+                    f'PROJECT_ID={project_id}\n'
+                    f'PROJECT_NAME="{project_id}"\n'
+                    'GIT_USER_NAME="Utilisateur Git"\n'
+                    'GIT_USER_EMAIL=git@example.test\n',
+                    encoding='utf-8',
+                )
+
+            result = self.run_git_commit_all(projects_root, 'first')
+
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(
+            result.stdout,
+            'first|message|tag\nsecond|message|tag\n',
+        )
+
+    def test_forgejo_push_all_selects_only_complete_configured_projects(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            valid_project = projects_root / 'valid'
+            valid_project.mkdir()
+            (valid_project / 'project.env').write_text(
+                'PROJECT_ID=valid\n'
+                'PROJECT_NAME="Projet valide"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\n'
+                'REMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=valid\n'
+                'REMOTE_FORGEJO_NAME=origin\n'
+                'REMOTE_FORGEJO_BRANCH=main\n'
+                'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            incomplete_project = projects_root / 'incomplete'
+            incomplete_project.mkdir()
+            (incomplete_project / 'project.env').write_text(
+                'PROJECT_ID=incomplete\n'
+                'PROJECT_NAME="Projet incomplet"\n',
+                encoding='utf-8',
+            )
+
+            (projects_root / 'without-config').mkdir()
+
+            result = self.run_forgejo_push_all(projects_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, 'valid\n')
+
+    def test_forgejo_push_all_continues_after_a_push_failure(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+
+            for project_id in ('first', 'second'):
+                project_path = projects_root / project_id
+                project_path.mkdir()
+                (project_path / 'project.env').write_text(
+                    f'PROJECT_ID={project_id}\n'
+                    f'PROJECT_NAME="{project_id}"\n'
+                    'PROJECT_TYPE=application\n'
+                    'PROJECT_DOCKERED=No\n'
+                    'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\n'
+                    'REMOTE_FORGEJO_OWNER=owner\n'
+                    f'REMOTE_FORGEJO_REPOSITORY={project_id}\n'
+                    'REMOTE_FORGEJO_NAME=origin\n'
+                    'REMOTE_FORGEJO_BRANCH=main\n'
+                    'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                    encoding='utf-8',
+                )
+
+            result = self.run_forgejo_push_all(projects_root, 'first')
+
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, 'first\nsecond\n')
 
     def test_projects_git_status_help_describes_canonical_command(self):
         result = self.run_rid('projects', 'git', 'status', 'help')
