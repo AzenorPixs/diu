@@ -314,6 +314,9 @@ clone_project() {
     local destination_project_path="${DEVOPS_PROJECTS_ROOT}/${destination_project_id}"
     local source_project_env="${source_project_path}/project.env"
     local staging_path=""
+    local project_env_line=""
+    local project_env_key=""
+    local -a project_env_replacements=(PROJECT_ID "${destination_project_id}")
 
     if [[ -z "${source_project_id}" || -z "${destination_project_id}" ]]; then
         print_error "Usage : clone_project <ID PROJECT SOURCE> <ID PROJECT DESTINATION>"
@@ -369,9 +372,20 @@ clone_project() {
         return 1
     fi
 
+    while IFS= read -r project_env_line || [[ -n "${project_env_line}" ]]; do
+        if [[ "${project_env_line}" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*= ]]; then
+            project_env_key="${BASH_REMATCH[2]}"
+            case "${project_env_key}" in
+                REMOTE_REPOSITORY|REMOTE_FORGEJO_REPOSITORY|REMOTE_GITLAB_REPOSITORY|REMOTE_GITHUB_REPOSITORY)
+                    project_env_replacements+=("${project_env_key}" "${destination_project_id}")
+                    ;;
+            esac
+        fi
+    done < "${staging_path}/project.env"
+
     if ! project_env_set_variables \
         "${staging_path}/project.env" \
-        PROJECT_ID "${destination_project_id}"; then
+        "${project_env_replacements[@]}"; then
         rm -rf -- "${staging_path}"
         return 1
     fi

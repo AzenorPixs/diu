@@ -49,15 +49,20 @@ commande Git ni modifier le projet source pendant cette opération.
 - **THEN** ce répertoire et son contenu sont absents de la destination
 - **AND THEN** les autres éléments du sous-répertoire sont copiés
 
-### Requirement: Identifiant de destination dans la configuration clonée
+### Requirement: Identifiants de destination dans la configuration clonée
 
 Après la copie réussie, DIU MUST remplacer l'affectation `PROJECT_ID` du
-fichier `project.env` destination par `<ID PROJECT DESTINATION>`. DIU MUST
-préserver les autres variables et les lignes non ciblées de ce fichier.
+fichier `project.env` destination par `<ID PROJECT DESTINATION>`. Si elles
+sont présentes, DIU MUST aussi remplacer les affectations
+`REMOTE_REPOSITORY`, `REMOTE_FORGEJO_REPOSITORY`,
+`REMOTE_GITLAB_REPOSITORY` et `REMOTE_GITHUB_REPOSITORY` par
+`<ID PROJECT DESTINATION>`. DIU MUST préserver les autres variables et les
+lignes non ciblées de ce fichier.
 
 #### Scenario: Mise à jour de project.env
 
-- **WHEN** `source/project.env` définit `PROJECT_ID=source` et d'autres
-  variables
-- **THEN** `destination/project.env` définit `PROJECT_ID=destination`
+- **WHEN** `source/project.env` définit `PROJECT_ID=source`, une ou plusieurs
+  variables de dépôt distant et d'autres variables
+- **THEN** `destination/project.env` définit `PROJECT_ID=destination` et les
+  variables de dépôt distant présentes avec la valeur `destination`
 - **AND THEN** les autres variables et lignes non ciblées sont conservées
