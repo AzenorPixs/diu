@@ -405,3 +405,36 @@ github_git_push() {
         "${github_token}" \
         push "${push_args[@]}"
 }
+
+# Clone un dépôt GitHub HTTPS avec les identifiants locaux du projet.
+github_git_clone() {
+    local project_path="${1:-}"
+    local remote_url="${2:-}"
+    local remote_branch="${3:-}"
+    local destination_path="${4:-}"
+
+    if [[ -z "${project_path}" || -z "${remote_url}" ||
+        -z "${remote_branch}" || -z "${destination_path}" ]]; then
+        print_error "Usage : github_git_clone <projet> <url> <branche> <destination>"
+        return 1
+    fi
+
+    if [[ "${remote_url}" != https://* ]]; then
+        print_error "L'URL de clonage GitHub doit utiliser HTTPS."
+        return 1
+    fi
+
+    if [[ ! -f "${project_path}/config/github.username" ||
+        ! -f "${project_path}/config/github.token" ]]; then
+        _github_initialize_credentials "${project_path}" || return 1
+    fi
+
+    _github_read_username "${project_path}" || return 1
+    _github_read_token "${project_path}" || return 1
+    git_with_token \
+        "${project_path}" \
+        "${github_username}" \
+        "${github_token}" \
+        clone --branch "${remote_branch}" --single-branch \
+        "${remote_url}" "${destination_path}"
+}
