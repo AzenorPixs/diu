@@ -237,3 +237,36 @@ gitlab_git_push() {
         "${gitlab_token}" \
         push "${push_args[@]}"
 }
+
+# Clone un dépôt GitLab HTTPS avec les identifiants locaux du projet.
+gitlab_git_clone() {
+    local project_path="${1:-}"
+    local remote_url="${2:-}"
+    local remote_branch="${3:-}"
+    local destination_path="${4:-}"
+
+    if [[ -z "${project_path}" || -z "${remote_url}" ||
+        -z "${remote_branch}" || -z "${destination_path}" ]]; then
+        print_error "Usage : gitlab_git_clone <projet> <url> <branche> <destination>"
+        return 1
+    fi
+
+    if [[ "${remote_url}" != https://* ]]; then
+        print_error "L'URL de clonage GitLab doit utiliser HTTPS."
+        return 1
+    fi
+
+    if [[ ! -f "${project_path}/config/gitlab.username" ||
+        ! -f "${project_path}/config/gitlab.token" ]]; then
+        _gitlab_initialize_credentials "${project_path}" || return 1
+    fi
+
+    _gitlab_read_username "${project_path}" || return 1
+    _gitlab_read_token "${project_path}" || return 1
+    _gitlab_git_with_token \
+        "${project_path}" \
+        "${gitlab_username}" \
+        "${gitlab_token}" \
+        clone --branch "${remote_branch}" --single-branch \
+        "${remote_url}" "${destination_path}"
+}

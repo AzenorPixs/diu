@@ -123,9 +123,13 @@ rid_display_help_context() {
             rid_help_line 'rid os validate <PROJET> <SPEC>' 'Valide une spécification.'
             ;;
         projects::)
-            rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet.'
+            rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
+            rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'
             rid_help_line 'rid projects update <ID PROJECT>' 'Met à jour les variables du projet.'
+            rid_help_line 'rid projects sync <ID PROJECT>' 'Synchronise le projet depuis le modèle local.'
+            rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
+            rid_help_line 'rid projects commit all' 'Commit tous les dépôts Git configurés.'
             rid_help_line 'rid projects docker' 'Gestion Docker des projets.'
             rid_help_line 'rid projects finds <ID PROJECT>' 'Recherche les conflits de synchronisation.'
             rid_help_line 'rid projects findads <ID PROJECT>' 'Supprime les conflits de synchronisation.'
@@ -138,8 +142,11 @@ rid_display_help_context() {
             rid_help_line 'rid projects git status <ID PROJECTS>' 'Affiche le statut Git.'
             rid_help_line 'rid projects git update <ID PROJECT>' 'Met à jour les variables Git.'
             rid_help_line 'rid projects gitlab' 'Gestion des dépôts GitLab.'
+            rid_help_line 'rid projects gitlab clone <ID PROJECT>' 'Crée et fusionne un dépôt GitLab distant.'
             rid_help_line 'rid projects github' 'Gestion des dépôts GitHub.'
+            rid_help_line 'rid projects github clone <ID PROJECT>' 'Crée et fusionne un dépôt GitHub distant.'
             rid_help_line 'rid projects forgejo' 'Gestion des dépôts Forgejo.'
+            rid_help_line 'rid projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
             rid_help_line 'rid projects ocro <ID PROJECT>' 'Ouvre le projet en lecture seule.'
             rid_help_line 'rid projects ocrw <ID PROJECT>' 'Ouvre le projet en lecture-écriture.'
             rid_help_line 'rid projects ocsh <ID PROJECT>' 'Ouvre un shell dans le projet.'
@@ -149,6 +156,19 @@ rid_display_help_context() {
             ;;
         projects:docker:)
             rid_help_line 'rid projects docker build <ID PROJECT>' "Construit l'image Docker du projet."
+            ;;
+        projects:create:)
+            rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
+            ;;
+        projects:clone:)
+            rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
+            ;;
+        projects:sync:)
+            rid_help_line 'rid projects sync <ID PROJECT>' 'Synchronise le projet depuis le modèle local.'
+            rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
+            ;;
+        projects:commit:)
+            rid_help_line 'rid projects commit all' 'Commit tous les dépôts Git configurés.'
             ;;
         projects:git:)
             rid_help_line 'rid projects git analyse <ID PROJECTS>' 'Analyse le dépôt Git local.'
@@ -166,10 +186,22 @@ rid_display_help_context() {
         projects:gitlab:|projects:github:|projects:forgejo:)
             rid_help_line "rid projects ${subcontext} update <ID PROJECT>" 'Met à jour la configuration distante.'
             rid_help_line "rid projects ${subcontext} push <ID PROJECT>" 'Pousse le dépôt local.'
+            if [[ "${subcontext}" == "gitlab" ]]; then
+                rid_help_line 'rid projects gitlab clone <ID PROJECT>' 'Crée et fusionne un dépôt GitLab distant.'
+            fi
+            if [[ "${subcontext}" == "github" ]]; then
+                rid_help_line 'rid projects github clone <ID PROJECT>' 'Crée et fusionne un dépôt GitHub distant.'
+            fi
+            if [[ "${subcontext}" == "forgejo" ]]; then
+                rid_help_line 'rid projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
+            fi
             rid_help_line "rid projects ${subcontext} release <ID PROJECT>" 'Publie les artefacts du projet.'
             ;;
-        projects:docker:build|projects:git:update|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:update|projects:github:push|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
+        projects:docker:build|projects:git:update|projects:gitlab:clone|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:clone|projects:github:update|projects:github:push|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
             rid_help_line "rid projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."
+            if [[ "${context}:${subcontext}:${leaf}" == "projects:forgejo:push" ]]; then
+                rid_help_line 'rid projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
+            fi
             ;;
         install::|remove::)
             rid_help_line "rid ${context} deb <SOFTWARE>" 'Opération sur un paquet Debian.'

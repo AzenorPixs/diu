@@ -788,8 +788,8 @@ launch_ocrw() {
         "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}" || return 1
 
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
-      --hostname opencode \
-      --name opencode \
+      --hostname ${project_id}-opencode \
+      --name ${project_id}-opencode \
       --workdir /workspace \
       --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m,mode=1777 \
       --security-opt no-new-privileges:true \
@@ -824,7 +824,7 @@ launch_ocrw() {
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git go libffi-dev nodejs npm openssl-dev python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
+      -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git go libffi-dev nodejs npm openssl openssl-dev python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
           exec setpriv \
             --reuid=\"\$OPENCODE_UID\" \
             --regid=\"\$OPENCODE_GID\" \
@@ -1232,13 +1232,69 @@ manage_project_action() {
             ;;
 
         create)
-            create_project \
-                "$project_id"
+            case "${project_id}" in
+                help|?)
+                    display_help_context projects create
+                    ;;
+                *)
+                    create_project \
+                        "${project_id}"
+                    ;;
+            esac
+            ;;
+
+        clone)
+            case "${project_id}" in
+                help|?)
+                    display_help_context projects clone
+                    ;;
+                *)
+                    clone_project \
+                        "${project_id}" \
+                        "${3:-}"
+                    ;;
+            esac
             ;;
 
         update)
             update_projects \
                 "$project_id"
+            ;;
+
+        sync)
+            case "${project_id}" in
+                all)
+                    sync_project_all
+                    ;;
+                help|?)
+                    display_help_context projects sync
+                    ;;
+                *)
+                    sync_project \
+                        "${project_id}"
+                    ;;
+            esac
+            ;;
+
+        commit)
+            case "${project_subaction}" in
+                all)
+                    commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+                    commit_name="${commit_timestamp}"
+                    commit_tag="v${commit_timestamp}"
+                    git_commit_all \
+                        "$commit_name" \
+                        "$commit_tag"
+                    ;;
+                help|?)
+                    display_help_context projects commit
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects commit' : ${project_subaction}"
+                    rid_display_command_error
+                    exit 2
+                    ;;
+            esac
             ;;
 
         docker)
@@ -1323,6 +1379,16 @@ manage_project_action() {
             project_id="${3:-}"
 
             case "${project_subaction}" in
+                clone)
+                    case "${3:-}" in
+                        help|?)
+                            display_help_context projects gitlab clone
+                            ;;
+                        *)
+                            gitlab_clone "${3:-}"
+                            ;;
+                    esac
+                    ;;
                 update)
                     gitlab_update \
                         "${project_id}"
@@ -1356,6 +1422,16 @@ manage_project_action() {
             project_id="${3:-}"
 
             case "${project_subaction}" in
+                clone)
+                    case "${3:-}" in
+                        help|?)
+                            display_help_context projects github clone
+                            ;;
+                        *)
+                            github_clone "${3:-}"
+                            ;;
+                    esac
+                    ;;
                 update)
                     github_update \
                         "${project_id}"
@@ -1390,8 +1466,12 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
-                    forgejo_push \
-                        "${project_id}"
+                    if [[ "${project_id}" == "all" ]]; then
+                        forgejo_push_all
+                    else
+                        forgejo_push \
+                            "${project_id}"
+                    fi
                     ;;
                 release)
                     projects_forgejo_release \
