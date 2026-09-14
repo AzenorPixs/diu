@@ -97,7 +97,20 @@ Version : 0.1
 
   * v1.13
   * /home/devops/.local/npm/bin/openspec
-  
+
+
+# OpenSSL
+
+## Environnement conteneurisé
+
+  * v3.5.8
+  * /usr/bin/openssl
+
+## Environnement non conteneurisé
+
+  * v3.5.7
+  * /usr/bin/openssl
+
 
 # PostgreSQL
 
