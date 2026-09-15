@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SystemAptTests(unittest.TestCase):
-    def test_prerequisites_include_libpq5(self):
+    def test_prerequisites_include_postgresql_packages(self):
         script = r'''
 set -Eeuo pipefail
 print_info() { :; }
@@ -26,6 +26,7 @@ system_install_prerequisites
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("install -y -- libpq5", result.stdout.splitlines())
+        self.assertIn("install -y -- postgresql-client", result.stdout.splitlines())
 
     def test_nvidia_deb822_sources_omit_components(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
