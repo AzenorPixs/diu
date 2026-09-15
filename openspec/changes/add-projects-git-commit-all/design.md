@@ -9,7 +9,7 @@ interactifs de configuration pour les autres répertoires.
 
 **Goals:**
 
-- Exposer `rid projects commit all`.
+- Exposer `rid projects git commit all`.
 - Parcourir les répertoires directs de `${DEVOPS_PROJECTS_ROOT}`.
 - Déléguer les commits au comportement existant de `git_commit()`.
 - Continuer après l'échec d'un projet et restituer un échec global fidèle.
@@ -23,7 +23,7 @@ interactifs de configuration pour les autres répertoires.
 
 ## Decisions
 
-- Le routage introduit le contexte terminal `projects:commit:all`. Il génère
+- Le routage introduit le contexte terminal `projects:git:commit:all`. Il génère
   un unique horodatage local au format existant `YYYY.MM.DD.HH.MM`, utilisé
   comme message et, avec le préfixe `v`, comme tag pour tous les projets.
 - `git_commit_all()` ne considère qu'un sous-répertoire qui contient un
