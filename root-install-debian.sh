@@ -825,7 +825,7 @@ launch_ocrw() {
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
       -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git go libffi-dev libpq nodejs npm openssl openssl-dev postgresql17-client python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
-          /usr/bin/python3 -m pip install 'psycopg>=3.2,<4' && \
+          /usr/bin/python3 -m pip install --break-system-packages \"psycopg>=3.2,<4\" && \
           exec setpriv \
             --reuid=\"\$OPENCODE_UID\" \
             --regid=\"\$OPENCODE_GID\" \
