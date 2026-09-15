@@ -269,6 +269,7 @@ gitlab_clone project
                 'REMOTE_FORGEJO_SSL_VERIFY=No\n'
                 'REMOTE_GITLAB_REPOSITORY=source\n'
                 'REMOTE_GITHUB_REPOSITORY=source\n'
+                'PG_DATABASE=source\n'
                 'CUSTOM=value\n',
                 encoding='utf-8',
             )
@@ -322,6 +323,7 @@ clone_project source destination
                 'REMOTE_FORGEJO_SSL_VERIFY=No\n'
                 'REMOTE_GITLAB_REPOSITORY=destination\n'
                 'REMOTE_GITHUB_REPOSITORY=destination\n'
+                'PG_DATABASE=destination\n'
                 'CUSTOM=value\n',
             )
 

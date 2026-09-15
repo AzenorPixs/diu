@@ -9,6 +9,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SystemAptTests(unittest.TestCase):
+    def test_prerequisites_include_libpq5(self):
+        script = r'''
+set -Eeuo pipefail
+print_info() { :; }
+apt-get() { printf '%s\n' "$*"; }
+dpkg-query() { return 1; }
+source "$ROOT/modules/system/apt.sh"
+system_install_prerequisites
+'''
+        result = subprocess.run(
+            ["bash", "-c", script],
+            env=dict(os.environ, ROOT=str(ROOT)),
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("install -y -- libpq5", result.stdout.splitlines())
+
     def test_nvidia_deb822_sources_omit_components(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             directory = Path(directory)
