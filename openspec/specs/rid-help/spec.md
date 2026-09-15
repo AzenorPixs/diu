@@ -61,7 +61,7 @@ routage ne SHALL appeler l'ancienne fonction d'usage global.
 ### Requirement: Aide de l'initialisation Git des projets
 
 L'aide `rid projects help` SHALL présenter
-`rid projects git init <ID PROJECT>`, `rid projects commit all` et
+`rid projects git init <ID PROJECT>`, `rid projects git commit all` et
 `rid projects forgejo push all`. L'aide `rid projects forgejo help` SHALL
 présenter `push all` en complément des commandes unitaires. L'aide
 `rid projects forgejo push help` SHALL présenter les syntaxes unitaire et
@@ -76,6 +76,7 @@ groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
 - **AND THEN** l'aide n'affiche pas `rid projects giti <ID PROJECT>`
 - **AND THEN** l'aide affiche `rid projects git update <ID PROJECT>`
 - **AND THEN** l'aide n'affiche pas `rid projects gitu <ID PROJECT>`
+- **AND THEN** l'aide affiche `rid projects git commit all`
 - **AND THEN** l'aide affiche `rid projects forgejo push all`
 
 #### Scenario: Aide du sous-contexte Git
@@ -83,6 +84,7 @@ groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
 - **WHEN** l'utilisateur exécute `rid projects git help`
 - **THEN** l'aide affiche `rid projects git init <ID PROJECT>`
 - **AND THEN** l'aide affiche `rid projects git update <ID PROJECT>`
+- **AND THEN** l'aide affiche `rid projects git commit all`
 
 #### Scenario: aide de publication Forgejo groupée
 

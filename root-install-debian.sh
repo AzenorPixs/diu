@@ -1276,27 +1276,6 @@ manage_project_action() {
             esac
             ;;
 
-        commit)
-            case "${project_subaction}" in
-                all)
-                    commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
-                    commit_name="${commit_timestamp}"
-                    commit_tag="v${commit_timestamp}"
-                    git_commit_all \
-                        "$commit_name" \
-                        "$commit_tag"
-                    ;;
-                help|?)
-                    display_help_context projects commit
-                    ;;
-                *)
-                    echo "❌ Action inconnue pour la classe 'projects commit' : ${project_subaction}"
-                    rid_display_command_error
-                    exit 2
-                    ;;
-            esac
-            ;;
-
         docker)
             case "${project_subaction}" in
                 build)
@@ -1334,13 +1313,28 @@ manage_project_action() {
                         "$project_id"
                     ;;
                 commit)
-                    commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
-                    commit_name="${4:-${commit_timestamp}}"
-                    commit_tag="${5:-v${commit_timestamp}}"
-                    git_commit \
-                        "$project_id" \
-                        "$commit_name" \
-                        "$commit_tag"
+                    case "${project_id}" in
+                        all)
+                            commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+                            commit_name="${commit_timestamp}"
+                            commit_tag="v${commit_timestamp}"
+                            git_commit_all \
+                                "$commit_name" \
+                                "$commit_tag"
+                            ;;
+                        help|?)
+                            display_help_context projects git commit
+                            ;;
+                        *)
+                            commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+                            commit_name="${4:-${commit_timestamp}}"
+                            commit_tag="${5:-v${commit_timestamp}}"
+                            git_commit \
+                                "$project_id" \
+                                "$commit_name" \
+                                "$commit_tag"
+                            ;;
+                    esac
                     ;;
                 init)
                     git_init \
