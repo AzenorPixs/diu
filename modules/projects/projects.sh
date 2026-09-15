@@ -158,7 +158,8 @@ sync_project() {
             print_error "Impossible de préparer la ressource CAB : ${broker_relative_path}"
             return 1
         fi
-    done < <(find "${broker_source_path}" -type d -name '__pycache__' -prune -o -mindepth 1 -print0)
+    done < <(find "${broker_source_path}" -mindepth 1 \
+        -type d -name '__pycache__' -prune -o -print0)
 
     project_name_sed="$(printf '%s' "${PROJECT_NAME}" | sed 's/[&|\\]/\\&/g')"
     project_id_sed="$(printf '%s' "${PROJECT_ID}" | sed 's/[&|\\]/\\&/g')"
