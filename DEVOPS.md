@@ -159,13 +159,13 @@ Version : 0.2
 
 ## Environnement conteneurisé
 
-  * 
+  * /usr/bin/python3 c "import psycopg; print(psycopg.__version__)"
   *
 
 ## Environnement non conteneurisé
 
-  *
-  *
+  * /home/devops/python/current/bin/python3 -c "import psycopg; print(psycopg.__version__)"
+  * 3.3.5
 
 
 # Python - Gestionnaire de paquets
@@ -179,3 +179,8 @@ Version : 0.2
 
   * /home/devops/python/current/bin/pip3
   * pip 26.2.1
+
+
+# Python - Dépendances du projet
+
+  * La source de vérité des dépendances Python est `pyproject.toml`
