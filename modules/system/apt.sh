@@ -185,7 +185,7 @@ system_install_prerequisites() {
         aptitude apache2-utils apt-transport-https bash-completion
         bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg
         gpg inetutils-telnet iptables jq libpq5 lshw lsb-release man-db manpages-fr
-        net-tools netcat-traditional nicstat openssl pciutils ripgrep shellcheck
+        net-tools netcat-traditional nicstat openssl pciutils postgresql-client ripgrep shellcheck
         python3-pytest ripgrep shellcheck sudo tcpdump traceroute tree util-linux wget
         libsecret-tools
     )
