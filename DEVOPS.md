@@ -1,6 +1,6 @@
 # DEVOPS.md — Pixs
 
-Version : 0.1
+Version : 0.2
 
 
 # Système d'exploitation
@@ -112,17 +112,32 @@ Version : 0.1
   * /usr/bin/openssl
 
 
-# PostgreSQL
+# PostgreSQL Client
+
+## Environnement conteneurisé
+
+  * v17.11
+  * /usr/bin/psql
+
+## Environnement non conteneurisé
+
+  * v17.11
+  * /usr/bin/psql
+
+
+# PostgreSQL Serveur
 
 ## Environnement conteneurisé
 
   * v16
   * 127.0.0.1:5432
+  * Les variables PostgreSQL sont chargées depuis project.env
 
 ## Environnement non conteneurisé
 
   * v16
   * 127.0.0.1:5432
+  * Les variables PostgreSQL sont chargées depuis project.env
 
 
 # Python
@@ -132,11 +147,35 @@ Version : 0.1
   * v3.14.7
   * /usr/bin/python3
   * venv: disponible
-  * pip 26.1.2
 
 ## Environnement non conteneurisé
 
   * v3.14.7
   * /home/devops/python/current/bin/python3
   * venv: disponible
+
+
+# Python - Dépendances PostgreSQL
+
+## Environnement conteneurisé
+
+  * 
+  *
+
+## Environnement non conteneurisé
+
+  *
+  *
+
+
+# Python - Gestionnaire de paquets
+
+## Environnement conteneurisé
+
+  * /usr/bin/pip3
+  * pip 26.1.2
+
+## Environnement non conteneurisé
+
+  * /home/devops/python/current/bin/pip3
   * pip 26.2.1
