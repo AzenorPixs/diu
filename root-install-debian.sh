@@ -165,7 +165,9 @@ EOF
           printf '\n'
           printf '# Stack Docker DevOps\n'
           printf '127.0.0.1\t%s\n' "forgejo.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
+          printf '127.0.0.1\t%s\n' "fd.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "g4f.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
+          printf '127.0.0.1\t%s\n' "ldap.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "pgadmin.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
       } >> /etc/hosts
   fi

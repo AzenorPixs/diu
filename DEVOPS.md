@@ -132,12 +132,14 @@ Version : 0.2
   * v16
   * 127.0.0.1:5432
   * Les variables PostgreSQL sont chargées depuis project.env
+  * PG_DATABASE PG_USERNAME PG_PASSWORD
 
 ## Environnement non conteneurisé
 
   * v16
   * 127.0.0.1:5432
   * Les variables PostgreSQL sont chargées depuis project.env
+  * PG_DATABASE PG_USERNAME PG_PASSWORD
 
 
 # Python
@@ -155,17 +157,19 @@ Version : 0.2
   * venv: disponible
 
 
-# Python - Dépendances PostgreSQL
+# Python -  Dépendances du projet
+
+  * La source de vérité des dépendances Python est `pyproject.toml`
 
 ## Environnement conteneurisé
 
-  * /usr/bin/python3 c "import psycopg; print(psycopg.__version__)"
-  *
+  * psycopg  installé lors du démarrage du conteneur
+  * 3.3.5 --> /usr/bin/python3 -c "import psycopg; print(psycopg.__version__)"
 
 ## Environnement non conteneurisé
 
-  * /home/devops/python/current/bin/python3 -c "import psycopg; print(psycopg.__version__)"
-  * 3.3.5
+  * psycopg
+  * 3.3.5 --> /home/devops/python/current/bin/python3 -c "import psycopg; print(psycopg.__version__)"
 
 
 # Python - Gestionnaire de paquets
@@ -179,8 +183,3 @@ Version : 0.2
 
   * /home/devops/python/current/bin/pip3
   * pip 26.2.1
-
-
-# Python - Dépendances du projet
-
-  * La source de vérité des dépendances Python est `pyproject.toml`
