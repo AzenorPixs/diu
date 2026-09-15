@@ -462,6 +462,7 @@ sync_project projet-test
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, '')
             self.assertEqual(
                 (project_path / 'AGENTS.md').read_text(encoding='utf-8'),
                 'Projet Test projet-test\n',
