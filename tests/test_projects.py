@@ -382,6 +382,7 @@ clone_project source destination
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
             template_path = temporary_path / 'datas' / 'template'
+            broker_source_path = temporary_path / 'cab' / 'src'
             project_path = temporary_path / 'projects' / 'projet-test'
 
             (template_path / '.opencode' / 'commands').mkdir(parents=True)
@@ -389,6 +390,8 @@ clone_project source destination
             (template_path / '.opencode' / 'skills').mkdir()
             (template_path / 'PROMPTS').mkdir()
             project_path.mkdir(parents=True)
+            (broker_source_path / 'nested').mkdir(parents=True)
+            (broker_source_path / '__pycache__').mkdir()
 
             (template_path / 'AGENTS.md').write_text('Template template\n', encoding='utf-8')
             (template_path / 'DEVOPS.md').write_text('Template\n', encoding='utf-8')
@@ -405,12 +408,29 @@ clone_project source destination
             (template_path / 'PROMPTS' / 'INDEX.md').write_text(
                 'Template template\n', encoding='utf-8'
             )
+            (broker_source_path / 'nested' / 'broker.py').write_text(
+                'source CAB\n', encoding='utf-8'
+            )
+            (broker_source_path / 'README.md').write_text(
+                'Template template\n', encoding='utf-8'
+            )
+            (broker_source_path / '__pycache__' / 'broker.pyc').write_text(
+                'cache source\n', encoding='utf-8'
+            )
             (project_path / 'project.env').write_text(
                 'PROJECT_ID=projet-test\nPROJECT_NAME="Projet Test"\n',
                 encoding='utf-8',
             )
             (project_path / 'README.md').write_text('Template template\n', encoding='utf-8')
             (project_path / 'AGENTS.md').write_text('ancienne version\n', encoding='utf-8')
+            (project_path / '.opencode' / 'broker' / 'nested').mkdir(parents=True)
+            (project_path / '.opencode' / 'broker' / '__pycache__').mkdir()
+            (project_path / '.opencode' / 'broker' / 'nested' / 'broker.py').write_text(
+                'ancienne version CAB\n', encoding='utf-8'
+            )
+            (project_path / '.opencode' / 'broker' / '__pycache__' / 'stale.pyc').write_text(
+                'cache destination\n', encoding='utf-8'
+            )
 
             devops_user = f'../tmp/{temporary_path.name}'
             script = r'''
@@ -418,13 +438,24 @@ source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*"; }
 print_success() { :; }
 chown() { :; }
+BROKER_SOURCE_PATH="$4"
+sync_project_broker_source_path() { printf '%s\n' "${BROKER_SOURCE_PATH}"; }
 DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 DEVOPS_PROJECTS_ROOT="$3"
 sync_project projet-test
 '''
             result = subprocess.run(
-                ['bash', '-c', script, 'bash', str(ROOT), devops_user, str(project_path.parent)],
+                [
+                    'bash',
+                    '-c',
+                    script,
+                    'bash',
+                    str(ROOT),
+                    devops_user,
+                    str(project_path.parent),
+                    str(broker_source_path),
+                ],
                 text=True,
                 capture_output=True,
                 check=False,
@@ -445,6 +476,17 @@ sync_project projet-test
             )
             self.assertEqual(
                 (project_path / 'README.md').read_text(encoding='utf-8'),
+                'Template template\n',
+            )
+            self.assertEqual(
+                (project_path / '.opencode' / 'broker' / 'nested' / 'broker.py').read_text(
+                    encoding='utf-8'
+                ),
+                'source CAB\n',
+            )
+            self.assertFalse((project_path / '.opencode' / 'broker' / '__pycache__').exists())
+            self.assertEqual(
+                (project_path / '.opencode' / 'broker' / 'README.md').read_text(encoding='utf-8'),
                 'Template template\n',
             )
 
