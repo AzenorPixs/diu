@@ -431,7 +431,7 @@ clone_project() {
         if [[ "${project_env_line}" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*= ]]; then
             project_env_key="${BASH_REMATCH[2]}"
             case "${project_env_key}" in
-                REMOTE_REPOSITORY|REMOTE_FORGEJO_REPOSITORY|REMOTE_GITLAB_REPOSITORY|REMOTE_GITHUB_REPOSITORY)
+                REMOTE_REPOSITORY|REMOTE_FORGEJO_REPOSITORY|REMOTE_GITLAB_REPOSITORY|REMOTE_GITHUB_REPOSITORY|PG_DATABASE)
                     project_env_replacements+=("${project_env_key}" "${destination_project_id}")
                     ;;
             esac
