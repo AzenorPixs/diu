@@ -150,7 +150,6 @@ EOF
           printf '127.0.0.1\t%s\n' "dockhand.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "dozzle.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "hawser.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "ldap.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "librespeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "myspeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "traefik.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
