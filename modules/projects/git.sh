@@ -1218,8 +1218,20 @@ git_commit() {
         "${git_local_command[@]}" -C "${project_path}" rev-parse \
         --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
 
-        print_error "Aucun dépôt Git initialisé."
-        return 1
+        print_info "Aucun dépôt Git initialisé. Initialisation en cours..."
+
+        if ! git_init "${project_id}"; then
+            print_error "Impossible d'initialiser le dépôt Git local."
+            return 1
+        fi
+
+        if [[ "$(runuser -u "${DEVOPS_USER}" -- \
+            "${git_local_command[@]}" -C "${project_path}" rev-parse \
+            --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
+
+            print_error "Aucun dépôt Git initialisé."
+            return 1
+        fi
     fi
 
     # Vérification des droits
@@ -2539,6 +2551,14 @@ git_push_provider() {
             ;;
     esac
 
+    if [[ "${remote_git_type}" == "forgejo" ]]; then
+        if ! forgejo_git_fetch_named "${project_path}" "${remote_name}"; then
+            print_error \
+                "Impossible de récupérer les références Forgejo distantes."
+            return 1
+        fi
+    fi
+
     # Détermination de l'upstream actuel
     upstream=""
 
@@ -2587,18 +2607,19 @@ git_push_provider() {
         printf 'Tag Git            : %s\n' "${current_tag}"
     fi
 
-    # Confirmation
-    printf '\n'
-    read -r -p "Effectuer le push ? [o/N] : " confirmation
+    if [[ "${remote_git_type}" != "forgejo" ]]; then
+        printf '\n'
+        read -r -p "Effectuer le push ? [o/N] : " confirmation
 
-    case "${confirmation}" in
-        o|O|oui|OUI|y|Y|yes|YES)
-            ;;
-        *)
-            print_info "Push annulé."
-            return 0
-            ;;
-    esac
+        case "${confirmation}" in
+            o|O|oui|OUI|y|Y|yes|YES)
+                ;;
+            *)
+                print_info "Push annulé."
+                return 0
+                ;;
+        esac
+    fi
 
     # Push
     case "${remote_git_type}" in
@@ -2641,6 +2662,7 @@ git_push_provider() {
                 forgejo_git_push_named \
                     "${project_path}" \
                     "${remote_name}" \
+                    --force-with-lease \
                     --set-upstream \
                     "${remote_name}" \
                     "${current_branch}:${remote_default_branch}" \

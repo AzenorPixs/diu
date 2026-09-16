@@ -43,6 +43,58 @@ git_commit_all message tag
             check=False,
         )
 
+    def run_git_commit_without_repository(self, initialization_creates_repository):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+check_devops_user() { return 0; }
+git_init() {
+    printf 'init\n'
+    if [[ "${INITIALIZATION_CREATES_REPOSITORY}" == 'yes' ]]; then
+        repository_ready='true'
+    fi
+}
+runuser() {
+    case "$*" in
+        *'rev-parse'*)
+            printf '%s\n' "${repository_ready:-false}"
+            ;;
+        *'add .'*)
+            printf 'add\n'
+            ;;
+    esac
+    return 0
+}
+DEVOPS_USER=devops
+DEVOPS_PROJECTS_ROOT="$2"
+INITIALIZATION_CREATES_REPOSITORY="$3"
+repository_ready='false'
+git_commit project message tag
+'''
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            project_path = Path(temporary_directory) / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'GIT_USER_NAME="Utilisateur Git"\n'
+                'GIT_USER_EMAIL=git@example.test\n',
+                encoding='utf-8',
+            )
+            return subprocess.run(
+                [
+                    'bash', '-c', script, 'bash', str(ROOT),
+                    temporary_directory,
+                    'yes' if initialization_creates_repository else 'no',
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
     def run_forgejo_push_all(self, projects_root, failing_project=''):
         script = '''
 source "$1/modules/projects/git.sh"
@@ -62,6 +114,43 @@ forgejo_push_all
 '''
         return subprocess.run(
             ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), failing_project],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def run_forgejo_push(self, projects_root, confirmation=''):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+check_devops_user() { return 0; }
+forgejo_remote_ensure() { return 0; }
+_forgejo_ensure_credentials() { return 0; }
+forgejo_git_fetch_named() { printf 'fetch:%s\\n' "$2"; }
+forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
+runuser() {
+    case "$*" in
+        *'git --version'*) return 0 ;;
+        *'rev-parse --verify'*) return 1 ;;
+        *'rev-parse --is-inside-work-tree'*) return 0 ;;
+        *'branch --show-current'*) printf 'main\\n' ;;
+        *'tag --points-at HEAD'*) return 0 ;;
+        *'remote get-url'*) printf 'https://forgejo.example.test/owner/project.git\\n' ;;
+        *) return 0 ;;
+    esac
+}
+DEVOPS_USER=devops
+DEVOPS_GROUP=devops
+ENV_DEVOPS_USER=devops
+DEVOPS_PROJECTS_ROOT="$2"
+forgejo_push project
+'''
+        return subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+            input=confirmation,
             text=True,
             capture_output=True,
             check=False,
@@ -244,6 +333,18 @@ forgejo_push_all
             'first|message|tag\nsecond|message|tag\n',
         )
 
+    def test_git_commit_initializes_a_missing_local_repository(self):
+        result = self.run_git_commit_without_repository(True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, 'init\nadd\n')
+
+    def test_git_commit_stops_if_initialization_does_not_create_repository(self):
+        result = self.run_git_commit_without_repository(False)
+
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(result.stdout, 'init\n')
+
     def test_forgejo_push_all_selects_only_complete_configured_projects(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             projects_root = Path(temporary_directory)
@@ -303,6 +404,58 @@ forgejo_push_all
 
         self.assertEqual(result.returncode, 1)
         self.assertEqual(result.stdout, 'first\nsecond\n')
+
+    def test_forgejo_push_uses_force_with_lease_for_the_branch(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\n'
+                'REMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\n'
+                'REMOTE_FORGEJO_NAME=origin\n'
+                'REMOTE_FORGEJO_BRANCH=main\n'
+                'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_forgejo_push(projects_root, 'o\n')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('fetch:origin', result.stdout)
+        self.assertIn(
+            '--force-with-lease --set-upstream origin main:main',
+            result.stdout,
+        )
+
+    def test_forgejo_push_does_not_require_confirmation(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\n'
+                'REMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\n'
+                'REMOTE_FORGEJO_NAME=origin\n'
+                'REMOTE_FORGEJO_BRANCH=main\n'
+                'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_forgejo_push(projects_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('push:', result.stdout)
 
     def test_projects_git_status_help_describes_canonical_command(self):
         result = self.run_rid('projects', 'git', 'status', 'help')
