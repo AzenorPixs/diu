@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-09-15
+goal: Mettre à jour PG_DATABASE lors du clonage local d'un projet.

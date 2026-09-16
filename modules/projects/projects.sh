@@ -36,12 +36,20 @@ sync_project_template_is_valid() {
     done
 }
 
+sync_project_broker_source_path() {
+    printf '%s\n' '/home/devops/datas/cab/src'
+}
+
 sync_project() {
     local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local template_path="/home/${DEVOPS_USER}/datas/template"
+    local broker_source_path=""
     local staging_path=""
+    local broker_item=""
+    local broker_relative_path=""
+    local broker_destination_path=""
     local project_name_sed=""
     local project_id_sed=""
     local markdown_file=""
@@ -84,6 +92,13 @@ sync_project() {
         return 1
     fi
 
+    if ! broker_source_path="$(sync_project_broker_source_path)" ||
+        [[ ! -d "${broker_source_path}" ]]; then
+
+        print_error "Le répertoire source CAB est introuvable : ${broker_source_path}"
+        return 1
+    fi
+
     staging_path="$(mktemp -d)" || {
         print_error "Impossible de préparer la synchronisation du projet."
         return 1
@@ -120,6 +135,32 @@ sync_project() {
         return 1
     fi
 
+    if ! mkdir -p "${staging_path}/.opencode/broker"; then
+        rm -rf -- "${staging_path}"
+        print_error "Impossible de préparer les ressources CAB."
+        return 1
+    fi
+
+    while IFS= read -r -d '' broker_item; do
+        broker_relative_path="${broker_item#"${broker_source_path}/"}"
+        broker_destination_path="${staging_path}/.opencode/broker/${broker_relative_path}"
+
+        if [[ -d "${broker_item}" ]]; then
+            if ! mkdir -p -- "${broker_destination_path}"; then
+                rm -rf -- "${staging_path}"
+                print_error "Impossible de préparer le répertoire CAB : ${broker_relative_path}"
+                return 1
+            fi
+        elif ! mkdir -p -- "$(dirname "${broker_destination_path}")" ||
+            ! cp -a -- "${broker_item}" "${broker_destination_path}"; then
+
+            rm -rf -- "${staging_path}"
+            print_error "Impossible de préparer la ressource CAB : ${broker_relative_path}"
+            return 1
+        fi
+    done < <(find "${broker_source_path}" -mindepth 1 \
+        -type d -name '__pycache__' -prune -o -print0)
+
     project_name_sed="$(printf '%s' "${PROJECT_NAME}" | sed 's/[&|\\]/\\&/g')"
     project_id_sed="$(printf '%s' "${PROJECT_ID}" | sed 's/[&|\\]/\\&/g')"
 
@@ -133,7 +174,9 @@ sync_project() {
             print_error "Impossible de personnaliser le fichier Markdown : ${markdown_file}"
             return 1
         fi
-    done < <(find "${staging_path}" -type f -name '*.md' -print0)
+    done < <(find "${staging_path}" \
+        -path "${staging_path}/.opencode/broker" -prune -o \
+        -type f -name '*.md' -print0)
 
     for template_file in AGENTS.md DEVOPS.md .gitignore; do
         if ! cp -a -- "${staging_path}/${template_file}" "${project_path}/"; then
@@ -147,6 +190,7 @@ sync_project() {
         "${project_path}/.opencode/commands" \
         "${project_path}/.opencode/config" \
         "${project_path}/.opencode/skills" \
+        "${project_path}/.opencode/broker" \
         "${project_path}/PROMPTS"; then
 
         rm -rf -- "${staging_path}"
@@ -171,6 +215,16 @@ sync_project() {
         return 1
     fi
 
+    if ! rm -rf -- "${project_path}/.opencode/broker/__pycache__" ||
+        ! cp -a -- \
+            "${staging_path}/.opencode/broker/." \
+            "${project_path}/.opencode/broker/"; then
+
+        rm -rf -- "${staging_path}"
+        print_error "Impossible de synchroniser les ressources CAB."
+        return 1
+    fi
+
     if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_path}/AGENTS.md" \
         "${project_path}/DEVOPS.md" \
@@ -179,6 +233,7 @@ sync_project() {
         "${project_path}/.opencode/commands" \
         "${project_path}/.opencode/config" \
         "${project_path}/.opencode/skills" \
+        "${project_path}/.opencode/broker" \
         "${project_path}/PROMPTS"; then
 
         rm -rf -- "${staging_path}"
@@ -376,7 +431,7 @@ clone_project() {
         if [[ "${project_env_line}" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*= ]]; then
             project_env_key="${BASH_REMATCH[2]}"
             case "${project_env_key}" in
-                REMOTE_REPOSITORY|REMOTE_FORGEJO_REPOSITORY|REMOTE_GITLAB_REPOSITORY|REMOTE_GITHUB_REPOSITORY)
+                REMOTE_REPOSITORY|REMOTE_FORGEJO_REPOSITORY|REMOTE_GITLAB_REPOSITORY|REMOTE_GITHUB_REPOSITORY|PG_DATABASE)
                     project_env_replacements+=("${project_env_key}" "${destination_project_id}")
                     ;;
             esac
