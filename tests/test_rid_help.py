@@ -129,6 +129,7 @@ print_success() { :; }
 check_devops_user() { return 0; }
 forgejo_remote_ensure() { return 0; }
 _forgejo_ensure_credentials() { return 0; }
+forgejo_git_fetch_named() { printf 'fetch:%s\\n' "$2"; }
 forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
 runuser() {
     case "$*" in
@@ -426,6 +427,7 @@ forgejo_push project
             result = self.run_forgejo_push(projects_root)
 
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('fetch:origin', result.stdout)
         self.assertIn(
             '--force-with-lease --set-upstream origin main:main',
             result.stdout,
