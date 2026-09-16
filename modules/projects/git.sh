@@ -2607,18 +2607,19 @@ git_push_provider() {
         printf 'Tag Git            : %s\n' "${current_tag}"
     fi
 
-    # Confirmation
-    printf '\n'
-    read -r -p "Effectuer le push ? [o/N] : " confirmation
+    if [[ "${remote_git_type}" != "forgejo" ]]; then
+        printf '\n'
+        read -r -p "Effectuer le push ? [o/N] : " confirmation
 
-    case "${confirmation}" in
-        o|O|oui|OUI|y|Y|yes|YES)
-            ;;
-        *)
-            print_info "Push annulé."
-            return 0
-            ;;
-    esac
+        case "${confirmation}" in
+            o|O|oui|OUI|y|Y|yes|YES)
+                ;;
+            *)
+                print_info "Push annulé."
+                return 0
+                ;;
+        esac
+    fi
 
     # Push
     case "${remote_git_type}" in
