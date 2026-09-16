@@ -150,7 +150,6 @@ EOF
           printf '127.0.0.1\t%s\n' "dockhand.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "dozzle.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "hawser.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "ldap.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "librespeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "myspeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "traefik.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
@@ -165,7 +164,9 @@ EOF
           printf '\n'
           printf '# Stack Docker DevOps\n'
           printf '127.0.0.1\t%s\n' "forgejo.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
+          printf '127.0.0.1\t%s\n' "fd.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "g4f.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
+          printf '127.0.0.1\t%s\n' "ldap.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "pgadmin.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
       } >> /etc/hosts
   fi
@@ -820,11 +821,12 @@ launch_ocrw() {
       -v /home/devops/datas/${project_id}/.opencode/config:/home/opencode/.config/opencode:rw \
       -v /home/devops/datas/${project_id}/.opencode/share:/home/opencode/.local/share:rw \
       -v /home/devops/datas/${project_id}/.opencode/state:/home/opencode/.local/state/opencode:rw \
-      -v /home/devops/datas/cab/src:/opt/tools/cab:ro \
+      -v /home/devops/datas/${project_id}/.opencode/broker:/opt/tools/cab:ro \
       -v /home/devops/.local/npm:/opt/devops/npm:ro \
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
-      -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git go libffi-dev nodejs npm openssl openssl-dev python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
+      -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git go libffi-dev libpq nodejs npm openssl openssl-dev postgresql17-client python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
+          /usr/bin/python3 -m pip install --break-system-packages \"psycopg>=3.2,<4\" && \
           exec setpriv \
             --reuid=\"\$OPENCODE_UID\" \
             --regid=\"\$OPENCODE_GID\" \
