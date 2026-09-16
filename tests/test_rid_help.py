@@ -119,6 +119,42 @@ forgejo_push_all
             check=False,
         )
 
+    def run_forgejo_push(self, projects_root):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+check_devops_user() { return 0; }
+forgejo_remote_ensure() { return 0; }
+_forgejo_ensure_credentials() { return 0; }
+forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
+runuser() {
+    case "$*" in
+        *'git --version'*) return 0 ;;
+        *'rev-parse --verify'*) return 1 ;;
+        *'rev-parse --is-inside-work-tree'*) return 0 ;;
+        *'branch --show-current'*) printf 'main\\n' ;;
+        *'tag --points-at HEAD'*) return 0 ;;
+        *'remote get-url'*) printf 'https://forgejo.example.test/owner/project.git\\n' ;;
+        *) return 0 ;;
+    esac
+}
+DEVOPS_USER=devops
+DEVOPS_GROUP=devops
+ENV_DEVOPS_USER=devops
+DEVOPS_PROJECTS_ROOT="$2"
+forgejo_push project
+'''
+        return subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+            input='o\n',
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
     def test_root_help_is_available_without_configuration(self):
         result = self.run_rid('help')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -367,6 +403,33 @@ forgejo_push_all
 
         self.assertEqual(result.returncode, 1)
         self.assertEqual(result.stdout, 'first\nsecond\n')
+
+    def test_forgejo_push_uses_force_with_lease_for_the_branch(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\n'
+                'REMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\n'
+                'REMOTE_FORGEJO_NAME=origin\n'
+                'REMOTE_FORGEJO_BRANCH=main\n'
+                'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_forgejo_push(projects_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            '--force-with-lease --set-upstream origin main:main',
+            result.stdout,
+        )
 
     def test_projects_git_status_help_describes_canonical_command(self):
         result = self.run_rid('projects', 'git', 'status', 'help')

@@ -2653,6 +2653,7 @@ git_push_provider() {
                 forgejo_git_push_named \
                     "${project_path}" \
                     "${remote_name}" \
+                    --force-with-lease \
                     --set-upstream \
                     "${remote_name}" \
                     "${current_branch}:${remote_default_branch}" \
