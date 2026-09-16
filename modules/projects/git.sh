@@ -1218,8 +1218,20 @@ git_commit() {
         "${git_local_command[@]}" -C "${project_path}" rev-parse \
         --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
 
-        print_error "Aucun dépôt Git initialisé."
-        return 1
+        print_info "Aucun dépôt Git initialisé. Initialisation en cours..."
+
+        if ! git_init "${project_id}"; then
+            print_error "Impossible d'initialiser le dépôt Git local."
+            return 1
+        fi
+
+        if [[ "$(runuser -u "${DEVOPS_USER}" -- \
+            "${git_local_command[@]}" -C "${project_path}" rev-parse \
+            --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
+
+            print_error "Aucun dépôt Git initialisé."
+            return 1
+        fi
     fi
 
     # Vérification des droits
