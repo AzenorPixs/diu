@@ -9,7 +9,9 @@ et la commande groupée `rid projects forgejo push all`.
 
 - ÉTANT DONNÉ le dépôt local du projet `diu`
 - QUAND l'utilisateur exécute `rid projects forgejo push diu`
-- ALORS le dépôt local est poussé vers le dépôt Forgejo distant configuré avec
+- ALORS les références du remote Forgejo configuré sont récupérées avant le
+  push de branche
+- ET le dépôt local est poussé vers le dépôt Forgejo distant configuré avec
   `--force-with-lease` pour la branche publiée
 - ET la branche distante configurée reçoit la branche locale publiée
 - ET le tag pointant sur le dernier commit, s'il existe, est publié sans

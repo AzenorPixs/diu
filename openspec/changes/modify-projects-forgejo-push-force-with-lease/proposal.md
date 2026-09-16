@@ -6,7 +6,8 @@ localement.
 
 ## What Changes
 
-- Ajouter `--force-with-lease` au push de branche du parcours Forgejo.
+- Récupérer les références Forgejo authentifiées avant le push de branche,
+  puis ajouter `--force-with-lease` à ce push.
 - Conserver le push des tags sans option de forçage.
 
 ## Capabilities
@@ -22,5 +23,6 @@ localement.
 
 ## Impact
 
-- `modules/projects/git.sh` pour les arguments transmis au provider Forgejo.
+- `modules/projects/git.sh` et `lib/forgejo-auth.sh` pour la récupération des
+  références et les arguments transmis au provider Forgejo.
 - `tests/test_rid_help.py` pour la vérification ciblée du push de branche.

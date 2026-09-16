@@ -1477,7 +1477,22 @@ forgejo_git_fetch() {
         return 1
     fi
 
-    if ! _forgejo_ensure_credentials "${project_path}" origin; then
+    forgejo_git_fetch_named "${project_path}" origin
+}
+
+# Git fetch authentifié vers un remote Forgejo nommé.
+# forgejo_git_fetch_named <project_path> <remote_name>
+forgejo_git_fetch_named() {
+    local project_path="${1:-}"
+    local remote_name="${2:-}"
+
+    if [[ -z "${project_path}" || -z "${remote_name}" ]]; then
+        print_error \
+            "forgejo_git_fetch_named : project_path et remote_name sont obligatoires."
+        return 1
+    fi
+
+    if ! _forgejo_ensure_credentials "${project_path}" "${remote_name}"; then
         return 1
     fi
 
@@ -1493,7 +1508,7 @@ forgejo_git_fetch() {
         "${project_path}" \
         "${forgejo_username}" \
         "${forgejo_token}" \
-        fetch origin
+        fetch "${remote_name}"
 }
 
 # Git push authentifié vers le remote historique origin.

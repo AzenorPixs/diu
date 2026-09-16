@@ -2551,6 +2551,14 @@ git_push_provider() {
             ;;
     esac
 
+    if [[ "${remote_git_type}" == "forgejo" ]]; then
+        if ! forgejo_git_fetch_named "${project_path}" "${remote_name}"; then
+            print_error \
+                "Impossible de récupérer les références Forgejo distantes."
+            return 1
+        fi
+    fi
+
     # Détermination de l'upstream actuel
     upstream=""
 

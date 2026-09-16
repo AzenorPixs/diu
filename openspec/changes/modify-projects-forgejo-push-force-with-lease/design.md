@@ -5,12 +5,18 @@ fournisseur Forgejo explicite, ce parcours appelle
 `forgejo_git_push_named()` pour publier la branche locale vers la branche
 distante configurée, puis publie séparément le tag éventuel.
 
+`--force-with-lease` s'appuie sur la référence locale de suivi du remote. Un
+fetch authentifié du remote nommé est donc nécessaire avant le push afin de
+permettre un premier push vers une branche distante existante.
+
 ## Goals / Non-Goals
 
 **Goals:**
 
 - Protéger la mise à jour de la branche distante Forgejo avec
   `--force-with-lease`.
+- Synchroniser les références du remote Forgejo avant de vérifier le suivi et
+  de publier la branche.
 - Conserver l'authentification, le suivi de branche et la destination
   explicite existants.
 
@@ -26,12 +32,16 @@ distante configurée, puis publie séparément le tag éventuel.
   constitue une référence distincte et ne doit pas être réécrit implicitement.
 - Conserver l'appel au provider `forgejo_git_push_named()` afin de préserver
   l'authentification HTTPS temporaire existante.
+- Ajouter `forgejo_git_fetch_named()` et conserver `forgejo_git_fetch()` comme
+  compatibilité pour le remote historique `origin`.
 
 ## Risks / Trade-offs
 
 - Un push est refusé lorsqu'une branche distante a changé sans que l'état
   local de suivi ne le reflète. Ce refus est le mécanisme de protection
   attendu ; aucun contournement automatique n'est prévu.
+- La récupération peut échouer avant le push ; le push est alors arrêté afin
+  de ne pas utiliser une information de bail périmée.
 
 ## Migration Plan
 
