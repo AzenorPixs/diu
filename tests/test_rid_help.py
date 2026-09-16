@@ -43,6 +43,58 @@ git_commit_all message tag
             check=False,
         )
 
+    def run_git_commit_without_repository(self, initialization_creates_repository):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+check_devops_user() { return 0; }
+git_init() {
+    printf 'init\n'
+    if [[ "${INITIALIZATION_CREATES_REPOSITORY}" == 'yes' ]]; then
+        repository_ready='true'
+    fi
+}
+runuser() {
+    case "$*" in
+        *'rev-parse'*)
+            printf '%s\n' "${repository_ready:-false}"
+            ;;
+        *'add .'*)
+            printf 'add\n'
+            ;;
+    esac
+    return 0
+}
+DEVOPS_USER=devops
+DEVOPS_PROJECTS_ROOT="$2"
+INITIALIZATION_CREATES_REPOSITORY="$3"
+repository_ready='false'
+git_commit project message tag
+'''
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            project_path = Path(temporary_directory) / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'GIT_USER_NAME="Utilisateur Git"\n'
+                'GIT_USER_EMAIL=git@example.test\n',
+                encoding='utf-8',
+            )
+            return subprocess.run(
+                [
+                    'bash', '-c', script, 'bash', str(ROOT),
+                    temporary_directory,
+                    'yes' if initialization_creates_repository else 'no',
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
     def run_forgejo_push_all(self, projects_root, failing_project=''):
         script = '''
 source "$1/modules/projects/git.sh"
@@ -243,6 +295,18 @@ forgejo_push_all
             result.stdout,
             'first|message|tag\nsecond|message|tag\n',
         )
+
+    def test_git_commit_initializes_a_missing_local_repository(self):
+        result = self.run_git_commit_without_repository(True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, 'init\nadd\n')
+
+    def test_git_commit_stops_if_initialization_does_not_create_repository(self):
+        result = self.run_git_commit_without_repository(False)
+
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(result.stdout, 'init\n')
 
     def test_forgejo_push_all_selects_only_complete_configured_projects(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
