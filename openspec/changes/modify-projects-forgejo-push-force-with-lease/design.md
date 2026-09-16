@@ -17,6 +17,7 @@ permettre un premier push vers une branche distante existante.
   `--force-with-lease`.
 - Synchroniser les références du remote Forgejo avant de vérifier le suivi et
   de publier la branche.
+- Supprimer la confirmation interactive propre au push Forgejo.
 - Conserver l'authentification, le suivi de branche et la destination
   explicite existants.
 
@@ -34,6 +35,8 @@ permettre un premier push vers une branche distante existante.
   l'authentification HTTPS temporaire existante.
 - Ajouter `forgejo_git_fetch_named()` et conserver `forgejo_git_fetch()` comme
   compatibilité pour le remote historique `origin`.
+- Conditionner la confirmation existante aux fournisseurs non Forgejo afin de
+  préserver les parcours GitLab et GitHub.
 
 ## Risks / Trade-offs
 
@@ -42,6 +45,8 @@ permettre un premier push vers une branche distante existante.
   attendu ; aucun contournement automatique n'est prévu.
 - La récupération peut échouer avant le push ; le push est alors arrêté afin
   de ne pas utiliser une information de bail périmée.
+- Une commande Forgejo valide déclenche immédiatement la publication après les
+  vérifications de configuration et d'identifiants existantes.
 
 ## Migration Plan
 

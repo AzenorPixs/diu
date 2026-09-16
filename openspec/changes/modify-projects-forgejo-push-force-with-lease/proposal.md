@@ -8,7 +8,9 @@ localement.
 
 - Récupérer les références Forgejo authentifiées avant le push de branche,
   puis ajouter `--force-with-lease` à ce push.
+- Déclencher le push Forgejo sans confirmation interactive supplémentaire.
 - Conserver le push des tags sans option de forçage.
+- Conserver la confirmation de push pour GitLab et GitHub.
 
 ## Capabilities
 
@@ -25,4 +27,5 @@ localement.
 
 - `modules/projects/git.sh` et `lib/forgejo-auth.sh` pour la récupération des
   références et les arguments transmis au provider Forgejo.
-- `tests/test_rid_help.py` pour la vérification ciblée du push de branche.
+- `tests/test_rid_help.py` pour la vérification ciblée du push de branche et
+  de l'absence de confirmation Forgejo.

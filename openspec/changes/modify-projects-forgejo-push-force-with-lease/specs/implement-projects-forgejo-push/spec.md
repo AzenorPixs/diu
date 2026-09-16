@@ -30,3 +30,11 @@ et la commande groupée `rid projects forgejo push all`.
 - ALORS la commande sélectionne explicitement le fournisseur Forgejo
 - ET elle utilise ou initialise les variables `REMOTE_FORGEJO_*`
 - ET elle ne remplace pas les configurations GitLab ou GitHub
+
+#### Scenario: publication Forgejo sans confirmation
+
+- ÉTANT DONNÉ une configuration Forgejo et des identifiants valides
+- QUAND l'utilisateur exécute `rid projects forgejo push <ID PROJECT>`
+- ALORS le parcours Forgejo ne demande pas de confirmation avant le push
+- ET le push démarre après les vérifications existantes
+- ET les confirmations des parcours GitLab et GitHub restent inchangées

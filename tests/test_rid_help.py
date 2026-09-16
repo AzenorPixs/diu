@@ -119,7 +119,7 @@ forgejo_push_all
             check=False,
         )
 
-    def run_forgejo_push(self, projects_root):
+    def run_forgejo_push(self, projects_root, confirmation=''):
         script = '''
 source "$1/modules/projects/git.sh"
 print_title() { :; }
@@ -150,7 +150,7 @@ forgejo_push project
 '''
         return subprocess.run(
             ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
-            input='o\n',
+            input=confirmation,
             text=True,
             capture_output=True,
             check=False,
@@ -424,7 +424,7 @@ forgejo_push project
                 encoding='utf-8',
             )
 
-            result = self.run_forgejo_push(projects_root)
+            result = self.run_forgejo_push(projects_root, 'o\n')
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('fetch:origin', result.stdout)
@@ -432,6 +432,30 @@ forgejo_push project
             '--force-with-lease --set-upstream origin main:main',
             result.stdout,
         )
+
+    def test_forgejo_push_does_not_require_confirmation(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\n'
+                'REMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\n'
+                'REMOTE_FORGEJO_NAME=origin\n'
+                'REMOTE_FORGEJO_BRANCH=main\n'
+                'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_forgejo_push(projects_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('push:', result.stdout)
 
     def test_projects_git_status_help_describes_canonical_command(self):
         result = self.run_rid('projects', 'git', 'status', 'help')
