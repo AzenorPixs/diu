@@ -9,6 +9,8 @@
   push de branche Forgejo.
 - [x] 2.2 Ajouter un test ciblé de la récupération et des arguments transmis
   au provider Forgejo.
+- [x] 2.3 Supprimer la confirmation du push Forgejo et vérifier qu'il démarre
+  sans entrée interactive.
 
 ## 3. Validation
 
