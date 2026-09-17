@@ -4,8 +4,8 @@
 
 Si `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`, `PROJECT_DOCKERED`,
 `PROJECT_DEBIAN_PACKAGE` ou toute variable `REMOTE_GITLAB_*` attendue, y
-compris `REMOTE_GITLAB_REGISTRY`, est manquante, `projects_gitlab_release`
-SHALL appeler automatiquement :
+compris `REMOTE_GITLAB_REGISTRY`, est manquante ou invalide,
+`projects_gitlab_release` SHALL appeler automatiquement :
 
 - `update_projects <ID PROJECT>` ;
 - `gitlab_update <ID PROJECT>`.
@@ -29,6 +29,15 @@ Puis la fonction reprend la commande de release.
 - **AND** la release utilise la valeur enregistrée après rechargement de
   `project.env`
 
+#### Scenario: registre Docker GitLab avec protocole
+
+- **GIVEN** qu'un projet Dockerisé possède
+  `REMOTE_GITLAB_REGISTRY=https://git.ec-nantes.fr:5050`
+- **WHEN** une release GitLab est demandée
+- **THEN** `gitlab_update <ID PROJECT>` est exécutée avant toute commande
+  Docker de publication
+- **AND** le registre corrigé ne contient pas de protocole
+
 ## ADDED Requirements
 
 ### Requirement: registre Docker GitLab explicite
@@ -36,7 +45,8 @@ Puis la fonction reprend la commande de release.
 Une release Docker GitLab SHALL utiliser `REMOTE_GITLAB_REGISTRY` comme
 autorité du registre pour l'authentification Docker et les références d'image.
 Elle MUST conserver cette valeur telle qu'elle est configurée, y compris un
-port explicite, sans la déduire de `REMOTE_GITLAB_BASE_URL`.
+port explicite, sans la déduire de `REMOTE_GITLAB_BASE_URL`. Cette valeur MUST
+être une autorité de registre sans protocole ni chemin.
 
 #### Scenario: registre avec port dédié
 
