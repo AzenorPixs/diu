@@ -6,6 +6,8 @@
 - [x] 1.2 Faire reconnaître l'absence de ce paramètre par la release GitLab et
   relancer `gitlab_update()` ; vérifier le rechargement de la configuration
   avant toute publication Docker.
+- [x] 1.3 Rejeter une adresse de registre contenant un protocole ou un chemin ;
+  vérifier qu'elle relance la configuration avant tout tag Docker.
 
 ## 2. Publication Docker
 

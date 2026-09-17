@@ -791,6 +791,22 @@ projects_gitlab_release pfd
                 ],
             )
 
+    def test_gitlab_registry_validation_rejects_a_protocol_or_path(self):
+        script = r'''
+source "$1/modules/projects/git.sh"
+_gitlab_registry_is_valid git.ec-nantes.fr:5050 || exit 1
+! _gitlab_registry_is_valid https://git.ec-nantes.fr:5050 || exit 1
+! _gitlab_registry_is_valid git.ec-nantes.fr:5050/v2 || exit 1
+'''
+        result = subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

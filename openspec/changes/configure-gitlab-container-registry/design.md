@@ -34,6 +34,9 @@ exemple `git.ec-nantes.fr:5050`. Elle est distincte de
 Le codage en dur de `:5050` est écarté : GitLab autorise un domaine ou un port
 de registre différent selon l'instance. La déduction de l'autorité depuis
 l'URL GitLab est aussi écartée car elle est la cause du défaut constaté.
+Une valeur avec protocole ou chemin est refusée : ce format est incompatible
+avec les références Docker et déclenche la reconfiguration plutôt qu'un échec
+opaque de `docker tag`.
 
 ### Reconfiguration contrôlée
 

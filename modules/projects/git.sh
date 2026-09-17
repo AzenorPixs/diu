@@ -3216,6 +3216,16 @@ gitlab_project_config_ensure() {
     return 0
 }
 
+_gitlab_registry_is_valid() {
+    local registry="${1:-}"
+
+    [[ -n "${registry}" &&
+        "${registry}" != http://* &&
+        "${registry}" != https://* &&
+        "${registry}" != */* &&
+        "${registry}" != *[[:space:]]* ]]
+}
+
 # Complète uniquement le différentiel de configuration propre à GitLab.
 gitlab_update() {
     local project_id="${1:-}"
@@ -3316,6 +3326,11 @@ gitlab_update() {
     fi
     while [[ -z "${remote_gitlab_registry}" ]]; do
         print_error "REMOTE_GITLAB_REGISTRY ne peut pas être vide."
+        read -r -p "REMOTE_GITLAB_REGISTRY : " remote_gitlab_registry
+    done
+    while ! _gitlab_registry_is_valid "${remote_gitlab_registry}"; do
+        print_error \
+            "REMOTE_GITLAB_REGISTRY doit être une adresse sans protocole ni chemin."
         read -r -p "REMOTE_GITLAB_REGISTRY : " remote_gitlab_registry
     done
 
@@ -4110,6 +4125,7 @@ projects_gitlab_release() {
     local project_env=""
     local docker_enabled="No"
     local debian_enabled="No"
+    local gitlab_registry_valid="No"
     local debian_file=""
     local -a debian_files=()
 
@@ -4151,6 +4167,10 @@ projects_gitlab_release() {
     # shellcheck disable=SC1090
     source "${project_env}"
 
+    if _gitlab_registry_is_valid "${REMOTE_GITLAB_REGISTRY:-}"; then
+        gitlab_registry_valid="Yes"
+    fi
+
     if [[ -z "${PROJECT_ID:-}" ||
         "${PROJECT_ID}" != "${project_id}" ||
         -z "${PROJECT_NAME:-}" ||
@@ -4179,10 +4199,16 @@ projects_gitlab_release() {
             REMOTE_GITLAB_SSL_VERIFY
         # shellcheck disable=SC1090
         source "${project_env}"
+
+        gitlab_registry_valid="No"
+        if _gitlab_registry_is_valid "${REMOTE_GITLAB_REGISTRY:-}"; then
+            gitlab_registry_valid="Yes"
+        fi
     fi
 
     if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
         -z "${REMOTE_GITLAB_REGISTRY:-}" ||
+        "${gitlab_registry_valid}" != "Yes" ||
         -z "${REMOTE_GITLAB_OWNER:-}" ||
         -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
         -z "${REMOTE_GITLAB_NAME:-}" ||
@@ -4210,6 +4236,11 @@ projects_gitlab_release() {
             REMOTE_GITLAB_SSL_VERIFY
         # shellcheck disable=SC1090
         source "${project_env}"
+
+        gitlab_registry_valid="No"
+        if _gitlab_registry_is_valid "${REMOTE_GITLAB_REGISTRY:-}"; then
+            gitlab_registry_valid="Yes"
+        fi
     fi
 
     if [[ "${PROJECT_ID:-}" != "${project_id}" ||
@@ -4223,6 +4254,7 @@ projects_gitlab_release() {
 
     if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
         -z "${REMOTE_GITLAB_REGISTRY:-}" ||
+        "${gitlab_registry_valid}" != "Yes" ||
         -z "${REMOTE_GITLAB_OWNER:-}" ||
         -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
         -z "${REMOTE_GITLAB_NAME:-}" ||
@@ -4336,6 +4368,7 @@ projects_gitlab_release_docker() {
     local remote_gitlab_repository=""
     local remote_gitlab_name=""
     local remote_gitlab_branch=""
+    local gitlab_registry_valid="No"
 
     local gitlab_username=""
     local gitlab_token=""
@@ -4381,8 +4414,13 @@ projects_gitlab_release_docker() {
     remote_gitlab_name="${REMOTE_GITLAB_NAME:-origin}"
     remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-main}"
 
+    if _gitlab_registry_is_valid "${remote_registry}"; then
+        gitlab_registry_valid="Yes"
+    fi
+
     if [[ -z "${remote_gitlab_base_url}" ||
         -z "${remote_registry}" ||
+        "${gitlab_registry_valid}" != "Yes" ||
         -z "${remote_gitlab_owner}" ||
         -z "${remote_gitlab_repository}" ||
         -z "${remote_gitlab_name}" ||
