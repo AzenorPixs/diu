@@ -695,6 +695,102 @@ create_project projet-test
             self.assertIn('PROJECT_NAME=', project_env)
             self.assertNotIn('Ignoré', project_env)
 
+    def test_gitlab_release_reconfigures_missing_registry_and_preserves_its_port(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            projects_root = temporary_path / 'projects'
+            project_path = projects_root / 'pfd'
+            binary_path = temporary_path / 'bin'
+            binary_path.mkdir(parents=True)
+            project_path.mkdir(parents=True)
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=pfd\n'
+                'PROJECT_NAME=PFD\n'
+                'PROJECT_TYPE=docker\n'
+                'PROJECT_DOCKERED=Yes\n'
+                'PROJECT_DEBIAN_PACKAGE=No\n'
+                'REMOTE_GITLAB_BASE_URL=https://git.ec-nantes.fr\n'
+                'REMOTE_GITLAB_OWNER=adema261\n'
+                'REMOTE_GITLAB_REPOSITORY=pfd\n'
+                'REMOTE_GITLAB_NAME=origin\n'
+                'REMOTE_GITLAB_BRANCH=main\n'
+                'REMOTE_GITLAB_SSL_VERIFY=No\n',
+                encoding='utf-8',
+            )
+            (binary_path / 'git').write_text(
+                '#!/usr/bin/env bash\n'
+                'case "$*" in\n'
+                '  *"rev-parse --is-inside-work-tree"*) exit 0 ;;\n'
+                '  *"tag --points-at HEAD"*) printf "v2026.09.16.16.38\\n"; exit 0 ;;\n'
+                'esac\n'
+                'exit 1\n',
+                encoding='utf-8',
+            )
+            (binary_path / 'docker').write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
+                'if [[ "$1" == login ]]; then cat >/dev/null; fi\n',
+                encoding='utf-8',
+            )
+            for binary in ('git', 'docker'):
+                (binary_path / binary).chmod(0o755)
+
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_info() { :; }
+print_success() { :; }
+gitlab_update() {
+    printf 'gitlab_update\n'
+    cat > "${DEVOPS_PROJECTS_ROOT}/$1/project.env" <<'EOF'
+PROJECT_ID=pfd
+PROJECT_NAME=PFD
+PROJECT_TYPE=docker
+PROJECT_DOCKERED=Yes
+PROJECT_DEBIAN_PACKAGE=No
+REMOTE_GITLAB_BASE_URL=https://git.ec-nantes.fr
+REMOTE_GITLAB_REGISTRY=git.ec-nantes.fr:5050
+REMOTE_GITLAB_OWNER=adema261
+REMOTE_GITLAB_REPOSITORY=pfd
+REMOTE_GITLAB_NAME=origin
+REMOTE_GITLAB_BRANCH=main
+REMOTE_GITLAB_SSL_VERIFY=No
+EOF
+}
+_gitlab_read_username() { gitlab_username=user; }
+_gitlab_read_token() { gitlab_token=token; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+DEVOPS_USER="$(id -un)"
+DEVOPS_GROUP="$(id -gn)"
+DEVOPS_PROJECTS_ROOT="$2"
+PATH="$3:$PATH"
+export PATH
+export DOCKER_LOG="$4"
+projects_gitlab_release pfd
+'''
+            docker_log = temporary_path / 'docker.log'
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), str(binary_path), str(docker_log)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'gitlab_update\n')
+            self.assertEqual(
+                docker_log.read_text(encoding='utf-8').splitlines(),
+                [
+                    'image inspect pfd:latest',
+                    'image inspect pfd:latest',
+                    'tag pfd:latest git.ec-nantes.fr:5050/adema261/pfd:2026.09.16.16.38',
+                    'tag pfd:latest git.ec-nantes.fr:5050/adema261/pfd:latest',
+                    'login git.ec-nantes.fr:5050 --username user --password-stdin',
+                    'push git.ec-nantes.fr:5050/adema261/pfd:2026.09.16.16.38',
+                    'push git.ec-nantes.fr:5050/adema261/pfd:latest',
+                ],
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
