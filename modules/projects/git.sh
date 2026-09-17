@@ -3223,6 +3223,7 @@ gitlab_update() {
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.gitlab.tmp"
     local remote_gitlab_base_url=""
+    local remote_gitlab_registry=""
     local remote_gitlab_owner=""
     local remote_gitlab_repository="${project_id}"
     local remote_gitlab_name="origin"
@@ -3238,6 +3239,7 @@ gitlab_update() {
     if [[ -f "${project_env}" ]]; then
         unset \
             REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_REGISTRY \
             REMOTE_GITLAB_OWNER \
             REMOTE_GITLAB_REPOSITORY \
             REMOTE_GITLAB_NAME \
@@ -3248,6 +3250,7 @@ gitlab_update() {
         source "${project_env}"
 
         remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-${remote_gitlab_base_url}}"
+        remote_gitlab_registry="${REMOTE_GITLAB_REGISTRY:-${remote_gitlab_registry}}"
         remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-${remote_gitlab_owner}}"
         remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${remote_gitlab_repository}}"
         remote_gitlab_name="${REMOTE_GITLAB_NAME:-${remote_gitlab_name}}"
@@ -3273,6 +3276,7 @@ gitlab_update() {
 
     unset \
         REMOTE_GITLAB_BASE_URL \
+        REMOTE_GITLAB_REGISTRY \
         REMOTE_GITLAB_OWNER \
         REMOTE_GITLAB_REPOSITORY \
         REMOTE_GITLAB_NAME \
@@ -3282,6 +3286,7 @@ gitlab_update() {
     source "${project_env}"
 
     remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-${remote_gitlab_base_url}}"
+    remote_gitlab_registry="${REMOTE_GITLAB_REGISTRY:-${remote_gitlab_registry}}"
     remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-${remote_gitlab_owner}}"
     remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${remote_gitlab_repository}}"
     remote_gitlab_name="${REMOTE_GITLAB_NAME:-${remote_gitlab_name}}"
@@ -3301,6 +3306,17 @@ gitlab_update() {
         print_error "REMOTE_GITLAB_BASE_URL ne peut pas être vide."
         read -r -p "REMOTE_GITLAB_BASE_URL : " remote_gitlab_base_url
         remote_gitlab_base_url="${remote_gitlab_base_url%/}"
+    done
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_REGISTRY [${remote_gitlab_registry}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_registry="${value}"
+    fi
+    while [[ -z "${remote_gitlab_registry}" ]]; do
+        print_error "REMOTE_GITLAB_REGISTRY ne peut pas être vide."
+        read -r -p "REMOTE_GITLAB_REGISTRY : " remote_gitlab_registry
     done
 
     value=""
@@ -3359,6 +3375,7 @@ gitlab_update() {
 
     if ! awk '
         !/^REMOTE_GITLAB_BASE_URL=/ &&
+        !/^REMOTE_GITLAB_REGISTRY=/ &&
         !/^REMOTE_GITLAB_OWNER=/ &&
         !/^REMOTE_GITLAB_REPOSITORY=/ &&
         !/^REMOTE_GITLAB_NAME=/ &&
@@ -3374,6 +3391,7 @@ gitlab_update() {
     if ! {
         printf '\n# GitLab distant\n'
         printf 'REMOTE_GITLAB_BASE_URL=%q\n' "${remote_gitlab_base_url}"
+        printf 'REMOTE_GITLAB_REGISTRY=%q\n' "${remote_gitlab_registry}"
         printf 'REMOTE_GITLAB_OWNER=%q\n' "${remote_gitlab_owner}"
         printf 'REMOTE_GITLAB_REPOSITORY=%q\n' "${remote_gitlab_repository}"
         printf 'REMOTE_GITLAB_NAME=%q\n' "${remote_gitlab_name}"
@@ -4123,6 +4141,7 @@ projects_gitlab_release() {
         PROJECT_DOCKERED \
         PROJECT_DEBIAN_PACKAGE \
         REMOTE_GITLAB_BASE_URL \
+        REMOTE_GITLAB_REGISTRY \
         REMOTE_GITLAB_OWNER \
         REMOTE_GITLAB_REPOSITORY \
         REMOTE_GITLAB_NAME \
@@ -4152,6 +4171,7 @@ projects_gitlab_release() {
             PROJECT_DOCKERED \
             PROJECT_DEBIAN_PACKAGE \
             REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_REGISTRY \
             REMOTE_GITLAB_OWNER \
             REMOTE_GITLAB_REPOSITORY \
             REMOTE_GITLAB_NAME \
@@ -4162,6 +4182,7 @@ projects_gitlab_release() {
     fi
 
     if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_REGISTRY:-}" ||
         -z "${REMOTE_GITLAB_OWNER:-}" ||
         -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
         -z "${REMOTE_GITLAB_NAME:-}" ||
@@ -4181,6 +4202,7 @@ projects_gitlab_release() {
             PROJECT_DOCKERED \
             PROJECT_DEBIAN_PACKAGE \
             REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_REGISTRY \
             REMOTE_GITLAB_OWNER \
             REMOTE_GITLAB_REPOSITORY \
             REMOTE_GITLAB_NAME \
@@ -4200,6 +4222,7 @@ projects_gitlab_release() {
     fi
 
     if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_REGISTRY:-}" ||
         -z "${REMOTE_GITLAB_OWNER:-}" ||
         -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
         -z "${REMOTE_GITLAB_NAME:-}" ||
@@ -4303,7 +4326,6 @@ projects_gitlab_release_docker() {
 
     local local_image=""
     local remote_registry=""
-    local remote_host=""
     local remote_image_version=""
     local remote_image_latest=""
     local docker_publish_rc=0
@@ -4353,12 +4375,14 @@ projects_gitlab_release_docker() {
     esac
 
     remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-}"
+    remote_registry="${REMOTE_GITLAB_REGISTRY:-}"
     remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-}"
     remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${project_id}}"
     remote_gitlab_name="${REMOTE_GITLAB_NAME:-origin}"
     remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-main}"
 
     if [[ -z "${remote_gitlab_base_url}" ||
+        -z "${remote_registry}" ||
         -z "${remote_gitlab_owner}" ||
         -z "${remote_gitlab_repository}" ||
         -z "${remote_gitlab_name}" ||
@@ -4419,12 +4443,6 @@ projects_gitlab_release_docker() {
         print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
         return 1
     fi
-
-    remote_host="${remote_gitlab_base_url#https://}"
-    remote_host="${remote_host#http://}"
-    remote_host="${remote_host%%/*}"
-    remote_host="${remote_host%/}"
-    remote_registry="${remote_host}"
 
     local_image="${PROJECT_ID:-${project_id}}:latest"
     remote_image_version="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:${docker_version}"
