@@ -1811,263 +1811,263 @@ then
 
 	install -d -m 0755 /usr/share/keyrings
 
-	if [ $CROWDSEC_BOUNCER == "1" ]
-	then
-
-		if [ -f /etc/apt/sources.list.d/crowdsec.list ]
-		then
-
-			rm -f /etc/apt/sources.list.d/crowdsec.list
-
-		fi
-
-		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/crowdsec.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/crowdsec.sources
-		echo 'URIs: http://packagecloud.io/crowdsec/crowdsec/any' >> /etc/apt/sources.list.d/crowdsec.sources
-		echo 'Suites: any' >> /etc/apt/sources.list.d/crowdsec.sources
-		echo 'Components: main' >> /etc/apt/sources.list.d/crowdsec.sources
-		echo 'Signed-By: /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg' >> /etc/apt/sources.list.d/crowdsec.sources
-		echo '' >> /etc/apt/sources.list.d/crowdsec.sources
-
-	fi
-
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
-	then
-
-		if [ -f /etc/apt/sources.list.d/pve-enterprise.sources ]
-		then
-
-			rm -f /etc/apt/sources.list.d/pve-enterprise.sources
-
-		fi
-
-		echo "🔧 CONFIGURE APT PROXMOX SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg | gpg --dearmor > /usr/share/keyrings/proxmox-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/proxmox.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/proxmox.sources
-		echo 'URIs: http://download.proxmox.com/debian/pve' >> /etc/apt/sources.list.d/proxmox.sources
-		echo 'Suites: trixie' >> /etc/apt/sources.list.d/proxmox.sources
-		echo 'Components: pve-no-subscription' >> /etc/apt/sources.list.d/proxmox.sources
-		echo 'Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg' >> /etc/apt/sources.list.d/proxmox.sources
-		echo '' >> /etc/apt/sources.list.d/proxmox.sources
-
-	fi
-
-	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
-
-		if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
-			return 1
-		fi
-		if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
-			return 1
-		fi
-		# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
-
-		cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
-Types: deb
-URIs: https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release
-Suites: bullseye
-Components: main
-Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
-
-Types: deb
-URIs: https://public.fusiondirectory.org/debian/fusiondirectory-tools
-Suites: bullseye
-Components: main
-Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
-
-Types: deb
-URIs: https://public.fusiondirectory.org/debian/fusiondirectory-integrator
-Suites: bullseye
-Components: main
-Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
-EOF
-
-	else
-
-		if [[ -f "/usr/share/keyrings/fd-archive-keyring.gpg" || -f "/etc/apt/sources.list.d/fd.sources" ]]; then
-			echo "🔧 UNCONFIGURE APT REPOSITORY FUSION DIRECTORY"
-			rm -f "/usr/share/keyrings/fd-archive-keyring.gpg" "/etc/apt/sources.list.d/fd.sources"
-		fi
-
-	fi
-
-	if [ $DRIVERS_NVIDIA == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT PROPRIETARY NVIDIA DRIVERS FOR DEBIAN TRIXIE"
-		curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub | gpg --dearmor > /usr/share/keyrings/nvidia-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/nvidia.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/nvidia.sources
-		echo 'Suites: /' >> /etc/apt/sources.list.d/nvidia.sources
-		echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nvidia.sources
-		echo 'Uris: https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/' >> /etc/apt/sources.list.d/nvidia.sources
-		echo 'Signed-By: /usr/share/keyrings/nvidia-archive-keyring.gpg' >> /etc/apt/sources.list.d/nvidia.sources
-		echo '' >> /etc/apt/sources.list.d/nvidia.sources
-
-		echo "🔧 CONFIGURE APT PROPRIETARY NVIDIA CONTAINER TOOLKIT SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor > /usr/share/keyrings/nvidia-container-toolkit-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		echo 'Suites: /' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		echo 'URIs: https://nvidia.github.io/libnvidia-container/stable/deb/amd64/' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		echo 'Signed-By: /usr/share/keyrings/nvidia-container-toolkit-archive-keyring.gpg' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		echo '' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
+	# if [ $CROWDSEC_BOUNCER == "1" ]
+	# then
+
+		# if [ -f /etc/apt/sources.list.d/crowdsec.list ]
+		# then
+
+			# rm -f /etc/apt/sources.list.d/crowdsec.list
+
+		# fi
+
+		# echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN TRIXIE"
+		# curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
+		# echo '' > /etc/apt/sources.list.d/crowdsec.sources
+		# echo 'Types: deb' >> /etc/apt/sources.list.d/crowdsec.sources
+		# echo 'URIs: http://packagecloud.io/crowdsec/crowdsec/any' >> /etc/apt/sources.list.d/crowdsec.sources
+		# echo 'Suites: any' >> /etc/apt/sources.list.d/crowdsec.sources
+		# echo 'Components: main' >> /etc/apt/sources.list.d/crowdsec.sources
+		# echo 'Signed-By: /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg' >> /etc/apt/sources.list.d/crowdsec.sources
+		# echo '' >> /etc/apt/sources.list.d/crowdsec.sources
+
+	# fi
+
+	# if [ $DEBIAN_TYPE == "PROXMOX" ]
+	# then
+
+		# if [ -f /etc/apt/sources.list.d/pve-enterprise.sources ]
+		# then
+
+			# rm -f /etc/apt/sources.list.d/pve-enterprise.sources
+
+		# fi
+
+		# echo "🔧 CONFIGURE APT PROXMOX SOURCES FOR DEBIAN TRIXIE"
+		# curl -fsSL https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg | gpg --dearmor > /usr/share/keyrings/proxmox-archive-keyring.gpg
+		# echo '' > /etc/apt/sources.list.d/proxmox.sources
+		# echo 'Types: deb' >> /etc/apt/sources.list.d/proxmox.sources
+		# echo 'URIs: http://download.proxmox.com/debian/pve' >> /etc/apt/sources.list.d/proxmox.sources
+		# echo 'Suites: trixie' >> /etc/apt/sources.list.d/proxmox.sources
+		# echo 'Components: pve-no-subscription' >> /etc/apt/sources.list.d/proxmox.sources
+		# echo 'Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg' >> /etc/apt/sources.list.d/proxmox.sources
+		# echo '' >> /etc/apt/sources.list.d/proxmox.sources
+
+	# fi
+
+	# if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
+
+		# if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
+			# echo "⚠️ IMPOSSIBLE DE RÉCUPÉRER LA CLÉ FUSIONDIRECTORY : DÉPÔT APT NON CONFIGURÉ"
+		# elif ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
+			# echo "⚠️ IMPOSSIBLE D’EXPORTER LA CLÉ FUSIONDIRECTORY : DÉPÔT APT NON CONFIGURÉ"
+		# else
+			# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
+
+			# cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
+# Types: deb
+# URIs: https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release
+# Suites: bullseye
+# Components: main
+# Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
+
+# Types: deb
+# URIs: https://public.fusiondirectory.org/debian/fusiondirectory-tools
+# Suites: bullseye
+# Components: main
+# Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
+
+# Types: deb
+# URIs: https://public.fusiondirectory.org/debian/fusiondirectory-integrator
+# Suites: bullseye
+# Components: main
+# Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
+# EOF
+		# fi
+
+	# else
+
+		# if [[ -f "/usr/share/keyrings/fd-archive-keyring.gpg" || -f "/etc/apt/sources.list.d/fd.sources" ]]; then
+			# echo "🔧 UNCONFIGURE APT REPOSITORY FUSION DIRECTORY"
+			# rm -f "/usr/share/keyrings/fd-archive-keyring.gpg" "/etc/apt/sources.list.d/fd.sources"
+		# fi
+
+	# fi
+
+	# if [ $DRIVERS_NVIDIA == "1" ]
+	# then
+
+		# echo "🔧 CONFIGURE APT PROPRIETARY NVIDIA DRIVERS FOR DEBIAN TRIXIE"
+		# curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub | gpg --dearmor > /usr/share/keyrings/nvidia-archive-keyring.gpg
+		# echo '' > /etc/apt/sources.list.d/nvidia.sources
+		# echo 'Types: deb' >> /etc/apt/sources.list.d/nvidia.sources
+		# echo 'Suites: /' >> /etc/apt/sources.list.d/nvidia.sources
+		# echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nvidia.sources
+		# echo 'Uris: https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/' >> /etc/apt/sources.list.d/nvidia.sources
+		# echo 'Signed-By: /usr/share/keyrings/nvidia-archive-keyring.gpg' >> /etc/apt/sources.list.d/nvidia.sources
+		# echo '' >> /etc/apt/sources.list.d/nvidia.sources
+
+		# echo "🔧 CONFIGURE APT PROPRIETARY NVIDIA CONTAINER TOOLKIT SOURCES FOR DEBIAN TRIXIE"
+		# curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor > /usr/share/keyrings/nvidia-container-toolkit-archive-keyring.gpg
+		# echo '' > /etc/apt/sources.list.d/nvidia-container-toolkit.sources
+		# echo 'Types: deb' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
+		# echo 'Suites: /' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
+		# echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
+		# echo 'URIs: https://nvidia.github.io/libnvidia-container/stable/deb/amd64/' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
+		# echo 'Signed-By: /usr/share/keyrings/nvidia-container-toolkit-archive-keyring.gpg' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
+		# echo '' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
 
-	fi
+	# fi
 
-	if [ $LEMONLDAP == "1" ]
-	then
+	# if [ $LEMONLDAP == "1" ]
+	# then
 
-		if [ -f /etc/apt/sources.list.d/lemonldap.list ]
-		then
+		# if [ -f /etc/apt/sources.list.d/lemonldap.list ]
+		# then
 
-			rm -f /etc/apt/sources.list.d/lemonldap.list
+			# rm -f /etc/apt/sources.list.d/lemonldap.list
 
-		fi
+		# fi
 
-		echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg | gpg --dearmor > /usr/share/keyrings/lemonldap-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/lemonldap.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/lemonldap.sources
-		echo 'URIs: https://lemonldap-ng.org/deb' >> /etc/apt/sources.list.d/lemonldap.sources
-		echo 'Suites: 2.0' >> /etc/apt/sources.list.d/lemonldap.sources
-		echo 'Components: main' >> /etc/apt/sources.list.d/lemonldap.sources
-		echo 'Signed-By: /usr/share/keyrings/lemonldap-archive-keyring.gpg' >> /etc/apt/sources.list.d/lemonldap.sources
-		echo '' >> /etc/apt/sources.list.d/lemonldap.sources
+		# echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN TRIXIE"
+		# curl -fsSL https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg | gpg --dearmor > /usr/share/keyrings/lemonldap-archive-keyring.gpg
+		# echo '' > /etc/apt/sources.list.d/lemonldap.sources
+		# echo 'Types: deb' >> /etc/apt/sources.list.d/lemonldap.sources
+		# echo 'URIs: https://lemonldap-ng.org/deb' >> /etc/apt/sources.list.d/lemonldap.sources
+		# echo 'Suites: 2.0' >> /etc/apt/sources.list.d/lemonldap.sources
+		# echo 'Components: main' >> /etc/apt/sources.list.d/lemonldap.sources
+		# echo 'Signed-By: /usr/share/keyrings/lemonldap-archive-keyring.gpg' >> /etc/apt/sources.list.d/lemonldap.sources
+		# echo '' >> /etc/apt/sources.list.d/lemonldap.sources
 
-	fi
+	# fi
 
-	if [ $MONGODB == "1" ]
-	then
+	# if [ $MONGODB == "1" ]
+	# then
 
-		if [ $MONGODB_VERSION == "7" ]
-		then
+		# if [ $MONGODB_VERSION == "7" ]
+		# then
 
-			if [ -f /etc/apt/sources.list.d/mongodb.list ]
-			then
+			# if [ -f /etc/apt/sources.list.d/mongodb.list ]
+			# then
 
-				rm -f /etc/apt/sources.list.d/mongodb.list
+				# rm -f /etc/apt/sources.list.d/mongodb.list
 
-			fi
+			# fi
 
-			echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN TRIXIE"
-			curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-			echo '' > /etc/apt/sources.list.d/mongodb.sources
-			echo 'Types: deb' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'URIs: http://repo.mongodb.org/apt/debian' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'Suites: bookworm/mongodb-org/7.0' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'Components: main' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'Signed-By: /usr/share/keyrings/mongodb-archive-keyring.gpg' >> /etc/apt/sources.list.d/mongodb.sources
-			echo '' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN TRIXIE"
+			# curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
+			# echo '' > /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Types: deb' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'URIs: http://repo.mongodb.org/apt/debian' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Suites: bookworm/mongodb-org/7.0' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Components: main' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Signed-By: /usr/share/keyrings/mongodb-archive-keyring.gpg' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo '' >> /etc/apt/sources.list.d/mongodb.sources
 
-		fi
+		# fi
 
-		if [ $MONGODB_VERSION == "8" ]
-		then
+		# if [ $MONGODB_VERSION == "8" ]
+		# then
 
-			if [ -f /etc/apt/sources.list.d/mongodb.list ]
-			then
+			# if [ -f /etc/apt/sources.list.d/mongodb.list ]
+			# then
 
-				rm -f /etc/apt/sources.list.d/mongodb.list
+				# rm -f /etc/apt/sources.list.d/mongodb.list
 
-			fi
+			# fi
 
-			echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN TRIXIE"
-			curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-			echo '' > /etc/apt/sources.list.d/mongodb.sources
-			echo 'Types: deb' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'URIs: http://repo.mongodb.org/apt/debian' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'Suites: bookworm/mongodb-org/8.0' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'Components: main' >> /etc/apt/sources.list.d/mongodb.sources
-			echo 'Signed-By: /usr/share/keyrings/mongodb-archive-keyring.gpg' >> /etc/apt/sources.list.d/mongodb.sources
-			echo '' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN TRIXIE"
+			# curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
+			# echo '' > /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Types: deb' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'URIs: http://repo.mongodb.org/apt/debian' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Suites: bookworm/mongodb-org/8.0' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Components: main' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo 'Signed-By: /usr/share/keyrings/mongodb-archive-keyring.gpg' >> /etc/apt/sources.list.d/mongodb.sources
+			# echo '' >> /etc/apt/sources.list.d/mongodb.sources
 
-		fi
+		# fi
 
-	fi
+	# fi
 
-	if [ $WEBMIN == "1" ]
-	then
+	# if [ $WEBMIN == "1" ]
+	# then
 
-		echo "🔧 CONFIGURE APT WEBMIN SOURCES FOR DEBIAN TRIXIE"
-		curl -fsSL https://download.webmin.com/jcameron-key.asc | gpg --dearmor > /usr/share/keyrings/webmin-archive-keyring.gpg
-		echo '' > /etc/apt/sources.list.d/webmin.sources
-		echo 'Types: deb' >> /etc/apt/sources.list.d/webmin.sources
-		echo 'URIs: http://download.webmin.com/download/repository' >> /etc/apt/sources.list.d/webmin.sources
-		echo 'Suites: sarge' >> /etc/apt/sources.list.d/webmin.sources
-		echo 'Components: contrib' >> /etc/apt/sources.list.d/webmin.sources
-		echo 'Signed-By: /usr/share/keyrings/webmin-archive-keyring.gpg' >> /etc/apt/sources.list.d/webmin.sources
-		#echo 'Signed-By: /usr/share/keyrings/debian-webmin-developers.gpg' >> /etc/apt/sources.list.d/webmin.sources
-		echo '' >> /etc/apt/sources.list.d/webmin.sources
+		# echo "🔧 CONFIGURE APT WEBMIN SOURCES FOR DEBIAN TRIXIE"
+		# curl -fsSL https://download.webmin.com/jcameron-key.asc | gpg --dearmor > /usr/share/keyrings/webmin-archive-keyring.gpg
+		# echo '' > /etc/apt/sources.list.d/webmin.sources
+		# echo 'Types: deb' >> /etc/apt/sources.list.d/webmin.sources
+		# echo 'URIs: http://download.webmin.com/download/repository' >> /etc/apt/sources.list.d/webmin.sources
+		# echo 'Suites: sarge' >> /etc/apt/sources.list.d/webmin.sources
+		# echo 'Components: contrib' >> /etc/apt/sources.list.d/webmin.sources
+		# echo 'Signed-By: /usr/share/keyrings/webmin-archive-keyring.gpg' >> /etc/apt/sources.list.d/webmin.sources
+		# #echo 'Signed-By: /usr/share/keyrings/debian-webmin-developers.gpg' >> /etc/apt/sources.list.d/webmin.sources
+		# echo '' >> /etc/apt/sources.list.d/webmin.sources
 
-	fi
+	# fi
 
-	if [ $WAZUH_SERVER == "1" ]
-	then
+	# if [ $WAZUH_SERVER == "1" ]
+	# then
 
-		if [ -f /etc/apt/sources.list.d/wazuh.list ]
-		then
+		# if [ -f /etc/apt/sources.list.d/wazuh.list ]
+		# then
 
-			rm -f /etc/apt/sources.list.d/wazuh.list
+			# rm -f /etc/apt/sources.list.d/wazuh.list
 
-		fi
+		# fi
 
-		if [ $WAZUH_SERVER_UPGRADE == "1" ]
-		then
+		# if [ $WAZUH_SERVER_UPGRADE == "1" ]
+		# then
 
-			echo "🔧 CONFIGURE APT WAZUH SOURCES FOR DEBIAN TRIXIE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt/ stable main' > /etc/apt/sources.list.d/wazuh.list
-			curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
+			# echo "🔧 CONFIGURE APT WAZUH SOURCES FOR DEBIAN TRIXIE"
+			# echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt/ stable main' > /etc/apt/sources.list.d/wazuh.list
+			# curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
 
-			echo "CONFIGURE APT WAZUH SOURCES FOR DEBIAN TRIXIE"
-			curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
-			echo '' > /etc/apt/sources.list.d/wazuh.sources
-			echo 'Types: deb' >> /etc/apt/sources.list.d/wazuh.sources
-			echo 'URIs: https://packages.wazuh.com/4.x/apt' >> /etc/apt/sources.list.d/wazuh.sources
-			echo 'Suites: stable' >> /etc/apt/sources.list.d/wazuh.sources
-			echo 'Components: main' >> /etc/apt/sources.list.d/wazuh.sources
-			echo 'Signed-By: /usr/share/keyrings/wazuh-archive-keyring.gpg' >> /etc/apt/sources.list.d/wazuh.sources
-			echo '' >> /etc/apt/sources.list.d/wazuh.sources
+			# echo "CONFIGURE APT WAZUH SOURCES FOR DEBIAN TRIXIE"
+			# curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
+			# echo '' > /etc/apt/sources.list.d/wazuh.sources
+			# echo 'Types: deb' >> /etc/apt/sources.list.d/wazuh.sources
+			# echo 'URIs: https://packages.wazuh.com/4.x/apt' >> /etc/apt/sources.list.d/wazuh.sources
+			# echo 'Suites: stable' >> /etc/apt/sources.list.d/wazuh.sources
+			# echo 'Components: main' >> /etc/apt/sources.list.d/wazuh.sources
+			# echo 'Signed-By: /usr/share/keyrings/wazuh-archive-keyring.gpg' >> /etc/apt/sources.list.d/wazuh.sources
+			# echo '' >> /etc/apt/sources.list.d/wazuh.sources
 
-		else
+		# else
 
-			if [ -f /etc/apt/sources.list.d/wazuh.list ]
-			then
+			# if [ -f /etc/apt/sources.list.d/wazuh.list ]
+			# then
 
-				rm -f /etc/apt/sources.list.d/wazuh.list
+				# rm -f /etc/apt/sources.list.d/wazuh.list
 
-			fi
+			# fi
 
-			if [ -f /etc/apt/sources.list.d/wazuh.sources ]
-			then
+			# if [ -f /etc/apt/sources.list.d/wazuh.sources ]
+			# then
 
-				rm -f /etc/apt/sources.list.d/wazuh.sources
+				# rm -f /etc/apt/sources.list.d/wazuh.sources
 
-			fi
+			# fi
 
-		fi
+		# fi
 
-	else
+	# else
 
-		if [ -f /etc/apt/sources.list.d/wazuh.list ]
-		then
+		# if [ -f /etc/apt/sources.list.d/wazuh.list ]
+		# then
 
-			rm -f /etc/apt/sources.list.d/wazuh.list
+			# rm -f /etc/apt/sources.list.d/wazuh.list
 
-		fi
+		# fi
 
-		if [ -f /etc/apt/sources.list.d/wazuh.sources ]
-		then
+		# if [ -f /etc/apt/sources.list.d/wazuh.sources ]
+		# then
 
-			rm -f /etc/apt/sources.list.d/wazuh.sources
+			# rm -f /etc/apt/sources.list.d/wazuh.sources
 
-		fi
+		# fi
 
-	fi
+	# fi
 
 	# Force IPv4.
 	echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
@@ -2095,60 +2095,7 @@ EOF
 
 fi
 
-if [ $SYSTEM_DEBIAN_RELEASE = "######################
-# Adresser à CGPT :) #
-######################
-
-« Nous initions une session de codage pour le projet PFD entre toi et OpenCode. Voici la liste des sigles à connaître entre nous pour gagner du temps. »
-
-Avant toute validation rendez-vous dans la bibliothèque  du projet PFD :
-
-Lis AGENTS.md.
-Lis PROJECT.md.
-Lis BUILD.md si disponible.
-Lis les spécifications OpenSpec déjà présentes dans openspec/specs/.
-Analyse les conventions de rédaction OpenSpec utilisées par le projet.
-
-Sigles :
-- OC = OpenCode
-- CGPT = ChatGPT
-
-Types de message adressé à OpenCode :
-- NDOC = Nouvelle Demande OpenCode — une NDOC attend une réponse de ta part.
-- NROC = Nouvelle Réponse OpenCode — une NROC n'attend rien ; selon le contexte de la session, passer à la suite si la session n'est pas achevée, ou proposer une nouvelle étape.
-- NFDOC = Nouveau Fichier en Diff — fichier qui va être modifié ; attend ta validation ou ton refus.
-- NQCMOC = Nouveau Demande à Choix Multiples — Une NQCMOC attend une réponse, généralement un chiffre.
-
-S'exprimer toujours en français, et rappeler à OpenCode de le faire également si nécessaire.
-
-Connect toi à OC COPIE COLLE LUI CELA avant de démarrer la session de codage
-
-
-####################
-# Adresser à OC :) #
-####################
-
-« Nous initions une session de codage pour le projet PFD, entre toi et CGPT. Voici la liste des sigles à connaître entre nous pour gagner du temps.
-
-Avant toute validation du projet PFD :
-
-Lis AGENTS.md.
-Lis PROJECT.md.
-Lis BUILD.md si disponible.
-Lis les spécifications OpenSpec déjà présentes dans openspec/specs/.
-Analyse les conventions de rédaction OpenSpec utilisées par le projet.
-
-Sigles :
-- OC = OpenCode
-- CGPT = ChatGPT
-
-Types de message adressé à CGPT :
-- NDOC = Nouvelle Demande OpenCode adressée à CGPT — une NDOC attend une réponse de la part de CGPT.
-- NROC = Nouvelle Réponse OpenCode adressée à CGPT — une NROC n'attend rien ; selon le contexte de la session, passer à la suite si la session n'est pas achevée, ou proposer une nouvelle étape.
-- NFDOC = Nouveau Fichier en Diff adressée à CGPT — fichier qui va être modifié ; attend ta validation ou ton refus.
-- NQCMOC = Nouveau Demande à Choix Multiples — Une NQCMOC attend une réponse, généralement un chiffre.
-
-Toute réponse à copier-coller dans CGPT doit commencer par la mention du type de message, et la partie à copier doit toujours être placée dans un bloc disposant d'un bouton de copie.bookworm" ]
+if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ]
 then
 
 	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN BOOKWORM"
@@ -2303,18 +2250,17 @@ then
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
 		if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
-			return 1
+			echo "⚠️ IMPOSSIBLE DE RÉCUPÉRER LA CLÉ FUSIONDIRECTORY : DÉPÔT APT NON CONFIGURÉ"
+		elif ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
+			echo "⚠️ IMPOSSIBLE D’EXPORTER LA CLÉ FUSIONDIRECTORY : DÉPÔT APT NON CONFIGURÉ"
+		else
+			echo "🔧 CONFIGURE APT FUSION DIRECTORY SOURCES FOR DEBIAN BULLSEYE"
+			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-integrator/ bullseye main' > /etc/apt/sources.list.d/fusion-directory.list
+			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-tools/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-external-libraries/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-orchestrator-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
 		fi
-		if ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
-			return 1
-		fi
-
-		echo "🔧 CONFIGURE APT FUSION DIRECTORY SOURCES FOR DEBIAN BULLSEYE"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-integrator/ bullseye main' > /etc/apt/sources.list.d/fusion-directory.list
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-tools/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-external-libraries/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-orchestrator-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
 
 
 	fi
@@ -5061,7 +5007,7 @@ then
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/redis
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/postgres
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/inits/postgres
-  chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/forgejo
+  chown -R $ENV_DOCKER_USER:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/forgejo
   chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-cookies
   chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-medias
   chown -R 5050:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/pgadmin
