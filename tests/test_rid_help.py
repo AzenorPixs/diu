@@ -156,6 +156,52 @@ forgejo_push project
             check=False,
         )
 
+    def run_provider_push(self, projects_root, provider):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+check_devops_user() { return 0; }
+forgejo_remote_ensure() { return 0; }
+gitlab_remote_ensure() { return 0; }
+github_repository_ensure() { return 0; }
+github_remote_ensure() { return 0; }
+_forgejo_ensure_credentials() { return 0; }
+_gitlab_ensure_credentials() { return 0; }
+_github_ensure_credentials() { return 0; }
+forgejo_git_fetch_named() { :; }
+forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
+gitlab_git_push() { printf 'push:%s\\n' "$*"; }
+github_git_push() { printf 'push:%s\\n' "$*"; }
+PUSH_PROVIDER="$3"
+runuser() {
+    case "$*" in
+        *'git --version'*) return 0 ;;
+        *'rev-parse --verify'*) return 1 ;;
+        *'rev-parse --is-inside-work-tree'*) return 0 ;;
+        *'branch --show-current'*) printf 'main\\n' ;;
+        *'tag --points-at HEAD'*) return 0 ;;
+        *'remote get-url'*)
+            printf 'https://%s.example.test/owner/project.git\\n' "$PUSH_PROVIDER"
+            ;;
+        *) return 0 ;;
+    esac
+}
+DEVOPS_USER=devops
+DEVOPS_GROUP=devops
+ENV_DEVOPS_USER=devops
+DEVOPS_PROJECTS_ROOT="$2"
+git_push_provider project "$PUSH_PROVIDER"
+'''
+        return subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), provider],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
     def test_root_help_is_available_without_configuration(self):
         result = self.run_rid('help')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -456,6 +502,38 @@ forgejo_push project
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('push:', result.stdout)
+
+    def test_provider_pushes_do_not_require_confirmation(self):
+        provider_settings = {
+            'forgejo': 'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+            'gitlab': '',
+            'github': '',
+        }
+
+        for provider, extra_settings in provider_settings.items():
+            with self.subTest(provider=provider), tempfile.TemporaryDirectory() as temporary_directory:
+                projects_root = Path(temporary_directory)
+                project_path = projects_root / 'project'
+                project_path.mkdir()
+                provider_upper = provider.upper()
+                (project_path / 'project.env').write_text(
+                    'PROJECT_ID=project\n'
+                    'PROJECT_NAME="Projet"\n'
+                    'PROJECT_TYPE=application\n'
+                    'PROJECT_DOCKERED=No\n'
+                    f'REMOTE_{provider_upper}_BASE_URL=https://{provider}.example.test\n'
+                    f'REMOTE_{provider_upper}_OWNER=owner\n'
+                    f'REMOTE_{provider_upper}_REPOSITORY=project\n'
+                    f'REMOTE_{provider_upper}_NAME=origin\n'
+                    f'REMOTE_{provider_upper}_BRANCH=main\n'
+                    f'{extra_settings}',
+                    encoding='utf-8',
+                )
+
+                result = self.run_provider_push(projects_root, provider)
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('push:', result.stdout)
 
     def test_projects_git_status_help_describes_canonical_command(self):
         result = self.run_rid('projects', 'git', 'status', 'help')

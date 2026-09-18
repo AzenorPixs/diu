@@ -12,6 +12,8 @@ modèle de projet et ne peut donc pas fournir ces ressources.
   Python direct déjà présent dans la destination.
 - Rendre les fichiers CAB source autoritaires en cas de conflit de chemin,
   sans convertir la copie en miroir destructif.
+- Ajouter à `sync_project_all` la synchronisation globale de
+  `/home/devops/datas/cab/src` vers `/home/devops/.opencode/broker`.
 - Couvrir ces comportements par les tests ciblés existants.
 
 ## Capabilities

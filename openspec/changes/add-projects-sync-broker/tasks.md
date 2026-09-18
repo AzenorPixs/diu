@@ -6,6 +6,8 @@
       ressources CAB, l'exclusion des caches Python et leur nettoyage direct
       dans la destination.
 - [x] 1.3 Étendre les tests ciblés de synchronisation de projet.
+- [x] 1.4 Ajouter la synchronisation CAB globale à `sync_project_all`.
+- [x] 1.5 Couvrir la synchronisation CAB globale par les tests ciblés.
 
 ## 2. Validation
 

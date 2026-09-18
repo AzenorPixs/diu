@@ -37,4 +37,3 @@ et la commande groupée `rid projects forgejo push all`.
 - QUAND l'utilisateur exécute `rid projects forgejo push <ID PROJECT>`
 - ALORS le parcours Forgejo ne demande pas de confirmation avant le push
 - ET le push démarre après les vérifications existantes
-- ET les confirmations des parcours GitLab et GitHub restent inchangées

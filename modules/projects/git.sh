@@ -1967,7 +1967,6 @@ git_push_provider() {
     local configured_remote_url=""
     local upstream=""
     local expected_upstream=""
-    local confirmation=""
     local push_rc=0
     local remote_type_to_use=""
     local missing_fields="No"
@@ -2605,20 +2604,6 @@ git_push_provider() {
 
     if [[ -n "${current_tag}" ]]; then
         printf 'Tag Git            : %s\n' "${current_tag}"
-    fi
-
-    if [[ "${remote_git_type}" != "forgejo" ]]; then
-        printf '\n'
-        read -r -p "Effectuer le push ? [o/N] : " confirmation
-
-        case "${confirmation}" in
-            o|O|oui|OUI|y|Y|yes|YES)
-                ;;
-            *)
-                print_info "Push annulé."
-                return 0
-                ;;
-        esac
     fi
 
     # Push

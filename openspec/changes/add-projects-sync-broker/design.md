@@ -20,6 +20,11 @@ homologue source sont préservées. Le répertoire destination direct
 La personnalisation Markdown appliquée aux ressources du modèle exclut la zone
 CAB préparée : le contenu CAB reste identique à sa source.
 
+`sync_project_all` prépare séparément le même contenu CAB pour le synchroniser
+dans `/home/${DEVOPS_USER}/.opencode/broker`. Cette copie exclut et nettoie le
+répertoire direct `__pycache__`, écrase les chemins gérés par la source et
+préserve les ressources destination sans homologue source.
+
 ## Alternatives écartées
 
 - `rsync --exclude` : introduirait une dépendance supplémentaire non requise.
