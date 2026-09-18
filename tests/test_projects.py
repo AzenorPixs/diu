@@ -560,6 +560,7 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_info() { :; }
 sync_project() { printf '%s\n' "$1"; }
+sync_project_all_broker() { :; }
 DEVOPS_USER="$2"
 DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"
 sync_project_all
@@ -594,6 +595,7 @@ print_error() { :; }
 print_info() { :; }
 sync_project_template_is_valid() { return 0; }
 sync_project() { printf '%s\n' "$1"; [[ "$1" != first ]]; }
+sync_project_all_broker() { :; }
 DEVOPS_USER="$2"
 sync_project_all
 '''
@@ -606,6 +608,72 @@ sync_project_all
 
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertEqual(result.stdout, 'first\nsecond\n')
+
+    def test_sync_project_all_copies_global_broker_resources(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            projects_root = temporary_path / 'datas'
+            broker_source_path = temporary_path / 'cab' / 'src'
+            broker_destination_path = temporary_path / '.opencode' / 'broker'
+
+            projects_root.mkdir()
+            (broker_source_path / 'nested').mkdir(parents=True)
+            (broker_source_path / '__pycache__').mkdir()
+            (broker_destination_path / 'nested').mkdir(parents=True)
+            (broker_destination_path / '__pycache__').mkdir()
+
+            (broker_source_path / 'nested' / 'broker.py').write_text(
+                'source CAB\n', encoding='utf-8'
+            )
+            (broker_source_path / '__pycache__' / 'broker.pyc').write_text(
+                'cache source\n', encoding='utf-8'
+            )
+            (broker_destination_path / 'nested' / 'broker.py').write_text(
+                'ancienne version CAB\n', encoding='utf-8'
+            )
+            (broker_destination_path / 'stale.txt').write_text(
+                'ressource conservée\n', encoding='utf-8'
+            )
+            (broker_destination_path / '__pycache__' / 'stale.pyc').write_text(
+                'cache destination\n', encoding='utf-8'
+            )
+
+            devops_user = f'../tmp/{temporary_path.name}'
+            script = r'''
+source "$1/modules/projects/projects.sh"
+print_error() { printf 'ERREUR:%s\n' "$*"; }
+print_info() { :; }
+sync_project_template_is_valid() { return 0; }
+BROKER_SOURCE_PATH="$3"
+sync_project_broker_source_path() { printf '%s\n' "${BROKER_SOURCE_PATH}"; }
+DEVOPS_USER="$2"
+sync_project_all
+'''
+            result = subprocess.run(
+                [
+                    'bash',
+                    '-c',
+                    script,
+                    'bash',
+                    str(ROOT),
+                    devops_user,
+                    str(broker_source_path),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                (broker_destination_path / 'nested' / 'broker.py').read_text(encoding='utf-8'),
+                'source CAB\n',
+            )
+            self.assertEqual(
+                (broker_destination_path / 'stale.txt').read_text(encoding='utf-8'),
+                'ressource conservée\n',
+            )
+            self.assertFalse((broker_destination_path / '__pycache__').exists())
 
     def test_create_project_leaves_no_directory_when_template_is_missing(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
