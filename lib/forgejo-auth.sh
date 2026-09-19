@@ -459,6 +459,166 @@ forgejo_api_post_json() {
         "${payload}"
 }
 
+# Vérifie que le dépôt Forgejo distant existe et le crée vide si nécessaire.
+# forgejo_repository_ensure <project_path> <remote_name>
+forgejo_repository_ensure() {
+    local project_path="${1:-}"
+    local remote_name="${2:-origin}"
+    local repository_response=""
+    local owner_response=""
+    local organization_response=""
+    local creation_response=""
+    local owner_body=""
+    local repository_code=""
+    local owner_code=""
+    local organization_code=""
+    local creation_code=""
+    local authenticated_user=""
+    local creation_endpoint=""
+    local creation_payload=""
+
+    if [[ -z "${project_path}" ]]; then
+        print_error "forgejo_repository_ensure : project_path vide."
+        return 1
+    fi
+
+    if ! _forgejo_prepare_context "${project_path}" "${remote_name}"; then
+        return 1
+    fi
+
+    if ! repository_response="$(
+        forgejo_api_get \
+            "${project_path}" \
+            "/repos/${forgejo_owner}/${forgejo_repo}"
+    )"; then
+        print_error "Impossible de vérifier l'existence du dépôt Forgejo."
+        return 1
+    fi
+
+    if [[ "${repository_response}" != *$'\n'* ]]; then
+        print_error "Réponse API Forgejo invalide lors de la vérification du dépôt."
+        return 1
+    fi
+
+    repository_code="${repository_response##*$'\n'}"
+
+    case "${repository_code}" in
+        200)
+            return 0
+            ;;
+        404)
+            ;;
+        *)
+            print_error \
+                "Impossible de vérifier le dépôt Forgejo (HTTP ${repository_code})."
+            return 1
+            ;;
+    esac
+
+    if ! owner_response="$(forgejo_api_get "${project_path}" "/user")"; then
+        print_error "Impossible d'identifier l'utilisateur Forgejo authentifié."
+        return 1
+    fi
+
+    if [[ "${owner_response}" != *$'\n'* ]]; then
+        print_error "Réponse API Forgejo invalide pour l'utilisateur authentifié."
+        return 1
+    fi
+
+    owner_code="${owner_response##*$'\n'}"
+    owner_body="${owner_response%$'\n'*}"
+
+    if [[ "${owner_code}" != "200" ]]; then
+        print_error \
+            "Impossible d'identifier l'utilisateur Forgejo authentifié (HTTP ${owner_code})."
+        return 1
+    fi
+
+    authenticated_user="$(
+        printf '%s' "${owner_body}" | jq -r '.login // empty' 2>/dev/null
+    )"
+
+    if [[ -z "${authenticated_user}" ]]; then
+        print_error "Réponse Forgejo invalide : utilisateur authentifié absent."
+        return 1
+    fi
+
+    if [[ "${forgejo_owner}" == "${authenticated_user}" ]]; then
+        creation_endpoint="/user/repos"
+    else
+        if ! organization_response="$(
+            forgejo_api_get "${project_path}" "/orgs/${forgejo_owner}"
+        )"; then
+            print_error "Impossible de vérifier l'organisation Forgejo cible."
+            return 1
+        fi
+
+        if [[ "${organization_response}" != *$'\n'* ]]; then
+            print_error "Réponse API Forgejo invalide pour l'organisation cible."
+            return 1
+        fi
+
+        organization_code="${organization_response##*$'\n'}"
+
+        if [[ "${organization_code}" != "200" ]]; then
+            print_error \
+                "Le propriétaire Forgejo ${forgejo_owner} n'est pas une organisation accessible."
+            return 1
+        fi
+
+        creation_endpoint="/orgs/${forgejo_owner}/repos"
+    fi
+
+    creation_payload="$(
+        jq -cn --arg name "${forgejo_repo}" '{name: $name, auto_init: false}'
+    )" || {
+        print_error "Impossible de préparer la création du dépôt Forgejo."
+        return 1
+    }
+
+    if ! creation_response="$(
+        forgejo_api_post_json \
+            "${project_path}" \
+            "${creation_endpoint}" \
+            "${creation_payload}"
+    )"; then
+        print_error "Impossible de créer le dépôt Forgejo absent."
+        return 1
+    fi
+
+    if [[ "${creation_response}" != *$'\n'* ]]; then
+        print_error "Réponse API Forgejo invalide lors de la création du dépôt."
+        return 1
+    fi
+
+    creation_code="${creation_response##*$'\n'}"
+
+    if [[ "${creation_code}" != "201" ]]; then
+        print_error "Création du dépôt Forgejo refusée (HTTP ${creation_code})."
+        return 1
+    fi
+
+    if ! repository_response="$(
+        forgejo_api_get \
+            "${project_path}" \
+            "/repos/${forgejo_owner}/${forgejo_repo}"
+    )"; then
+        print_error "Impossible de vérifier le dépôt Forgejo créé."
+        return 1
+    fi
+
+    repository_code="${repository_response##*$'\n'}"
+
+    if [[ "${repository_code}" != "200" ]]; then
+        print_error \
+            "Le dépôt Forgejo créé n'est pas accessible (HTTP ${repository_code})."
+        return 1
+    fi
+
+    print_success "Dépôt Forgejo ${forgejo_owner}/${forgejo_repo} créé."
+    return 0
+}
+
 # API upload
 # forgejo_api_upload <project_path> <endpoint> <file>
 forgejo_api_upload() {

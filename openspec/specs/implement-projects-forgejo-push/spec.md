@@ -19,6 +19,16 @@ et la commande groupée `rid projects forgejo push all`.
 - ET la branche distante configurée reçoit la branche locale publiée
 - ET le tag pointant sur le dernier commit, s'il existe, est publié
 
+#### Scenario: dépôt distant absent
+
+- ÉTANT DONNÉ le dépôt local du projet `diu` et un dépôt Forgejo distant
+  configuré mais absent
+- QUAND l'utilisateur exécute `rid projects forgejo push diu`
+- ALORS le dépôt Forgejo est créé vide avant la récupération de ses références
+- ET la branche distante configurée reçoit la branche locale publiée avec la
+  protection de concurrence configurée
+- ET le tag pointant sur le dernier commit, s'il existe, est publié
+
 #### Scenario: publication groupée
 
 - ÉTANT DONNÉ plusieurs projets configurés pour Forgejo

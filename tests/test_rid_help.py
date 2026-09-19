@@ -170,6 +170,7 @@ print_success() { :; }
 check_devops_user() { return 0; }
 forgejo_remote_ensure() { return 0; }
 _forgejo_ensure_credentials() { return 0; }
+forgejo_repository_ensure() { printf 'ensure:%s\\n' "$2"; }
 forgejo_git_fetch_named() { printf 'fetch:%s\\n' "$2"; }
 forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
 runuser() {
@@ -210,6 +211,7 @@ gitlab_remote_ensure() { return 0; }
 github_repository_ensure() { return 0; }
 github_remote_ensure() { return 0; }
 _forgejo_ensure_credentials() { return 0; }
+forgejo_repository_ensure() { :; }
 _gitlab_ensure_credentials() { return 0; }
 _github_ensure_credentials() { return 0; }
 forgejo_git_fetch_named() { :; }
@@ -238,6 +240,64 @@ git_push_provider project "$PUSH_PROVIDER"
 '''
         return subprocess.run(
             ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), provider],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def run_forgejo_repository_ensure(
+        self, owner, authenticated_user, organization_status, expected_endpoint,
+        repository_initial_status='404',
+    ):
+        script = '''
+source "$1/lib/forgejo-auth.sh"
+print_error() { printf 'error:%s\\n' "$*" >&2; }
+print_success() { printf 'success:%s\\n' "$*"; }
+_forgejo_prepare_context() {
+    forgejo_owner="$OWNER"
+    forgejo_repo=project
+}
+state_file="$(mktemp)"
+trap 'rm -f "${state_file}"' EXIT
+forgejo_api_get() {
+    case "$2" in
+        "/repos/$OWNER/project")
+            if [[ ! -s "${state_file}" ]]; then
+                printf '{}\\n%s' "$REPOSITORY_INITIAL_STATUS"
+            else
+                printf '{}\\n200'
+            fi
+            ;;
+        /user)
+            printf '{"login":"%s"}\\n200' "$AUTHENTICATED_USER"
+            ;;
+        "/orgs/$OWNER")
+            printf '{}\\n%s' "$ORGANIZATION_STATUS"
+            ;;
+        *)
+            printf '{}\\n500'
+            ;;
+    esac
+}
+forgejo_api_post_json() {
+    if [[ "$2" == "$EXPECTED_ENDPOINT" ]]; then
+        printf created > "${state_file}"
+        printf '{}\\n201'
+    else
+        printf '{}\\n403'
+    fi
+}
+forgejo_repository_ensure /tmp origin
+'''
+        return subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT)],
+            env={
+                'OWNER': owner,
+                'AUTHENTICATED_USER': authenticated_user,
+                'ORGANIZATION_STATUS': organization_status,
+                'EXPECTED_ENDPOINT': expected_endpoint,
+                'REPOSITORY_INITIAL_STATUS': repository_initial_status,
+            },
             text=True,
             capture_output=True,
             check=False,
@@ -520,6 +580,10 @@ git_push_provider project "$PUSH_PROVIDER"
             result = self.run_forgejo_push(projects_root, 'o\n')
 
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(
+            result.stdout.index('ensure:origin'),
+            result.stdout.index('fetch:origin'),
+        )
         self.assertIn('fetch:origin', result.stdout)
         self.assertIn(
             '--force-with-lease --set-upstream origin main:main',
@@ -549,6 +613,40 @@ git_push_provider project "$PUSH_PROVIDER"
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('push:', result.stdout)
+
+    def test_forgejo_repository_ensure_creates_an_authenticated_user_repository(self):
+        result = self.run_forgejo_repository_ensure(
+            'alice', 'alice', '404', '/user/repos',
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('success:Dépôt Forgejo alice/project créé.', result.stdout)
+
+    def test_forgejo_repository_ensure_keeps_an_existing_repository(self):
+        result = self.run_forgejo_repository_ensure(
+            'alice', 'alice', '404', '/unexpected', '200',
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, '')
+
+    def test_forgejo_repository_ensure_creates_an_organization_repository(self):
+        result = self.run_forgejo_repository_ensure(
+            'engineering', 'alice', '200', '/orgs/engineering/repos',
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            'success:Dépôt Forgejo engineering/project créé.', result.stdout,
+        )
+
+    def test_forgejo_repository_ensure_refuses_another_user_account(self):
+        result = self.run_forgejo_repository_ensure(
+            'bob', 'alice', '404', '/user/repos',
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('n\'est pas une organisation accessible', result.stderr)
 
     def test_provider_pushes_do_not_require_confirmation(self):
         provider_settings = {
