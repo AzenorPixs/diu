@@ -95,6 +95,47 @@ git_commit project message tag
                 check=False,
             )
 
+    def run_git_init_without_input(self):
+        script = '''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_info() { :; }
+print_error() { :; }
+print_success() { :; }
+check_devops_user() { return 0; }
+runuser() {
+    shift 2
+    shift
+    "$@"
+}
+DEVOPS_USER=devops
+DEVOPS_PROJECTS_ROOT="$2"
+if ! git_init project; then
+    exit 1
+fi
+if ! git -C "$DEVOPS_PROJECTS_ROOT/project" rev-parse --verify HEAD >/dev/null; then
+    exit 1
+fi
+printf 'complete\\n'
+'''
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            project_path = Path(temporary_directory) / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'LOCAL_DEFAULT_BRANCH=main\n'
+                'GIT_USER_NAME="Utilisateur Git"\n'
+                'GIT_USER_EMAIL=git@example.test\n',
+                encoding='utf-8',
+            )
+            return subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), temporary_directory],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
     def run_forgejo_push_all(self, projects_root, failing_project=''):
         script = '''
 source "$1/modules/projects/git.sh"
@@ -390,6 +431,12 @@ git_push_provider project "$PUSH_PROVIDER"
 
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout, 'init\n')
+
+    def test_git_init_creates_the_first_commit_without_input_or_output(self):
+        result = self.run_git_init_without_input()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, 'complete\n')
 
     def test_forgejo_push_all_selects_only_complete_configured_projects(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

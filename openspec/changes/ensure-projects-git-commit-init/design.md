@@ -2,7 +2,7 @@
 
 `git_commit()` vérifie déjà la présence d'un dépôt Git local avant toute
 modification de l'index. `git_init()` réalise l'initialisation configurée et
-conserve une confirmation interactive. Voir `proposal.md` pour la motivation.
+crée le premier commit local. Voir `proposal.md` pour la motivation.
 
 ## Goals / Non-Goals
 
@@ -12,10 +12,11 @@ conserve une confirmation interactive. Voir `proposal.md` pour la motivation.
   local est absent.
 - Ne poursuivre le commit qu'après une nouvelle vérification positive du
   dépôt.
+- Ne demander aucune saisie et ne produire aucune sortie pendant une
+  initialisation locale réussie.
 
 **Non-Goals:**
 
-- Modifier l'interface ou le comportement interactif de `git_init()`.
 - Modifier la sélection des projets de `git_commit_all()`.
 - Ajouter un dépôt distant, un push ou une création de tag supplémentaire.
 
@@ -26,16 +27,16 @@ conserve une confirmation interactive. Voir `proposal.md` pour la motivation.
   fonction, ce qui assure un comportement identique sans dupliquer le
   contrôle.
 - Après le retour de `git_init()`, répéter `rev-parse --is-inside-work-tree`.
-  Une annulation interactive retourne actuellement un succès sans créer de
-  dépôt ; cette vérification empêche alors le commit de continuer.
+  Cette vérification empêche le commit de continuer si l'initialisation échoue
+  sans créer de dépôt.
+- Ne conserver que les diagnostics d'erreur dans `git_init()` ; les résumés et
+  inspections affichés après une initialisation réussie sont supprimés.
 - Conserver le code d'erreur du commit lorsque l'initialisation échoue ou que
   le dépôt reste absent. Pour le mode groupé, `git_commit_all()` poursuit déjà
   les projets suivants et signale l'échec global à la fin.
 
 ## Risks / Trade-offs
 
-- [L'initialisation peut demander une confirmation] → le comportement public
-  de `git_init()` est conservé ; le commit ne contourne aucune interaction.
 - [Le premier commit est créé par `git_init()`] → le commit demandé continue
   ensuite selon la logique existante et ne crée un second commit que si des
   modifications restent à enregistrer.
