@@ -5,6 +5,7 @@
 `_forgejo_prepare_context` lit déjà `forgejo.username` avec les contrôles de
 présence et de permissions applicables. La requête API `/user` ajoutée pour
 retrouver cette même identité est incompatible avec l'instance Forgejo ciblée.
+Les helpers API construisaient également leurs URL sans le préfixe `/api/v1`.
 
 ## Goals / Non-Goals
 
@@ -25,6 +26,10 @@ La comparaison `forgejo_owner == forgejo_username` sélectionne
 `POST /user/repos`. Sinon, la vérification de l'organisation et
 `POST /orgs/<owner>/repos` sont conservées. Cette identité locale est déjà
 utilisée pour l'authentification Git et évite une dépendance à `/user`.
+
+Le helper commun ajoute `/api/v1` entre l'hôte Forgejo et l'endpoint demandé.
+Les appelants conservent des endpoints relatifs à cette API, ce qui évite les
+chemins divergents entre vérification, création et publication.
 
 ## Risks / Trade-offs
 

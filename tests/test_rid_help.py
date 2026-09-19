@@ -304,6 +304,29 @@ forgejo_repository_ensure /tmp origin
             check=False,
         )
 
+    def run_forgejo_api_get(self):
+        script = '''
+source "$1/lib/forgejo-auth.sh"
+print_error() { printf 'error:%s\\n' "$*" >&2; }
+_forgejo_prepare_context() {
+    forgejo_base=https://forgejo.example.test
+    forgejo_token=token
+}
+api_config="$(mktemp)"
+trap 'rm -f "${api_config}"' EXIT
+_forgejo_create_api_curl_config() { printf '%s' "${api_config}"; }
+_forgejo_curl() {
+    printf '%s\\n200' "${!#}"
+}
+forgejo_api_get /tmp /repos/owner/project
+'''
+        return subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
     def test_root_help_is_available_without_configuration(self):
         result = self.run_rid('help')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -630,6 +653,15 @@ forgejo_repository_ensure /tmp origin
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, '')
+
+    def test_forgejo_api_get_uses_the_api_v1_prefix(self):
+        result = self.run_forgejo_api_get()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout,
+            'https://forgejo.example.test/api/v1/repos/owner/project\n200',
+        )
 
     def test_forgejo_repository_ensure_creates_an_organization_repository(self):
         result = self.run_forgejo_repository_ensure(
