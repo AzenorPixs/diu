@@ -256,6 +256,7 @@ print_success() { printf 'success:%s\\n' "$*"; }
 _forgejo_prepare_context() {
     forgejo_owner="$OWNER"
     forgejo_repo=project
+    forgejo_username="$AUTHENTICATED_USER"
 }
 state_file="$(mktemp)"
 trap 'rm -f "${state_file}"' EXIT

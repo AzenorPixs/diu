@@ -465,15 +465,11 @@ forgejo_repository_ensure() {
     local project_path="${1:-}"
     local remote_name="${2:-origin}"
     local repository_response=""
-    local owner_response=""
     local organization_response=""
     local creation_response=""
-    local owner_body=""
     local repository_code=""
-    local owner_code=""
     local organization_code=""
     local creation_code=""
-    local authenticated_user=""
     local creation_endpoint=""
     local creation_payload=""
 
@@ -515,35 +511,12 @@ forgejo_repository_ensure() {
             ;;
     esac
 
-    if ! owner_response="$(forgejo_api_get "${project_path}" "/user")"; then
-        print_error "Impossible d'identifier l'utilisateur Forgejo authentifié."
+    if [[ -z "${forgejo_username:-}" ]]; then
+        print_error "Identifiant Forgejo authentifié absent."
         return 1
     fi
 
-    if [[ "${owner_response}" != *$'\n'* ]]; then
-        print_error "Réponse API Forgejo invalide pour l'utilisateur authentifié."
-        return 1
-    fi
-
-    owner_code="${owner_response##*$'\n'}"
-    owner_body="${owner_response%$'\n'*}"
-
-    if [[ "${owner_code}" != "200" ]]; then
-        print_error \
-            "Impossible d'identifier l'utilisateur Forgejo authentifié (HTTP ${owner_code})."
-        return 1
-    fi
-
-    authenticated_user="$(
-        printf '%s' "${owner_body}" | jq -r '.login // empty' 2>/dev/null
-    )"
-
-    if [[ -z "${authenticated_user}" ]]; then
-        print_error "Réponse Forgejo invalide : utilisateur authentifié absent."
-        return 1
-    fi
-
-    if [[ "${forgejo_owner}" == "${authenticated_user}" ]]; then
+    if [[ "${forgejo_owner}" == "${forgejo_username}" ]]; then
         creation_endpoint="/user/repos"
     else
         if ! organization_response="$(
