@@ -297,6 +297,7 @@ _forgejo_api_request() {
     local curl_config=""
     local response=""
     local curl_rc=0
+    local api_url=""
 
     if [[ -z "${project_path}" ]]; then
         print_error "_forgejo_api_request : project_path vide."
@@ -329,6 +330,8 @@ _forgejo_api_request() {
         return 1
     fi
 
+    api_url="${forgejo_base}/api/v1${endpoint}"
+
     curl_config="$(
         _forgejo_create_api_curl_config "${forgejo_token}"
     )" || return 1
@@ -347,7 +350,7 @@ _forgejo_api_request() {
                 --config "${curl_config}" \
                 -X "${method}" \
                 -F "attachment=@${upload_file}" \
-                "${forgejo_base}${endpoint}" \
+                "${api_url}" \
                 2>/dev/null
         )"; then
             curl_rc=0
@@ -364,7 +367,7 @@ _forgejo_api_request() {
                 -X "${method}" \
                 -H "Content-Type: application/json" \
                 -d "${payload}" \
-                "${forgejo_base}${endpoint}" \
+                "${api_url}" \
                 2>/dev/null
         )"; then
             curl_rc=0
@@ -379,7 +382,7 @@ _forgejo_api_request() {
                 -w '\n%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
-                "${forgejo_base}${endpoint}" \
+                "${api_url}" \
                 2>/dev/null
         )"; then
             curl_rc=0

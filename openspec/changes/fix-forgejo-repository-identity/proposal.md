@@ -11,6 +11,7 @@ alors que le token, le dépôt et l'identité Forgejo locale sont déjà validé
 - Réutiliser l'identifiant Forgejo local déjà lu et validé pour déterminer le
   propriétaire personnel du dépôt.
 - Supprimer la requête API `/user` du parcours de vérification et de création.
+- Construire les appels API avec le préfixe `/api/v1` requis par Forgejo.
 - Préserver l'absence de création pour un dépôt existant et le parcours
   identique de `rcicddiu` et `rid projects forgejo push all`.
 
