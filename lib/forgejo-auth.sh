@@ -298,6 +298,8 @@ _forgejo_api_request() {
     local response=""
     local curl_rc=0
     local api_url=""
+    local response_file=""
+    local http_code=""
 
     if [[ -z "${project_path}" ]]; then
         print_error "_forgejo_api_request : project_path vide."
@@ -342,11 +344,24 @@ _forgejo_api_request() {
         return 1
     fi
 
+    response_file="$(mktemp)" || {
+        rm -f "${curl_config}"
+        print_error "Impossible de créer le fichier temporaire de réponse Forgejo."
+        return 1
+    }
+
+    if ! chmod 600 "${response_file}"; then
+        rm -f "${curl_config}" "${response_file}"
+        print_error "Impossible de sécuriser le fichier temporaire de réponse Forgejo."
+        return 1
+    fi
+
     if [[ -n "${upload_file}" ]]; then
 
-        if response="$(
+        if http_code="$(
             _forgejo_curl -sS \
-                -w '\n%{http_code}' \
+                -o "${response_file}" \
+                -w '%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
                 -F "attachment=@${upload_file}" \
@@ -360,9 +375,10 @@ _forgejo_api_request() {
 
     elif [[ -n "${payload}" ]]; then
 
-        if response="$(
+        if http_code="$(
             _forgejo_curl -sS \
-                -w '\n%{http_code}' \
+                -o "${response_file}" \
+                -w '%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
                 -H "Content-Type: application/json" \
@@ -377,9 +393,10 @@ _forgejo_api_request() {
 
     else
 
-        if response="$(
+        if http_code="$(
             _forgejo_curl -sS \
-                -w '\n%{http_code}' \
+                -o "${response_file}" \
+                -w '%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
                 "${api_url}" \
@@ -395,12 +412,21 @@ _forgejo_api_request() {
     rm -f "${curl_config}"
 
     if [[ "${curl_rc}" -ne 0 ]]; then
+        rm -f "${response_file}"
         print_error \
             "Erreur réseau lors de l'appel API Forgejo (curl=${curl_rc})."
         return "${curl_rc}"
     fi
 
-    printf '%s' "${response}"
+    if ! response="$(tr -d '\000' < "${response_file}")"; then
+        rm -f "${response_file}"
+        print_error "Impossible de lire la réponse API Forgejo."
+        return 1
+    fi
+
+    rm -f "${response_file}"
+
+    printf '%s\n%s' "${response}" "${http_code}"
 
     return 0
 }

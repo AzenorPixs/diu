@@ -316,7 +316,20 @@ api_config="$(mktemp)"
 trap 'rm -f "${api_config}"' EXIT
 _forgejo_create_api_curl_config() { printf '%s' "${api_config}"; }
 _forgejo_curl() {
-    printf '%s\\n200' "${!#}"
+    local response_file=""
+    local index=1
+
+    while [[ "${index}" -le "$#" ]]; do
+        if [[ "${!index}" == '-o' ]]; then
+            index=$((index + 1))
+            response_file="${!index}"
+            break
+        fi
+        index=$((index + 1))
+    done
+
+    printf '%s\\0' "${!#}" > "${response_file}"
+    printf '200'
 }
 forgejo_api_get /tmp /repos/owner/project
 '''
@@ -662,6 +675,7 @@ forgejo_api_get /tmp /repos/owner/project
             result.stdout,
             'https://forgejo.example.test/api/v1/repos/owner/project\n200',
         )
+        self.assertNotIn('octet nul', result.stderr)
 
     def test_forgejo_repository_ensure_creates_an_organization_repository(self):
         result = self.run_forgejo_repository_ensure(
