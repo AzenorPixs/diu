@@ -160,7 +160,7 @@ forgejo_push_all
             check=False,
         )
 
-    def run_forgejo_push(self, projects_root, confirmation=''):
+    def run_forgejo_push(self, projects_root, repository_status=0):
         script = '''
 source "$1/modules/projects/git.sh"
 print_title() { :; }
@@ -170,7 +170,10 @@ print_success() { :; }
 check_devops_user() { return 0; }
 forgejo_remote_ensure() { return 0; }
 _forgejo_ensure_credentials() { return 0; }
-forgejo_repository_ensure() { printf 'ensure:%s\\n' "$2"; }
+forgejo_repository_ensure() {
+    printf 'ensure:%s\\n' "$2"
+    return "${FORGEJO_REPOSITORY_STATUS}"
+}
 forgejo_git_fetch_named() { printf 'fetch:%s\\n' "$2"; }
 forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
 runuser() {
@@ -188,11 +191,14 @@ DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
 DEVOPS_PROJECTS_ROOT="$2"
+FORGEJO_REPOSITORY_STATUS="$3"
 forgejo_push project
 '''
         return subprocess.run(
-            ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
-            input=confirmation,
+            [
+                'bash', '-c', script, 'bash', str(ROOT), str(projects_root),
+                str(repository_status),
+            ],
             text=True,
             capture_output=True,
             check=False,
@@ -614,7 +620,7 @@ forgejo_api_get /tmp /repos/owner/project
                 encoding='utf-8',
             )
 
-            result = self.run_forgejo_push(projects_root, 'o\n')
+            result = self.run_forgejo_push(projects_root)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertLess(
@@ -626,6 +632,32 @@ forgejo_api_get /tmp /repos/owner/project
             '--force-with-lease --set-upstream origin main:main',
             result.stdout,
         )
+
+    def test_forgejo_push_skips_fetch_when_repository_is_absent(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\n'
+                'REMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\n'
+                'REMOTE_FORGEJO_NAME=origin\n'
+                'REMOTE_FORGEJO_BRANCH=main\n'
+                'REMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_forgejo_push(projects_root, 2)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('ensure:origin', result.stdout)
+        self.assertNotIn('fetch:origin', result.stdout)
+        self.assertIn('push:', result.stdout)
 
     def test_forgejo_push_does_not_require_confirmation(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -651,13 +683,13 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('push:', result.stdout)
 
-    def test_forgejo_repository_ensure_creates_an_authenticated_user_repository(self):
+    def test_forgejo_repository_ensure_defers_an_absent_repository_to_first_push(self):
         result = self.run_forgejo_repository_ensure(
             'alice', 'alice', '404', '/user/repos',
         )
 
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('success:Dépôt Forgejo alice/project créé.', result.stdout)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertNotIn('success:', result.stdout)
 
     def test_forgejo_repository_ensure_keeps_an_existing_repository(self):
         result = self.run_forgejo_repository_ensure(
@@ -677,23 +709,20 @@ forgejo_api_get /tmp /repos/owner/project
         )
         self.assertNotIn('octet nul', result.stderr)
 
-    def test_forgejo_repository_ensure_creates_an_organization_repository(self):
+    def test_forgejo_repository_ensure_defers_an_organization_repository_to_first_push(self):
         result = self.run_forgejo_repository_ensure(
             'engineering', 'alice', '200', '/orgs/engineering/repos',
         )
 
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(
-            'success:Dépôt Forgejo engineering/project créé.', result.stdout,
-        )
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertNotIn('success:', result.stdout)
 
-    def test_forgejo_repository_ensure_refuses_another_user_account(self):
+    def test_forgejo_repository_ensure_does_not_check_owner_type_when_absent(self):
         result = self.run_forgejo_repository_ensure(
             'bob', 'alice', '404', '/user/repos',
         )
 
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('n\'est pas une organisation accessible', result.stderr)
+        self.assertEqual(result.returncode, 2, result.stderr)
 
     def test_provider_pushes_do_not_require_confirmation(self):
         provider_settings = {

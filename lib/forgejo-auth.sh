@@ -488,19 +488,14 @@ forgejo_api_post_json() {
         "${payload}"
 }
 
-# Vérifie que le dépôt Forgejo distant existe et le crée vide si nécessaire.
+# Vérifie que le dépôt Forgejo distant existe.
+# Retourne 2 lorsque Forgejo devra le créer au premier push Git.
 # forgejo_repository_ensure <project_path> <remote_name>
 forgejo_repository_ensure() {
     local project_path="${1:-}"
     local remote_name="${2:-origin}"
     local repository_response=""
-    local organization_response=""
-    local creation_response=""
     local repository_code=""
-    local organization_code=""
-    local creation_code=""
-    local creation_endpoint=""
-    local creation_payload=""
 
     if [[ -z "${project_path}" ]]; then
         print_error "forgejo_repository_ensure : project_path vide."
@@ -532,6 +527,9 @@ forgejo_repository_ensure() {
             return 0
             ;;
         404)
+            print_info \
+                "Le dépôt Forgejo ${forgejo_owner}/${forgejo_repo} sera créé par le premier push Git."
+            return 2
             ;;
         *)
             print_error \
@@ -539,86 +537,6 @@ forgejo_repository_ensure() {
             return 1
             ;;
     esac
-
-    if [[ -z "${forgejo_username:-}" ]]; then
-        print_error "Identifiant Forgejo authentifié absent."
-        return 1
-    fi
-
-    if [[ "${forgejo_owner}" == "${forgejo_username}" ]]; then
-        creation_endpoint="/user/repos"
-    else
-        if ! organization_response="$(
-            forgejo_api_get "${project_path}" "/orgs/${forgejo_owner}"
-        )"; then
-            print_error "Impossible de vérifier l'organisation Forgejo cible."
-            return 1
-        fi
-
-        if [[ "${organization_response}" != *$'\n'* ]]; then
-            print_error "Réponse API Forgejo invalide pour l'organisation cible."
-            return 1
-        fi
-
-        organization_code="${organization_response##*$'\n'}"
-
-        if [[ "${organization_code}" != "200" ]]; then
-            print_error \
-                "Le propriétaire Forgejo ${forgejo_owner} n'est pas une organisation accessible."
-            return 1
-        fi
-
-        creation_endpoint="/orgs/${forgejo_owner}/repos"
-    fi
-
-    creation_payload="$(
-        jq -cn --arg name "${forgejo_repo}" '{name: $name, auto_init: false}'
-    )" || {
-        print_error "Impossible de préparer la création du dépôt Forgejo."
-        return 1
-    }
-
-    if ! creation_response="$(
-        forgejo_api_post_json \
-            "${project_path}" \
-            "${creation_endpoint}" \
-            "${creation_payload}"
-    )"; then
-        print_error "Impossible de créer le dépôt Forgejo absent."
-        return 1
-    fi
-
-    if [[ "${creation_response}" != *$'\n'* ]]; then
-        print_error "Réponse API Forgejo invalide lors de la création du dépôt."
-        return 1
-    fi
-
-    creation_code="${creation_response##*$'\n'}"
-
-    if [[ "${creation_code}" != "201" ]]; then
-        print_error "Création du dépôt Forgejo refusée (HTTP ${creation_code})."
-        return 1
-    fi
-
-    if ! repository_response="$(
-        forgejo_api_get \
-            "${project_path}" \
-            "/repos/${forgejo_owner}/${forgejo_repo}"
-    )"; then
-        print_error "Impossible de vérifier le dépôt Forgejo créé."
-        return 1
-    fi
-
-    repository_code="${repository_response##*$'\n'}"
-
-    if [[ "${repository_code}" != "200" ]]; then
-        print_error \
-            "Le dépôt Forgejo créé n'est pas accessible (HTTP ${repository_code})."
-        return 1
-    fi
-
-    print_success "Dépôt Forgejo ${forgejo_owner}/${forgejo_repo} créé."
-    return 0
 }
 
 # API upload
