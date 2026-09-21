@@ -1,4 +1,4 @@
 schema: spec-driven
 created: 2026-09-15
-goal: Étendre sync_project avec la copie contrôlée de /home/devops/datas/cab/src
-  vers .opencode/broker.
+goal: Étendre sync_project et sync_project_all avec la copie contrôlée de
+  /home/devops/datas/cab/src vers les destinations broker gérées.

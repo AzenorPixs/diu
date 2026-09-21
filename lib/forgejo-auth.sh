@@ -297,6 +297,9 @@ _forgejo_api_request() {
     local curl_config=""
     local response=""
     local curl_rc=0
+    local api_url=""
+    local response_file=""
+    local http_code=""
 
     if [[ -z "${project_path}" ]]; then
         print_error "_forgejo_api_request : project_path vide."
@@ -329,6 +332,8 @@ _forgejo_api_request() {
         return 1
     fi
 
+    api_url="${forgejo_base}/api/v1${endpoint}"
+
     curl_config="$(
         _forgejo_create_api_curl_config "${forgejo_token}"
     )" || return 1
@@ -339,15 +344,28 @@ _forgejo_api_request() {
         return 1
     fi
 
+    response_file="$(mktemp)" || {
+        rm -f "${curl_config}"
+        print_error "Impossible de créer le fichier temporaire de réponse Forgejo."
+        return 1
+    }
+
+    if ! chmod 600 "${response_file}"; then
+        rm -f "${curl_config}" "${response_file}"
+        print_error "Impossible de sécuriser le fichier temporaire de réponse Forgejo."
+        return 1
+    fi
+
     if [[ -n "${upload_file}" ]]; then
 
-        if response="$(
+        if http_code="$(
             _forgejo_curl -sS \
-                -w '\n%{http_code}' \
+                -o "${response_file}" \
+                -w '%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
                 -F "attachment=@${upload_file}" \
-                "${forgejo_base}${endpoint}" \
+                "${api_url}" \
                 2>/dev/null
         )"; then
             curl_rc=0
@@ -357,14 +375,15 @@ _forgejo_api_request() {
 
     elif [[ -n "${payload}" ]]; then
 
-        if response="$(
+        if http_code="$(
             _forgejo_curl -sS \
-                -w '\n%{http_code}' \
+                -o "${response_file}" \
+                -w '%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
                 -H "Content-Type: application/json" \
                 -d "${payload}" \
-                "${forgejo_base}${endpoint}" \
+                "${api_url}" \
                 2>/dev/null
         )"; then
             curl_rc=0
@@ -374,12 +393,13 @@ _forgejo_api_request() {
 
     else
 
-        if response="$(
+        if http_code="$(
             _forgejo_curl -sS \
-                -w '\n%{http_code}' \
+                -o "${response_file}" \
+                -w '%{http_code}' \
                 --config "${curl_config}" \
                 -X "${method}" \
-                "${forgejo_base}${endpoint}" \
+                "${api_url}" \
                 2>/dev/null
         )"; then
             curl_rc=0
@@ -392,12 +412,21 @@ _forgejo_api_request() {
     rm -f "${curl_config}"
 
     if [[ "${curl_rc}" -ne 0 ]]; then
+        rm -f "${response_file}"
         print_error \
             "Erreur réseau lors de l'appel API Forgejo (curl=${curl_rc})."
         return "${curl_rc}"
     fi
 
-    printf '%s' "${response}"
+    if ! response="$(tr -d '\000' < "${response_file}")"; then
+        rm -f "${response_file}"
+        print_error "Impossible de lire la réponse API Forgejo."
+        return 1
+    fi
+
+    rm -f "${response_file}"
+
+    printf '%s\n%s' "${response}" "${http_code}"
 
     return 0
 }
@@ -457,6 +486,57 @@ forgejo_api_post_json() {
         "POST" \
         "${endpoint}" \
         "${payload}"
+}
+
+# Vérifie que le dépôt Forgejo distant existe.
+# Retourne 2 lorsque Forgejo devra le créer au premier push Git.
+# forgejo_repository_ensure <project_path> <remote_name>
+forgejo_repository_ensure() {
+    local project_path="${1:-}"
+    local remote_name="${2:-origin}"
+    local repository_response=""
+    local repository_code=""
+
+    if [[ -z "${project_path}" ]]; then
+        print_error "forgejo_repository_ensure : project_path vide."
+        return 1
+    fi
+
+    if ! _forgejo_prepare_context "${project_path}" "${remote_name}"; then
+        return 1
+    fi
+
+    if ! repository_response="$(
+        forgejo_api_get \
+            "${project_path}" \
+            "/repos/${forgejo_owner}/${forgejo_repo}"
+    )"; then
+        print_error "Impossible de vérifier l'existence du dépôt Forgejo."
+        return 1
+    fi
+
+    if [[ "${repository_response}" != *$'\n'* ]]; then
+        print_error "Réponse API Forgejo invalide lors de la vérification du dépôt."
+        return 1
+    fi
+
+    repository_code="${repository_response##*$'\n'}"
+
+    case "${repository_code}" in
+        200)
+            return 0
+            ;;
+        404)
+            print_info \
+                "Le dépôt Forgejo ${forgejo_owner}/${forgejo_repo} sera créé par le premier push Git."
+            return 2
+            ;;
+        *)
+            print_error \
+                "Impossible de vérifier le dépôt Forgejo (HTTP ${repository_code})."
+            return 1
+            ;;
+    esac
 }
 
 # API upload

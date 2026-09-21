@@ -40,6 +40,58 @@ sync_project_broker_source_path() {
     printf '%s\n' '/home/devops/datas/cab/src'
 }
 
+sync_project_all_broker() {
+    local broker_source_path=""
+    local broker_destination_path="/home/${DEVOPS_USER}/.opencode/broker"
+    local staging_path=""
+    local broker_item=""
+    local broker_relative_path=""
+    local staging_destination_path=""
+
+    if ! broker_source_path="$(sync_project_broker_source_path)" ||
+        [[ ! -d "${broker_source_path}" ]]; then
+
+        print_error "Le répertoire source CAB est introuvable : ${broker_source_path}"
+        return 1
+    fi
+
+    staging_path="$(mktemp -d)" || {
+        print_error "Impossible de préparer la synchronisation globale des ressources CAB."
+        return 1
+    }
+
+    while IFS= read -r -d '' broker_item; do
+        broker_relative_path="${broker_item#"${broker_source_path}/"}"
+        staging_destination_path="${staging_path}/${broker_relative_path}"
+
+        if [[ -d "${broker_item}" ]]; then
+            if ! mkdir -p -- "${staging_destination_path}"; then
+                rm -rf -- "${staging_path}"
+                print_error "Impossible de préparer le répertoire CAB : ${broker_relative_path}"
+                return 1
+            fi
+        elif ! mkdir -p -- "$(dirname "${staging_destination_path}")" ||
+            ! cp -a -- "${broker_item}" "${staging_destination_path}"; then
+
+            rm -rf -- "${staging_path}"
+            print_error "Impossible de préparer la ressource CAB : ${broker_relative_path}"
+            return 1
+        fi
+    done < <(find "${broker_source_path}" -mindepth 1 \
+        -type d -name '__pycache__' -prune -o -print0)
+
+    if ! mkdir -p -- "${broker_destination_path}" ||
+        ! rm -rf -- "${broker_destination_path}/__pycache__" ||
+        ! cp -a -- "${staging_path}/." "${broker_destination_path}/"; then
+
+        rm -rf -- "${staging_path}"
+        print_error "Impossible de synchroniser les ressources CAB globales."
+        return 1
+    fi
+
+    rm -rf -- "${staging_path}"
+}
+
 sync_project() {
     local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -259,6 +311,10 @@ sync_project_all() {
 
     if [[ ! -d "${projects_root}" ]]; then
         print_error "Le répertoire des projets est introuvable : ${projects_root}"
+        return 1
+    fi
+
+    if ! sync_project_all_broker; then
         return 1
     fi
 

@@ -1432,7 +1432,6 @@ git_init() {
     local local_default_branch=""
     local git_user_name=""
     local git_user_email=""
-    local confirmation=""
     local -a git_local_command=(env -u GIT_COMMON_DIR git)
 
     # Vérification des paramètres
@@ -1572,9 +1571,6 @@ git_init() {
     git_user_name="${GIT_USER_NAME}"
     git_user_email="${GIT_USER_EMAIL}"
 
-    print_title \
-        "Initialisation Git du projet ${project_name} : ${project_path}"
-
     # Vérification des droits
     if ! runuser -u "${DEVOPS_USER}" -- \
         test -r "${project_path}"; then
@@ -1597,41 +1593,13 @@ git_init() {
         "${git_local_command[@]}" -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
-        print_info "Le dépôt Git est déjà initialisé."
         return 0
     fi
 
-    # Résumé de la configuration
-    print_title "Configuration du dépôt Git local"
-
-    printf '%-22s : %s\n' "Projet" "${project_name}"
-    printf '%-22s : %s\n' "ID projet" "${project_id}"
-    printf '%-22s : %s\n' "Répertoire" "${project_path}"
-    printf '%-22s : %s\n' "Utilisateur Linux" "${DEVOPS_USER}"
-    printf '%-22s : %s\n' "Utilisateur Git" "${git_user_name}"
-    printf '%-22s : %s\n' "Email Git" "${git_user_email}"
-    printf '%-22s : %s\n' \
-        "Branche par défaut" "${local_default_branch}"
-
-    # Confirmation
-    printf '\n'
-    read -r -p "Initialiser Git localement ? [o/N] : " confirmation
-
-    case "${confirmation}" in
-        o|O|oui|OUI|y|Y|yes|YES)
-            ;;
-        *)
-            print_info "Initialisation annulée."
-            return 0
-            ;;
-    esac
-
     # Initialisation du dépôt Git local
-    print_title "Initialisation du dépôt Git local"
-
     if ! runuser -u "${DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" \
-        init -b "${local_default_branch}"; then
+        init --quiet -b "${local_default_branch}" >/dev/null 2>&1; then
 
         print_error \
             "Échec de l'initialisation du dépôt Git."
@@ -1708,18 +1676,6 @@ git_init() {
         return 1
     fi
 
-    # Vérification de la configuration Git locale
-    print_title "Configuration Git locale"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        "${git_local_command[@]}" -C "${project_path}" config \
-        --list --local; then
-
-        print_error \
-            "Impossible d'afficher la configuration Git locale."
-        return 1
-    fi
-
     # Vérification de l'absence de dépôt distant
     if runuser -u "${DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" remote |
@@ -1734,9 +1690,6 @@ git_init() {
         return 1
     fi
 
-    # Ajout des fichiers au dépôt local
-    print_title "Ajout des fichiers au dépôt Git local"
-
     if ! runuser -u "${DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" add .; then
 
@@ -1744,31 +1697,6 @@ git_init() {
             "Échec de l'ajout des fichiers à l'index Git."
         return 1
     fi
-
-    # État du dépôt
-    print_title "État du dépôt Git"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        "${git_local_command[@]}" -C "${project_path}" status --short; then
-
-        print_error \
-            "Impossible d'afficher l'état du dépôt Git."
-        return 1
-    fi
-
-    # Fichiers suivis
-    print_title "Fichiers suivis"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        "${git_local_command[@]}" -C "${project_path}" ls-files; then
-
-        print_error \
-            "Impossible d'afficher les fichiers du dépôt Git."
-        return 1
-    fi
-
-    print_info \
-        "Aucun dépôt distant n'est configuré."
 
     # Vérification du contenu du premier commit
     if runuser -u "${DEVOPS_USER}" -- \
@@ -1780,62 +1708,14 @@ git_init() {
         return 1
     fi
 
-    # Création du premier commit
-    print_title "Création du premier commit"
-
     if ! runuser -u "${DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" commit \
-        -m "Initialisation du projet ${project_name}"; then
+        --quiet -m "Initialisation du projet ${project_name}" >/dev/null 2>&1; then
 
         print_error \
             "Échec de la création du premier commit."
         return 1
     fi
-
-    # Historique du premier commit
-    print_title "Historique Git"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        "${git_local_command[@]}" -C "${project_path}" log \
-        --oneline \
-        --decorate \
-        -5; then
-
-        print_error \
-            "Impossible d'afficher l'historique du premier commit Git."
-        return 1
-    fi
-
-    # Contenu du premier commit
-    print_title "Contenu du premier commit"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" show \
-        --stat \
-        --summary \
-        HEAD; then
-
-        print_error \
-            "Impossible d'afficher le contenu du premier commit Git."
-        return 1
-    fi
-
-    # Fichiers ignorés et non suivis
-    print_title "Éléments ignorés et non suivis"
-
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" \
-        status --ignored --short; then
-
-        print_error \
-            "Impossible d'afficher les fichiers ignorés du dépôt Git."
-        return 1
-    fi
-
-    printf '\n'
-
-    print_success \
-        "Dépôt Git local initialisé avec succès par ${DEVOPS_USER}."
 
     return 0
 }
@@ -1967,11 +1847,11 @@ git_push_provider() {
     local configured_remote_url=""
     local upstream=""
     local expected_upstream=""
-    local confirmation=""
     local push_rc=0
     local remote_type_to_use=""
     local missing_fields="No"
     local forgejo_credential_remote_name=""
+    local forgejo_repository_rc=0
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
@@ -2552,11 +2432,25 @@ git_push_provider() {
     esac
 
     if [[ "${remote_git_type}" == "forgejo" ]]; then
-        if ! forgejo_git_fetch_named "${project_path}" "${remote_name}"; then
-            print_error \
-                "Impossible de récupérer les références Forgejo distantes."
+        forgejo_repository_ensure "${project_path}" "${remote_name}" || forgejo_repository_rc=$?
+
+        case "${forgejo_repository_rc:-0}" in
+            0)
+                if ! forgejo_git_fetch_named "${project_path}" "${remote_name}"; then
+                    print_error \
+                        "Impossible de récupérer les références Forgejo distantes."
+                    return 1
+                fi
+                ;;
+            2)
+                print_info \
+                    "Premier push Forgejo : récupération des références ignorée."
+                ;;
+            *)
+            print_error "Impossible d'assurer l'existence du dépôt Forgejo distant."
             return 1
-        fi
+                ;;
+        esac
     fi
 
     # Détermination de l'upstream actuel
@@ -2605,20 +2499,6 @@ git_push_provider() {
 
     if [[ -n "${current_tag}" ]]; then
         printf 'Tag Git            : %s\n' "${current_tag}"
-    fi
-
-    if [[ "${remote_git_type}" != "forgejo" ]]; then
-        printf '\n'
-        read -r -p "Effectuer le push ? [o/N] : " confirmation
-
-        case "${confirmation}" in
-            o|O|oui|OUI|y|Y|yes|YES)
-                ;;
-            *)
-                print_info "Push annulé."
-                return 0
-                ;;
-        esac
     fi
 
     # Push
@@ -3216,6 +3096,16 @@ gitlab_project_config_ensure() {
     return 0
 }
 
+_gitlab_registry_is_valid() {
+    local registry="${1:-}"
+
+    [[ -n "${registry}" &&
+        "${registry}" != http://* &&
+        "${registry}" != https://* &&
+        "${registry}" != */* &&
+        "${registry}" != *[[:space:]]* ]]
+}
+
 # Complète uniquement le différentiel de configuration propre à GitLab.
 gitlab_update() {
     local project_id="${1:-}"
@@ -3223,6 +3113,7 @@ gitlab_update() {
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.gitlab.tmp"
     local remote_gitlab_base_url=""
+    local remote_gitlab_registry=""
     local remote_gitlab_owner=""
     local remote_gitlab_repository="${project_id}"
     local remote_gitlab_name="origin"
@@ -3238,6 +3129,7 @@ gitlab_update() {
     if [[ -f "${project_env}" ]]; then
         unset \
             REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_REGISTRY \
             REMOTE_GITLAB_OWNER \
             REMOTE_GITLAB_REPOSITORY \
             REMOTE_GITLAB_NAME \
@@ -3248,6 +3140,7 @@ gitlab_update() {
         source "${project_env}"
 
         remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-${remote_gitlab_base_url}}"
+        remote_gitlab_registry="${REMOTE_GITLAB_REGISTRY:-${remote_gitlab_registry}}"
         remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-${remote_gitlab_owner}}"
         remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${remote_gitlab_repository}}"
         remote_gitlab_name="${REMOTE_GITLAB_NAME:-${remote_gitlab_name}}"
@@ -3273,6 +3166,7 @@ gitlab_update() {
 
     unset \
         REMOTE_GITLAB_BASE_URL \
+        REMOTE_GITLAB_REGISTRY \
         REMOTE_GITLAB_OWNER \
         REMOTE_GITLAB_REPOSITORY \
         REMOTE_GITLAB_NAME \
@@ -3282,6 +3176,7 @@ gitlab_update() {
     source "${project_env}"
 
     remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-${remote_gitlab_base_url}}"
+    remote_gitlab_registry="${REMOTE_GITLAB_REGISTRY:-${remote_gitlab_registry}}"
     remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-${remote_gitlab_owner}}"
     remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${remote_gitlab_repository}}"
     remote_gitlab_name="${REMOTE_GITLAB_NAME:-${remote_gitlab_name}}"
@@ -3301,6 +3196,22 @@ gitlab_update() {
         print_error "REMOTE_GITLAB_BASE_URL ne peut pas être vide."
         read -r -p "REMOTE_GITLAB_BASE_URL : " remote_gitlab_base_url
         remote_gitlab_base_url="${remote_gitlab_base_url%/}"
+    done
+
+    value=""
+    read -r -p \
+        "REMOTE_GITLAB_REGISTRY [${remote_gitlab_registry}] : " value
+    if [[ -n "${value}" ]]; then
+        remote_gitlab_registry="${value}"
+    fi
+    while [[ -z "${remote_gitlab_registry}" ]]; do
+        print_error "REMOTE_GITLAB_REGISTRY ne peut pas être vide."
+        read -r -p "REMOTE_GITLAB_REGISTRY : " remote_gitlab_registry
+    done
+    while ! _gitlab_registry_is_valid "${remote_gitlab_registry}"; do
+        print_error \
+            "REMOTE_GITLAB_REGISTRY doit être une adresse sans protocole ni chemin."
+        read -r -p "REMOTE_GITLAB_REGISTRY : " remote_gitlab_registry
     done
 
     value=""
@@ -3359,6 +3270,7 @@ gitlab_update() {
 
     if ! awk '
         !/^REMOTE_GITLAB_BASE_URL=/ &&
+        !/^REMOTE_GITLAB_REGISTRY=/ &&
         !/^REMOTE_GITLAB_OWNER=/ &&
         !/^REMOTE_GITLAB_REPOSITORY=/ &&
         !/^REMOTE_GITLAB_NAME=/ &&
@@ -3374,6 +3286,7 @@ gitlab_update() {
     if ! {
         printf '\n# GitLab distant\n'
         printf 'REMOTE_GITLAB_BASE_URL=%q\n' "${remote_gitlab_base_url}"
+        printf 'REMOTE_GITLAB_REGISTRY=%q\n' "${remote_gitlab_registry}"
         printf 'REMOTE_GITLAB_OWNER=%q\n' "${remote_gitlab_owner}"
         printf 'REMOTE_GITLAB_REPOSITORY=%q\n' "${remote_gitlab_repository}"
         printf 'REMOTE_GITLAB_NAME=%q\n' "${remote_gitlab_name}"
@@ -4092,6 +4005,7 @@ projects_gitlab_release() {
     local project_env=""
     local docker_enabled="No"
     local debian_enabled="No"
+    local gitlab_registry_valid="No"
     local debian_file=""
     local -a debian_files=()
 
@@ -4123,6 +4037,7 @@ projects_gitlab_release() {
         PROJECT_DOCKERED \
         PROJECT_DEBIAN_PACKAGE \
         REMOTE_GITLAB_BASE_URL \
+        REMOTE_GITLAB_REGISTRY \
         REMOTE_GITLAB_OWNER \
         REMOTE_GITLAB_REPOSITORY \
         REMOTE_GITLAB_NAME \
@@ -4131,6 +4046,10 @@ projects_gitlab_release() {
 
     # shellcheck disable=SC1090
     source "${project_env}"
+
+    if _gitlab_registry_is_valid "${REMOTE_GITLAB_REGISTRY:-}"; then
+        gitlab_registry_valid="Yes"
+    fi
 
     if [[ -z "${PROJECT_ID:-}" ||
         "${PROJECT_ID}" != "${project_id}" ||
@@ -4152,6 +4071,7 @@ projects_gitlab_release() {
             PROJECT_DOCKERED \
             PROJECT_DEBIAN_PACKAGE \
             REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_REGISTRY \
             REMOTE_GITLAB_OWNER \
             REMOTE_GITLAB_REPOSITORY \
             REMOTE_GITLAB_NAME \
@@ -4159,9 +4079,16 @@ projects_gitlab_release() {
             REMOTE_GITLAB_SSL_VERIFY
         # shellcheck disable=SC1090
         source "${project_env}"
+
+        gitlab_registry_valid="No"
+        if _gitlab_registry_is_valid "${REMOTE_GITLAB_REGISTRY:-}"; then
+            gitlab_registry_valid="Yes"
+        fi
     fi
 
     if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_REGISTRY:-}" ||
+        "${gitlab_registry_valid}" != "Yes" ||
         -z "${REMOTE_GITLAB_OWNER:-}" ||
         -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
         -z "${REMOTE_GITLAB_NAME:-}" ||
@@ -4181,6 +4108,7 @@ projects_gitlab_release() {
             PROJECT_DOCKERED \
             PROJECT_DEBIAN_PACKAGE \
             REMOTE_GITLAB_BASE_URL \
+            REMOTE_GITLAB_REGISTRY \
             REMOTE_GITLAB_OWNER \
             REMOTE_GITLAB_REPOSITORY \
             REMOTE_GITLAB_NAME \
@@ -4188,6 +4116,11 @@ projects_gitlab_release() {
             REMOTE_GITLAB_SSL_VERIFY
         # shellcheck disable=SC1090
         source "${project_env}"
+
+        gitlab_registry_valid="No"
+        if _gitlab_registry_is_valid "${REMOTE_GITLAB_REGISTRY:-}"; then
+            gitlab_registry_valid="Yes"
+        fi
     fi
 
     if [[ "${PROJECT_ID:-}" != "${project_id}" ||
@@ -4200,6 +4133,8 @@ projects_gitlab_release() {
     fi
 
     if [[ -z "${REMOTE_GITLAB_BASE_URL:-}" ||
+        -z "${REMOTE_GITLAB_REGISTRY:-}" ||
+        "${gitlab_registry_valid}" != "Yes" ||
         -z "${REMOTE_GITLAB_OWNER:-}" ||
         -z "${REMOTE_GITLAB_REPOSITORY:-}" ||
         -z "${REMOTE_GITLAB_NAME:-}" ||
@@ -4303,7 +4238,6 @@ projects_gitlab_release_docker() {
 
     local local_image=""
     local remote_registry=""
-    local remote_host=""
     local remote_image_version=""
     local remote_image_latest=""
     local docker_publish_rc=0
@@ -4314,6 +4248,7 @@ projects_gitlab_release_docker() {
     local remote_gitlab_repository=""
     local remote_gitlab_name=""
     local remote_gitlab_branch=""
+    local gitlab_registry_valid="No"
 
     local gitlab_username=""
     local gitlab_token=""
@@ -4353,12 +4288,19 @@ projects_gitlab_release_docker() {
     esac
 
     remote_gitlab_base_url="${REMOTE_GITLAB_BASE_URL:-}"
+    remote_registry="${REMOTE_GITLAB_REGISTRY:-}"
     remote_gitlab_owner="${REMOTE_GITLAB_OWNER:-}"
     remote_gitlab_repository="${REMOTE_GITLAB_REPOSITORY:-${project_id}}"
     remote_gitlab_name="${REMOTE_GITLAB_NAME:-origin}"
     remote_gitlab_branch="${REMOTE_GITLAB_BRANCH:-main}"
 
+    if _gitlab_registry_is_valid "${remote_registry}"; then
+        gitlab_registry_valid="Yes"
+    fi
+
     if [[ -z "${remote_gitlab_base_url}" ||
+        -z "${remote_registry}" ||
+        "${gitlab_registry_valid}" != "Yes" ||
         -z "${remote_gitlab_owner}" ||
         -z "${remote_gitlab_repository}" ||
         -z "${remote_gitlab_name}" ||
@@ -4419,12 +4361,6 @@ projects_gitlab_release_docker() {
         print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
         return 1
     fi
-
-    remote_host="${remote_gitlab_base_url#https://}"
-    remote_host="${remote_host#http://}"
-    remote_host="${remote_host%%/*}"
-    remote_host="${remote_host%/}"
-    remote_registry="${remote_host}"
 
     local_image="${PROJECT_ID:-${project_id}}:latest"
     remote_image_version="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:${docker_version}"
