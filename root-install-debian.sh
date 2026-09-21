@@ -5007,7 +5007,7 @@ then
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/redis
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/postgres
   chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/inits/postgres
-  chown -R $ENV_DOCKER_USER:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/forgejo
+  chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/forgejo
   chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-cookies
   chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-medias
   chown -R 5050:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/pgadmin
