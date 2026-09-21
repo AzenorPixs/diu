@@ -1851,6 +1851,7 @@ git_push_provider() {
     local remote_type_to_use=""
     local missing_fields="No"
     local forgejo_credential_remote_name=""
+    local forgejo_repository_rc=0
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
@@ -2431,16 +2432,25 @@ git_push_provider() {
     esac
 
     if [[ "${remote_git_type}" == "forgejo" ]]; then
-        if ! forgejo_repository_ensure "${project_path}" "${remote_name}"; then
+        forgejo_repository_ensure "${project_path}" "${remote_name}" || forgejo_repository_rc=$?
+
+        case "${forgejo_repository_rc:-0}" in
+            0)
+                if ! forgejo_git_fetch_named "${project_path}" "${remote_name}"; then
+                    print_error \
+                        "Impossible de récupérer les références Forgejo distantes."
+                    return 1
+                fi
+                ;;
+            2)
+                print_info \
+                    "Premier push Forgejo : récupération des références ignorée."
+                ;;
+            *)
             print_error "Impossible d'assurer l'existence du dépôt Forgejo distant."
             return 1
-        fi
-
-        if ! forgejo_git_fetch_named "${project_path}" "${remote_name}"; then
-            print_error \
-                "Impossible de récupérer les références Forgejo distantes."
-            return 1
-        fi
+                ;;
+        esac
     fi
 
     # Détermination de l'upstream actuel
