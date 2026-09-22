@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests ciblés de création de projet depuis un modèle local."""
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -797,7 +798,12 @@ create_project projet-test
             (binary_path / 'docker').write_text(
                 '#!/usr/bin/env bash\n'
                 'printf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
-                'if [[ "$1" == login ]]; then cat >/dev/null; fi\n',
+                'if [[ "$1" == login ]]; then cat >/dev/null; fi\n'
+                'if [[ "$1" == push && "$2" == "git.ec-nantes.fr:5050/adema261/pfd:2026.09.16.16.38" && ! -f "$DOCKER_PUSH_STATE" ]]; then\n'
+                '  : > "$DOCKER_PUSH_STATE"\n'
+                '  printf "%s\\n" "error from registry: blob unknown to registry" >&2\n'
+                '  exit 1\n'
+                'fi\n',
                 encoding='utf-8',
             )
             for binary in ('git', 'docker'):
@@ -828,17 +834,20 @@ EOF
 _gitlab_read_username() { gitlab_username=user; }
 _gitlab_read_token() { gitlab_token=token; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+sleep() { :; }
 DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 DEVOPS_PROJECTS_ROOT="$2"
 PATH="$3:$PATH"
 export PATH
 export DOCKER_LOG="$4"
+export DOCKER_PUSH_STATE="$5"
 projects_gitlab_release pfd
 '''
             docker_log = temporary_path / 'docker.log'
+            docker_push_state = temporary_path / 'docker-push-state'
             result = subprocess.run(
-                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), str(binary_path), str(docker_log)],
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), str(binary_path), str(docker_log), str(docker_push_state)],
                 text=True,
                 capture_output=True,
                 check=False,
@@ -846,6 +855,7 @@ projects_gitlab_release pfd
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, 'gitlab_update\n')
+            self.assertIn('blob unknown to registry', result.stderr)
             self.assertEqual(
                 docker_log.read_text(encoding='utf-8').splitlines(),
                 [
@@ -855,8 +865,115 @@ projects_gitlab_release pfd
                     'tag pfd:latest git.ec-nantes.fr:5050/adema261/pfd:latest',
                     'login git.ec-nantes.fr:5050 --username user --password-stdin',
                     'push git.ec-nantes.fr:5050/adema261/pfd:2026.09.16.16.38',
+                    'push git.ec-nantes.fr:5050/adema261/pfd:2026.09.16.16.38',
                     'push git.ec-nantes.fr:5050/adema261/pfd:latest',
                 ],
+            )
+
+    def test_gitlab_docker_push_retries_blob_unknown_to_registry(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            binary_path = temporary_path / 'bin'
+            docker_config = temporary_path / 'docker-config'
+            binary_path.mkdir()
+            docker_config.mkdir()
+            (binary_path / 'docker').write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
+                'if [[ "$1" == push && ! -f "$DOCKER_PUSH_STATE" ]]; then\n'
+                '  : > "$DOCKER_PUSH_STATE"\n'
+                '  printf "%s\\n" "error from registry: blob unknown to registry" >&2\n'
+                '  exit 1\n'
+                'fi\n',
+                encoding='utf-8',
+            )
+            (binary_path / 'docker').chmod(0o755)
+
+            docker_log = temporary_path / 'docker.log'
+            push_state = temporary_path / 'push-state'
+            sleep_log = temporary_path / 'sleep.log'
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_info() { printf 'INFO:%s\n' "$*"; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+sleep() { printf '%s\n' "$1" >> "$SLEEP_LOG"; }
+DEVOPS_USER="$(id -un)"
+PATH="$2:$PATH"
+export PATH DOCKER_LOG DOCKER_PUSH_STATE SLEEP_LOG
+_gitlab_docker_push_with_retry 'git.ec-nantes.fr:5050/adema261/pfd:1.0' "$3"
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(binary_path), str(docker_config)],
+                text=True,
+                capture_output=True,
+                check=False,
+                env={
+                    **os.environ,
+                    'DOCKER_LOG': str(docker_log),
+                    'DOCKER_PUSH_STATE': str(push_state),
+                    'SLEEP_LOG': str(sleep_log),
+                },
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('blob unknown to registry', result.stderr)
+            self.assertEqual(
+                docker_log.read_text(encoding='utf-8').splitlines(),
+                [
+                    'push git.ec-nantes.fr:5050/adema261/pfd:1.0',
+                    'push git.ec-nantes.fr:5050/adema261/pfd:1.0',
+                ],
+            )
+            self.assertEqual(sleep_log.read_text(encoding='utf-8'), '2\n')
+
+    def test_gitlab_docker_push_does_not_retry_another_error(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            binary_path = temporary_path / 'bin'
+            docker_config = temporary_path / 'docker-config'
+            binary_path.mkdir()
+            docker_config.mkdir()
+            (binary_path / 'docker').write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
+                'printf "%s\\n" "denied: requested access to the resource is denied" >&2\n'
+                'exit 42\n',
+                encoding='utf-8',
+            )
+            (binary_path / 'docker').chmod(0o755)
+
+            docker_log = temporary_path / 'docker.log'
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_info() { printf 'INFO:%s\n' "$*"; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+sleep() { printf '%s\n' "$1" >> "$SLEEP_LOG"; }
+DEVOPS_USER="$(id -un)"
+PATH="$2:$PATH"
+export PATH DOCKER_LOG SLEEP_LOG
+_gitlab_docker_push_with_retry 'git.ec-nantes.fr:5050/adema261/pfd:1.0' "$3"
+push_rc=$?
+[[ "${push_rc}" -eq 42 ]]
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(binary_path), str(docker_config)],
+                text=True,
+                capture_output=True,
+                check=False,
+                env={
+                    **os.environ,
+                    'DOCKER_LOG': str(docker_log),
+                    'SLEEP_LOG': str(temporary_path / 'sleep.log'),
+                },
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('requested access to the resource is denied', result.stderr)
+            self.assertEqual(
+                docker_log.read_text(encoding='utf-8').splitlines(),
+                ['push git.ec-nantes.fr:5050/adema261/pfd:1.0'],
             )
 
     def test_gitlab_registry_validation_rejects_a_protocol_or_path(self):
