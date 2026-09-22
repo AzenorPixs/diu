@@ -14,6 +14,8 @@
 - [x] 2.1 Construire le login et les références Docker à partir du registre
   explicite, sans dérivation de l'URL GitLab ; vérifier qu'un port est
   préservé dans les arguments Docker.
+- [x] 2.2 Réessayer uniquement les `docker push` GitLab qui échouent avec
+  `blob unknown to registry`, au plus trois fois avec une attente progressive.
 
 ## 3. Tests et validation
 
@@ -21,3 +23,5 @@
   reconfiguration d'une variable absente ; vérifier leur réussite sans réseau.
 - [x] 3.2 Exécuter la syntaxe Bash, les tests ciblés et la validation stricte
   du change OpenSpec ; vérifier qu'ils réussissent avant l'archivage.
+- [x] 3.3 Ajouter des tests isolés couvrant la reprise transitoire et l'échec
+  immédiat d'un diagnostic de publication différent.

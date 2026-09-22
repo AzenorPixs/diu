@@ -3106,6 +3106,55 @@ _gitlab_registry_is_valid() {
         "${registry}" != *[[:space:]]* ]]
 }
 
+# Publie une image Docker GitLab avec reprise limitée aux incohérences transitoires du registre.
+_gitlab_docker_push_with_retry() {
+    local image="${1:-}"
+    local docker_config="${2:-}"
+    local attempt=1
+    local max_attempts=3
+    local delay_seconds=2
+    local push_error_file=""
+    local push_rc=0
+
+    if [[ -z "${image}" || -z "${docker_config}" ]]; then
+        print_error "Usage : _gitlab_docker_push_with_retry <image> <docker_config>"
+        return 1
+    fi
+
+    while [[ "${attempt}" -le "${max_attempts}" ]]; do
+        push_error_file="$(mktemp)" || {
+            print_error "Impossible de préparer la capture d'erreur Docker."
+            return 1
+        }
+
+        if runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" \
+            docker push "${image}" 2>"${push_error_file}"; then
+            rm -f "${push_error_file}"
+            return 0
+        else
+            push_rc=$?
+        fi
+
+        cat "${push_error_file}" >&2
+
+        if ! grep -Fq "blob unknown to registry" "${push_error_file}" ||
+            [[ "${attempt}" -eq "${max_attempts}" ]]; then
+            rm -f "${push_error_file}"
+            return "${push_rc}"
+        fi
+
+        rm -f "${push_error_file}"
+        print_info \
+            "Publication Docker transitoirement incohérente ; nouvelle tentative dans ${delay_seconds} s."
+        sleep "${delay_seconds}"
+        attempt=$((attempt + 1))
+        delay_seconds=$((delay_seconds * 2))
+    done
+
+    return 1
+}
+
 # Complète uniquement le différentiel de configuration propre à GitLab.
 gitlab_update() {
     local project_id="${1:-}"
@@ -4453,17 +4502,17 @@ projects_gitlab_release_docker() {
             exit 1
         fi
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
-            env "DOCKER_CONFIG=${docker_config}" \
-            docker push "${remote_image_version}"; then
+        if ! _gitlab_docker_push_with_retry \
+            "${remote_image_version}" \
+            "${docker_config}"; then
             print_error \
                 "Échec de la publication de ${remote_image_version}."
             exit 1
         fi
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
-            env "DOCKER_CONFIG=${docker_config}" \
-            docker push "${remote_image_latest}"; then
+        if ! _gitlab_docker_push_with_retry \
+            "${remote_image_latest}" \
+            "${docker_config}"; then
             print_error \
                 "Échec de la publication de ${remote_image_latest}."
             exit 1

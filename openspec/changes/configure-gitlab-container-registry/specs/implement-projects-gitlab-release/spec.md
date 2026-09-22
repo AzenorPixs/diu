@@ -56,3 +56,25 @@ port explicite, sans la déduire de `REMOTE_GITLAB_BASE_URL`. Cette valeur MUST
 - **THEN** l'authentification Docker cible `git.ec-nantes.fr:5050`
 - **AND** les images versionnée et `latest` utilisent
   `git.ec-nantes.fr:5050/<owner>/<repository>`
+
+### Requirement: reprise ciblée d'une publication Docker transitoirement incohérente
+
+Lorsqu'un `docker push` GitLab échoue avec le diagnostic
+`blob unknown to registry`, la release SHALL réessayer ce même tag au plus
+deux fois, après une attente progressive. Elle MUST conserver l'échec immédiat
+pour tout autre diagnostic et MUST retourner un échec explicite lorsque les
+trois tentatives échouent.
+
+#### Scenario: blob rendu disponible après le premier push
+
+- **GIVEN** qu'un premier `docker push` d'un tag GitLab échoue avec
+  `blob unknown to registry`
+- **WHEN** la tentative suivante réussit
+- **THEN** la release poursuit la publication avec le tag suivant
+
+#### Scenario: erreur de publication non transitoire
+
+- **GIVEN** qu'un `docker push` GitLab échoue avec un diagnostic différent de
+  `blob unknown to registry`
+- **WHEN** la release traite cet échec
+- **THEN** elle retourne l'échec sans relancer ce tag
