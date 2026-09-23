@@ -1208,6 +1208,23 @@ manage_project_action() {
 
     case "$action" in
 
+        cicd)
+            case "${project_id}" in
+                help|?)
+                    display_help_context projects cicd
+                    ;;
+                *)
+                    commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
+                    commit_name="${3:-${commit_timestamp}}"
+                    commit_tag="${4:-v${commit_timestamp}}"
+                    cicd_project \
+                        "${project_id}" \
+                        "${commit_name}" \
+                        "${commit_tag}"
+                    ;;
+            esac
+            ;;
+
         cicddiu)
 			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
             commit_name="${2:-${commit_timestamp}}"
@@ -1434,6 +1451,10 @@ manage_project_action() {
                     ;;
                 push)
                     github_push \
+                        "${project_id}"
+                    ;;
+                release)
+                    projects_github_release \
                         "${project_id}"
                     ;;
                 help|?)

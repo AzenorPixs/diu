@@ -369,6 +369,18 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid projects github push <ID PROJECT>', result.stdout)
 
+    def test_cicd_help_does_not_start_the_flow(self):
+        for arguments in (('projects', 'cicd', 'help'), ('projects', 'cicd', 'project', 'help')):
+            with self.subTest(arguments=arguments):
+                result = self.run_rid(*arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('rid projects cicd <ID PROJECT>', result.stdout)
+
+    def test_github_release_help_is_available(self):
+        result = self.run_rid('projects', 'github', 'release', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid projects github release <ID PROJECT>', result.stdout)
+
     def test_forgejo_push_help_describes_grouped_command(self):
         result = self.run_rid('projects', 'forgejo', 'push', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -870,6 +870,137 @@ projects_gitlab_release pfd
                 ],
             )
 
+    def test_cicd_calls_eligible_operations_in_order(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            project_path = projects_root / 'project'
+            project_path.mkdir(parents=True)
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\nPROJECT_NAME=Project\nPROJECT_TYPE=docker\n'
+                'PROJECT_DOCKERED=Yes\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\nREMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\nREMOTE_FORGEJO_NAME=forgejo\n'
+                'REMOTE_FORGEJO_BRANCH=main\nREMOTE_FORGEJO_SSL_VERIFY=Yes\n'
+                'REMOTE_GITLAB_BASE_URL=https://gitlab.example.test\nREMOTE_GITLAB_REGISTRY=registry.example.test\n'
+                'REMOTE_GITLAB_OWNER=owner\nREMOTE_GITLAB_REPOSITORY=project\nREMOTE_GITLAB_NAME=gitlab\n'
+                'REMOTE_GITLAB_BRANCH=main\nREMOTE_GITLAB_SSL_VERIFY=Yes\n'
+                'REMOTE_GITHUB_BASE_URL=https://github.com\nREMOTE_GITHUB_OWNER=owner\n'
+                'REMOTE_GITHUB_REPOSITORY=project\nREMOTE_GITHUB_NAME=github\nREMOTE_GITHUB_BRANCH=main\n',
+                encoding='utf-8',
+            )
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { :; }
+git_commit() { printf 'commit\n'; }
+forgejo_push() { printf 'forgejo_push\n'; }
+gitlab_push() { printf 'gitlab_push\n'; }
+github_push() { printf 'github_push\n'; }
+projects_docker_build() { printf 'docker_build\n'; }
+projects_forgejo_release() { printf 'forgejo_release\n'; }
+projects_gitlab_release() { printf 'gitlab_release\n'; }
+projects_github_release() { printf 'github_release\n'; }
+DEVOPS_PROJECTS_ROOT="$2"
+cicd_project project commit vcommit
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(), [
+                'commit', 'forgejo_push', 'gitlab_push', 'github_push',
+                'docker_build', 'forgejo_release', 'gitlab_release', 'github_release',
+            ])
+
+    def test_cicd_silently_skips_unconfigured_providers_and_docker(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            project_path = projects_root / 'project'
+            project_path.mkdir(parents=True)
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\nPROJECT_NAME=Project\nPROJECT_TYPE=generic\nPROJECT_DOCKERED=No\n',
+                encoding='utf-8',
+            )
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { :; }
+git_commit() { printf 'commit\n'; }
+forgejo_push() { printf 'unexpected\n'; }
+gitlab_push() { printf 'unexpected\n'; }
+github_push() { printf 'unexpected\n'; }
+projects_docker_build() { printf 'unexpected\n'; }
+projects_forgejo_release() { printf 'unexpected\n'; }
+projects_gitlab_release() { printf 'unexpected\n'; }
+projects_github_release() { printf 'unexpected\n'; }
+DEVOPS_PROJECTS_ROOT="$2"
+cicd_project project commit vcommit
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'commit\n')
+
+    def test_github_release_publishes_existing_image_without_building(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            projects_root = temporary_path / 'projects'
+            project_path = projects_root / 'project'
+            binary_path = temporary_path / 'bin'
+            project_path.mkdir(parents=True)
+            binary_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\nPROJECT_DOCKERED=Yes\n'
+                'REMOTE_GITHUB_BASE_URL=https://github.com\nREMOTE_GITHUB_OWNER=owner\n'
+                'REMOTE_GITHUB_REPOSITORY=project\nREMOTE_GITHUB_NAME=origin\nREMOTE_GITHUB_BRANCH=main\n',
+                encoding='utf-8',
+            )
+            (binary_path / 'git').write_text(
+                '#!/usr/bin/env bash\ncase "$*" in *"tag --points-at HEAD"*) printf "v1.2.3\\n";; esac\n',
+                encoding='utf-8',
+            )
+            (binary_path / 'docker').write_text(
+                '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
+                '[[ "$1" == login ]] && cat >/dev/null\nexit 0\n',
+                encoding='utf-8',
+            )
+            for binary in ('git', 'docker'):
+                (binary_path / binary).chmod(0o755)
+            docker_log = temporary_path / 'docker.log'
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_success() { :; }
+_github_read_username() { github_username=user; }
+_github_read_token() { github_token=token; }
+runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
+DEVOPS_USER="$(id -un)"
+DEVOPS_PROJECTS_ROOT="$2"
+PATH="$3:$PATH"
+export PATH DOCKER_LOG="$4"
+projects_github_release project
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), str(binary_path), str(docker_log)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_log.read_text(encoding='utf-8').splitlines(), [
+                'image inspect project:latest',
+                'tag project:latest ghcr.io/owner/project:1.2.3',
+                'tag project:latest ghcr.io/owner/project:latest',
+                'login ghcr.io --username user --password-stdin',
+                'push ghcr.io/owner/project:1.2.3',
+                'push ghcr.io/owner/project:latest',
+            ])
+
     def test_gitlab_docker_push_retries_blob_unknown_to_registry(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
