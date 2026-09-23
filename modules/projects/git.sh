@@ -323,6 +323,144 @@ cicd_project_docker_release() {
     return 0
 }
 
+# Vérifie silencieusement la configuration d'un fournisseur pour le flux CI/CD.
+projects_cicd_provider_is_complete() {
+    local project_id="${1:-}"
+    local provider="${2:-}"
+
+    if [[ -z "${project_id}" || -z "${provider}" ||
+        "${PROJECT_ID:-}" != "${project_id}" ||
+        -z "${PROJECT_NAME:-}" ||
+        -z "${PROJECT_TYPE:-}" ||
+        -z "${PROJECT_DOCKERED:-}" ]]; then
+        return 1
+    fi
+
+    case "${provider}" in
+        forgejo)
+            [[ -n "${REMOTE_FORGEJO_BASE_URL:-}" &&
+                -n "${REMOTE_FORGEJO_OWNER:-}" &&
+                -n "${REMOTE_FORGEJO_REPOSITORY:-}" &&
+                -n "${REMOTE_FORGEJO_NAME:-}" &&
+                -n "${REMOTE_FORGEJO_BRANCH:-}" &&
+                -n "${REMOTE_FORGEJO_SSL_VERIFY:-}" ]]
+            ;;
+        gitlab)
+            [[ -n "${REMOTE_GITLAB_BASE_URL:-}" &&
+                -n "${REMOTE_GITLAB_REGISTRY:-}" &&
+                -n "${REMOTE_GITLAB_OWNER:-}" &&
+                -n "${REMOTE_GITLAB_REPOSITORY:-}" &&
+                -n "${REMOTE_GITLAB_NAME:-}" &&
+                -n "${REMOTE_GITLAB_BRANCH:-}" &&
+                -n "${REMOTE_GITLAB_SSL_VERIFY:-}" ]] &&
+                _gitlab_registry_is_valid "${REMOTE_GITLAB_REGISTRY}"
+            ;;
+        github)
+            [[ -n "${REMOTE_GITHUB_BASE_URL:-}" &&
+                -n "${REMOTE_GITHUB_OWNER:-}" &&
+                -n "${REMOTE_GITHUB_REPOSITORY:-}" &&
+                -n "${REMOTE_GITHUB_NAME:-}" &&
+                -n "${REMOTE_GITHUB_BRANCH:-}" ]]
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Flux CI/CD conditionnel d'un projet géré par le DIU.
+cicd_project() {
+    local project_id="${1:-}"
+    local commit_name="${2:-}"
+    local commit_tag="${3:-}"
+    local project_path=""
+    local project_env=""
+
+    if [[ -z "${project_id}" || -z "${commit_name}" || -z "${commit_tag}" ]]; then
+        print_error "Usage : cicd_project <ID PROJECT> <COMMIT> <TAG>"
+        return 1
+    fi
+
+    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_path}/project.env"
+
+    if [[ ! -d "${project_path}" ]]; then
+        print_error "Projet introuvable : ${project_path}"
+        return 1
+    fi
+
+    if ! git_commit "${project_id}" "${commit_name}" "${commit_tag}"; then
+        print_error "Échec du commit Git."
+        return 1
+    fi
+
+    if [[ ! -f "${project_env}" ]]; then
+        return 0
+    fi
+
+    unset \
+        PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED \
+        REMOTE_FORGEJO_BASE_URL REMOTE_FORGEJO_OWNER \
+        REMOTE_FORGEJO_REPOSITORY REMOTE_FORGEJO_NAME \
+        REMOTE_FORGEJO_BRANCH REMOTE_FORGEJO_SSL_VERIFY \
+        REMOTE_GITLAB_BASE_URL REMOTE_GITLAB_REGISTRY REMOTE_GITLAB_OWNER \
+        REMOTE_GITLAB_REPOSITORY REMOTE_GITLAB_NAME REMOTE_GITLAB_BRANCH \
+        REMOTE_GITLAB_SSL_VERIFY REMOTE_GITHUB_BASE_URL REMOTE_GITHUB_OWNER \
+        REMOTE_GITHUB_REPOSITORY REMOTE_GITHUB_NAME REMOTE_GITHUB_BRANCH
+
+    # shellcheck disable=SC1090
+    if ! source "${project_env}" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if projects_cicd_provider_is_complete "${project_id}" forgejo &&
+        ! forgejo_push "${project_id}"; then
+        print_error "Échec du push Forgejo."
+        return 1
+    fi
+
+    if projects_cicd_provider_is_complete "${project_id}" gitlab &&
+        ! gitlab_push "${project_id}"; then
+        print_error "Échec du push GitLab."
+        return 1
+    fi
+
+    if projects_cicd_provider_is_complete "${project_id}" github &&
+        ! github_push "${project_id}"; then
+        print_error "Échec du push GitHub."
+        return 1
+    fi
+
+    if [[ "${PROJECT_DOCKERED:-}" != "Yes" ]]; then
+        return 0
+    fi
+
+    if ! projects_docker_build "${project_id}"; then
+        print_error "Échec de la construction de l'image Docker."
+        return 1
+    fi
+
+    if projects_cicd_provider_is_complete "${project_id}" forgejo &&
+        ! projects_forgejo_release "${project_id}"; then
+        print_error "Échec de la release Forgejo."
+        return 1
+    fi
+
+    if projects_cicd_provider_is_complete "${project_id}" gitlab &&
+        ! projects_gitlab_release "${project_id}"; then
+        print_error "Échec de la release GitLab."
+        return 1
+    fi
+
+    if projects_cicd_provider_is_complete "${project_id}" github &&
+        ! projects_github_release "${project_id}"; then
+        print_error "Échec de la release GitHub."
+        return 1
+    fi
+
+    return 0
+}
+
 # Analalyse le dépot le local Git pour le projet <PROJECT ID>
 git_analyse() {
     local project_id="$1"
@@ -4530,6 +4668,155 @@ projects_gitlab_release_docker() {
 
     print_success \
         "Release Docker publiée avec succès vers GitLab."
+    return 0
+}
+
+# Publication de l'image Docker d'un projet vers GitHub Container Registry.
+projects_github_release() {
+    local project_id="${1:-}"
+    local project_dir=""
+    local project_env=""
+    local git_tag=""
+    local git_tags_count=0
+    local docker_version=""
+    local local_image=""
+    local remote_image_version=""
+    local remote_image_latest=""
+    local docker_config=""
+    local docker_publish_rc=0
+    local github_username=""
+    local github_token=""
+
+    if [[ -z "${project_id}" ]]; then
+        print_error "Usage : projects_github_release <project_id>"
+        return 1
+    fi
+
+    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_env="${project_dir}/project.env"
+
+    if [[ ! -d "${project_dir}" || ! -f "${project_env}" ]]; then
+        print_error "Projet ou project.env introuvable : ${project_dir}"
+        return 1
+    fi
+
+    unset PROJECT_ID PROJECT_DOCKERED REMOTE_GITHUB_BASE_URL \
+        REMOTE_GITHUB_OWNER REMOTE_GITHUB_REPOSITORY REMOTE_GITHUB_NAME \
+        REMOTE_GITHUB_BRANCH
+    # shellcheck disable=SC1090
+    source "${project_env}"
+
+    case "${PROJECT_DOCKERED:-}" in
+        Yes|YES|1)
+            ;;
+        *)
+            print_error "Le projet '${project_id}' n'est pas déclaré comme Dockerisé."
+            return 1
+            ;;
+    esac
+
+    if [[ -z "${PROJECT_ID:-}" || "${PROJECT_ID}" != "${project_id}" ||
+        -z "${REMOTE_GITHUB_BASE_URL:-}" ||
+        -z "${REMOTE_GITHUB_OWNER:-}" ||
+        -z "${REMOTE_GITHUB_REPOSITORY:-}" ||
+        -z "${REMOTE_GITHUB_NAME:-}" ||
+        -z "${REMOTE_GITHUB_BRANCH:-}" ]]; then
+        print_error "Configuration GitHub incomplète."
+        return 1
+    fi
+
+    if ! command -v git >/dev/null 2>&1 ||
+        ! command -v docker >/dev/null 2>&1; then
+        print_error "Git ou Docker n'est pas installé."
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_dir}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        print_error "Le projet n'est pas un dépôt Git valide : ${project_dir}"
+        return 1
+    fi
+
+    git_tags_count="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" tag --points-at HEAD 2>/dev/null |
+            sed '/^[[:space:]]*$/d' |
+            wc -l
+    )"
+
+    if [[ "${git_tags_count}" -ne 1 ]]; then
+        print_error "Un unique tag Git doit pointer sur le dernier commit."
+        return 1
+    fi
+
+    git_tag="$(runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_dir}" tag --points-at HEAD 2>/dev/null | head -n 1)"
+    docker_version="${git_tag#v}"
+    if [[ -z "${docker_version}" ]]; then
+        print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
+        return 1
+    fi
+
+    local_image="${PROJECT_ID}:latest"
+    remote_image_version="ghcr.io/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}:${docker_version}"
+    remote_image_latest="ghcr.io/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}:latest"
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker image inspect "${local_image}" >/dev/null 2>&1; then
+        print_error "Image Docker locale introuvable : ${local_image}"
+        return 1
+    fi
+
+    if ! _github_read_username "${project_dir}" ||
+        ! _github_read_token "${project_dir}"; then
+        return 1
+    fi
+
+    if ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag "${local_image}" "${remote_image_version}" ||
+        ! runuser -u "${DEVOPS_USER}" -- \
+        docker tag "${local_image}" "${remote_image_latest}"; then
+        print_error "Échec du tag Docker GitHub."
+        unset github_token
+        return 1
+    fi
+
+    docker_config="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)" || {
+        print_error "Impossible de créer le DOCKER_CONFIG temporaire."
+        unset github_token
+        return 1
+    }
+
+    if ! chmod 700 "${docker_config}"; then
+        print_error "Impossible de sécuriser le DOCKER_CONFIG temporaire."
+        rm -rf -- "${docker_config}"
+        unset github_token
+        return 1
+    fi
+
+    (
+        trap 'rm -rf -- "${docker_config}"' EXIT
+
+        if ! printf '%s' "${github_token}" | runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" docker login ghcr.io \
+            --username "${github_username}" --password-stdin; then
+            exit 1
+        fi
+
+        runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" docker push "${remote_image_version}" || exit 1
+        runuser -u "${DEVOPS_USER}" -- \
+            env "DOCKER_CONFIG=${docker_config}" docker push "${remote_image_latest}"
+    ) || docker_publish_rc=$?
+
+    unset github_token
+
+    if [[ "${docker_publish_rc}" -ne 0 ]]; then
+        print_error "Échec de la publication de la release Docker GitHub."
+        return "${docker_publish_rc}"
+    fi
+
+    print_success "Release Docker publiée avec succès vers GitHub Container Registry."
     return 0
 }
 

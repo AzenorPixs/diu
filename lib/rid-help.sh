@@ -131,6 +131,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
             rid_help_line 'rid projects git commit all' 'Commit tous les dépôts Git configurés.'
             rid_help_line 'rid projects docker' 'Gestion Docker des projets.'
+            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute la CI/CD conditionnelle du projet.'
             rid_help_line 'rid projects finds <ID PROJECT>' 'Recherche les conflits de synchronisation.'
             rid_help_line 'rid projects findads <ID PROJECT>' 'Supprime les conflits de synchronisation.'
             rid_help_line 'rid projects git' 'Gestion du dépôt local Git.'
@@ -153,6 +154,9 @@ rid_display_help_context() {
             rid_help_line 'rid projects deb <ID PROJECT>' 'Construit le paquet Debian.'
             rid_help_line 'rid projects cicddiu' 'Lance la CI/CD du projet DIU.'
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
+            ;;
+        projects:cicd:|projects:cicd:*)
+            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute commit, publications, build et releases configurés.'
             ;;
         projects:docker:)
             rid_help_line 'rid projects docker build <ID PROJECT>' "Construit l'image Docker du projet."
@@ -199,7 +203,7 @@ rid_display_help_context() {
             fi
             rid_help_line "rid projects ${subcontext} release <ID PROJECT>" 'Publie les artefacts du projet.'
             ;;
-        projects:docker:build|projects:git:update|projects:gitlab:clone|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:clone|projects:github:update|projects:github:push|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
+        projects:docker:build|projects:git:update|projects:gitlab:clone|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:clone|projects:github:update|projects:github:push|projects:github:release|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
             rid_help_line "rid projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."
             if [[ "${context}:${subcontext}:${leaf}" == "projects:forgejo:push" ]]; then
                 rid_help_line 'rid projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
