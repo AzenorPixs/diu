@@ -369,12 +369,46 @@ projects_cicd_provider_is_complete() {
 }
 
 # Flux CI/CD conditionnel d'un projet géré par le DIU.
+cicd_project_print_summary() {
+    local project_id="${1:-}"
+    local commit_name="${2:-}"
+    local commit_tag="${3:-}"
+    local workflow_status="${4:-}"
+    local forgejo_push_status="${5:-}"
+    local gitlab_push_status="${6:-}"
+    local github_push_status="${7:-}"
+    local docker_build_status="${8:-}"
+    local forgejo_release_status="${9:-}"
+    local gitlab_release_status="${10:-}"
+    local github_release_status="${11:-}"
+    local version="${commit_tag#v}"
+
+    print_title "Résumé CI/CD — ${project_id}"
+    printf 'État global : %s\n\n' "${workflow_status}"
+    printf 'Commit local\n  Message : %s\n  Tag     : %s\n  Version : %s\n\n' \
+        "${commit_name}" "${commit_tag}" "${version}"
+    printf 'Push Git\n  Forgejo : %s\n  GitLab  : %s\n  GitHub  : %s\n\n' \
+        "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}"
+    printf 'Image Docker\n  Build   : %s\n\n' "${docker_build_status}"
+    printf 'Releases Docker\n  Forgejo : %s\n  GitLab  : %s\n  GitHub  : %s\n' \
+        "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+}
+
 cicd_project() {
     local project_id="${1:-}"
     local commit_name="${2:-}"
     local commit_tag="${3:-}"
     local project_path=""
     local project_env=""
+    local workflow_status="réussi"
+    local forgejo_push_status="non configuré, ignoré"
+    local gitlab_push_status="non configuré, ignoré"
+    local github_push_status="non configuré, ignoré"
+    local docker_build_status="non Dockerisé, ignoré"
+    local forgejo_release_status="non Dockerisé ou non configuré, ignoré"
+    local gitlab_release_status="non Dockerisé ou non configuré, ignoré"
+    local github_release_status="non Dockerisé ou non configuré, ignoré"
+    local docker_version="${commit_tag#v}"
 
     if [[ -z "${project_id}" || -z "${commit_name}" || -z "${commit_tag}" ]]; then
         print_error "Usage : cicd_project <ID PROJECT> <COMMIT> <TAG>"
@@ -395,6 +429,12 @@ cicd_project() {
     fi
 
     if [[ ! -f "${project_env}" ]]; then
+        workflow_status="configuration du projet indisponible"
+        cicd_project_print_summary \
+            "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" \
+            "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" \
+            "${docker_build_status}" "${forgejo_release_status}" \
+            "${gitlab_release_status}" "${github_release_status}"
         return 0
     fi
 
@@ -410,54 +450,96 @@ cicd_project() {
 
     # shellcheck disable=SC1090
     if ! source "${project_env}" >/dev/null 2>&1; then
+        workflow_status="configuration du projet indisponible"
+        cicd_project_print_summary \
+            "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" \
+            "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" \
+            "${docker_build_status}" "${forgejo_release_status}" \
+            "${gitlab_release_status}" "${github_release_status}"
         return 0
     fi
 
-    if projects_cicd_provider_is_complete "${project_id}" forgejo &&
-        ! forgejo_push "${project_id}"; then
-        print_error "Échec du push Forgejo."
-        return 1
+    if projects_cicd_provider_is_complete "${project_id}" forgejo; then
+        forgejo_push_status="échec"
+        if ! forgejo_push "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            print_error "Échec du push Forgejo."
+            return 1
+        fi
+        forgejo_push_status="publié vers ${REMOTE_FORGEJO_NAME}/${REMOTE_FORGEJO_BRANCH}"
     fi
 
-    if projects_cicd_provider_is_complete "${project_id}" gitlab &&
-        ! gitlab_push "${project_id}"; then
-        print_error "Échec du push GitLab."
-        return 1
+    if projects_cicd_provider_is_complete "${project_id}" gitlab; then
+        gitlab_push_status="échec"
+        if ! gitlab_push "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            print_error "Échec du push GitLab."
+            return 1
+        fi
+        gitlab_push_status="publié vers ${REMOTE_GITLAB_NAME}/${REMOTE_GITLAB_BRANCH}"
     fi
 
-    if projects_cicd_provider_is_complete "${project_id}" github &&
-        ! github_push "${project_id}"; then
-        print_error "Échec du push GitHub."
-        return 1
+    if projects_cicd_provider_is_complete "${project_id}" github; then
+        github_push_status="échec"
+        if ! github_push "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            print_error "Échec du push GitHub."
+            return 1
+        fi
+        github_push_status="publié vers ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}"
     fi
 
     if [[ "${PROJECT_DOCKERED:-}" != "Yes" ]]; then
+        cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
         return 0
     fi
 
+    docker_build_status="échec"
     if ! projects_docker_build "${project_id}"; then
+        workflow_status="échec"
+        cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
         print_error "Échec de la construction de l'image Docker."
         return 1
     fi
+    docker_build_status="${PROJECT_ID}:latest (version ${docker_version})"
 
-    if projects_cicd_provider_is_complete "${project_id}" forgejo &&
-        ! projects_forgejo_release "${project_id}"; then
-        print_error "Échec de la release Forgejo."
-        return 1
+    if projects_cicd_provider_is_complete "${project_id}" forgejo; then
+        forgejo_release_status="échec"
+        if ! projects_forgejo_release "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            print_error "Échec de la release Forgejo."
+            return 1
+        fi
+        forgejo_release_status="${REMOTE_FORGEJO_BASE_URL#https://}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:${docker_version} et latest"
     fi
 
-    if projects_cicd_provider_is_complete "${project_id}" gitlab &&
-        ! projects_gitlab_release "${project_id}"; then
-        print_error "Échec de la release GitLab."
-        return 1
+    if projects_cicd_provider_is_complete "${project_id}" gitlab; then
+        gitlab_release_status="échec"
+        if ! projects_gitlab_release "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            print_error "Échec de la release GitLab."
+            return 1
+        fi
+        gitlab_release_status="${REMOTE_GITLAB_REGISTRY}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}:${docker_version} et latest"
     fi
 
-    if projects_cicd_provider_is_complete "${project_id}" github &&
-        ! projects_github_release "${project_id}"; then
-        print_error "Échec de la release GitHub."
-        return 1
+    if projects_cicd_provider_is_complete "${project_id}" github; then
+        github_release_status="échec"
+        if ! projects_github_release "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            print_error "Échec de la release GitHub."
+            return 1
+        fi
+        github_release_status="ghcr.io/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}:${docker_version} et latest"
     fi
 
+    cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
     return 0
 }
 
