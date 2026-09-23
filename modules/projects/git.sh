@@ -398,6 +398,7 @@ cicd_project() {
     local project_id="${1:-}"
     local commit_name="${2:-}"
     local commit_tag="${3:-}"
+    local effective_commit_tag=""
     local project_path=""
     local project_env=""
     local workflow_status="réussi"
@@ -426,6 +427,17 @@ cicd_project() {
     if ! git_commit "${project_id}" "${commit_name}" "${commit_tag}"; then
         print_error "Échec du commit Git."
         return 1
+    fi
+
+    effective_commit_tag="$(
+        runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" tag --points-at HEAD 2>/dev/null |
+            head -n 1
+    )"
+
+    if [[ -n "${effective_commit_tag}" ]]; then
+        commit_tag="${effective_commit_tag}"
+        docker_version="${commit_tag#v}"
     fi
 
     if [[ ! -f "${project_env}" ]]; then
