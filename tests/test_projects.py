@@ -891,6 +891,7 @@ projects_gitlab_release pfd
             script = r'''
 source "$1/modules/projects/git.sh"
 print_error() { :; }
+cicd_project_print_summary() { :; }
 git_commit() { printf 'commit\n'; }
 forgejo_push() { printf 'forgejo_push\n'; }
 gitlab_push() { printf 'gitlab_push\n'; }
@@ -926,6 +927,7 @@ cicd_project project commit vcommit
             script = r'''
 source "$1/modules/projects/git.sh"
 print_error() { :; }
+cicd_project_print_summary() { :; }
 git_commit() { printf 'commit\n'; }
 forgejo_push() { printf 'unexpected\n'; }
 gitlab_push() { printf 'unexpected\n'; }
@@ -945,6 +947,59 @@ cicd_project project commit vcommit
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, 'commit\n')
+
+    def test_cicd_summary_lists_completed_and_skipped_operations(self):
+        script = r'''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+cicd_project_print_summary project commit v1.2.3 réussi \
+  'publié vers origin/main' 'non configuré, ignoré' 'non configuré, ignoré' \
+  'project:latest (version 1.2.3)' 'forgejo/project:1.2.3 et latest' \
+  'non Dockerisé ou non configuré, ignoré' 'non Dockerisé ou non configuré, ignoré'
+'''
+        result = subprocess.run(
+            ['bash', '-c', script, 'bash', str(ROOT)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('État global : réussi', result.stdout)
+        self.assertIn('Message : commit', result.stdout)
+        self.assertIn('Forgejo : publié vers origin/main', result.stdout)
+        self.assertIn('GitLab  : non configuré, ignoré', result.stdout)
+        self.assertIn('Build   : project:latest (version 1.2.3)', result.stdout)
+
+    def test_cicd_summary_is_printed_before_a_push_failure(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            project_path = projects_root / 'project'
+            project_path.mkdir(parents=True)
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\nPROJECT_NAME=Project\nPROJECT_TYPE=generic\nPROJECT_DOCKERED=No\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\nREMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\nREMOTE_FORGEJO_NAME=origin\n'
+                'REMOTE_FORGEJO_BRANCH=main\nREMOTE_FORGEJO_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_error() { :; }
+git_commit() { :; }
+forgejo_push() { return 1; }
+DEVOPS_PROJECTS_ROOT="$2"
+cicd_project project commit v1.2.3
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('État global : échec', result.stdout)
+            self.assertIn('Forgejo : échec', result.stdout)
 
     def test_github_release_publishes_existing_image_without_building(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
