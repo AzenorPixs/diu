@@ -970,6 +970,51 @@ cicd_project_print_summary project commit v1.2.3 réussi \
         self.assertIn('GitLab  : non configuré, ignoré', result.stdout)
         self.assertIn('Build   : project:latest (version 1.2.3)', result.stdout)
 
+    def test_cicd_summary_uses_the_tag_effectively_pointing_at_head(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory) / 'projects'
+            project_path = projects_root / 'project'
+            project_path.mkdir(parents=True)
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\nPROJECT_NAME=Project\nPROJECT_TYPE=docker\n'
+                'PROJECT_DOCKERED=Yes\n'
+                'REMOTE_FORGEJO_BASE_URL=https://forgejo.example.test\nREMOTE_FORGEJO_OWNER=owner\n'
+                'REMOTE_FORGEJO_REPOSITORY=project\nREMOTE_FORGEJO_NAME=forgejo\n'
+                'REMOTE_FORGEJO_BRANCH=main\nREMOTE_FORGEJO_SSL_VERIFY=Yes\n'
+                'REMOTE_GITLAB_BASE_URL=https://gitlab.example.test\nREMOTE_GITLAB_REGISTRY=registry.example.test\n'
+                'REMOTE_GITLAB_OWNER=owner\nREMOTE_GITLAB_REPOSITORY=project\nREMOTE_GITLAB_NAME=gitlab\n'
+                'REMOTE_GITLAB_BRANCH=main\nREMOTE_GITLAB_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+            script = r'''
+source "$1/modules/projects/git.sh"
+print_title() { :; }
+print_error() { :; }
+git_commit() { :; }
+git() { printf 'v2026.09.23.13.17\n'; }
+runuser() { shift 3; "$@"; }
+forgejo_push() { :; }
+gitlab_push() { :; }
+projects_docker_build() { :; }
+projects_forgejo_release() { :; }
+projects_gitlab_release() { :; }
+DEVOPS_USER=test
+DEVOPS_PROJECTS_ROOT="$2"
+cicd_project project 2026.09.23.13.38 v2026.09.23.13.38
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Tag     : v2026.09.23.13.17', result.stdout)
+            self.assertIn('Version : 2026.09.23.13.17', result.stdout)
+            self.assertIn('Build   : project:latest (version 2026.09.23.13.17)', result.stdout)
+            self.assertIn('Forgejo : forgejo.example.test/owner/project:2026.09.23.13.17 et latest', result.stdout)
+            self.assertIn('GitLab  : registry.example.test/owner/project:2026.09.23.13.17 et latest', result.stdout)
+
     def test_cicd_summary_is_printed_before_a_push_failure(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             projects_root = Path(temporary_directory) / 'projects'
