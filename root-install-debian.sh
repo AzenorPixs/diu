@@ -155,6 +155,15 @@ EOF
           printf '127.0.0.1\t%s\n' "traefik.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "traefik-manager.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
           printf '127.0.0.1\t%s\n' "whoami.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
+          printf '130.66.41.80\t%s\n' "dockhand.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "dozzle.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "traefik.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "traefik-manager.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "ost.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "whoami.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "ldap.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "fd.test.ec-nantes.fr"
+          printf '130.66.41.80\t%s\n' "pgadmin.test.ec-nantes.fr"
       } >> /etc/hosts
   fi
 
@@ -4046,10 +4055,10 @@ EOF
 
 	fi
 
-	TABBY_VERSION=$(git -c 'versionsort.suffix=-' \
-    ls-remote --tags --sort='v:refname' https://github.com/Eugeny/tabby.git \
-    | awk '!/\^\{\}$/ {sub(/^.*refs\/tags\/v/, ""); print}' \
-    | tail -n1)
+  TABBY_VERSION="$(
+    curl -fsSL "https://api.github.com/repos/Eugeny/tabby/releases/latest" \
+      | awk -F '"' '/"tag_name":/ {sub(/^v/, "", $4); print $4}'
+  )"
 	if test -f /root/tabby-${TABBY_VERSION}-linux-x64.deb; then
 
 		echo "TABBY_VERSION($TABBY_VERSION) IS OK ✅"		
