@@ -223,6 +223,7 @@ _github_ensure_credentials() { return 0; }
 forgejo_git_fetch_named() { :; }
 forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
 gitlab_git_push() { printf 'push:%s\\n' "$*"; }
+github_git_fetch() { printf 'fetch:%s\\n' "$*"; }
 github_git_push() { printf 'push:%s\\n' "$*"; }
 PUSH_PROVIDER="$3"
 runuser() {
@@ -640,6 +641,34 @@ forgejo_api_get /tmp /repos/owner/project
             result.stdout.index('fetch:origin'),
         )
         self.assertIn('fetch:origin', result.stdout)
+        self.assertIn(
+            '--force-with-lease --set-upstream origin main:main',
+            result.stdout,
+        )
+
+    def test_github_push_uses_force_with_lease_for_the_branch(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_GITHUB_BASE_URL=https://github.example.test\n'
+                'REMOTE_GITHUB_OWNER=owner\n'
+                'REMOTE_GITHUB_REPOSITORY=project\n'
+                'REMOTE_GITHUB_NAME=origin\n'
+                'REMOTE_GITHUB_BRANCH=main\n'
+                'REMOTE_GITHUB_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_provider_push(projects_root, 'github')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(result.stdout.index('fetch:'), result.stdout.index('push:'))
         self.assertIn(
             '--force-with-lease --set-upstream origin main:main',
             result.stdout,
