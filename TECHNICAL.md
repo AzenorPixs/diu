@@ -186,7 +186,7 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE` et `DEBIAN_TYPE`, avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE`, `DEBIAN_TYPE` et `DISPLAY_LINK`, avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
@@ -195,7 +195,7 @@ supprimer est un succès sans réécriture. Toute erreur de lecture ou d'écritu
 bloque le chargement suivant.
 
 Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE` et
-`SYSTEM_DEBIAN_ENVIRONNEMENT`. Les valeurs historiques ne sont pas transférées.
+`SYSTEM_DEBIAN_ENVIRONNEMENT` et `SYSTEM_DRIVERS_DISPLAY_LINK`. Les valeurs historiques ne sont pas transférées.
 Le nettoyage intervient à la prochaine exécution du DIU, sans sauvegarde
 automatique des anciennes affectations supprimées.
 
@@ -353,16 +353,33 @@ paquets Debian officiels.
 exécute la transaction globale de mise à niveau, puis effectue le nettoyage
 APT prévu et installe les prérequis manquants.
 
-Les prérequis obligatoires sont traités sans sortie s'ils sont déjà installés,
-et dans l'ordre alphabétique lorsqu'ils manquent :
+`system_install_prerequisites` vérifie chaque paquet individuellement, sans
+sortie s'il est déjà installé. Les paquets manquants sont annoncés et installés
+un par un dans l'ordre alphabétique, après déduplication. Un échec APT est
+signalé et interrompt la fonction. Le socle commun est :
 
 ```text
 aptitude apache2-utils apt-transport-https bash-completion
 bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg gpg
-inetutils-telnet iptables jq libsecret-tools lshw lsb-release man-db manpages-fr
-net-tools netcat-traditional nicstat openssl pciutils python3-pytest ripgrep
+inetutils-telnet iptables jq libpq5 libsecret-tools lshw lsb-release man-db manpages-fr
+net-tools netcat-traditional nicstat openssl pciutils postgresql-client python3-pytest ripgrep
 shellcheck sudo tcpdump traceroute tree util-linux wget
 ```
+
+La fonction complète ce socle selon `SYSTEM_DEBIAN_ENVIRONNEMENT` :
+
+| Famille | Paquets ajoutés au socle |
+|---|---|
+| LXC, PHYSICAL, VM, DOCKER | `acl` |
+| PROXMOX | `acl`, `conntrack`, `glances`, `rsync` |
+| Absente, vide, UNSET ou inconnue | Aucun |
+
+DOCKER et VM utilisent exactement la même liste. Le parcours historique sans
+argument appelle également cette fonction, à la place de ses anciennes listes,
+avant sa configuration APT. La présence d'`aptitude` ne dispense plus de
+vérifier les autres prérequis. DisplayLink ne fait pas partie de la fonction
+commune et son ancien bloc automatique est supprimé : seules les commandes
+explicites `rid system drivers` gèrent ce pilote.
 
 Les fonctions publiques de gestion des dépôts valident leur identifiant,
 persistent les variables du scope `system`, puis régénèrent la configuration.
@@ -729,3 +746,77 @@ statut non nul. Les fonctions d'information ne réalisent aucune mutation ;
 le bootstrap historique de chargement et génération de configuration demeure.
 Les commandes infos terminent avant l'installation linéaire. Leur aide et
 celle des contextes intermédiaires restent disponibles avant le bootstrap.
+
+## État statique DisplayLink
+
+`modules/diu/variables/system/system_drivers_display_link.sh` déclare
+`SYSTEM_DRIVERS_DISPLAY_LINK`, `STATIC`, `ENABLE`, scope `system`.
+À la première initialisation, `variable_generator` interroge les paquets
+`displaylink-driver` et `evdi-dkms` via `dpkg-query` : deux paquets en état
+`installed` donnent `1` ; un paquet absent ou dans un état incomplet reconnu
+produit `0` si les deux interrogations sont interprétables. Une erreur, un
+outil absent ou un statut inexploitable produit `UNSET` avec diagnostic, même
+si l'autre paquet est absent.
+
+La valeur détectée est persistée dans `/root/diu/config/system.env`, puis
+exportée. Une valeur existante `0`, `1` ou `UNSET` est conservée ; une valeur
+invalide provoque une erreur sans écriture. Les échecs de persistance sont
+propagés. L'état n'est pas recalculé après une installation externe.
+
+La découverte initiale décrit les paquets, pas le fonctionnement du dock ni des
+écrans. Une installation manuelle hors paquets Debian n'est pas couverte.
+La valeur statique ne commande aucune installation automatique. Les commandes
+explicites ci-dessous mettent à jour cet état après leurs contrôles finaux.
+
+Le nettoyage retire l'ancienne affectation `DISPLAY_LINK` avant le chargement
+de `variables.sh`, sans transférer son ancienne valeur ni la sauvegarder.
+
+## Commandes DisplayLink
+
+`modules/system/drivers.sh` expose :
+
+- `system_drivers_install_displaylink` : `rid system drivers install displaylink` ;
+- `system_drivers_remove_displaylink` : `rid system drivers remove displaylink`.
+
+L'installation accepte seulement `SYSTEM_DEBIAN_ENVIRONNEMENT=PHYSICAL` ou
+`PROXMOX`, quelle que soit la valeur statique DisplayLink. Elle installe ou
+répare `dkms`, `displaylink-driver`, `evdi-dkms` et `libevdi-dev`. Ce dernier
+fournit le lien `libevdi.so` utilisé par le gestionnaire DisplayLink. Les
+headers du noyau courant sont requis : `linux-headers-<uname -r>` sur Debian,
+`proxmox-headers-<uname -r>` ou `pve-headers-<uname -r>` pour un noyau PVE.
+Les dépôts configurés doivent déjà fournir DisplayLink et ces dépendances.
+
+Pour Linux 7.x, EVDI doit être au minimum 1.15.1. Une version installée
+suffisante est conservée ; sinon un candidat APT suffisant est privilégié.
+En dernier recours, le paquet officiel Debian est téléchargé depuis
+`https://deb.debian.org/debian/pool/main/e/evdi/evdi-dkms_1.15.1+dfsg-1_all.deb`.
+Son SHA256 fixé est
+`afed3ea5fe42b3d4aea3bcc20c7f1baa894d8d07d292c34dd93f419de9493a1a` ;
+nom, version et architecture sont aussi vérifiés avant APT. Aucun dépôt
+sid/testing n'est ajouté. Le téléchargement utilise `curl`, déjà dans les
+prérequis ; les contrôles utilisent les outils Debian existants. Une seule
+transaction installe EVDI et ses dépendances. Ce minimum a été compilé pour
+7.0.12 ; il ne garantit pas les futurs noyaux 7.x.
+
+Avant de persister puis exporter `SYSTEM_DRIVERS_DISPLAY_LINK=1`, la commande
+vérifie les paquets configurés, les headers, DKMS pour le noyau courant,
+`libevdi.so`, le chargement du module et le service actif. La signature source
+du module chargé est comparée à celle du module installé (`srcversion`). Un
+module ancien est déchargé après arrêt du service puis rechargé. S'il reste
+utilisé, la commande échoue explicitement. Une installation saine ne réinstalle
+pas les paquets et ne redémarre pas le service. Aucun dock connecté n'est requis.
+
+La suppression reste disponible dans tous les environnements. Elle arrête le
+service, simule la suppression et refuse des suppressions supplémentaires,
+retire `displaylink-driver` et `evdi-dkms` sans autoremove, puis contrôle leur
+absence et le déchargement du module avant de persister puis exporter `0`.
+DKMS, headers et bibliothèques partagées sont conservés. Un état déjà absent
+réussit sans transaction APT.
+
+La persistance remplace atomiquement l'affectation dans
+`/root/diu/config/system.env` et préserve les autres lignes et les permissions
+existantes. En cas d'échec, la valeur antérieure reste conservée. Une transaction
+APT partiellement effectuée ou un service déjà arrêté ne sont pas annulés
+automatiquement. Une nouvelle exécution reprend à partir de l'état constaté.
+Les commandes ne valident pas l'activation des écrans dans GNOME ; celle-ci
+reste à contrôler sur le poste.
