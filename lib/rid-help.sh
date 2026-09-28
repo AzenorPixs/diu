@@ -8,7 +8,31 @@ rid_display_help_context() {
     local context="${1:-}" subcontext="${2:-}" leaf="${3:-}"
 
     case "$context:$subcontext:$leaf" in
+        infos::)
+            rid_help_line 'rid infos' 'Affiche les informations de tous les modules.'
+            ;;
+        desktop::|diu::|environnements::)
+            rid_help_line "rid ${context} infos" 'Affiche les informations du module.'
+            ;;
+        desktop:infos:|diu:infos:|environnements:infos:|ia:infos:|projects:infos:|softwares:infos:|system:infos:)
+            rid_help_line "rid ${context} infos" 'Affiche les informations du module.'
+            ;;
+        system:info:)
+            rid_help_line 'rid system info network' 'Affiche les informations réseau.'
+            rid_help_line 'rid system info debian' 'Affiche la configuration Debian, APT et Flatpak.'
+            ;;
+        system:info:network|system:info:debian)
+            rid_help_line "rid system info ${leaf}" 'Affiche les informations système demandées.'
+            ;;
         ::)
+            rid_help_line 'rid infos' 'Affiche les informations de tous les modules.'
+            rid_help_line 'rid desktop infos' 'Affiche les informations du bureau.'
+            rid_help_line 'rid diu infos' 'Affiche les informations et la version du DIU.'
+            rid_help_line 'rid environnements infos' 'Affiche les informations des environnements.'
+            rid_help_line 'rid ia infos' 'Affiche les informations IA.'
+            rid_help_line 'rid projects infos' 'Affiche les informations des projets.'
+            rid_help_line 'rid softwares infos' 'Affiche les informations des logiciels.'
+            rid_help_line 'rid system infos' 'Affiche toutes les informations système.'
             rid_help_line 'rid devops' 'Outils DevOps et OpenSpec.'
             rid_help_line 'rid docker' 'Gestion Docker root et rootless.'
             rid_help_line 'rid ia' 'Gestion des agents IA.'
@@ -22,6 +46,7 @@ rid_display_help_context() {
             rid_help_line 'rid version' 'Affiche la version du DIU.'
             ;;
         softwares::)
+            rid_help_line 'rid softwares infos' 'Affiche les informations du module.'
             rid_help_line 'rid softwares install apt <SOFTWARE>' 'Installe un logiciel APT.'
             rid_help_line 'rid softwares remove apt <SOFTWARE>' 'Désinstalle un logiciel APT.'
             rid_help_line 'rid softwares update apt [SOFTWARE]' 'Met à jour un ou tous les logiciels APT.'
@@ -55,6 +80,9 @@ rid_display_help_context() {
             rid_help_line "rid softwares ${subcontext} ${leaf} <SOFTWARE>" "Exécute l'opération demandée sur le logiciel."
             ;;
         system::)
+            rid_help_line 'rid system infos' 'Affiche les informations du module.'
+            rid_help_line 'rid system info network' 'Affiche les informations réseau.'
+            rid_help_line 'rid system info debian' 'Affiche la configuration Debian, APT et Flatpak.'
             rid_help_line 'rid system install apt <Dépôt>' 'Installe un dépôt APT.'
             rid_help_line 'rid system remove apt <Dépôt>' 'Supprime un dépôt APT.'
             rid_help_line 'rid system install flatpak' 'Installe Flatpak et Flathub.'
@@ -105,6 +133,7 @@ rid_display_help_context() {
             rid_help_line 'rid docker rootless unconfigure <USER>' 'Déconfigure Docker rootless.'
             ;;
         ia::)
+            rid_help_line 'rid ia infos' 'Affiche les informations du module.'
             rid_help_line 'rid ia configure hm' 'Configure Hermès.'
             rid_help_line 'rid ia install hm' 'Installe Hermès.'
             rid_help_line 'rid ia start hm' 'Démarre Hermès.'
@@ -123,6 +152,7 @@ rid_display_help_context() {
             rid_help_line 'rid os validate <PROJET> <SPEC>' 'Valide une spécification.'
             ;;
         projects::)
+            rid_help_line 'rid projects infos' 'Affiche les informations du module.'
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'
