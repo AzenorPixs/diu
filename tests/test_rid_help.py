@@ -204,7 +204,7 @@ forgejo_push project
             check=False,
         )
 
-    def run_provider_push(self, projects_root, provider):
+    def run_provider_push(self, projects_root, provider, github_fetch_status='0'):
         script = '''
 source "$1/modules/projects/git.sh"
 print_title() { :; }
@@ -223,8 +223,13 @@ _github_ensure_credentials() { return 0; }
 forgejo_git_fetch_named() { :; }
 forgejo_git_push_named() { printf 'push:%s\\n' "$*"; }
 gitlab_git_push() { printf 'push:%s\\n' "$*"; }
+github_git_fetch() {
+    printf 'fetch:%s\\n' "$*"
+    return "${GITHUB_FETCH_STATUS}"
+}
 github_git_push() { printf 'push:%s\\n' "$*"; }
 PUSH_PROVIDER="$3"
+GITHUB_FETCH_STATUS="$4"
 runuser() {
     case "$*" in
         *'git --version'*) return 0 ;;
@@ -245,7 +250,10 @@ DEVOPS_PROJECTS_ROOT="$2"
 git_push_provider project "$PUSH_PROVIDER"
 '''
         return subprocess.run(
-            ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), provider],
+            [
+                'bash', '-c', script, 'bash', str(ROOT), str(projects_root),
+                provider, github_fetch_status,
+            ],
             text=True,
             capture_output=True,
             check=False,
@@ -644,6 +652,59 @@ forgejo_api_get /tmp /repos/owner/project
             '--force-with-lease --set-upstream origin main:main',
             result.stdout,
         )
+
+    def test_github_push_uses_force_with_lease_for_the_branch(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_GITHUB_BASE_URL=https://github.example.test\n'
+                'REMOTE_GITHUB_OWNER=owner\n'
+                'REMOTE_GITHUB_REPOSITORY=project\n'
+                'REMOTE_GITHUB_NAME=origin\n'
+                'REMOTE_GITHUB_BRANCH=main\n'
+                'REMOTE_GITHUB_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_provider_push(projects_root, 'github')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(result.stdout.index('fetch:'), result.stdout.index('push:'))
+        self.assertIn(
+            '--force-with-lease --set-upstream origin main:main',
+            result.stdout,
+        )
+
+    def test_github_push_stops_when_fetch_fails(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\n'
+                'PROJECT_NAME="Projet"\n'
+                'PROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\n'
+                'REMOTE_GITHUB_BASE_URL=https://github.example.test\n'
+                'REMOTE_GITHUB_OWNER=owner\n'
+                'REMOTE_GITHUB_REPOSITORY=project\n'
+                'REMOTE_GITHUB_NAME=origin\n'
+                'REMOTE_GITHUB_BRANCH=main\n'
+                'REMOTE_GITHUB_SSL_VERIFY=Yes\n',
+                encoding='utf-8',
+            )
+
+            result = self.run_provider_push(projects_root, 'github', '1')
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('fetch:', result.stdout)
+        self.assertNotIn('push:', result.stdout)
 
     def test_forgejo_push_skips_fetch_when_repository_is_absent(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
