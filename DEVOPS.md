@@ -1,4 +1,4 @@
-# DEVOPS.md — Pixs
+# DEVOPS.md — Debian Installeur Unifié
 
 Version : 0.2
 
