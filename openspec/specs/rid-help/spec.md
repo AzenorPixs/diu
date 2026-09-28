@@ -181,13 +181,20 @@ correspondante avec sa description.
 
 L'aide racine et contextuelle SHALL présenter rid infos, les commandes rid
 <module> infos pour desktop, diu, environnements, ia, projects, softwares et
-system, ainsi que rid system info network et rid system info debian. Elle
+system, ainsi que rid system infos network et rid system infos debian. Elle
 SHALL rester disponible avant tout chargement de configuration de production.
 
 #### Scenario: Aide terminale
-- **WHEN** une nouvelle commande infos ou system info est suivie de help ou ?
+- **WHEN** une nouvelle commande infos ou system infos est suivie de help ou ?
 - **THEN** la syntaxe concernée et une description sont affichées sans opération métier
 
 #### Scenario: Aide intermédiaire
-- **WHEN** rid system help ou rid system info help est appelée
+- **WHEN** rid system help ou rid system infos help est appelée
 - **THEN** les commandes d'information accessibles sont affichées
+
+### Requirement: Aide des pilotes DisplayLink
+L'aide SHALL exposer les commandes rid system drivers install displaylink et rid system drivers remove displaylink, à la racine, au niveau system, drivers, install/remove et displaylink, sans charger la configuration ni agir sur le système.
+
+#### Scenario: Aide pilote
+- **WHEN** help suit un préfixe valide des commandes DisplayLink
+- **THEN** les commandes correspondantes sont affichées sans effet de bord

@@ -5,7 +5,22 @@ rid_help_line() {
 }
 
 rid_display_help_context() {
-    local context="${1:-}" subcontext="${2:-}" leaf="${3:-}"
+    local context="${1:-}" subcontext="${2:-}" leaf="${3:-}" target="${4:-}"
+
+    if [[ "$context:$subcontext" == system:drivers ]]; then
+        if [[ $# -gt 4 || ( -n "$target" && "$target" != displaylink ) ]]; then
+            rid_display_command_error system drivers
+            return 2
+        fi
+        case "$leaf" in
+            "") [[ -z "$target" ]] || return 2
+                rid_help_line "rid system drivers install displaylink" "Installe et valide le pilote DisplayLink (PHYSICAL/PROXMOX)."
+                rid_help_line "rid system drivers remove displaylink" "Supprime le pilote DisplayLink." ;;
+            install|remove) rid_help_line "rid system drivers $leaf displaylink" "Gère le pilote DisplayLink et son état de configuration." ;;
+            *) rid_display_command_error system drivers; return 2 ;;
+        esac
+        return 0
+    fi
 
     case "$context:$subcontext:$leaf" in
         infos::)
@@ -14,17 +29,20 @@ rid_display_help_context() {
         desktop::|diu::|environnements::)
             rid_help_line "rid ${context} infos" 'Affiche les informations du module.'
             ;;
-        desktop:infos:|diu:infos:|environnements:infos:|ia:infos:|projects:infos:|softwares:infos:|system:infos:)
+        desktop:infos:|diu:infos:|environnements:infos:|ia:infos:|projects:infos:|softwares:infos:)
             rid_help_line "rid ${context} infos" 'Affiche les informations du module.'
             ;;
-        system:info:)
-            rid_help_line 'rid system info network' 'Affiche les informations réseau.'
-            rid_help_line 'rid system info debian' 'Affiche la configuration Debian, APT et Flatpak.'
+        system:infos:)
+            rid_help_line 'rid system infos' 'Affiche toutes les informations système.'
+            rid_help_line 'rid system infos network' 'Affiche les informations réseau.'
+            rid_help_line 'rid system infos debian' 'Affiche la configuration Debian, APT et Flatpak.'
             ;;
-        system:info:network|system:info:debian)
-            rid_help_line "rid system info ${leaf}" 'Affiche les informations système demandées.'
+        system:infos:network|system:infos:debian)
+            rid_help_line "rid system infos ${leaf}" 'Affiche les informations système demandées.'
             ;;
         ::)
+            rid_help_line 'rid system drivers install displaylink' 'Installe et valide le pilote DisplayLink.'
+            rid_help_line 'rid system drivers remove displaylink' 'Supprime le pilote DisplayLink.'
             rid_help_line 'rid infos' 'Affiche les informations de tous les modules.'
             rid_help_line 'rid desktop infos' 'Affiche les informations du bureau.'
             rid_help_line 'rid diu infos' 'Affiche les informations et la version du DIU.'
@@ -80,9 +98,11 @@ rid_display_help_context() {
             rid_help_line "rid softwares ${subcontext} ${leaf} <SOFTWARE>" "Exécute l'opération demandée sur le logiciel."
             ;;
         system::)
+            rid_help_line 'rid system drivers install displaylink' 'Installe et valide le pilote DisplayLink.'
+            rid_help_line 'rid system drivers remove displaylink' 'Supprime le pilote DisplayLink.'
             rid_help_line 'rid system infos' 'Affiche les informations du module.'
-            rid_help_line 'rid system info network' 'Affiche les informations réseau.'
-            rid_help_line 'rid system info debian' 'Affiche la configuration Debian, APT et Flatpak.'
+            rid_help_line 'rid system infos network' 'Affiche les informations réseau.'
+            rid_help_line 'rid system infos debian' 'Affiche la configuration Debian, APT et Flatpak.'
             rid_help_line 'rid system install apt <Dépôt>' 'Installe un dépôt APT.'
             rid_help_line 'rid system remove apt <Dépôt>' 'Supprime un dépôt APT.'
             rid_help_line 'rid system install flatpak' 'Installe Flatpak et Flathub.'
