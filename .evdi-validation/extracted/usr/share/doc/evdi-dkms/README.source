@@ -1,0 +1,13 @@
+evdi for Debian
+---------------
+
+The source is taken directly from the upstream git repository. The sources
+are then modified by the cleanup_script.sh script for removing files
+with unclear license terms. (Upstream only clearly states the license
+for the subdirectories "library" and "module")
+
+In git full sources are maintained under the "upstream" branch and cleaned
+up sources under "dfsg_clean".
+
+ -- Hanno Stock <opensource@hanno-stock.de>  Fri, 25 Jan 2019 14:39:33 +0100
+

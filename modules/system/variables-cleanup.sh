@@ -3,7 +3,7 @@
 # Supprime les affectations historiques avant de charger la configuration locale.
 config_cleanup() {
     local variables_file="${1:-/root/diu/variables.sh}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?DEBIAN_RELEASE='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE)='
     local status
 
     [[ -e "$variables_file" ]] || return 0
