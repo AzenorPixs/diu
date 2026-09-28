@@ -115,17 +115,23 @@ system_info_network
     def test_routes_and_termination(self):
         routes = [('infos',)] + [(m, 'infos') for m in
                   ('desktop', 'diu', 'environnements', 'ia', 'projects', 'softwares', 'system')]
-        routes += [('system', 'info', 'network'), ('system', 'info', 'debian')]
+        routes += [('system', 'infos', 'network'), ('system', 'infos', 'debian')]
         for route in routes:
             with self.subTest(route=route):
                 r = self.dispatch(*route)
                 self.assertEqual(r.returncode, 0, r.stderr)
                 self.assertTrue(r.stdout.strip())
                 self.assertNotIn('INSTALLATION_INTERDITE', r.stdout)
+                if route == ('system', 'infos', 'network'):
+                    self.assertIn('Informations réseau', r.stdout)
+                    self.assertNotIn('SYSTEM DEBIAN', r.stdout)
+                elif route == ('system', 'infos', 'debian'):
+                    self.assertIn('SYSTEM DEBIAN', r.stdout)
+                    self.assertNotIn('Informations réseau', r.stdout)
 
     def test_invalid_arguments(self):
-        for route in [('infos', 'extra'), ('system', 'info'), ('system', 'info', 'unknown'),
-                      ('system', 'info', 'debian', 'extra'), ('system', 'infos', 'extra'),
+        for route in [('infos', 'extra'), ('system', 'infos', 'unknown'),
+                      ('system', 'infos', 'debian', 'extra'), ('system', 'infos', 'extra'),
                       ('diu', 'unknown'), ('desktop', 'infos', 'extra')]:
             with self.subTest(route=route):
                 r = self.dispatch(*route)
@@ -136,7 +142,7 @@ system_info_network
     def test_actual_help_without_configuration(self):
         routes = [('infos',)] + [(m, 'infos') for m in
                   ('desktop', 'diu', 'environnements', 'ia', 'projects', 'softwares', 'system')]
-        routes += [('system', 'info'), ('system', 'info', 'network'), ('system', 'info', 'debian')]
+        routes += [('system',), ('system', 'infos'), ('system', 'infos', 'network'), ('system', 'infos', 'debian')]
         for route in routes:
             for suffix in ('help', '?'):
                 with self.subTest(route=route, suffix=suffix):
@@ -144,6 +150,10 @@ system_info_network
                                        capture_output=True, text=True)
                     self.assertEqual(r.returncode, 0, r.stderr)
                     self.assertIn('rid ' + ' '.join(route), r.stdout)
+                    if route in (('system', 'infos'), ('system',)):
+                        self.assertIn('rid system infos network', r.stdout)
+                        self.assertIn('rid system infos debian', r.stdout)
+                    self.assertNotIn('rid system info ', r.stdout)
 
     def test_extraction_and_imports(self):
         root = (ROOT / 'root-install-debian.sh').read_text()

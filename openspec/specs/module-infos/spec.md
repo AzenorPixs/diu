@@ -8,7 +8,7 @@ Exposer les informations des modules du DIU par des commandes cohérentes.
 ### Requirement: Informations réseau du système
 
 Le DIU SHALL déplacer display_infos vers system_info_network dans
-modules/system/infos.sh et SHALL l'appeler via rid system info network.
+modules/system/infos.sh et SHALL l'appeler via rid system infos network.
 L'affichage réseau et l'appel du parcours historique SHALL être préservés.
 
 #### Scenario: Interfaces réseau
@@ -19,7 +19,7 @@ L'affichage réseau et l'appel du parcours historique SHALL être préservés.
 ### Requirement: Informations Debian
 
 system_info_debian dans modules/system/infos.sh SHALL répondre à rid system
-info debian. L'affichage SHALL suivre cet ordre exact :
+infos debian. L'affichage SHALL suivre cet ordre exact :
 
 - SYSTEM DEBIAN : SYSTEM_DEBIAN_ENVIRONNEMENT, SYSTEM_DEBIAN_RELEASE.
 - SYSTEM APT OFFICIAL : SYSTEM_APT_DEBIAN_UPDATES, SYSTEM_APT_DEBIAN_SOURCES,
@@ -30,7 +30,7 @@ info debian. L'affichage SHALL suivre cet ordre exact :
 - SYSTEM FLATPAK : SYSTEM_FLATPAK.
 
 #### Scenario: Valeurs affichées
-- **WHEN** rid system info debian est appelée
+- **WHEN** rid system infos debian est appelée
 - **THEN** chaque variable est affichée sous la forme NOM=valeur dans l'ordre défini
 - **AND** une variable absente affiche UNSET et une valeur vide reste vide
 - **AND** aucune autre variable de configuration n'est exposée
@@ -68,5 +68,5 @@ infos SHALL ne pas modifier de configuration ni exécuter d'installation ; le
 bootstrap existant reste inchangé.
 
 #### Scenario: Mauvaise feuille système
-- **WHEN** rid system info inconnu est appelée
-- **THEN** un code 2 est retourné et rid system info help est proposé
+- **WHEN** rid system infos inconnu est appelée
+- **THEN** un code 2 est retourné et rid system infos help est proposé
