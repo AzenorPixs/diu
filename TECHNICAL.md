@@ -186,7 +186,7 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE`, `DEBIAN_TYPE` et `DISPLAY_LINK`, avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK` et `TIME_ZONE`, avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
@@ -195,7 +195,7 @@ supprimer est un succès sans réécriture. Toute erreur de lecture ou d'écritu
 bloque le chargement suivant.
 
 Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE` et
-`SYSTEM_DEBIAN_ENVIRONNEMENT` et `SYSTEM_DRIVERS_DISPLAY_LINK`. Les valeurs historiques ne sont pas transférées.
+`SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK` et `SYSTEM_TIME_ZONE`. Les valeurs historiques ne sont pas transférées.
 Le nettoyage intervient à la prochaine exécution du DIU, sans sauvegarde
 automatique des anciennes affectations supprimées.
 
@@ -234,6 +234,22 @@ invalide.
 
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
+
+### Fuseau horaire système
+
+`modules/diu/variables/system/system_time_zone.sh` déclare `SYSTEM_TIME_ZONE`,
+`STATIC`, `ENABLE`, scope `system`, avec le repli `Europe/Paris`.
+À la première initialisation, `variable_generator` appelle
+`timedatectl show --property=Timezone --value`. Une commande absente, un échec
+ou une réponse vide utilise le repli avec un diagnostic stderr.
+La valeur est persistée avec échappement Bash dans `/root/diu/config/system.env`
+puis exportée. Un échec de persistance est bloquant. Une valeur déjà définie,
+même vide, est conservée sans détection ni écriture.
+
+Le nettoyage retire `TIME_ZONE` avant le chargement de `variables.sh`, sans
+transfert ni sauvegarde automatique de sa valeur. Le parcours historique
+utilise `SYSTEM_TIME_ZONE` pour configurer le fuseau. `rid system infos debian`
+l'affiche immédiatement après `SYSTEM_DEBIAN_RELEASE` dans SYSTEM DEBIAN.
 
 ### Environnement Debian
 
