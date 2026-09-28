@@ -406,6 +406,21 @@ github_git_push() {
         push "${push_args[@]}"
 }
 
+github_git_fetch() {
+    local project_path="${1:-}"
+    shift || true
+    local fetch_args=("${@}")
+
+    _github_ensure_credentials "${project_path}" "${REMOTE_GITHUB_NAME:-origin}" || return 1
+    _github_read_username "${project_path}" || return 1
+    _github_read_token "${project_path}" || return 1
+    git_with_token \
+        "${project_path}" \
+        "${github_username}" \
+        "${github_token}" \
+        fetch "${fetch_args[@]}"
+}
+
 # Clone un dépôt GitHub HTTPS avec les identifiants locaux du projet.
 github_git_clone() {
     local project_path="${1:-}"
