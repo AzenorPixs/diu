@@ -29,7 +29,7 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
 fi
 
 case "${1:-}" in
-    ''|devops|docker|ia|os|projects|install|remove|softwares|system|update|version)
+    ''|devops|docker|ia|os|projects|install|remove|softwares|system|update|version|infos|desktop|diu|environnements)
         ;;
     *)
         printf "❌ Classe d'actions inconnue : %s\n" "$1"
@@ -40,7 +40,7 @@ esac
 
 if [[ "${1:-}" == softwares ]]; then
     case "${2:-}" in
-        install|remove|update|apt|flatpak)
+        install|remove|update|apt|flatpak|infos)
             ;;
         *)
             printf "❌ Action inconnue pour la classe 'softwares' : %s\n" "${2:-}"
@@ -76,6 +76,20 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/projects/diu-release.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/diu-packaging.sh"
 . "$BASH_SCRIPT_PATH/modules/projects/projects.sh"
+# shellcheck disable=SC1091 source=modules/desktop/infos.sh
+. "$BASH_SCRIPT_PATH/modules/desktop/infos.sh"
+# shellcheck disable=SC1091 source=modules/diu/infos.sh
+. "$BASH_SCRIPT_PATH/modules/diu/infos.sh"
+# shellcheck disable=SC1091 source=modules/environments/infos.sh
+. "$BASH_SCRIPT_PATH/modules/environments/infos.sh"
+# shellcheck disable=SC1091 source=modules/ia/infos.sh
+. "$BASH_SCRIPT_PATH/modules/ia/infos.sh"
+# shellcheck disable=SC1091 source=modules/projects/infos.sh
+. "$BASH_SCRIPT_PATH/modules/projects/infos.sh"
+# shellcheck disable=SC1091 source=modules/softwares/infos.sh
+. "$BASH_SCRIPT_PATH/modules/softwares/infos.sh"
+# shellcheck disable=SC1091 source=modules/system/infos.sh
+. "$BASH_SCRIPT_PATH/modules/system/infos.sh"
 
 # Creer l'arborescence.
 mkdir -p "$BASH_SCRIPT_PATH/config"
@@ -263,7 +277,35 @@ dispatch_arguments() {
         exit 0
     fi
 
+    # Les informations de modules partagent un routage strict et sans récursion.
+    case "$argument_class:${2:-}" in
+        desktop:infos|diu:infos|environnements:infos|ia:infos|projects:infos|softwares:infos)
+            if [[ $# -ne 2 ]]; then
+                printf 'Usage : rid %s infos ; voir rid %s infos help\n' "$argument_class" "$argument_class" >&2
+                exit 2
+            fi
+            case "$argument_class" in
+                environnements) environments_infos ;;
+                *) "${argument_class}_infos" ;;
+            esac
+            exit $?
+            ;;
+    esac
+
     case "$argument_class" in
+
+        infos)
+            if [[ $# -ne 1 ]]; then
+                printf '%s\n' 'Usage : rid infos ; voir rid infos help' >&2
+                exit 2
+            fi
+            infos
+            ;;
+
+        desktop|diu|environnements)
+            printf 'Action inconnue : %s ; voir rid %s help\n' "${2:-}" "$argument_class" >&2
+            exit 2
+            ;;
 
         devops)
             shift
@@ -334,50 +376,6 @@ display_help_context() {
     rid_display_help_context "$@"
 }
 
-display_infos() {
-    local index
-    local interface_var
-    local state_var
-    local type_var
-    local ip_var
-    local ip_cidr_var
-    local gw_var
-
-    echo ""
-    echo "=============================================="
-    echo " Informations réseau"
-    echo "=============================================="
-    echo ""
-
-    for index in 1 2; do
-
-        interface_var="INTERFACE_ETHERNET${index}"
-        state_var="INTERFACE_ETHERNET${index}_STATE"
-        type_var="INTERFACE_ETHERNET${index}_TYPE"
-        ip_var="INTERFACE_ETHERNET${index}_IP"
-        ip_cidr_var="INTERFACE_ETHERNET${index}_IP_CIDR"
-        gw_var="INTERFACE_ETHERNET${index}_GW"
-
-        # ------------------------------------------------------
-        # Affichage uniquement si l'interface est UP
-        # ------------------------------------------------------
-
-        if [[ "${!state_var}" == "UP" ]]; then
-
-            echo "Interface Ethernet ${index}"
-            echo "----------------------------------------------"
-            echo "Interface  : ${!interface_var}"
-            echo "État       : ${!state_var}"
-            echo "Type       : ${!type_var}"
-            echo "Adresse IP : ${!ip_var}"
-            echo "IP / CIDR  : ${!ip_cidr_var}"
-            echo "Passerelle : ${!gw_var}"
-            echo ""
-
-        fi
-
-    done
-}
 
 error_handler() {
     local exit_code=$?
@@ -8344,6 +8342,6 @@ if [[ "${SYSTEM_DEBIAN_ENVIRONNEMENT}" == "PROXMOX" ]]; then
   dmesg | grep -e DMAR -e IOMMU -e AMD-Vi || true
 fi
 
-display_infos
+system_info_network
 
 exit 0

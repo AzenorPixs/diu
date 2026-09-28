@@ -120,9 +120,9 @@ publie les artefacts activés par `PROJECT_DOCKERED` et
 
 Le dépôt reste en transition vers cette architecture. Une partie importante
 des fonctions historiques est encore présente dans `root-install-debian.sh`.
-Les répertoires `modules/desktop/` et `modules/environments/` existent dans
-l'arborescence, mais ne fournissent pas actuellement de module spécialisé
-chargé par le bootstrap principal. L'architecture cible décrite dans
+Les répertoires `modules/desktop/` et `modules/environments/` fournissent
+leurs points d’entrée d’information ; `environments` fournit également son
+module de mise à jour. L'architecture cible décrite dans
 `PROJECT.md` ne doit pas être interprétée comme l'existence d'implémentations
 déjà séparées.
 
@@ -702,3 +702,30 @@ Toute évolution doit être minimale, réversible lorsque possible et limitée
 aux fichiers nécessaires. Les fonctionnalités non documentées par une
 spécification OpenSpec validée ne doivent pas être introduites par ce seul
 document.
+
+## Informations des modules
+
+Chaque module fournit un fichier `infos.sh`. `rid infos` appelle directement,
+dans cet ordre, desktop, diu, environnements, ia, projects, softwares et system.
+Chaque commande `rid <module> infos` affiche au moins le titre du module.
+La commande française `environnements` correspond au dossier `modules/environments/`.
+`rid diu infos` réutilise `diu_version` pour afficher la version du paquet DIU
+installé ; une version indisponible produit un diagnostic et un statut non nul.
+
+`modules/system/infos.sh` contient :
+
+- `system_info_network`, appelée par `rid system info network`, conserve
+  l'affichage des interfaces Ethernet 1 et 2 UP de l'ancienne `display_infos` ;
+- `system_info_debian`, appelée par `rid system info debian`, affiche les blocs
+  SYSTEM DEBIAN, SYSTEM APT OFFICIAL, SYSTEM APT UNOFFICIAL et SYSTEM FLATPAK ;
+- `system_info`, appelée par `rid system infos`, affiche le titre SYSTEM puis
+  les informations Debian puis réseau.
+
+Les variables affichées sont explicitement sélectionnées, sous forme NOM=valeur.
+Une variable absente affiche UNSET ; une valeur vide est préservée. L'ordre
+exact est défini par la spécification OpenSpec `module-infos`.
+Les agrégateurs poursuivent les autres blocs après un échec et renvoient un
+statut non nul. Les fonctions d'information ne réalisent aucune mutation ;
+le bootstrap historique de chargement et génération de configuration demeure.
+Les commandes infos terminent avant l'installation linéaire. Leur aide et
+celle des contextes intermédiaires restent disponibles avant le bootstrap.

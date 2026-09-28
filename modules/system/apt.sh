@@ -365,6 +365,18 @@ system_apt_remove_repository() {
 manage_system_action() {
     local action="${1:-}" repository=""
     case "$action" in
+        infos)
+            [[ $# -eq 1 ]] || { print_error 'Usage : rid system infos ; voir rid system infos help'; return 2; }
+            system_info
+            ;;
+        info)
+            [[ $# -eq 2 ]] || { print_error 'Usage : rid system info {network|debian} ; voir rid system info help'; return 2; }
+            case "$2" in
+                network) system_info_network ;;
+                debian) system_info_debian ;;
+                *) print_error 'Information inconnue ; voir rid system info help'; return 2 ;;
+            esac
+            ;;
         install|remove)
             if [[ "${2:-}" == flatpak && $# -eq 2 ]]; then
                 if [[ "$action" == install ]]; then
