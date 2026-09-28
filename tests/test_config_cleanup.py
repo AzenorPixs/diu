@@ -20,11 +20,14 @@ class ConfigCleanupTests(unittest.TestCase):
     def test_cleanup_and_idempotence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
-            preserved = ('# DEBIAN_RELEASE=comment\n'
+            preserved = ('# DEBIAN_RELEASE=comment\n# DEBIAN_TYPE=comment\n'
+                         'SYSTEM_DEBIAN_ENVIRONNEMENT=VM\nDEBIAN_TYPE_EXTRA=keep\n'
                          'SYSTEM_DEBIAN_RELEASE=bookworm\n'
                          'DEBIAN_RELEASE_EXTRA=keep\nOTHER=keep\n\n')
             path.write_text('DEBIAN_RELEASE=old\n export DEBIAN_RELEASE="old"\n'
-                            '\texport\tDEBIAN_RELEASE=old # comment\n' + preserved)
+                            '\texport\tDEBIAN_RELEASE=old # comment\n'
+                            'DEBIAN_TYPE=PHYSICAL\n export DEBIAN_TYPE=VM\n'
+                            '\texport\tDEBIAN_TYPE=LXC # comment\n' + preserved)
             path.chmod(0o640)
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -44,6 +47,15 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(self.run_cleanup(path).returncode, 0)
             self.assertFalse(path.exists())
 
+    def test_debian_type_only(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('export DEBIAN_TYPE="PROXMOX"\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(result.stdout, '')
+
     def test_read_and_write_errors(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
@@ -62,6 +74,8 @@ class ConfigCleanupTests(unittest.TestCase):
         self.assertLess(text.index('config_cleanup || exit 1'), text.index('. "/root/diu/variables.sh"'))
         self.assertNotRegex(text, r'\bDEBIAN_RELEASE\b')
         self.assertIn('SYSTEM_DEBIAN_RELEASE', text)
+        self.assertNotRegex(text, r'\bDEBIAN_TYPE\b')
+        self.assertIn('SYSTEM_DEBIAN_ENVIRONNEMENT', text)
 
 
 if __name__ == '__main__':

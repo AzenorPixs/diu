@@ -1719,7 +1719,7 @@ fi
 
 ### PREREQUISITES ###
 
-if [ $DEBIAN_TYPE = "LXC" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT = "LXC" ]
 then
 
 	if dpkg -s aptitude &>/dev/null
@@ -1738,7 +1738,7 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE = "PHYSICAL" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT = "PHYSICAL" ]
 then
 
 	if dpkg -s aptitude &>/dev/null
@@ -1776,7 +1776,7 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE = "VM" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT = "VM" ]
 then
 
 	if dpkg -s aptitude &>/dev/null
@@ -1795,7 +1795,7 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE = "PROXMOX" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT = "PROXMOX" ]
 then
 
 	if dpkg -s aptitude &>/dev/null
@@ -1863,7 +1863,7 @@ then
 
 	# fi
 
-	# if [ $DEBIAN_TYPE == "PROXMOX" ]
+	# if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PROXMOX" ]
 	# then
 
 		# if [ -f /etc/apt/sources.list.d/pve-enterprise.sources ]
@@ -2381,7 +2381,7 @@ then
 	# https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 	# https://nvidia.github.io/libnvidia-container/stable/deb/
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PROXMOX" ]
 	then
 
 		if dpkg -s pve-headers &>/dev/null
@@ -2430,7 +2430,7 @@ then
 
 			echo "CONFIGURE SECURE BOOT FOR NVIDIA DRIVERS"
 
-			if [ $DEBIAN_TYPE == "PROXMOX" ]
+			if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PROXMOX" ]
 			then
 
 				apt install shim-signed grub-efi-amd64-signed mokutil
@@ -2455,7 +2455,7 @@ then
 
 	fi
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PROXMOX" ]
 	then
 
 		if dpkg -s pve-nvidia-vgpu-helper &>/dev/null
@@ -2641,7 +2641,7 @@ then
 	echo "F /var/log/popularity-contest  0755 root root" >> /etc/tmpfiles.d/var2log.conf
 	echo "F /var/log/popularity-contest.gpg  0755 root root" >> /etc/tmpfiles.d/var2log.conf
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PROXMOX" ]
 	then
 
 		echo "D /var/log/ceph  0755 root root" >> /etc/tmpfiles.d/var2log.conf
@@ -2686,7 +2686,7 @@ then
 	# systemctl enable systemd-tmpfiles-setup.service
 	systemctl start systemd-tmpfiles-setup.service
 
-	if  [ $DEBIAN_TYPE == "PHYSICAL" ]
+	if  [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PHYSICAL" ]
 	then
 
 		echo "🔧 CONFIGURATION FSTAB"
@@ -2759,7 +2759,7 @@ else
 
 fi
 
-if [ $DEBIAN_TYPE == "LXC" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "LXC" ]
 then
 
 	echo "net.ipv4.conf.all.accept_redirects = 1" > /etc/sysctl.d/tune.conf
@@ -2823,7 +2823,7 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE == "PHYSICAL" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PHYSICAL" ]
 then
 
 	echo "kernel.panic = 90" > /etc/sysctl.d/tune.conf
@@ -2961,7 +2961,7 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE == "VM" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "VM" ]
 then
 
 	echo "kernel.panic = 90" > /etc/sysctl.d/tune.conf
@@ -3089,7 +3089,7 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE == "PROXMOX" ]
+if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PROXMOX" ]
 then
 
 	echo "kernel.panic = 90" > /etc/sysctl.d/tune.conf
@@ -5934,7 +5934,7 @@ then
 
 	rm -f /etc/rsyslog.d/*
 
-	# if [ $DEBIAN_TYPE == "LXC" ]
+	# if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "LXC" ]
 	# then
 
 	echo '' > /etc/rsyslog.d/kernel.conf
@@ -7657,7 +7657,7 @@ then
 	echo '' >> /etc/rc.local
 	echo '' >> /etc/rc.local
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "PROXMOX" ]
 	then
 
 		if [ $BRIDGE_ETHERNET1_CONFIG_IP == "PROXMOX" ]
@@ -8058,7 +8058,7 @@ then
 	if [ $INTERFACE_ETHERNET1 != "NONE" ]
 	then
 
-		if [ "$DEBIAN_TYPE" = "LXC" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "LXC" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR ETHERNET1"
@@ -8082,7 +8082,7 @@ then
 				} >> /etc/rc.local
 		fi
 
-		if [ "$DEBIAN_TYPE" = "PHYSICAL" ] || [ "$DEBIAN_TYPE" = "PROXMOX" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PHYSICAL" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PROXMOX" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR ETHERNET1"
@@ -8123,7 +8123,7 @@ then
 	if [ $INTERFACE_ETHERNET2 != "NONE" ]
 	then
 
-		if [ "$DEBIAN_TYPE" = "LXC" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "LXC" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR INTERFACE_ETHERNET2"
@@ -8147,7 +8147,7 @@ then
 				} >> /etc/rc.local
 		fi
 
-		if [ "$DEBIAN_TYPE" = "PHYSICAL" ] || [ "$DEBIAN_TYPE" = "PROXMOX" ] || [ "$DEBIAN_TYPE" = "VM" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PHYSICAL" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PROXMOX" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "VM" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR INTERFACE_ETHERNET2"
@@ -8188,7 +8188,7 @@ then
 	if [ $BRIDGE_ETHERNET1 != "NONE" ]
 	then
 
-		if [ "$DEBIAN_TYPE" = "PHYSICAL" ] || [ "$DEBIAN_TYPE" = "PROXMOX" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PHYSICAL" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PROXMOX" ]
 		then
 			{
 			echo "# DISABLE MULTICAST FOR BRIDGE_ETHERNET1"
@@ -8340,7 +8340,7 @@ echo ""
 echo ""
 echo ""
 
-if [[ "${DEBIAN_TYPE}" == "PROXMOX" ]]; then
+if [[ "${SYSTEM_DEBIAN_ENVIRONNEMENT}" == "PROXMOX" ]]; then
   dmesg | grep -e DMAR -e IOMMU -e AMD-Vi || true
 fi
 

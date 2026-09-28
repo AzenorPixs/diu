@@ -186,7 +186,7 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE`, avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE` et `DEBIAN_TYPE`, avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
@@ -194,8 +194,10 @@ isolés. Elle est idempotente : l'absence du fichier ou l'absence de la ligne à
 supprimer est un succès sans réécriture. Toute erreur de lecture ou d'écriture
 bloque le chargement suivant.
 
-Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`. La valeur historique
-n'est pas transférée automatiquement.
+Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE` et
+`SYSTEM_DEBIAN_ENVIRONNEMENT`. Les valeurs historiques ne sont pas transférées.
+Le nettoyage intervient à la prochaine exécution du DIU, sans sauvegarde
+automatique des anciennes affectations supprimées.
 
 ### Déclarations unitaires
 
@@ -232,6 +234,32 @@ invalide.
 
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
+
+### Environnement Debian
+
+`modules/diu/variables/system/system_debian_environnement.sh` déclare
+`SYSTEM_DEBIAN_ENVIRONNEMENT` : `DYNAMIC`, `ENABLE`, scope `system`, repli `UNSET`.
+La valeur est générée et exportée seulement si la variable est absente, sans
+persistance automatique, conformément au cycle dynamique existant.
+
+Son `variable_generator` utilise `systemd-detect-virt --container`, puis `--vm` :
+
+| Résultat détecté | Valeur |
+|---|---|
+| Conteneur Docker courant | `DOCKER` |
+| Conteneur LXC ou LXC-libvirt courant | `LXC` |
+| Hyperviseur reconnu, dont KVM/Proxmox et Hyper-V | `VM` |
+| Machine physique avec `pve-manager` confirmé installé | `PROXMOX` |
+| Machine physique sans `pve-manager` installé | `PHYSICAL` |
+| Outil absent, erreur, résultat incohérent ou environnement inconnu | `UNSET` |
+
+Le conteneur prime sur son hôte ; Proxmox VE dans une VM reste `VM`.
+Un dépôt Proxmox ou un nom de noyau ne suffit pas. Les conteneurs autres que
+Docker et LXC restent `UNSET`. Ce résultat émet un diagnostic sur stderr sans
+bloquer l'initialisation. La détection dépend des informations exposées par
+l'environnement et ne garantit pas l'identification d'un hyperviseur masqué.
+Les consommateurs historiques conservent leurs branches LXC, PHYSICAL, VM et
+PROXMOX ; aucune branche d'installation DOCKER ou UNSET n'est ajoutée.
 
 ### Chargement, tri et mise à jour
 

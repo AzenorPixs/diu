@@ -1,0 +1,25 @@
+Package: evdi-dkms
+Source: evdi
+Version: 1.15.1+dfsg-1
+Architecture: all
+Maintainer: Harlan Lieberman-Berg <hlieberman@debian.org>
+Installed-Size: 227
+Depends: dkms (>= 3.0.11)
+Recommends: libevdi1
+Section: kernel
+Priority: optional
+Homepage: https://github.com/DisplayLink/evdi
+Description: Extensible Virtual Display Interface driver kernel module
+ The Extensible Virtual Display Interface (EVDI) is a Linux kernel
+ module that enables management of multiple screens, allowing user-space
+ programs to take control over what happens with the image. It is
+ essentially a virtual display you can add, remove and receive
+ screen updates for, in an application that uses the libevdi library.
+ .
+ The module and library is part of the DisplayLink Ubuntu development
+ which enables support for DisplayLink USB 3.0 devices on Ubuntu.
+ .
+ Please note that this is NOT a complete driver for DisplayLink devices.
+ .
+ This package installs the kernel module needed for creating the virtual
+ displays.
