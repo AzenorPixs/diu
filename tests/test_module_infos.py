@@ -38,7 +38,7 @@ class ModuleInfosTests(unittest.TestCase):
         declarations = '\n'.join(f'{v}=value{i}' for i, v in enumerate(VARIABLES))
         r = self.run_shell(declarations + '\nsystem_info_debian')
         self.assertEqual(r.returncode, 0, r.stderr)
-        lines = r.stdout.splitlines()
+        lines = [x.strip() for x in r.stdout.splitlines() if set(x.strip()) != {'='}]
         self.assertEqual([x for x in lines if '=' in x],
                          [f'{v}=value{i}' for i, v in enumerate(VARIABLES)])
         self.assertEqual([x for x in lines if x and '=' not in x],
@@ -75,7 +75,7 @@ system_info_network
     def test_global_and_system_order(self):
         r = self.run_shell('diu_version() { printf "2026.test\\n"; }\ninfos')
         self.assertEqual(r.returncode, 0, r.stderr)
-        lines = r.stdout.splitlines()
+        lines = [x.strip('# ') for x in r.stdout.splitlines()]
         titles = ['DESKTOP', 'DIU', 'ENVIRONNEMENTS', 'IA', 'PROJECTS', 'SOFTWARES', 'SYSTEM']
         self.assertEqual([x for x in lines if x in titles], titles)
         self.assertIn('2026.test', lines)

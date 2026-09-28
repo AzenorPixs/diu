@@ -46,16 +46,19 @@ system_info_network() {
 }
 
 system_info_debian() {
-    printf '\n%s\n' 'SYSTEM DEBIAN'
+    printf '\n%s\n %s\n%s\n\n' \
+        '==============================================' 'SYSTEM DEBIAN' '=============================================='
     printf '%s=%s\n' 'SYSTEM_DEBIAN_ENVIRONNEMENT' "${SYSTEM_DEBIAN_ENVIRONNEMENT-UNSET}"
     printf '%s=%s\n' 'SYSTEM_DEBIAN_RELEASE' "${SYSTEM_DEBIAN_RELEASE-UNSET}"
-    printf '\n%s\n' 'SYSTEM APT OFFICIAL'
+    printf '\n%s\n %s\n%s\n\n' \
+        '==============================================' 'SYSTEM APT OFFICIAL' '=============================================='
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_UPDATES' "${SYSTEM_APT_DEBIAN_UPDATES-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_SOURCES' "${SYSTEM_APT_DEBIAN_SOURCES-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_BACKPORT' "${SYSTEM_APT_DEBIAN_BACKPORT-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_CONTRIB' "${SYSTEM_APT_DEBIAN_CONTRIB-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_NONFRFEE' "${SYSTEM_APT_DEBIAN_NONFRFEE-UNSET}"
-    printf '\n%s\n' 'SYSTEM APT UNOFFICIAL'
+    printf '\n%s\n %s\n%s\n\n' \
+        '==============================================' 'SYSTEM APT UNOFFICIAL' '=============================================='
     printf '%s=%s\n' 'SYSTEM_APT_CGPT' "${SYSTEM_APT_CGPT-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_CROWDSEC' "${SYSTEM_APT_CROWDSEC-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DOCKER' "${SYSTEM_APT_DOCKER-UNSET}"
@@ -67,13 +70,15 @@ system_info_debian() {
     printf '%s=%s\n' 'SYSTEM_APT_VSCODE' "${SYSTEM_APT_VSCODE-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_WAZUH' "${SYSTEM_APT_WAZUH-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_WEBMIN' "${SYSTEM_APT_WEBMIN-UNSET}"
-    printf '\n%s\n' 'SYSTEM FLATPAK'
+    printf '\n%s\n %s\n%s\n\n' \
+        '==============================================' 'SYSTEM FLATPAK' '=============================================='
     printf '%s=%s\n' 'SYSTEM_FLATPAK' "${SYSTEM_FLATPAK-UNSET}"
 }
 
 system_info() {
     local status=0
-    printf '\n%s\n' 'SYSTEM'
+    printf '\n%s\n%s\n%s\n%s\n%s\n\n' \
+        '##############' '##############' '### SYSTEM ###' '##############' '##############'
     system_info_debian || status=1
     system_info_network || status=1
     return "$status"

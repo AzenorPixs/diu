@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 diu_infos() {
-    printf '\n%s\n' 'DIU'
+    printf '\n%s\n%s\n%s\n%s\n%s\n\n' \
+        '###########' '###########' '### DIU ###' '###########' '###########'
     diu_version
 }
 
