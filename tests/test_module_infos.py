@@ -50,6 +50,50 @@ class ModuleInfosTests(unittest.TestCase):
         self.assertIn('SYSTEM_DEBIAN_RELEASE=\n', r.stdout)
         self.assertIn('SYSTEM_DEBIAN_ENVIRONNEMENT=UNSET', r.stdout)
 
+    def test_drivers_without_version_query(self):
+        for value in (None, '', '0', 'UNSET'):
+            declaration = '' if value is None else f'SYSTEM_DRIVERS_DISPLAY_LINK="{value}"\n'
+            r = self.run_shell(declaration + 'dpkg-query() { echo QUERY_INTERDITE >&2; return 99; }\nsystem_info_drivers')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            expected = 'UNSET' if value is None else value
+            self.assertIn(f'SYSTEM_DRIVERS_DISPLAY_LINK={expected}\n', r.stdout)
+            self.assertNotIn('Version DisplayLink', r.stdout)
+            self.assertEqual(r.stderr, '')
+
+    def test_drivers_installed_version(self):
+        r = self.run_shell(r'''
+SYSTEM_DRIVERS_DISPLAY_LINK=1
+dpkg-query() {
+    [[ "$*" == '-W -f=${db:Status-Status}\t${Version} displaylink-driver' ]] || return 99
+    printf 'installed\t6.1-2'
+}
+system_info_drivers
+printf 'STATE=%s\n' "$SYSTEM_DRIVERS_DISPLAY_LINK"
+''')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('Version DisplayLink : 6.1-2', r.stdout)
+        self.assertLess(r.stdout.index('SYSTEM_DRIVERS_DISPLAY_LINK=1'), r.stdout.index('Version DisplayLink'))
+        self.assertIn('STATE=1', r.stdout)
+
+    def test_drivers_unavailable_version(self):
+        for stub in ('return 1', 'return 2', 'return 127',
+                     "printf 'unpacked\\t6.1-2'", "printf 'installed\\t'", "printf 'unexpected'"):
+            with self.subTest(stub=stub):
+                r = self.run_shell('SYSTEM_DRIVERS_DISPLAY_LINK=1\n'
+                                   + f'dpkg-query() {{ {stub}; }}\n'
+                                   + 'if system_info_drivers; then result=0; else result=$?; fi\n'
+                                   + 'printf "STATE=%s\\n" "$SYSTEM_DRIVERS_DISPLAY_LINK"\nexit "$result"')
+                self.assertEqual(r.returncode, 1, r.stderr)
+                self.assertIn('Version DisplayLink : UNSET', r.stdout)
+                self.assertIn('Impossible de déterminer', r.stderr)
+                self.assertIn('STATE=1', r.stdout)
+
+    def test_drivers_failure_keeps_network_output(self):
+        r = self.run_shell('SYSTEM_DRIVERS_DISPLAY_LINK=1\ndpkg-query() { return 1; }\nsystem_info')
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('Informations réseau', r.stdout)
+        self.assertIn('SYSTEM DEBIAN', r.stdout)
+
     def test_network_interfaces(self):
         for active in (1, 2):
             r = self.run_shell(f'''
@@ -79,7 +123,8 @@ system_info_network
         titles = ['DESKTOP', 'DIU', 'ENVIRONNEMENTS', 'IA', 'PROJECTS', 'SOFTWARES', 'SYSTEM']
         self.assertEqual([x for x in lines if x in titles], titles)
         self.assertIn('2026.test', lines)
-        self.assertLess(r.stdout.index('SYSTEM DEBIAN'), r.stdout.index('Informations réseau'))
+        self.assertLess(r.stdout.index('SYSTEM DEBIAN'), r.stdout.index('SYSTEM DRIVERS'))
+        self.assertLess(r.stdout.index('SYSTEM DRIVERS'), r.stdout.index('Informations réseau'))
 
     def test_failures_continue_aggregation(self):
         r = self.run_shell('diu_version() { printf "version indisponible\\n" >&2; return 1; }\ninfos')
@@ -115,7 +160,7 @@ system_info_network
     def test_routes_and_termination(self):
         routes = [('infos',)] + [(m, 'infos') for m in
                   ('desktop', 'diu', 'environnements', 'ia', 'projects', 'softwares', 'system')]
-        routes += [('system', 'infos', 'network'), ('system', 'infos', 'debian')]
+        routes += [('system', 'infos', 'network'), ('system', 'infos', 'debian'), ('system', 'infos', 'drivers')]
         for route in routes:
             with self.subTest(route=route):
                 r = self.dispatch(*route)
@@ -131,7 +176,7 @@ system_info_network
 
     def test_invalid_arguments(self):
         for route in [('infos', 'extra'), ('system', 'infos', 'unknown'),
-                      ('system', 'infos', 'debian', 'extra'), ('system', 'infos', 'extra'),
+                      ('system', 'infos', 'debian', 'extra'), ('system', 'infos', 'drivers', 'extra'), ('system', 'infos', 'extra'),
                       ('diu', 'unknown'), ('desktop', 'infos', 'extra')]:
             with self.subTest(route=route):
                 r = self.dispatch(*route)
@@ -142,7 +187,7 @@ system_info_network
     def test_actual_help_without_configuration(self):
         routes = [('infos',)] + [(m, 'infos') for m in
                   ('desktop', 'diu', 'environnements', 'ia', 'projects', 'softwares', 'system')]
-        routes += [('system',), ('system', 'infos'), ('system', 'infos', 'network'), ('system', 'infos', 'debian')]
+        routes += [('system',), ('system', 'infos'), ('system', 'infos', 'network'), ('system', 'infos', 'debian'), ('system', 'infos', 'drivers')]
         for route in routes:
             for suffix in ('help', '?'):
                 with self.subTest(route=route, suffix=suffix):
@@ -153,6 +198,7 @@ system_info_network
                     if route in (('system', 'infos'), ('system',)):
                         self.assertIn('rid system infos network', r.stdout)
                         self.assertIn('rid system infos debian', r.stdout)
+                        self.assertIn('rid system infos drivers', r.stdout)
                     self.assertNotIn('rid system info ', r.stdout)
 
     def test_extraction_and_imports(self):

@@ -75,11 +75,31 @@ system_info_debian() {
     printf '%s=%s\n' 'SYSTEM_FLATPAK' "${SYSTEM_FLATPAK-UNSET}"
 }
 
+system_info_drivers() {
+    local package_info status version
+    printf '\n%s\n %s\n%s\n\n' \
+        '==============================================' 'SYSTEM DRIVERS' '=============================================='
+    printf '%s=%s\n' 'SYSTEM_DRIVERS_DISPLAY_LINK' "${SYSTEM_DRIVERS_DISPLAY_LINK-UNSET}"
+    [[ "${SYSTEM_DRIVERS_DISPLAY_LINK-UNSET}" == 1 ]] || return 0
+
+    if package_info=$(dpkg-query -W -f='${db:Status-Status}\t${Version}' displaylink-driver 2>/dev/null); then
+        IFS=$'\t' read -r status version <<< "$package_info"
+        if [[ "$status" == installed && -n "$version" ]]; then
+            printf 'Version DisplayLink : %s\n' "$version"
+            return 0
+        fi
+    fi
+    printf 'Version DisplayLink : UNSET\n'
+    printf '❌ Impossible de déterminer la version du paquet DisplayLink installé.\n' >&2
+    return 1
+}
+
 system_info() {
     local status=0
     printf '\n%s\n%s\n%s\n%s\n%s\n\n' \
         '##############' '##############' '### SYSTEM ###' '##############' '##############'
     system_info_debian || status=1
+    system_info_drivers || status=1
     system_info_network || status=1
     return "$status"
 }

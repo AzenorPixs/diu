@@ -400,7 +400,7 @@ manage_system_action() {
             esac
             ;;
         infos)
-            [[ $# -le 2 ]] || { print_error 'Usage : rid system infos [network|debian] ; voir rid system infos help'; return 2; }
+            [[ $# -le 2 ]] || { print_error 'Usage : rid system infos [debian|drivers|network] ; voir rid system infos help'; return 2; }
             if [[ $# -eq 1 ]]; then
                 system_info
                 return
@@ -408,6 +408,7 @@ manage_system_action() {
             case "$2" in
                 network) system_info_network ;;
                 debian) system_info_debian ;;
+                drivers) system_info_drivers ;;
                 *) print_error 'Information inconnue ; voir rid system infos help'; return 2 ;;
             esac
             ;;

@@ -735,8 +735,14 @@ installé ; une version indisponible produit un diagnostic et un statut non nul.
   l'affichage des interfaces Ethernet 1 et 2 UP de l'ancienne `display_infos` ;
 - `system_info_debian`, appelée par `rid system info debian`, affiche les blocs
   SYSTEM DEBIAN, SYSTEM APT OFFICIAL, SYSTEM APT UNOFFICIAL et SYSTEM FLATPAK ;
+- `system_info_drivers`, appelée par `rid system infos drivers`, affiche
+  `SYSTEM_DRIVERS_DISPLAY_LINK`, puis la version du paquet `displaylink-driver`
+  uniquement si la variable vaut `1`. Le paquet doit être en état `installed`
+  avec une version non vide. Une lecture impossible affiche une version `UNSET`,
+  un diagnostic et un statut non nul, sans modifier la configuration ;
 - `system_info`, appelée par `rid system infos`, affiche le titre SYSTEM puis
-  les informations Debian puis réseau.
+  les informations Debian, pilotes, réseau dans cet ordre. Cette agrégation
+  est également utilisée par `rid infos`. `rid system update` reste inchangé.
 
 Les variables affichées sont explicitement sélectionnées, sous forme NOM=valeur.
 Une variable absente affiche UNSET ; une valeur vide est préservée. L'ordre

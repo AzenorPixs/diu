@@ -181,7 +181,7 @@ correspondante avec sa description.
 
 L'aide racine et contextuelle SHALL présenter rid infos, les commandes rid
 <module> infos pour desktop, diu, environnements, ia, projects, softwares et
-system, ainsi que rid system infos network et rid system infos debian. Elle
+system, ainsi que rid system infos debian, rid system infos drivers et rid system infos network. Elle
 SHALL rester disponible avant tout chargement de configuration de production.
 
 #### Scenario: Aide terminale
