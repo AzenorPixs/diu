@@ -2654,6 +2654,12 @@ git_push_provider() {
                     "Impossible d'initialiser les credentials GitHub."
                 return 1
             fi
+
+            if ! github_git_fetch "${project_path}" "${remote_name}"; then
+                print_error \
+                    "Impossible de récupérer les références GitHub distantes."
+                return 1
+            fi
             ;;
 
         *)
@@ -2918,6 +2924,7 @@ git_push_provider() {
 
             github_git_push \
                 "${project_path}" \
+                --force-with-lease \
                 --set-upstream \
                 "${remote_name}" \
                 "${current_branch}:${remote_default_branch}" \
