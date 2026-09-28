@@ -50,6 +50,7 @@ system_info_debian() {
         '==============================================' 'SYSTEM DEBIAN' '=============================================='
     printf '%s=%s\n' 'SYSTEM_DEBIAN_ENVIRONNEMENT' "${SYSTEM_DEBIAN_ENVIRONNEMENT-UNSET}"
     printf '%s=%s\n' 'SYSTEM_DEBIAN_RELEASE' "${SYSTEM_DEBIAN_RELEASE-UNSET}"
+    printf '%s=%s\n' 'SYSTEM_TIME_ZONE' "${SYSTEM_TIME_ZONE-UNSET}"
     printf '\n%s\n %s\n%s\n\n' \
         '==============================================' 'SYSTEM APT OFFICIAL' '=============================================='
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_UPDATES' "${SYSTEM_APT_DEBIAN_UPDATES-UNSET}"

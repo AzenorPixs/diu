@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = ('desktop', 'diu', 'environments', 'ia', 'projects', 'softwares', 'system')
 VARIABLES = (
-    'SYSTEM_DEBIAN_ENVIRONNEMENT SYSTEM_DEBIAN_RELEASE '
+    'SYSTEM_DEBIAN_ENVIRONNEMENT SYSTEM_DEBIAN_RELEASE SYSTEM_TIME_ZONE '
     'SYSTEM_APT_DEBIAN_UPDATES SYSTEM_APT_DEBIAN_SOURCES SYSTEM_APT_DEBIAN_BACKPORT '
     'SYSTEM_APT_DEBIAN_CONTRIB SYSTEM_APT_DEBIAN_NONFRFEE '
     'SYSTEM_APT_CGPT SYSTEM_APT_CROWDSEC SYSTEM_APT_DOCKER SYSTEM_APT_LEMONLDAP '
@@ -49,6 +49,10 @@ class ModuleInfosTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('SYSTEM_DEBIAN_RELEASE=\n', r.stdout)
         self.assertIn('SYSTEM_DEBIAN_ENVIRONNEMENT=UNSET', r.stdout)
+        self.assertIn('SYSTEM_TIME_ZONE=UNSET', r.stdout)
+        r = self.run_shell('SYSTEM_TIME_ZONE=""\nsystem_info_debian')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('SYSTEM_TIME_ZONE=\n', r.stdout)
 
     def test_drivers_without_version_query(self):
         for value in (None, '', '0', 'UNSET'):
