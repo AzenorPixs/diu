@@ -22,6 +22,7 @@ class ConfigCleanupTests(unittest.TestCase):
             path = Path(directory) / 'variables.sh'
             preserved = ('# DEBIAN_RELEASE=comment\n# DEBIAN_TYPE=comment\n# DISPLAY_LINK=comment\n'
                          'SYSTEM_DRIVERS_DISPLAY_LINK=1\nDISPLAY_LINK_EXTRA=keep\n'
+                         '# TIME_ZONE=comment\nSYSTEM_TIME_ZONE=UTC\nTIME_ZONE_EXTRA=keep\n'
                          'SYSTEM_DEBIAN_ENVIRONNEMENT=VM\nDEBIAN_TYPE_EXTRA=keep\n'
                          'SYSTEM_DEBIAN_RELEASE=bookworm\n'
                          'DEBIAN_RELEASE_EXTRA=keep\nOTHER=keep\n\n')
@@ -29,6 +30,8 @@ class ConfigCleanupTests(unittest.TestCase):
                             '\texport\tDEBIAN_RELEASE=old # comment\n'
                             'DEBIAN_TYPE=PHYSICAL\n export DEBIAN_TYPE=VM\n'
                             '\texport\tDEBIAN_TYPE=LXC # comment\n'
+                            'TIME_ZONE=UTC\n export TIME_ZONE=Europe/London\n'
+                            '\texport\tTIME_ZONE=UTC # comment\n'
                             'DISPLAY_LINK=1\n export DISPLAY_LINK=0\n'
                             '\texport\tDISPLAY_LINK=1 # comment\n' + preserved)
             path.chmod(0o640)
@@ -91,6 +94,8 @@ class ConfigCleanupTests(unittest.TestCase):
         self.assertLess(text.index('config_cleanup || exit 1'), text.index('. "/root/diu/variables.sh"'))
         self.assertNotRegex(text, r'\bDEBIAN_RELEASE\b')
         self.assertIn('SYSTEM_DEBIAN_RELEASE', text)
+        self.assertNotRegex(text, r'\bTIME_ZONE\b')
+        self.assertIn('timedatectl set-timezone "$SYSTEM_TIME_ZONE"', text)
         self.assertNotRegex(text, r'\bDEBIAN_TYPE\b')
         self.assertIn('SYSTEM_DEBIAN_ENVIRONNEMENT', text)
         self.assertNotRegex(text, r'\bDISPLAY_LINK\b')
