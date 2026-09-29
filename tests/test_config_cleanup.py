@@ -20,11 +20,20 @@ class ConfigCleanupTests(unittest.TestCase):
     def test_cleanup_and_idempotence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
-            preserved = ('# DEBIAN_RELEASE=comment\n'
+            preserved = ('# DEBIAN_RELEASE=comment\n# DEBIAN_TYPE=comment\n# DISPLAY_LINK=comment\n'
+                         'SYSTEM_DRIVERS_DISPLAY_LINK=1\nDISPLAY_LINK_EXTRA=keep\n'
+                         '# TIME_ZONE=comment\nSYSTEM_TIME_ZONE=UTC\nTIME_ZONE_EXTRA=keep\n'
+                         'SYSTEM_DEBIAN_ENVIRONNEMENT=VM\nDEBIAN_TYPE_EXTRA=keep\n'
                          'SYSTEM_DEBIAN_RELEASE=bookworm\n'
                          'DEBIAN_RELEASE_EXTRA=keep\nOTHER=keep\n\n')
             path.write_text('DEBIAN_RELEASE=old\n export DEBIAN_RELEASE="old"\n'
-                            '\texport\tDEBIAN_RELEASE=old # comment\n' + preserved)
+                            '\texport\tDEBIAN_RELEASE=old # comment\n'
+                            'DEBIAN_TYPE=PHYSICAL\n export DEBIAN_TYPE=VM\n'
+                            '\texport\tDEBIAN_TYPE=LXC # comment\n'
+                            'TIME_ZONE=UTC\n export TIME_ZONE=Europe/London\n'
+                            '\texport\tTIME_ZONE=UTC # comment\n'
+                            'DISPLAY_LINK=1\n export DISPLAY_LINK=0\n'
+                            '\texport\tDISPLAY_LINK=1 # comment\n' + preserved)
             path.chmod(0o640)
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -44,6 +53,29 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(self.run_cleanup(path).returncode, 0)
             self.assertFalse(path.exists())
 
+    def test_debian_type_only(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('export DEBIAN_TYPE="PROXMOX"\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(result.stdout, '')
+
+    def test_display_link_only(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            original = 'export DISPLAY_LINK="1"\nOTHER=keep\n'
+            path.write_text(original)
+            for prelude in ('grep() { return 2; }', 'sed() { return 1; }'):
+                result = self.run_cleanup(path, prelude)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(path.read_text(), original)
+                self.assertEqual(result.stdout, '')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+
     def test_read_and_write_errors(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
@@ -62,6 +94,15 @@ class ConfigCleanupTests(unittest.TestCase):
         self.assertLess(text.index('config_cleanup || exit 1'), text.index('. "/root/diu/variables.sh"'))
         self.assertNotRegex(text, r'\bDEBIAN_RELEASE\b')
         self.assertIn('SYSTEM_DEBIAN_RELEASE', text)
+        self.assertNotRegex(text, r'\bTIME_ZONE\b')
+        self.assertIn('timedatectl set-timezone "$SYSTEM_TIME_ZONE"', text)
+        self.assertNotRegex(text, r'\bDEBIAN_TYPE\b')
+        self.assertIn('SYSTEM_DEBIAN_ENVIRONNEMENT', text)
+        self.assertNotRegex(text, r'\bDISPLAY_LINK\b')
+        self.assertIn('. "$BASH_SCRIPT_PATH/modules/system/drivers.sh"', text)
+        drivers = (ROOT / 'modules/system/drivers.sh').read_text()
+        self.assertNotRegex(drivers, r'\bDISPLAY_LINK\b')
+        self.assertIn('SYSTEM_DRIVERS_DISPLAY_LINK', drivers)
 
 
 if __name__ == '__main__':
