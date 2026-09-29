@@ -185,16 +185,39 @@ system_install_prerequisites() {
         aptitude apache2-utils apt-transport-https bash-completion
         bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg
         gpg inetutils-telnet iptables jq libpq5 lshw lsb-release man-db manpages-fr
-        net-tools netcat-traditional nicstat openssl pciutils postgresql-client ripgrep shellcheck
+        net-tools netcat-traditional nicstat openssl pciutils postgresql-client
         python3-pytest ripgrep shellcheck sudo tcpdump traceroute tree util-linux wget
         libsecret-tools
     )
+
+    case "${SYSTEM_DEBIAN_ENVIRONNEMENT:-UNSET}" in
+        LXC)
+            prerequisites+=(acl)
+            ;;
+        PHYSICAL)
+            prerequisites+=(acl)
+            ;;
+        VM)
+            prerequisites+=(acl)
+            ;;
+        DOCKER)
+            prerequisites+=(acl)
+            ;;
+        PROXMOX)
+            # conntrack évite les erreurs de paramètres netfilter nf_conntrack.
+            # glances permet de suivre les ressources de l'hyperviseur.
+            prerequisites+=(acl conntrack glances rsync)
+            ;;
+    esac
 
     while IFS= read -r package; do
         if ! dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null |
             grep -qx installed; then
             print_info "Installation du prérequis : $package"
-            apt-get install -y -- "$package"
+            if ! apt-get install -y -- "$package"; then
+                print_error "Échec de l'installation du prérequis : $package"
+                return 1
+            fi
         fi
     done < <(printf '%s\n' "${prerequisites[@]}" | LC_ALL=C sort -u)
 }
@@ -365,6 +388,30 @@ system_apt_remove_repository() {
 manage_system_action() {
     local action="${1:-}" repository=""
     case "$action" in
+        drivers)
+            [[ $# -eq 3 && "${3:-}" == displaylink ]] || {
+                print_error 'Usage : rid system drivers {install|remove} displaylink ; voir rid system drivers help'
+                return 2
+            }
+            case "$2" in
+                install) system_drivers_install_displaylink ;;
+                remove) system_drivers_remove_displaylink ;;
+                *) print_error 'Action pilote inconnue ; voir rid system drivers help'; return 2 ;;
+            esac
+            ;;
+        infos)
+            [[ $# -le 2 ]] || { print_error 'Usage : rid system infos [debian|drivers|network] ; voir rid system infos help'; return 2; }
+            if [[ $# -eq 1 ]]; then
+                system_info
+                return
+            fi
+            case "$2" in
+                network) system_info_network ;;
+                debian) system_info_debian ;;
+                drivers) system_info_drivers ;;
+                *) print_error 'Information inconnue ; voir rid system infos help'; return 2 ;;
+            esac
+            ;;
         install|remove)
             if [[ "${2:-}" == flatpak && $# -eq 2 ]]; then
                 if [[ "$action" == install ]]; then

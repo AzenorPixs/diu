@@ -120,9 +120,9 @@ publie les artefacts activés par `PROJECT_DOCKERED` et
 
 Le dépôt reste en transition vers cette architecture. Une partie importante
 des fonctions historiques est encore présente dans `root-install-debian.sh`.
-Les répertoires `modules/desktop/` et `modules/environments/` existent dans
-l'arborescence, mais ne fournissent pas actuellement de module spécialisé
-chargé par le bootstrap principal. L'architecture cible décrite dans
+Les répertoires `modules/desktop/` et `modules/environments/` fournissent
+leurs points d’entrée d’information ; `environments` fournit également son
+module de mise à jour. L'architecture cible décrite dans
 `PROJECT.md` ne doit pas être interprétée comme l'existence d'implémentations
 déjà séparées.
 
@@ -186,7 +186,7 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE`, avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK` et `TIME_ZONE`, avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
@@ -194,8 +194,10 @@ isolés. Elle est idempotente : l'absence du fichier ou l'absence de la ligne à
 supprimer est un succès sans réécriture. Toute erreur de lecture ou d'écriture
 bloque le chargement suivant.
 
-Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`. La valeur historique
-n'est pas transférée automatiquement.
+Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE` et
+`SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK` et `SYSTEM_TIME_ZONE`. Les valeurs historiques ne sont pas transférées.
+Le nettoyage intervient à la prochaine exécution du DIU, sans sauvegarde
+automatique des anciennes affectations supprimées.
 
 ### Déclarations unitaires
 
@@ -232,6 +234,48 @@ invalide.
 
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
+
+### Fuseau horaire système
+
+`modules/diu/variables/system/system_time_zone.sh` déclare `SYSTEM_TIME_ZONE`,
+`STATIC`, `ENABLE`, scope `system`, avec le repli `Europe/Paris`.
+À la première initialisation, `variable_generator` appelle
+`timedatectl show --property=Timezone --value`. Une commande absente, un échec
+ou une réponse vide utilise le repli avec un diagnostic stderr.
+La valeur est persistée avec échappement Bash dans `/root/diu/config/system.env`
+puis exportée. Un échec de persistance est bloquant. Une valeur déjà définie,
+même vide, est conservée sans détection ni écriture.
+
+Le nettoyage retire `TIME_ZONE` avant le chargement de `variables.sh`, sans
+transfert ni sauvegarde automatique de sa valeur. Le parcours historique
+utilise `SYSTEM_TIME_ZONE` pour configurer le fuseau. `rid system infos debian`
+l'affiche immédiatement après `SYSTEM_DEBIAN_RELEASE` dans SYSTEM DEBIAN.
+
+### Environnement Debian
+
+`modules/diu/variables/system/system_debian_environnement.sh` déclare
+`SYSTEM_DEBIAN_ENVIRONNEMENT` : `DYNAMIC`, `ENABLE`, scope `system`, repli `UNSET`.
+La valeur est générée et exportée seulement si la variable est absente, sans
+persistance automatique, conformément au cycle dynamique existant.
+
+Son `variable_generator` utilise `systemd-detect-virt --container`, puis `--vm` :
+
+| Résultat détecté | Valeur |
+|---|---|
+| Conteneur Docker courant | `DOCKER` |
+| Conteneur LXC ou LXC-libvirt courant | `LXC` |
+| Hyperviseur reconnu, dont KVM/Proxmox et Hyper-V | `VM` |
+| Machine physique avec `pve-manager` confirmé installé | `PROXMOX` |
+| Machine physique sans `pve-manager` installé | `PHYSICAL` |
+| Outil absent, erreur, résultat incohérent ou environnement inconnu | `UNSET` |
+
+Le conteneur prime sur son hôte ; Proxmox VE dans une VM reste `VM`.
+Un dépôt Proxmox ou un nom de noyau ne suffit pas. Les conteneurs autres que
+Docker et LXC restent `UNSET`. Ce résultat émet un diagnostic sur stderr sans
+bloquer l'initialisation. La détection dépend des informations exposées par
+l'environnement et ne garantit pas l'identification d'un hyperviseur masqué.
+Les consommateurs historiques conservent leurs branches LXC, PHYSICAL, VM et
+PROXMOX ; aucune branche d'installation DOCKER ou UNSET n'est ajoutée.
 
 ### Chargement, tri et mise à jour
 
@@ -325,16 +369,33 @@ paquets Debian officiels.
 exécute la transaction globale de mise à niveau, puis effectue le nettoyage
 APT prévu et installe les prérequis manquants.
 
-Les prérequis obligatoires sont traités sans sortie s'ils sont déjà installés,
-et dans l'ordre alphabétique lorsqu'ils manquent :
+`system_install_prerequisites` vérifie chaque paquet individuellement, sans
+sortie s'il est déjà installé. Les paquets manquants sont annoncés et installés
+un par un dans l'ordre alphabétique, après déduplication. Un échec APT est
+signalé et interrompt la fonction. Le socle commun est :
 
 ```text
 aptitude apache2-utils apt-transport-https bash-completion
 bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg gpg
-inetutils-telnet iptables jq libsecret-tools lshw lsb-release man-db manpages-fr
-net-tools netcat-traditional nicstat openssl pciutils python3-pytest ripgrep
+inetutils-telnet iptables jq libpq5 libsecret-tools lshw lsb-release man-db manpages-fr
+net-tools netcat-traditional nicstat openssl pciutils postgresql-client python3-pytest ripgrep
 shellcheck sudo tcpdump traceroute tree util-linux wget
 ```
+
+La fonction complète ce socle selon `SYSTEM_DEBIAN_ENVIRONNEMENT` :
+
+| Famille | Paquets ajoutés au socle |
+|---|---|
+| LXC, PHYSICAL, VM, DOCKER | `acl` |
+| PROXMOX | `acl`, `conntrack`, `glances`, `rsync` |
+| Absente, vide, UNSET ou inconnue | Aucun |
+
+DOCKER et VM utilisent exactement la même liste. Le parcours historique sans
+argument appelle également cette fonction, à la place de ses anciennes listes,
+avant sa configuration APT. La présence d'`aptitude` ne dispense plus de
+vérifier les autres prérequis. DisplayLink ne fait pas partie de la fonction
+commune et son ancien bloc automatique est supprimé : seules les commandes
+explicites `rid system drivers` gèrent ce pilote.
 
 Les fonctions publiques de gestion des dépôts valident leur identifiant,
 persistent les variables du scope `system`, puis régénèrent la configuration.
@@ -674,3 +735,110 @@ Toute évolution doit être minimale, réversible lorsque possible et limitée
 aux fichiers nécessaires. Les fonctionnalités non documentées par une
 spécification OpenSpec validée ne doivent pas être introduites par ce seul
 document.
+
+## Informations des modules
+
+Chaque module fournit un fichier `infos.sh`. `rid infos` appelle directement,
+dans cet ordre, desktop, diu, environnements, ia, projects, softwares et system.
+Chaque commande `rid <module> infos` affiche au moins le titre du module.
+La commande française `environnements` correspond au dossier `modules/environments/`.
+`rid diu infos` réutilise `diu_version` pour afficher la version du paquet DIU
+installé ; une version indisponible produit un diagnostic et un statut non nul.
+
+`modules/system/infos.sh` contient :
+
+- `system_info_network`, appelée par `rid system info network`, conserve
+  l'affichage des interfaces Ethernet 1 et 2 UP de l'ancienne `display_infos` ;
+- `system_info_debian`, appelée par `rid system info debian`, affiche les blocs
+  SYSTEM DEBIAN, SYSTEM APT OFFICIAL, SYSTEM APT UNOFFICIAL et SYSTEM FLATPAK ;
+- `system_info_drivers`, appelée par `rid system infos drivers`, affiche
+  `SYSTEM_DRIVERS_DISPLAY_LINK`, puis la version du paquet `displaylink-driver`
+  uniquement si la variable vaut `1`. Le paquet doit être en état `installed`
+  avec une version non vide. Une lecture impossible affiche une version `UNSET`,
+  un diagnostic et un statut non nul, sans modifier la configuration ;
+- `system_info`, appelée par `rid system infos`, affiche le titre SYSTEM puis
+  les informations Debian, pilotes, réseau dans cet ordre. Cette agrégation
+  est également utilisée par `rid infos`. `rid system update` reste inchangé.
+
+Les variables affichées sont explicitement sélectionnées, sous forme NOM=valeur.
+Une variable absente affiche UNSET ; une valeur vide est préservée. L'ordre
+exact est défini par la spécification OpenSpec `module-infos`.
+Les agrégateurs poursuivent les autres blocs après un échec et renvoient un
+statut non nul. Les fonctions d'information ne réalisent aucune mutation ;
+le bootstrap historique de chargement et génération de configuration demeure.
+Les commandes infos terminent avant l'installation linéaire. Leur aide et
+celle des contextes intermédiaires restent disponibles avant le bootstrap.
+
+## État statique DisplayLink
+
+`modules/diu/variables/system/system_drivers_display_link.sh` déclare
+`SYSTEM_DRIVERS_DISPLAY_LINK`, `STATIC`, `ENABLE`, scope `system`.
+À la première initialisation, `variable_generator` interroge les paquets
+`displaylink-driver` et `evdi-dkms` via `dpkg-query` : deux paquets en état
+`installed` donnent `1` ; un paquet absent ou dans un état incomplet reconnu
+produit `0` si les deux interrogations sont interprétables. Une erreur, un
+outil absent ou un statut inexploitable produit `UNSET` avec diagnostic, même
+si l'autre paquet est absent.
+
+La valeur détectée est persistée dans `/root/diu/config/system.env`, puis
+exportée. Une valeur existante `0`, `1` ou `UNSET` est conservée ; une valeur
+invalide provoque une erreur sans écriture. Les échecs de persistance sont
+propagés. L'état n'est pas recalculé après une installation externe.
+
+La découverte initiale décrit les paquets, pas le fonctionnement du dock ni des
+écrans. Une installation manuelle hors paquets Debian n'est pas couverte.
+La valeur statique ne commande aucune installation automatique. Les commandes
+explicites ci-dessous mettent à jour cet état après leurs contrôles finaux.
+
+Le nettoyage retire l'ancienne affectation `DISPLAY_LINK` avant le chargement
+de `variables.sh`, sans transférer son ancienne valeur ni la sauvegarder.
+
+## Commandes DisplayLink
+
+`modules/system/drivers.sh` expose :
+
+- `system_drivers_install_displaylink` : `rid system drivers install displaylink` ;
+- `system_drivers_remove_displaylink` : `rid system drivers remove displaylink`.
+
+L'installation accepte seulement `SYSTEM_DEBIAN_ENVIRONNEMENT=PHYSICAL` ou
+`PROXMOX`, quelle que soit la valeur statique DisplayLink. Elle installe ou
+répare `dkms`, `displaylink-driver`, `evdi-dkms` et `libevdi-dev`. Ce dernier
+fournit le lien `libevdi.so` utilisé par le gestionnaire DisplayLink. Les
+headers du noyau courant sont requis : `linux-headers-<uname -r>` sur Debian,
+`proxmox-headers-<uname -r>` ou `pve-headers-<uname -r>` pour un noyau PVE.
+Les dépôts configurés doivent déjà fournir DisplayLink et ces dépendances.
+
+Pour Linux 7.x, EVDI doit être au minimum 1.15.1. Une version installée
+suffisante est conservée ; sinon un candidat APT suffisant est privilégié.
+En dernier recours, le paquet officiel Debian est téléchargé depuis
+`https://deb.debian.org/debian/pool/main/e/evdi/evdi-dkms_1.15.1+dfsg-1_all.deb`.
+Son SHA256 fixé est
+`afed3ea5fe42b3d4aea3bcc20c7f1baa894d8d07d292c34dd93f419de9493a1a` ;
+nom, version et architecture sont aussi vérifiés avant APT. Aucun dépôt
+sid/testing n'est ajouté. Le téléchargement utilise `curl`, déjà dans les
+prérequis ; les contrôles utilisent les outils Debian existants. Une seule
+transaction installe EVDI et ses dépendances. Ce minimum a été compilé pour
+7.0.12 ; il ne garantit pas les futurs noyaux 7.x.
+
+Avant de persister puis exporter `SYSTEM_DRIVERS_DISPLAY_LINK=1`, la commande
+vérifie les paquets configurés, les headers, DKMS pour le noyau courant,
+`libevdi.so`, le chargement du module et le service actif. La signature source
+du module chargé est comparée à celle du module installé (`srcversion`). Un
+module ancien est déchargé après arrêt du service puis rechargé. S'il reste
+utilisé, la commande échoue explicitement. Une installation saine ne réinstalle
+pas les paquets et ne redémarre pas le service. Aucun dock connecté n'est requis.
+
+La suppression reste disponible dans tous les environnements. Elle arrête le
+service, simule la suppression et refuse des suppressions supplémentaires,
+retire `displaylink-driver` et `evdi-dkms` sans autoremove, puis contrôle leur
+absence et le déchargement du module avant de persister puis exporter `0`.
+DKMS, headers et bibliothèques partagées sont conservés. Un état déjà absent
+réussit sans transaction APT.
+
+La persistance remplace atomiquement l'affectation dans
+`/root/diu/config/system.env` et préserve les autres lignes et les permissions
+existantes. En cas d'échec, la valeur antérieure reste conservée. Une transaction
+APT partiellement effectuée ou un service déjà arrêté ne sont pas annulés
+automatiquement. Une nouvelle exécution reprend à partir de l'état constaté.
+Les commandes ne valident pas l'activation des écrans dans GNOME ; celle-ci
+reste à contrôler sur le poste.

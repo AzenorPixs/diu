@@ -13,7 +13,8 @@ set -Eeuo pipefail
 # Le chemin où je me trouve est
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 
-# shellcheck source=lib/rid-help.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/rid-help.sh"
 
 if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
@@ -29,7 +30,7 @@ if [[ "${!#}" == help || "${!#}" == "?" ]]; then
 fi
 
 case "${1:-}" in
-    ''|devops|docker|ia|os|projects|install|remove|softwares|system|update|version)
+    ''|devops|docker|ia|os|projects|install|remove|softwares|system|update|version|infos|desktop|diu|environnements)
         ;;
     *)
         printf "❌ Classe d'actions inconnue : %s\n" "$1"
@@ -40,7 +41,7 @@ esac
 
 if [[ "${1:-}" == softwares ]]; then
     case "${2:-}" in
-        install|remove|update|apt|flatpak)
+        install|remove|update|apt|flatpak|infos)
             ;;
         *)
             printf "❌ Action inconnue pour la classe 'softwares' : %s\n" "${2:-}"
@@ -50,32 +51,111 @@ if [[ "${1:-}" == softwares ]]; then
     esac
 fi
 
-# shellcheck source=modules/system/variables-cleanup.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/system/variables-cleanup.sh"
 config_cleanup || exit 1
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "/root/diu/variables.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/logging.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/docker.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/forgejo-auth.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/gitlab-auth.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/github-auth.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/ia/hermes.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/diu/config.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/diu/update.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/diu/update-all.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/environments/update.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/system/apt.sh"
+# shellcheck disable=SC1091 source=modules/system/drivers.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/system/drivers.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/softwares/apt.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/softwares/github.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/softwares/flatpak.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/docker.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/find.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/git.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/diu-release.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/diu-packaging.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/projects.sh"
+# shellcheck disable=SC1091 source=modules/desktop/infos.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/desktop/infos.sh"
+# shellcheck disable=SC1091 source=modules/diu/infos.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/diu/infos.sh"
+# shellcheck disable=SC1091 source=modules/environments/infos.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/environments/infos.sh"
+# shellcheck disable=SC1091 source=modules/ia/infos.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/ia/infos.sh"
+# shellcheck disable=SC1091 source=modules/projects/infos.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/projects/infos.sh"
+# shellcheck disable=SC1091 source=modules/softwares/infos.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/softwares/infos.sh"
+# shellcheck disable=SC1091 source=modules/system/infos.sh
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/system/infos.sh"
 
 # Creer l'arborescence.
 mkdir -p "$BASH_SCRIPT_PATH/config"
@@ -94,6 +174,8 @@ fi
 ###### GESTION DES FONCTIONS DU DIU #######
 ###########################################
 
+# Appelée par les fonctions Git/projets des modules sourcés.
+# shellcheck disable=SC2317
 check_devops_user() {
     if ! id "$DEVOPS_USER" >/dev/null 2>&1; then
         echo "❌ L'utilisateur '$DEVOPS_USER' n'existe pas."
@@ -184,6 +266,8 @@ EOF
 
 devops_info () {
 
+    # Expansion différée dans le shell utilisateur.
+    # shellcheck disable=SC2016
     su - "${DEVOPS_USER}" -c '
 
         # ==============================================
@@ -263,7 +347,35 @@ dispatch_arguments() {
         exit 0
     fi
 
+    # Les informations de modules partagent un routage strict et sans récursion.
+    case "$argument_class:${2:-}" in
+        desktop:infos|diu:infos|environnements:infos|ia:infos|projects:infos|softwares:infos)
+            if [[ $# -ne 2 ]]; then
+                printf 'Usage : rid %s infos ; voir rid %s infos help\n' "$argument_class" "$argument_class" >&2
+                exit 2
+            fi
+            case "$argument_class" in
+                environnements) environments_infos ;;
+                *) "${argument_class}_infos" ;;
+            esac
+            exit $?
+            ;;
+    esac
+
     case "$argument_class" in
+
+        infos)
+            if [[ $# -ne 1 ]]; then
+                printf '%s\n' 'Usage : rid infos ; voir rid infos help' >&2
+                exit 2
+            fi
+            infos
+            ;;
+
+        desktop|diu|environnements)
+            printf 'Action inconnue : %s ; voir rid %s help\n' "${2:-}" "$argument_class" >&2
+            exit 2
+            ;;
 
         devops)
             shift
@@ -334,51 +446,9 @@ display_help_context() {
     rid_display_help_context "$@"
 }
 
-display_infos() {
-    local index
-    local interface_var
-    local state_var
-    local type_var
-    local ip_var
-    local ip_cidr_var
-    local gw_var
 
-    echo ""
-    echo "=============================================="
-    echo " Informations réseau"
-    echo "=============================================="
-    echo ""
-
-    for index in 1 2; do
-
-        interface_var="INTERFACE_ETHERNET${index}"
-        state_var="INTERFACE_ETHERNET${index}_STATE"
-        type_var="INTERFACE_ETHERNET${index}_TYPE"
-        ip_var="INTERFACE_ETHERNET${index}_IP"
-        ip_cidr_var="INTERFACE_ETHERNET${index}_IP_CIDR"
-        gw_var="INTERFACE_ETHERNET${index}_GW"
-
-        # ------------------------------------------------------
-        # Affichage uniquement si l'interface est UP
-        # ------------------------------------------------------
-
-        if [[ "${!state_var}" == "UP" ]]; then
-
-            echo "Interface Ethernet ${index}"
-            echo "----------------------------------------------"
-            echo "Interface  : ${!interface_var}"
-            echo "État       : ${!state_var}"
-            echo "Type       : ${!type_var}"
-            echo "Adresse IP : ${!ip_var}"
-            echo "IP / CIDR  : ${!ip_cidr_var}"
-            echo "Passerelle : ${!gw_var}"
-            echo ""
-
-        fi
-
-    done
-}
-
+# Appelée par le trap ERR déclaré avant le dispatch.
+# shellcheck disable=SC2317
 error_handler() {
     local exit_code=$?
     local line_number="${BASH_LINENO[0]}"
@@ -395,6 +465,8 @@ error_handler() {
     echo "" >&2
 }
 
+# Appelée par lib/docker.sh pour les conteneurs inspectés.
+# shellcheck disable=SC2317
 info_docker_analyse_container() {
     local container="$1"
     local pids
@@ -716,15 +788,13 @@ launch_oc_shell() {
 
 	local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-    local confirmation
-	su - ${DEVOPS_USER} -c "docker exec -it ${project_id}-opencode sh"
+	su - "${DEVOPS_USER}" -c "docker exec -it ${project_id}-opencode sh"
 }
 
 launch_ocro() {
 
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-    local confirmation
 
     if [[ ! -e "$project_path/.opencode/share" ]]; then
         echo "❌ Le projet n'existe pas :"
@@ -777,7 +847,6 @@ launch_ocro() {
 launch_ocrw() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-    local confirmation
 
     local opencode_uid
     local opencode_gid
@@ -1021,7 +1090,7 @@ manage_docker_action() {
                         exit 2
                     fi
 
-                    docker_rootless_inspect "$username" "$value4"
+                    docker_rootless_inspect "$username" "${1:-}"
                     ;;
 
                 log)
@@ -1114,7 +1183,6 @@ manage_ia_action() {
 
     local action="${1:-}"
     local value2="${2:-}"
-    local value3="${3:-}"
     shift 3 2>/dev/null || true
 
     case "$action" in
@@ -1531,6 +1599,7 @@ manage_project_action() {
 
         ocsh)
             launch_oc_shell \
+                "$project_id"
             ;;
 
         deb)
@@ -1616,18 +1685,18 @@ dispatch_arguments "$@"
 
 ###  PROXY ###
 
-if [ $PROXY_CA -eq 1 ]
+if [ "$PROXY_CA" -eq 1 ]
 then
 
 	echo "🔧 Configure CA"
 	echo "$CA" > /usr/local/share/ca-certificates/CHN.crt
 	update-ca-certificates
-	ls /etc/ssl/certs/ | grep -i CHN
+	find /etc/ssl/certs/ -mindepth 1 -maxdepth 1 -iname '*chn*' -printf '%f\n'
 	openssl x509 -in /etc/ssl/certs/CHN.pem -text -noout
 
 fi
 
-if [ $PROXY -eq 1 ]
+if [ "$PROXY" -eq 1 ]
 then
 
 	echo "🔧 CONFIGURE PROXY HTTP FOR APT"
@@ -1635,19 +1704,23 @@ then
 
 	echo "CONFIGURE PROXY HTTP FOR SYSTEM VIA PROFILE.D"
 	echo "export http_proxy=http://$PROXY_HTTP_HOST:$PROXY_HTTP_PORT" > /etc/profile.d/proxy.sh
-	echo "export https_proxy=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT" >> /etc/profile.d/proxy.sh
-	echo "export HTTP_PROXY=http://$PROXY_HTTP_HOST:$PROXY_HTTP_PORT" >> /etc/profile.d/proxy.sh
-	echo "export HTTPS_PROXY=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT" >> /etc/profile.d/proxy.sh
-	echo "export no_proxy=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr" >> /etc/profile.d/proxy.sh
-	echo "export NO_PROXY=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr" >> /etc/profile.d/proxy.sh
+	{
+	    echo "export https_proxy=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT"
+	    echo "export HTTP_PROXY=http://$PROXY_HTTP_HOST:$PROXY_HTTP_PORT"
+	    echo "export HTTPS_PROXY=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT"
+	    echo "export no_proxy=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr"
+	    echo "export NO_PROXY=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr"
+	} >> /etc/profile.d/proxy.sh
 
 	echo "CONFIGURE PROXY HTTP FOR SYSTEM VIA ENVIRONMENT"
 	echo "http_proxy=http://$PROXY_HTTP_HOST:$PROXY_HTTP_PORT" > /etc/environment
-	echo "https_proxy=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT" >> /etc/environment
-	echo "HTTP_PROXY=http://$PROXY_HTTP_HOST:$PROXY_HTTP_PORT" >> /etc/environment
-	echo "HTTPS_PROXY=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT" >> /etc/environment
-	echo "no_proxy=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr" >> /etc/environment
-	echo "NO_PROXY=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr" >> /etc/environment
+	{
+	    echo "https_proxy=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT"
+	    echo "HTTP_PROXY=http://$PROXY_HTTP_HOST:$PROXY_HTTP_PORT"
+	    echo "HTTPS_PROXY=http://$PROXY_HTTPS_HOST:$PROXY_HTTPS_PORT"
+	    echo "no_proxy=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr"
+	    echo "NO_PROXY=localhost,127.0.0.1,127.0.1.1,.ch-nontron.fr,.hl-nontron.fr"
+	} >> /etc/environment
 
 	# mkdir -p /etc/environment.d/
 	# echo "http_proxy=http://$PROXY_HTTP_HOST" > /etc/environment.d/proxy.conf
@@ -1666,7 +1739,7 @@ then
 	echo "CHECK PROXY HTTPS ON DEBIAN.ORG"
 	curl -I https://debian.org
 
-	if [ $DOCKER -eq 1 ]
+	if [ "$DOCKER" -eq 1 ]
 	then
 
 		mkdir -p /etc/systemd/system/docker.service.d
@@ -1719,115 +1792,20 @@ fi
 
 ### PREREQUISITES ###
 
-if [ $DEBIAN_TYPE = "LXC" ]
-then
-
-	if dpkg -s aptitude &>/dev/null
-	then
-
-		echo ""
-		echo "PREREQUISITES OK ✅"
-
-	else
-
-		echo ""
-		echo "🔧 INSTALL PREQUISITES"
-		apt install acl aptitude apache2-utils apt-transport-https bash-completion bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg gpg inetutils-telnet iptables jq lshw lsb-release man-db manpages-fr net-tools netcat-traditional nicstat openssl pciutils sudo tcpdump traceroute tree util-linux wget -y
-
-	fi
-
-fi
-
-if [ $DEBIAN_TYPE = "PHYSICAL" ]
-then
-
-	if dpkg -s aptitude &>/dev/null
-	then
-
-		echo ""
-		echo "PREREQUISITES OK ✅"
-
-	else
-
-		echo ""
-		echo "🔧 INSTALL PREQUISITES"
-		apt install acl aptitude apache2-utils apt-transport-https bash-completion bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg gpg inetutils-telnet iptables jq lshw lsb-release man-db manpages-fr net-tools netcat-traditional nicstat openssl pciutils sudo tcpdump traceroute tree util-linux wget -y
-
-	fi
-
-	if [ $DISPLAY_LINK = "1" ]
-	then
-
-		if dpkg -s evdi-dkms &>/dev/null
-		then
-
-			echo ""
-			echo "DISPLAY LINK OK ✅"
-
-		else
-
-			echo ""
-			echo "🔧 INSTALL DISPLAY LINK"
-			apt install evdi-dkms dkms linux-headers-$(uname -r) displaylink-driver -y
-
-		fi
-		
-	fi
-
-fi
-
-if [ $DEBIAN_TYPE = "VM" ]
-then
-
-	if dpkg -s aptitude &>/dev/null
-	then
-
-		echo ""
-		echo "PREREQUISITES OK ✅"
-
-	else
-
-		echo ""
-		echo "🔧 INSTALL PREQUISITES"
-		apt install acl aptitude apache2-utils apache2-utils apt-transport-https bash-completion bind9-dnsutils ca-certificates curl dirmngr ethtool extrepo git gnupg gpg inetutils-telnet iptables jq lshw lsb-release man-db manpages-fr net-tools netcat-traditional nicstat openssl pciutils sudo tcpdump traceroute tree util-linux wget -y
-
-	fi
-
-fi
-
-if [ $DEBIAN_TYPE = "PROXMOX" ]
-then
-
-	if dpkg -s aptitude &>/dev/null
-	then
-
-		echo ""
-		echo "PREREQUISITES OK ✅"
-
-	else
-
-		# contrack pour éviter des erreurs de type --> Couldn't write 'x' to 'net/netfilter/nf_conntrack_tcp_timeout_fin_wait', ignoring: No such file or directory
-		# glances pour suivre avec précisions l'état des ressources de l'hyperviseur
-		echo ""
-		echo "🔧 INSTALL PREQUISITES"
-		apt install acl aptitude apache2-utils apt-transport-https bash-completion bind9-dnsutils ca-certificates conntrack curl dirmngr ethtool extrepo git glances gnupg gpg inetutils-telnet iptables jq lshw lsb-release man-db manpages-fr net-tools netcat-traditional nicstat openssl pciutils rsync sudo tcpdump traceroute tree util-linux wget -y
-
-	fi
-
-fi
+system_install_prerequisites
 
 ### APT ###
 
 system_apt_debian_configure
 
-if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
+if [ "$SYSTEM_DEBIAN_RELEASE" = "trixie" ]
 then
 
 	### TiME ZONE ###
 	echo "🔧 CONFIGURE TIME ZONE FOR DEBIAN TRIXIE"
-	timedatectl set-timezone $TIME_ZONE
+	timedatectl set-timezone "$SYSTEM_TIME_ZONE"
 	# unlink /etc/localtime
-	# ln -s /usr/share/timezone/$TIME_ZONE /etc/localtime
+	# ln -s /usr/share/timezone/$SYSTEM_TIME_ZONE /etc/localtime
 
 	install -d -m 0755 /usr/share/keyrings
 
@@ -1838,308 +1816,39 @@ then
 
 	fi
 
-
 	install -d -m 0755 /usr/share/keyrings
-
-	# if [ $CROWDSEC_BOUNCER == "1" ]
-	# then
-
-		# if [ -f /etc/apt/sources.list.d/crowdsec.list ]
-		# then
-
-			# rm -f /etc/apt/sources.list.d/crowdsec.list
-
-		# fi
-
-		# echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN TRIXIE"
-		# curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
-		# echo '' > /etc/apt/sources.list.d/crowdsec.sources
-		# echo 'Types: deb' >> /etc/apt/sources.list.d/crowdsec.sources
-		# echo 'URIs: http://packagecloud.io/crowdsec/crowdsec/any' >> /etc/apt/sources.list.d/crowdsec.sources
-		# echo 'Suites: any' >> /etc/apt/sources.list.d/crowdsec.sources
-		# echo 'Components: main' >> /etc/apt/sources.list.d/crowdsec.sources
-		# echo 'Signed-By: /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg' >> /etc/apt/sources.list.d/crowdsec.sources
-		# echo '' >> /etc/apt/sources.list.d/crowdsec.sources
-
-	# fi
-
-	# if [ $DEBIAN_TYPE == "PROXMOX" ]
-	# then
-
-		# if [ -f /etc/apt/sources.list.d/pve-enterprise.sources ]
-		# then
-
-			# rm -f /etc/apt/sources.list.d/pve-enterprise.sources
-
-		# fi
-
-		# echo "🔧 CONFIGURE APT PROXMOX SOURCES FOR DEBIAN TRIXIE"
-		# curl -fsSL https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg | gpg --dearmor > /usr/share/keyrings/proxmox-archive-keyring.gpg
-		# echo '' > /etc/apt/sources.list.d/proxmox.sources
-		# echo 'Types: deb' >> /etc/apt/sources.list.d/proxmox.sources
-		# echo 'URIs: http://download.proxmox.com/debian/pve' >> /etc/apt/sources.list.d/proxmox.sources
-		# echo 'Suites: trixie' >> /etc/apt/sources.list.d/proxmox.sources
-		# echo 'Components: pve-no-subscription' >> /etc/apt/sources.list.d/proxmox.sources
-		# echo 'Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg' >> /etc/apt/sources.list.d/proxmox.sources
-		# echo '' >> /etc/apt/sources.list.d/proxmox.sources
-
-	# fi
-
-	# if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
-
-		# if ! gpg --keyserver keys.openpgp.org --recv-key 0xFE0FEAE5AC483A86 &>/dev/null; then
-			# echo "⚠️ IMPOSSIBLE DE RÉCUPÉRER LA CLÉ FUSIONDIRECTORY : DÉPÔT APT NON CONFIGURÉ"
-		# elif ! gpg --export "FusionDirectory Packages Signing Key <contact@fusiondirectory.org>" > /usr/share/keyrings/fd-archive-keyring.gpg; then
-			# echo "⚠️ IMPOSSIBLE D’EXPORTER LA CLÉ FUSIONDIRECTORY : DÉPÔT APT NON CONFIGURÉ"
-		# else
-			# curl -fsSL https://public.fusiondirectory.org/FD-archive-key | gpg --dearmor --yes --output /usr/share/keyrings/fd-archive-keyring.gpg
-
-			# cat > /etc/apt/sources.list.d/fd.sources <<'EOF'
-# Types: deb
-# URIs: https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release
-# Suites: bullseye
-# Components: main
-# Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
-
-# Types: deb
-# URIs: https://public.fusiondirectory.org/debian/fusiondirectory-tools
-# Suites: bullseye
-# Components: main
-# Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
-
-# Types: deb
-# URIs: https://public.fusiondirectory.org/debian/fusiondirectory-integrator
-# Suites: bullseye
-# Components: main
-# Signed-By: /usr/share/keyrings/fd-archive-keyring.gpg
-# EOF
-		# fi
-
-	# else
-
-		# if [[ -f "/usr/share/keyrings/fd-archive-keyring.gpg" || -f "/etc/apt/sources.list.d/fd.sources" ]]; then
-			# echo "🔧 UNCONFIGURE APT REPOSITORY FUSION DIRECTORY"
-			# rm -f "/usr/share/keyrings/fd-archive-keyring.gpg" "/etc/apt/sources.list.d/fd.sources"
-		# fi
-
-	# fi
-
-	# if [ $DRIVERS_NVIDIA == "1" ]
-	# then
-
-		# echo "🔧 CONFIGURE APT PROPRIETARY NVIDIA DRIVERS FOR DEBIAN TRIXIE"
-		# curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub | gpg --dearmor > /usr/share/keyrings/nvidia-archive-keyring.gpg
-		# echo '' > /etc/apt/sources.list.d/nvidia.sources
-		# echo 'Types: deb' >> /etc/apt/sources.list.d/nvidia.sources
-		# echo 'Suites: /' >> /etc/apt/sources.list.d/nvidia.sources
-		# echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nvidia.sources
-		# echo 'Uris: https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/' >> /etc/apt/sources.list.d/nvidia.sources
-		# echo 'Signed-By: /usr/share/keyrings/nvidia-archive-keyring.gpg' >> /etc/apt/sources.list.d/nvidia.sources
-		# echo '' >> /etc/apt/sources.list.d/nvidia.sources
-
-		# echo "🔧 CONFIGURE APT PROPRIETARY NVIDIA CONTAINER TOOLKIT SOURCES FOR DEBIAN TRIXIE"
-		# curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor > /usr/share/keyrings/nvidia-container-toolkit-archive-keyring.gpg
-		# echo '' > /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		# echo 'Types: deb' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		# echo 'Suites: /' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		# echo 'Architectures: amd64' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		# echo 'URIs: https://nvidia.github.io/libnvidia-container/stable/deb/amd64/' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		# echo 'Signed-By: /usr/share/keyrings/nvidia-container-toolkit-archive-keyring.gpg' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-		# echo '' >> /etc/apt/sources.list.d/nvidia-container-toolkit.sources
-
-	# fi
-
-	# if [ $LEMONLDAP == "1" ]
-	# then
-
-		# if [ -f /etc/apt/sources.list.d/lemonldap.list ]
-		# then
-
-			# rm -f /etc/apt/sources.list.d/lemonldap.list
-
-		# fi
-
-		# echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN TRIXIE"
-		# curl -fsSL https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg | gpg --dearmor > /usr/share/keyrings/lemonldap-archive-keyring.gpg
-		# echo '' > /etc/apt/sources.list.d/lemonldap.sources
-		# echo 'Types: deb' >> /etc/apt/sources.list.d/lemonldap.sources
-		# echo 'URIs: https://lemonldap-ng.org/deb' >> /etc/apt/sources.list.d/lemonldap.sources
-		# echo 'Suites: 2.0' >> /etc/apt/sources.list.d/lemonldap.sources
-		# echo 'Components: main' >> /etc/apt/sources.list.d/lemonldap.sources
-		# echo 'Signed-By: /usr/share/keyrings/lemonldap-archive-keyring.gpg' >> /etc/apt/sources.list.d/lemonldap.sources
-		# echo '' >> /etc/apt/sources.list.d/lemonldap.sources
-
-	# fi
-
-	# if [ $MONGODB == "1" ]
-	# then
-
-		# if [ $MONGODB_VERSION == "7" ]
-		# then
-
-			# if [ -f /etc/apt/sources.list.d/mongodb.list ]
-			# then
-
-				# rm -f /etc/apt/sources.list.d/mongodb.list
-
-			# fi
-
-			# echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN TRIXIE"
-			# curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-			# echo '' > /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Types: deb' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'URIs: http://repo.mongodb.org/apt/debian' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Suites: bookworm/mongodb-org/7.0' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Components: main' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Signed-By: /usr/share/keyrings/mongodb-archive-keyring.gpg' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo '' >> /etc/apt/sources.list.d/mongodb.sources
-
-		# fi
-
-		# if [ $MONGODB_VERSION == "8" ]
-		# then
-
-			# if [ -f /etc/apt/sources.list.d/mongodb.list ]
-			# then
-
-				# rm -f /etc/apt/sources.list.d/mongodb.list
-
-			# fi
-
-			# echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN TRIXIE"
-			# curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-			# echo '' > /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Types: deb' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'URIs: http://repo.mongodb.org/apt/debian' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Suites: bookworm/mongodb-org/8.0' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Components: main' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo 'Signed-By: /usr/share/keyrings/mongodb-archive-keyring.gpg' >> /etc/apt/sources.list.d/mongodb.sources
-			# echo '' >> /etc/apt/sources.list.d/mongodb.sources
-
-		# fi
-
-	# fi
-
-	# if [ $WEBMIN == "1" ]
-	# then
-
-		# echo "🔧 CONFIGURE APT WEBMIN SOURCES FOR DEBIAN TRIXIE"
-		# curl -fsSL https://download.webmin.com/jcameron-key.asc | gpg --dearmor > /usr/share/keyrings/webmin-archive-keyring.gpg
-		# echo '' > /etc/apt/sources.list.d/webmin.sources
-		# echo 'Types: deb' >> /etc/apt/sources.list.d/webmin.sources
-		# echo 'URIs: http://download.webmin.com/download/repository' >> /etc/apt/sources.list.d/webmin.sources
-		# echo 'Suites: sarge' >> /etc/apt/sources.list.d/webmin.sources
-		# echo 'Components: contrib' >> /etc/apt/sources.list.d/webmin.sources
-		# echo 'Signed-By: /usr/share/keyrings/webmin-archive-keyring.gpg' >> /etc/apt/sources.list.d/webmin.sources
-		# #echo 'Signed-By: /usr/share/keyrings/debian-webmin-developers.gpg' >> /etc/apt/sources.list.d/webmin.sources
-		# echo '' >> /etc/apt/sources.list.d/webmin.sources
-
-	# fi
-
-	# if [ $WAZUH_SERVER == "1" ]
-	# then
-
-		# if [ -f /etc/apt/sources.list.d/wazuh.list ]
-		# then
-
-			# rm -f /etc/apt/sources.list.d/wazuh.list
-
-		# fi
-
-		# if [ $WAZUH_SERVER_UPGRADE == "1" ]
-		# then
-
-			# echo "🔧 CONFIGURE APT WAZUH SOURCES FOR DEBIAN TRIXIE"
-			# echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt/ stable main' > /etc/apt/sources.list.d/wazuh.list
-			# curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
-
-			# echo "CONFIGURE APT WAZUH SOURCES FOR DEBIAN TRIXIE"
-			# curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
-			# echo '' > /etc/apt/sources.list.d/wazuh.sources
-			# echo 'Types: deb' >> /etc/apt/sources.list.d/wazuh.sources
-			# echo 'URIs: https://packages.wazuh.com/4.x/apt' >> /etc/apt/sources.list.d/wazuh.sources
-			# echo 'Suites: stable' >> /etc/apt/sources.list.d/wazuh.sources
-			# echo 'Components: main' >> /etc/apt/sources.list.d/wazuh.sources
-			# echo 'Signed-By: /usr/share/keyrings/wazuh-archive-keyring.gpg' >> /etc/apt/sources.list.d/wazuh.sources
-			# echo '' >> /etc/apt/sources.list.d/wazuh.sources
-
-		# else
-
-			# if [ -f /etc/apt/sources.list.d/wazuh.list ]
-			# then
-
-				# rm -f /etc/apt/sources.list.d/wazuh.list
-
-			# fi
-
-			# if [ -f /etc/apt/sources.list.d/wazuh.sources ]
-			# then
-
-				# rm -f /etc/apt/sources.list.d/wazuh.sources
-
-			# fi
-
-		# fi
-
-	# else
-
-		# if [ -f /etc/apt/sources.list.d/wazuh.list ]
-		# then
-
-			# rm -f /etc/apt/sources.list.d/wazuh.list
-
-		# fi
-
-		# if [ -f /etc/apt/sources.list.d/wazuh.sources ]
-		# then
-
-			# rm -f /etc/apt/sources.list.d/wazuh.sources
-
-		# fi
-
-	# fi
 
 	# Force IPv4.
 	echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 
 	mkdir -p /etc/crypto-policies/back-ends
 	echo '[hash_algorithms]' > /etc/crypto-policies/back-ends/sequoia.config
-	echo 'sha1 = "always"' >> /etc/crypto-policies/back-ends/sequoia.config
-	echo '' >> /etc/crypto-policies/back-ends/sequoia.config
-	echo '[asymmetric_algorithms]' >> /etc/crypto-policies/back-ends/sequoia.config
-	echo 'dsa1024 = "always"' >> /etc/crypto-policies/back-ends/sequoia.config
-
-	echo "🔧 CLEAN AND PURGE AND REMOVE"
-	apt autoclean -y
-	apt autopurge -y
-	apt autoremove -y
-
-	echo "🔧 UPDATE & DIST-UPGRADE"
-	apt -y update && apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade
-
-	echo "🔧 CLEAN AND PURGE AND REMOVE"
-	apt autoclean -y
-	apt autopurge -y
-	apt autoremove -y
-	echo ""
+	{
+	    echo 'sha1 = "always"'
+	    echo ''
+	    echo '[asymmetric_algorithms]'
+	    echo 'dsa1024 = "always"'
+	} >> /etc/crypto-policies/back-ends/sequoia.config
 
 fi
 
-if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ]
+if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ]
 then
 
 	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN BOOKWORM"
 	echo '' > /etc/apt/sources.list
-	echo 'deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware' >> /etc/apt/sources.list
-	echo '' >> /etc/apt/sources.list
-	echo 'deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware' >> /etc/apt/sources.list
-	echo '' >> /etc/apt/sources.list
-	echo 'deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware' >> /etc/apt/sources.list
-	echo '' >> /etc/apt/sources.list
-	echo 'deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware' >> /etc/apt/sources.list
-	echo '' >> /etc/apt/sources.list
+	{
+	    echo 'deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware'
+	    echo ''
+	    echo 'deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware'
+	    echo ''
+	    echo 'deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware'
+	    echo ''
+	    echo 'deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware'
+	    echo ''
+	} >> /etc/apt/sources.list
 
-	if [ $CROWDSEC_BOUNCER == "1" ]
+	if [ "$CROWDSEC_BOUNCER" == "1" ]
 	then
 
 		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BOOKWORM"
@@ -2148,7 +1857,7 @@ then
 
 	fi
 
-	if [ $LEMONLDAP == "1" ]
+	if [ "$LEMONLDAP" == "1" ]
 	then
 
 		echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN BOOKWMORM"
@@ -2157,38 +1866,38 @@ then
 
 	fi
 
-	if [ $MONGODB == "1" ]
+	if [ "$MONGODB" == "1" ]
 	then
 
-		if [ $MONGODB_VERSION == "4.4" ]
+		if [ "$MONGODB_VERSION" == "4.4" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 4.4 SOURCES FOR DEBIAN BOOKWORM"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/4.4 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "5" ]
+		if [ "$MONGODB_VERSION" == "5" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 5 SOURCES FOR DEBIAN BOOKWORM"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/5.0 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "6" ]
+		if [ "$MONGODB_VERSION" == "6" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 6 SOURCES FOR DEBIAN BOOKWORM"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/6.0 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "7" ]
+		if [ "$MONGODB_VERSION" == "7" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN BOOKWORM"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "8" ]
+		if [ "$MONGODB_VERSION" == "8" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN BOOKWORM"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main' > /etc/apt/sources.list.d/mongodb.list
@@ -2197,10 +1906,10 @@ then
 
 	fi
 
-	if [ $WAZUH_SERVER == "1" ]
+	if [ "$WAZUH_SERVER" == "1" ]
 	then
 
-		if [ $WAZUH_SERVER_UPGRADE == "1" ]
+		if [ "$WAZUH_SERVER_UPGRADE" == "1" ]
 		then
 
 			echo "🔧 CONFIGURE APT WAZUH SOURCES FOR DEBIAN BOOKWMORM"
@@ -2254,21 +1963,23 @@ then
 
 fi
 
-if [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
+if [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]
 then
 
 	echo "🔧 CONFIGURE APT SOURCES FOR DEBIAN BULLSEYE"
 	echo '' > /etc/apt/sources.list
-	echo 'deb http://deb.debian.org/debian bullseye main contrib non-free' >> /etc/apt/sources.list
-	echo '' >> /etc/apt/sources.list
-	echo 'deb http://security.debian.org/debian-security bullseye-security main contrib non-free' >> /etc/apt/sources.list
-	echo '' >> /etc/apt/sources.list
-	echo 'deb http://deb.debian.org/debian bullseye-updates main contrib non-free' >> /etc/apt/sources.list
-	echo '' >> /etc/apt/sources.list
+	{
+	    echo 'deb http://deb.debian.org/debian bullseye main contrib non-free'
+	    echo ''
+	    echo 'deb http://security.debian.org/debian-security bullseye-security main contrib non-free'
+	    echo ''
+	    echo 'deb http://deb.debian.org/debian bullseye-updates main contrib non-free'
+	    echo ''
+	} >> /etc/apt/sources.list
 	# echo 'deb http://deb.debian.org/debian bullseye-backports main contrib non-free' >> /etc/apt/sources.list
 	# echo '' >> /etc/apt/sources.list
 
-	if [ $CROWDSEC_BOUNCER == "1" ]
+	if [ "$CROWDSEC_BOUNCER" == "1" ]
 	then
 
 		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BULLSEYE"
@@ -2286,16 +1997,18 @@ then
 		else
 			echo "🔧 CONFIGURE APT FUSION DIRECTORY SOURCES FOR DEBIAN BULLSEYE"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-integrator/ bullseye main' > /etc/apt/sources.list.d/fusion-directory.list
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-tools/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-external-libraries/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-orchestrator-release/ bullseye main' >> /etc/apt/sources.list.d/fusion-directory.list
+			{
+			    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-tools/ bullseye main'
+			    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/fusiondirectory-external-libraries/ bullseye main'
+			    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-release/ bullseye main'
+			    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/fd-archive-keyring.gpg] https://public.fusiondirectory.org/debian/bullseye-fusiondirectory-orchestrator-release/ bullseye main'
+			} >> /etc/apt/sources.list.d/fusion-directory.list
 		fi
 
 
 	fi
 
-	if [ $LEMONLDAP == "1" ]
+	if [ "$LEMONLDAP" == "1" ]
 	then
 
 		echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN BULLSEYE"
@@ -2304,38 +2017,38 @@ then
 
 	fi
 
-	if [ $MONGODB == "1" ]
+	if [ "$MONGODB" == "1" ]
 	then
 
-		if [ $MONGODB_VERSION == "4.4" ]
+		if [ "$MONGODB_VERSION" == "4.4" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 4.4 SOURCES FOR DEBIAN BULLSEYE"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/4.4 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "5" ]
+		if [ "$MONGODB_VERSION" == "5" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 5 SOURCES FOR DEBIAN BULLSEYE"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/5.0 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "6" ]
+		if [ "$MONGODB_VERSION" == "6" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 6 SOURCES FOR DEBIAN BULLSEYE"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "7" ]
+		if [ "$MONGODB_VERSION" == "7" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN BULLSEYE"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/7.0 main' > /etc/apt/sources.list.d/mongodb.list
 			curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
 		fi
 
-		if [ $MONGODB_VERSION == "8" ]
+		if [ "$MONGODB_VERSION" == "8" ]
 		then
 			echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN BULLSEYE"
 			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/8.0 main' > /etc/apt/sources.list.d/mongodb.list
@@ -2372,7 +2085,7 @@ fi
 
 ### DRIVERS ###
 
-if [ $DRIVERS_NVIDIA -eq 1 ]
+if [ "$DRIVERS_NVIDIA" -eq 1 ]
 then
 
 	# https://wiki.debian.org/NvidiaGraphicsDrivers
@@ -2381,7 +2094,7 @@ then
 	# https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 	# https://nvidia.github.io/libnvidia-container/stable/deb/
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PROXMOX" ]
 	then
 
 		if dpkg -s pve-headers &>/dev/null
@@ -2394,7 +2107,7 @@ then
 
 			echo ""
 			echo "INSTALL PREQUISITES FOR NVIDIA DRIVERS FOR PROXMOX"
-			apt install dkms pve-headers pve-headers-$(uname -r) proxmox-default-headers build-essential make mdevctl -y
+			apt install dkms pve-headers "pve-headers-$(uname -r)" proxmox-default-headers build-essential make mdevctl -y
 			echo ""
 
 		fi
@@ -2418,7 +2131,7 @@ then
 
 	fi
 
-	if [ $SECURE_BOOT == "1" ]
+	if [ "$SECURE_BOOT" == "1" ]
 	then
 
 		if test -f /var/lib/dkms/mok.key
@@ -2430,7 +2143,7 @@ then
 
 			echo "CONFIGURE SECURE BOOT FOR NVIDIA DRIVERS"
 
-			if [ $DEBIAN_TYPE == "PROXMOX" ]
+			if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PROXMOX" ]
 			then
 
 				apt install shim-signed grub-efi-amd64-signed mokutil
@@ -2455,13 +2168,13 @@ then
 
 	fi
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PROXMOX" ]
 	then
 
 		if dpkg -s pve-nvidia-vgpu-helper &>/dev/null
 		then
 
-			if [ $SECURE_BOOT == "1" ]
+			if [ "$SECURE_BOOT" == "1" ]
 			then
 
 				if dpkg -s nvidia-driver &>/dev/null
@@ -2558,7 +2271,7 @@ fi
 
 ### FSTAB ###
 
-if [ $FSTAB -eq 1 ]
+if [ "$FSTAB" -eq 1 ]
 then
 
 	echo ""
@@ -2603,7 +2316,7 @@ fi
 
 ### FILE2RAM ###
 
-if [ $FILES2RAM -eq 1 ]
+if [ "$FILES2RAM" -eq 1 ]
 then
 
 	echo ""
@@ -2619,60 +2332,66 @@ then
 	# DIRECTORY
 	# echo "D /var/log  0755 root root" > /etc/tmpfiles.d/var2log.conf
 	echo "D /var/log/apt  0755 root root" > /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/chrony  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/exim4  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/frr  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/ifupdown2  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/installer  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/installer/cdebconf  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/journal  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	# echo "D /var/log/private  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/runit  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "D /var/log/runit/ssh  0755 root root" >> /etc/tmpfiles.d/var2log.conf
+	{
+	    echo "D /var/log/chrony  0755 root root"
+	    echo "D /var/log/exim4  0755 root root"
+	    echo "D /var/log/frr  0755 root root"
+	    echo "D /var/log/ifupdown2  0755 root root"
+	    echo "D /var/log/installer  0755 root root"
+	    echo "D /var/log/installer/cdebconf  0755 root root"
+	    echo "D /var/log/journal  0755 root root"
+    	# echo "D /var/log/private  0755 root root" >> /etc/tmpfiles.d/var2log.conf
+	    echo "D /var/log/runit  0755 root root"
+	    echo "D /var/log/runit/ssh  0755 root root"
 
-	# FILES
-	echo "F /var/log/FILES2RAM_OK  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "F /var/log/alternatives.log  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "F /var/log/boot.log  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "F /var/log/daemon.log  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "F /var/log/dpkg.log  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	# echo "F /var/log/exim4/mainlog  0755 Debian-exim adm" >> /etc/tmpfiles.d/var2log.conf
-	# echo "F /var/log/exim4/paniclog  0755 Debian-exim adm" >> /etc/tmpfiles.d/var2log.conf
-	echo "F /var/log/popularity-contest  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-	echo "F /var/log/popularity-contest.gpg  0755 root root" >> /etc/tmpfiles.d/var2log.conf
+    	# FILES
+	    echo "F /var/log/FILES2RAM_OK  0755 root root"
+	    echo "F /var/log/alternatives.log  0755 root root"
+	    echo "F /var/log/boot.log  0755 root root"
+	    echo "F /var/log/daemon.log  0755 root root"
+	    echo "F /var/log/dpkg.log  0755 root root"
+    	# echo "F /var/log/exim4/mainlog  0755 Debian-exim adm" >> /etc/tmpfiles.d/var2log.conf
+    	# echo "F /var/log/exim4/paniclog  0755 Debian-exim adm" >> /etc/tmpfiles.d/var2log.conf
+	    echo "F /var/log/popularity-contest  0755 root root"
+	    echo "F /var/log/popularity-contest.gpg  0755 root root"
+	} >> /etc/tmpfiles.d/var2log.conf
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PROXMOX" ]
 	then
 
-		echo "D /var/log/ceph  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-		echo "D /var/log/corosync  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-		echo "D /var/log/lxc  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-		echo "D /var/log/pve  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-		echo "D /var/log/pve/tasks  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-		echo "D /var/log/pveproxy  0755 www-data www-data" >> /etc/tmpfiles.d/var2log.conf
-		echo "F /var/log/pveam.log 0755 root root" >> /etc/tmpfiles.d/var2log.conf
-		echo "F /var/log/pve-firewall.log 0755 root root" >> /etc/tmpfiles.d/var2log.conf
+		{
+		    echo "D /var/log/ceph  0755 root root"
+		    echo "D /var/log/corosync  0755 root root"
+		    echo "D /var/log/lxc  0755 root root"
+		    echo "D /var/log/pve  0755 root root"
+		    echo "D /var/log/pve/tasks  0755 root root"
+		    echo "D /var/log/pveproxy  0755 www-data www-data"
+		    echo "F /var/log/pveam.log 0755 root root"
+		    echo "F /var/log/pve-firewall.log 0755 root root"
+		} >> /etc/tmpfiles.d/var2log.conf
 
 	fi
 
-	if [ $DESKTOP -eq 1 ]
+	if [ "$DESKTOP" -eq 1 ]
 	then
 
-		if [ $DESKTOP_GUI == "GNOME" ]
+		if [ "$DESKTOP_GUI" == "GNOME" ]
 		then
 
-			echo "D /var/log/cups  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-			echo "D /var/log/gdm3  0755 root Debian-gdm" >> /etc/tmpfiles.d/var2log.conf
-			echo "D /var/log/samba  0755 root adm" >> /etc/tmpfiles.d/var2log.conf
-			echo "D /var/log/speech-dispatcher  0755 speech-dispatcher root" >> /etc/tmpfiles.d/var2log.conf
-			echo "F /var/log/fontconfig.log  0755 root root" >> /etc/tmpfiles.d/var2log.conf
-			echo "F /var/log/Xorg.0.log 0755 root root" >> /etc/tmpfiles.d/var2log.conf
+			{
+			    echo "D /var/log/cups  0755 root root"
+			    echo "D /var/log/gdm3  0755 root Debian-gdm"
+			    echo "D /var/log/samba  0755 root adm"
+			    echo "D /var/log/speech-dispatcher  0755 speech-dispatcher root"
+			    echo "F /var/log/fontconfig.log  0755 root root"
+			    echo "F /var/log/Xorg.0.log 0755 root root"
+			} >> /etc/tmpfiles.d/var2log.conf
 
 		fi
 
 	fi
 
-	if [ $DRIVERS_NVIDIA -eq 1 ]
+	if [ "$DRIVERS_NVIDIA" -eq 1 ]
 	then
 
 		echo "D /var/log/nvidia-mps  0755 root root" >> /etc/tmpfiles.d/var2log.conf
@@ -2686,7 +2405,7 @@ then
 	# systemctl enable systemd-tmpfiles-setup.service
 	systemctl start systemd-tmpfiles-setup.service
 
-	if  [ $DEBIAN_TYPE == "PHYSICAL" ]
+	if  [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PHYSICAL" ]
 	then
 
 		echo "🔧 CONFIGURATION FSTAB"
@@ -2727,7 +2446,7 @@ fi
 
 ### GRUB ###
 
-if [ $GRUB_CONFIG -eq 1 ]
+if [ "$GRUB_CONFIG" -eq 1 ]
 then
 
 	echo ""
@@ -2741,7 +2460,9 @@ fi
 ### KERNEL ###
 
 echo "🔧 CONFIGURE SYSCTL (KERNEL)"
-if [ $IPv6 -eq 1 ]
+# IPv6 est une entrée de la configuration historique chargée au démarrage.
+# shellcheck disable=SC2154
+if [ "$IPv6" -eq 1 ]
 then
 
 	if [ -e /etc/sysctl.d/70-disable-ipv6.conf ]
@@ -2759,191 +2480,201 @@ else
 
 fi
 
-if [ $DEBIAN_TYPE == "LXC" ]
+if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "LXC" ]
 then
 
 	echo "net.ipv4.conf.all.accept_redirects = 1" > /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.secure_redirects = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.secure_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_echo_ignore_broadcasts = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_ignore_bogus_error_responses = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_local_port_range = 1025    65535" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_no_pmtu_disc = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.route.min_pmtu = 536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_adv_win_scale = 14" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_base_mss = 1460" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_challenge_ack_limit = 9999" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_congestion_control = htcp" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_ecn = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fastopen=3" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fin_timeout = 10" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_time = 600" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_intvl = 15" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_probes = 5" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_limit_output_bytes = 65536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_sack = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_mtu_probing = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rfc1337 = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_slow_start_after_idle = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_no_metrics_save = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syncookies = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syn_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_synack_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_orphan_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_syn_backlog = 40000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_tw_buckets = 2000000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_wmem = 4096        524288   67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rmem = 4096        524288   67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_timestamps = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_tw_reuse = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_window_scaling = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_rmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_wmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.unix.max_dgram_qlen = 4096" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.forwarding = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.default.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.core.optmem_max = 4194304" >> /etc/sysctl.d/tune.conf
-	echo "net.core.somaxconn = 256000" >> /etc/sysctl.d/tune.conf
+	{
+	    echo "net.ipv4.conf.all.accept_source_route = 0"
+	    echo "net.ipv4.conf.all.secure_redirects = 1"
+	    echo "net.ipv4.conf.all.send_redirects = 0"
+	    echo "net.ipv4.conf.all.log_martians = 0"
+	    echo "net.ipv4.conf.all.rp_filter = 1"
+	    echo "net.ipv4.conf.default.accept_redirects = 0"
+	    echo "net.ipv4.conf.default.accept_source_route = 0"
+	    echo "net.ipv4.conf.default.secure_redirects = 0"
+	    echo "net.ipv4.conf.default.send_redirects = 0"
+	    echo "net.ipv4.conf.default.log_martians = 0"
+	    echo "net.ipv4.conf.default.rp_filter = 1"
+	    echo "net.ipv4.icmp_echo_ignore_broadcasts = 1"
+	    echo "net.ipv4.icmp_ignore_bogus_error_responses = 1"
+	    echo "net.ipv4.ip_forward = 1"
+	    echo "net.ipv4.ip_local_port_range = 1025    65535"
+	    echo "net.ipv4.ip_no_pmtu_disc = 1"
+	    echo "net.ipv4.ipfrag_high_thresh=8388608"
+	    echo "net.ipv4.ipfrag_low_thresh=196608"
+	    echo "net.ipv4.route.min_pmtu = 536"
+	    echo "net.ipv4.tcp_adv_win_scale = 14"
+	    echo "net.ipv4.tcp_base_mss = 1460"
+	    echo "net.ipv4.tcp_challenge_ack_limit = 9999"
+	    echo "net.ipv4.tcp_congestion_control = htcp"
+	    echo "net.ipv4.tcp_ecn = 1"
+	    echo "net.ipv4.tcp_fastopen=3"
+	    echo "net.ipv4.tcp_fin_timeout = 10"
+	    echo "net.ipv4.tcp_keepalive_time = 600"
+	    echo "net.ipv4.tcp_keepalive_intvl = 15"
+	    echo "net.ipv4.tcp_keepalive_probes = 5"
+	    echo "net.ipv4.tcp_limit_output_bytes = 65536"
+	    echo "net.ipv4.tcp_sack = 1"
+	    echo "net.ipv4.tcp_mtu_probing = 1"
+	    echo "net.ipv4.tcp_rfc1337 = 1"
+	    echo "net.ipv4.tcp_slow_start_after_idle = 0"
+	    echo "net.ipv4.tcp_no_metrics_save = 1"
+	    echo "net.ipv4.tcp_syncookies = 0"
+	    echo "net.ipv4.tcp_syn_retries = 2"
+	    echo "net.ipv4.tcp_synack_retries = 2"
+	    echo "net.ipv4.tcp_orphan_retries = 2"
+	    echo "net.ipv4.tcp_max_syn_backlog = 40000"
+	    echo "net.ipv4.tcp_max_tw_buckets = 2000000"
+	    echo "net.ipv4.tcp_wmem = 4096        524288   67108864"
+	    echo "net.ipv4.tcp_rmem = 4096        524288   67108864"
+	    echo "net.ipv4.tcp_timestamps = 1"
+	    echo "net.ipv4.tcp_tw_reuse = 1"
+	    echo "net.ipv4.tcp_window_scaling = 1"
+	    echo "net.ipv4.udp_rmem_min = 8192"
+	    echo "net.ipv4.udp_wmem_min = 8192"
+	    echo "net.unix.max_dgram_qlen = 4096"
+	    echo "net.ipv6.conf.all.autoconf = 0"
+	    echo "net.ipv6.conf.all.forwarding = 1"
+	    echo "net.ipv6.conf.default.autoconf = 0"
+	    echo "net.ipv6.ip6frag_high_thresh=8388608"
+	    echo "net.ipv6.ip6frag_low_thresh=196608"
+	    echo "net.core.optmem_max = 4194304"
+	    echo "net.core.somaxconn = 256000"
+	} >> /etc/sysctl.d/tune.conf
 	/usr/sbin/sysctl -p -f /etc/sysctl.d/tune.conf
 
 fi
 
-if [ $DEBIAN_TYPE == "PHYSICAL" ]
+if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PHYSICAL" ]
 then
 
 	echo "kernel.panic = 90" > /etc/sysctl.d/tune.conf
-	echo "kernel.panic_on_oops = 1" >> /etc/sysctl.d/tune.conf
-	echo "kernel.sched_autogroup_enabled = 0" >> /etc/sysctl.d/tune.conf
-	echo "kernel.unprivileged_bpf_disabled=1" >> /etc/sysctl.d/tune.conf
-	echo "kernel.sysrq = 1" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_user_instances = 16777216" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_queued_events = 8388608" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_user_watches = 4194304" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.accept_redirects = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.secure_redirects = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.secure_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_echo_ignore_broadcasts = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_ignore_bogus_error_responses = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_local_port_range = 1025    65535" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_no_pmtu_disc = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh1 = 1024" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh2 = 2048" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh3 = 4096" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.route.min_pmtu = 536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_adv_win_scale = 14" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_base_mss = 1460" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_challenge_ack_limit = 9999" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_congestion_control = htcp" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_ecn = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fastopen=3" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fin_timeout = 10" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_time = 600" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_intvl = 15" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_probes = 5" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_limit_output_bytes = 65536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_low_latency = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_sack = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_mtu_probing = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rfc1337 = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_slow_start_after_idle = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_no_metrics_save = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syncookies = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syn_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_synack_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_orphan_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_syn_backlog = 40000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_tw_buckets = 2000000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_mem = 386916		515889	773832" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_wmem = 4096        524288   67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rmem = 4096        524288   67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_timestamps = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_tw_reuse = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_window_scaling = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_mem = 756918	1009225	1513836" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_rmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_wmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.unix.max_dgram_qlen = 4096" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.forwarding = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.default.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.core.default_qdisc = fq_codel" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_budget = 600" >> /etc/sysctl.d/tune.conf
-	# echo "net.core.netdev_budget_usecs = 4000" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_max_backlog = 250000" >> /etc/sysctl.d/tune.conf
-	echo "net.core.rmem_default = 33554432" >> /etc/sysctl.d/tune.conf
-	echo "net.core.wmem_default = 33554432" >> /etc/sysctl.d/tune.conf
-	echo "net.core.rmem_max = 134217728" >> /etc/sysctl.d/tune.conf
-	echo "net.core.wmem_max = 134217728" >> /etc/sysctl.d/tune.conf
-	echo "net.core.optmem_max = 4194304" >> /etc/sysctl.d/tune.conf
-	echo "net.core.somaxconn = 256000" >> /etc/sysctl.d/tune.conf
+	{
+	    echo "kernel.panic_on_oops = 1"
+	    echo "kernel.sched_autogroup_enabled = 0"
+	    echo "kernel.unprivileged_bpf_disabled=1"
+	    echo "kernel.sysrq = 1"
+	    echo "fs.inotify.max_user_instances = 16777216"
+	    echo "fs.inotify.max_queued_events = 8388608"
+	    echo "fs.inotify.max_user_watches = 4194304"
+	    echo "net.ipv4.conf.all.accept_redirects = 1"
+	    echo "net.ipv4.conf.all.accept_source_route = 0"
+	    echo "net.ipv4.conf.all.secure_redirects = 1"
+	    echo "net.ipv4.conf.all.send_redirects = 0"
+	    echo "net.ipv4.conf.all.log_martians = 0"
+	    echo "net.ipv4.conf.all.rp_filter = 1"
+	    echo "net.ipv4.conf.default.accept_redirects = 0"
+	    echo "net.ipv4.conf.default.accept_source_route = 0"
+	    echo "net.ipv4.conf.default.secure_redirects = 0"
+	    echo "net.ipv4.conf.default.send_redirects = 0"
+	    echo "net.ipv4.conf.default.log_martians = 0"
+	    echo "net.ipv4.conf.default.rp_filter = 1"
+	    echo "net.ipv4.icmp_echo_ignore_broadcasts = 1"
+	    echo "net.ipv4.icmp_ignore_bogus_error_responses = 1"
+	    echo "net.ipv4.ip_forward = 1"
+	    echo "net.ipv4.ip_local_port_range = 1025    65535"
+	    echo "net.ipv4.ip_no_pmtu_disc = 1"
+	    echo "net.ipv4.ipfrag_high_thresh=8388608"
+	    echo "net.ipv4.ipfrag_low_thresh=196608"
+	    echo "net.ipv4.neigh.default.gc_thresh1 = 1024"
+	    echo "net.ipv4.neigh.default.gc_thresh2 = 2048"
+	    echo "net.ipv4.neigh.default.gc_thresh3 = 4096"
+	    echo "net.ipv4.route.min_pmtu = 536"
+	    echo "net.ipv4.tcp_adv_win_scale = 14"
+	    echo "net.ipv4.tcp_base_mss = 1460"
+	    echo "net.ipv4.tcp_challenge_ack_limit = 9999"
+	    echo "net.ipv4.tcp_congestion_control = htcp"
+	    echo "net.ipv4.tcp_ecn = 1"
+	    echo "net.ipv4.tcp_fastopen=3"
+	    echo "net.ipv4.tcp_fin_timeout = 10"
+	    echo "net.ipv4.tcp_keepalive_time = 600"
+	    echo "net.ipv4.tcp_keepalive_intvl = 15"
+	    echo "net.ipv4.tcp_keepalive_probes = 5"
+	    echo "net.ipv4.tcp_limit_output_bytes = 65536"
+	    echo "net.ipv4.tcp_low_latency = 1"
+	    echo "net.ipv4.tcp_sack = 1"
+	    echo "net.ipv4.tcp_mtu_probing = 1"
+	    echo "net.ipv4.tcp_rfc1337 = 1"
+	    echo "net.ipv4.tcp_slow_start_after_idle = 0"
+	    echo "net.ipv4.tcp_no_metrics_save = 1"
+	    echo "net.ipv4.tcp_syncookies = 0"
+	    echo "net.ipv4.tcp_syn_retries = 2"
+	    echo "net.ipv4.tcp_synack_retries = 2"
+	    echo "net.ipv4.tcp_orphan_retries = 2"
+	    echo "net.ipv4.tcp_max_syn_backlog = 40000"
+	    echo "net.ipv4.tcp_max_tw_buckets = 2000000"
+	    echo "net.ipv4.tcp_mem = 386916		515889	773832"
+	    echo "net.ipv4.tcp_wmem = 4096        524288   67108864"
+	    echo "net.ipv4.tcp_rmem = 4096        524288   67108864"
+	    echo "net.ipv4.tcp_timestamps = 1"
+	    echo "net.ipv4.tcp_tw_reuse = 1"
+	    echo "net.ipv4.tcp_window_scaling = 1"
+	    echo "net.ipv4.udp_mem = 756918	1009225	1513836"
+	    echo "net.ipv4.udp_rmem_min = 8192"
+	    echo "net.ipv4.udp_wmem_min = 8192"
+	    echo "net.unix.max_dgram_qlen = 4096"
+	    echo "net.ipv6.conf.all.autoconf = 0"
+	    echo "net.ipv6.conf.all.forwarding = 1"
+	    echo "net.ipv6.conf.default.autoconf = 0"
+	    echo "net.ipv6.ip6frag_high_thresh=8388608"
+	    echo "net.ipv6.ip6frag_low_thresh=196608"
+	    echo "net.core.default_qdisc = fq_codel"
+	    echo "net.core.netdev_budget = 600"
+    	# echo "net.core.netdev_budget_usecs = 4000" >> /etc/sysctl.d/tune.conf
+	    echo "net.core.netdev_max_backlog = 250000"
+	    echo "net.core.rmem_default = 33554432"
+	    echo "net.core.wmem_default = 33554432"
+	    echo "net.core.rmem_max = 134217728"
+	    echo "net.core.wmem_max = 134217728"
+	    echo "net.core.optmem_max = 4194304"
+	    echo "net.core.somaxconn = 256000"
+	} >> /etc/sysctl.d/tune.conf
 	# echo "net.netfilter.nf_conntrack_max = 1048576" >> /etc/sysctl.d/tune.conf
 	# echo "net.nf_conntrack_max = 1048576" >> /etc/sysctl.d/tune.conf
 	# echo "net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 5" >> /etc/sysctl.d/tune.conf
 	if [ -f /proc/sys/vm/compaction_proactiveness ]; then
 	  echo "vm.compaction_proactiveness = 20" >> /etc/sysctl.d/tune.conf
 	fi
-	echo "vm.dirty_background_ratio = 10" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_ratio = 40" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_expire_centisecs = 42000" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_writeback_centisecs = 7000" >> /etc/sysctl.d/tune.conf
-	echo "vm.drop_caches = 3" >> /etc/sysctl.d/tune.conf
-	echo "vm.max_map_count = 262144" >> /etc/sysctl.d/tune.conf
-	echo "vm.nr_hugepages = 4096" >> /etc/sysctl.d/tune.conf
-	echo "vm.overcommit_memory = 1" >> /etc/sysctl.d/tune.conf
-	echo "vm.swappiness = 1" >> /etc/sysctl.d/tune.conf
-	echo "vm.vfs_cache_pressure = 50" >> /etc/sysctl.d/tune.conf
+	{
+	    echo "vm.dirty_background_ratio = 10"
+	    echo "vm.dirty_ratio = 40"
+	    echo "vm.dirty_expire_centisecs = 42000"
+	    echo "vm.dirty_writeback_centisecs = 7000"
+	    echo "vm.drop_caches = 3"
+	    echo "vm.max_map_count = 262144"
+	    echo "vm.nr_hugepages = 4096"
+	    echo "vm.overcommit_memory = 1"
+	    echo "vm.swappiness = 1"
+	    echo "vm.vfs_cache_pressure = 50"
+	} >> /etc/sysctl.d/tune.conf
 	/usr/sbin/sysctl -p -f /etc/sysctl.d/tune.conf
 
 	echo "htcp" > /etc/modules-load.d/promox.conf
-	echo "kvmgt" >> /etc/modules-load.d/promox.conf
-	echo "vfio" >> /etc/modules-load.d/promox.conf
-	echo "vfio_iommu_type1" >> /etc/modules-load.d/promox.conf
-	echo "vfio_pci" >> /etc/modules-load.d/promox.conf
-	echo "vfio_pci_core" >> /etc/modules-load.d/promox.conf
-	echo "vfio_virqfd" >> /etc/modules-load.d/promox.conf
+	{
+	    echo "kvmgt"
+	    echo "vfio"
+	    echo "vfio_iommu_type1"
+	    echo "vfio_pci"
+	    echo "vfio_pci_core"
+	    echo "vfio_virqfd"
+	} >> /etc/modules-load.d/promox.conf
 
-	if [ $DRIVERS_NVIDIA == "1" ]
+	if [ "$DRIVERS_NVIDIA" == "1" ]
 	then
 
-		echo "nvidia" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_drm" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_modeset" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_uvm" >> /etc/modules-load.d/promox.conf
+		{
+		    echo "nvidia"
+		    echo "nvidia_drm"
+		    echo "nvidia_modeset"
+		    echo "nvidia_uvm"
+		} >> /etc/modules-load.d/promox.conf
 
 		echo "blacklist nouveau" > /etc/modprobe.d/blacklist.conf
 
 	fi
 
-	if [ $DRIVERS_LAST == "1" ]
+	if [ "$DRIVERS_LAST" == "1" ]
 	then
 
 		cd /tmp
@@ -2961,121 +2692,129 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE == "VM" ]
+if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "VM" ]
 then
 
 	echo "kernel.panic = 90" > /etc/sysctl.d/tune.conf
-	echo "kernel.panic_on_oops = 1" >> /etc/sysctl.d/tune.conf
-	echo "kernel.sched_autogroup_enabled = 0" >> /etc/sysctl.d/tune.conf
-	echo "kernel.unprivileged_bpf_disabled=1" >> /etc/sysctl.d/tune.conf
-	echo "kernel.sysrq = 1" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_user_instances = 16777216" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_queued_events = 8388608" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_user_watches = 4194304" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.accept_redirects = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.secure_redirects = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.secure_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_echo_ignore_broadcasts = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_ignore_bogus_error_responses = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_local_port_range = 1025    65535" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_no_pmtu_disc = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh1 = 1024" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh2 = 2048" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh3 = 4096" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.route.min_pmtu = 536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_adv_win_scale = 14" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_base_mss = 1460" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_challenge_ack_limit = 9999" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_congestion_control = htcp" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_ecn = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fastopen=3" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fin_timeout = 10" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_time = 600" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_intvl = 15" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_probes = 5" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_limit_output_bytes = 65536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_low_latency = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_sack = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_mtu_probing = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rfc1337 = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_slow_start_after_idle = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_no_metrics_save = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syncookies = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syn_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_synack_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_orphan_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_syn_backlog = 40000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_tw_buckets = 2000000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_mem = 386916		515889	773832" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_wmem = 4096        524288   67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rmem = 4096        524288   67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_timestamps = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_tw_reuse = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_window_scaling = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_mem = 756918	1009225	1513836" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_rmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_wmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.unix.max_dgram_qlen = 4096" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.forwarding = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.default.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.core.default_qdisc = fq_codel" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_budget = 600" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_budget_usecs = 4000" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_max_backlog = 250000" >> /etc/sysctl.d/tune.conf
-	echo "net.core.rmem_default = 33554432" >> /etc/sysctl.d/tune.conf
-	echo "net.core.wmem_default = 33554432" >> /etc/sysctl.d/tune.conf
-	echo "net.core.rmem_max = 134217728" >> /etc/sysctl.d/tune.conf
-	echo "net.core.wmem_max = 134217728" >> /etc/sysctl.d/tune.conf
-	echo "net.core.optmem_max = 4194304" >> /etc/sysctl.d/tune.conf
-	echo "net.core.somaxconn = 256000" >> /etc/sysctl.d/tune.conf
-	echo "net.netfilter.nf_conntrack_max = 1048576" >> /etc/sysctl.d/tune.conf
-	echo "net.nf_conntrack_max = 1048576" >> /etc/sysctl.d/tune.conf
-	echo "net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 5" >> /etc/sysctl.d/tune.conf
+	{
+	    echo "kernel.panic_on_oops = 1"
+	    echo "kernel.sched_autogroup_enabled = 0"
+	    echo "kernel.unprivileged_bpf_disabled=1"
+	    echo "kernel.sysrq = 1"
+	    echo "fs.inotify.max_user_instances = 16777216"
+	    echo "fs.inotify.max_queued_events = 8388608"
+	    echo "fs.inotify.max_user_watches = 4194304"
+	    echo "net.ipv4.conf.all.accept_redirects = 1"
+	    echo "net.ipv4.conf.all.accept_source_route = 0"
+	    echo "net.ipv4.conf.all.secure_redirects = 1"
+	    echo "net.ipv4.conf.all.send_redirects = 0"
+	    echo "net.ipv4.conf.all.log_martians = 0"
+	    echo "net.ipv4.conf.all.rp_filter = 1"
+	    echo "net.ipv4.conf.default.accept_redirects = 0"
+	    echo "net.ipv4.conf.default.accept_source_route = 0"
+	    echo "net.ipv4.conf.default.secure_redirects = 0"
+	    echo "net.ipv4.conf.default.send_redirects = 0"
+	    echo "net.ipv4.conf.default.log_martians = 0"
+	    echo "net.ipv4.conf.default.rp_filter = 1"
+	    echo "net.ipv4.icmp_echo_ignore_broadcasts = 1"
+	    echo "net.ipv4.icmp_ignore_bogus_error_responses = 1"
+	    echo "net.ipv4.ip_forward = 1"
+	    echo "net.ipv4.ip_local_port_range = 1025    65535"
+	    echo "net.ipv4.ip_no_pmtu_disc = 1"
+	    echo "net.ipv4.ipfrag_high_thresh=8388608"
+	    echo "net.ipv4.ipfrag_low_thresh=196608"
+	    echo "net.ipv4.neigh.default.gc_thresh1 = 1024"
+	    echo "net.ipv4.neigh.default.gc_thresh2 = 2048"
+	    echo "net.ipv4.neigh.default.gc_thresh3 = 4096"
+	    echo "net.ipv4.route.min_pmtu = 536"
+	    echo "net.ipv4.tcp_adv_win_scale = 14"
+	    echo "net.ipv4.tcp_base_mss = 1460"
+	    echo "net.ipv4.tcp_challenge_ack_limit = 9999"
+	    echo "net.ipv4.tcp_congestion_control = htcp"
+	    echo "net.ipv4.tcp_ecn = 1"
+	    echo "net.ipv4.tcp_fastopen=3"
+	    echo "net.ipv4.tcp_fin_timeout = 10"
+	    echo "net.ipv4.tcp_keepalive_time = 600"
+	    echo "net.ipv4.tcp_keepalive_intvl = 15"
+	    echo "net.ipv4.tcp_keepalive_probes = 5"
+	    echo "net.ipv4.tcp_limit_output_bytes = 65536"
+	    echo "net.ipv4.tcp_low_latency = 1"
+	    echo "net.ipv4.tcp_sack = 1"
+	    echo "net.ipv4.tcp_mtu_probing = 1"
+	    echo "net.ipv4.tcp_rfc1337 = 1"
+	    echo "net.ipv4.tcp_slow_start_after_idle = 0"
+	    echo "net.ipv4.tcp_no_metrics_save = 1"
+	    echo "net.ipv4.tcp_syncookies = 0"
+	    echo "net.ipv4.tcp_syn_retries = 2"
+	    echo "net.ipv4.tcp_synack_retries = 2"
+	    echo "net.ipv4.tcp_orphan_retries = 2"
+	    echo "net.ipv4.tcp_max_syn_backlog = 40000"
+	    echo "net.ipv4.tcp_max_tw_buckets = 2000000"
+	    echo "net.ipv4.tcp_mem = 386916		515889	773832"
+	    echo "net.ipv4.tcp_wmem = 4096        524288   67108864"
+	    echo "net.ipv4.tcp_rmem = 4096        524288   67108864"
+	    echo "net.ipv4.tcp_timestamps = 1"
+	    echo "net.ipv4.tcp_tw_reuse = 1"
+	    echo "net.ipv4.tcp_window_scaling = 1"
+	    echo "net.ipv4.udp_mem = 756918	1009225	1513836"
+	    echo "net.ipv4.udp_rmem_min = 8192"
+	    echo "net.ipv4.udp_wmem_min = 8192"
+	    echo "net.unix.max_dgram_qlen = 4096"
+	    echo "net.ipv6.conf.all.autoconf = 0"
+	    echo "net.ipv6.conf.all.forwarding = 1"
+	    echo "net.ipv6.conf.default.autoconf = 0"
+	    echo "net.ipv6.ip6frag_high_thresh=8388608"
+	    echo "net.ipv6.ip6frag_low_thresh=196608"
+	    echo "net.core.default_qdisc = fq_codel"
+	    echo "net.core.netdev_budget = 600"
+	    echo "net.core.netdev_budget_usecs = 4000"
+	    echo "net.core.netdev_max_backlog = 250000"
+	    echo "net.core.rmem_default = 33554432"
+	    echo "net.core.wmem_default = 33554432"
+	    echo "net.core.rmem_max = 134217728"
+	    echo "net.core.wmem_max = 134217728"
+	    echo "net.core.optmem_max = 4194304"
+	    echo "net.core.somaxconn = 256000"
+	    echo "net.netfilter.nf_conntrack_max = 1048576"
+	    echo "net.nf_conntrack_max = 1048576"
+	    echo "net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 5"
+	} >> /etc/sysctl.d/tune.conf
 	if [ -f /proc/sys/vm/compaction_proactiveness ]; then
 	  echo "vm.compaction_proactiveness = 20" >> /etc/sysctl.d/tune.conf
 	fi
-	echo "vm.dirty_background_ratio = 10" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_ratio = 40" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_expire_centisecs = 42000" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_writeback_centisecs = 7000" >> /etc/sysctl.d/tune.conf
-	echo "vm.drop_caches = 3" >> /etc/sysctl.d/tune.conf
-	echo "vm.max_map_count = 262144" >> /etc/sysctl.d/tune.conf
-	echo "vm.nr_hugepages = 4096" >> /etc/sysctl.d/tune.conf
-	echo "vm.overcommit_memory = 1" >> /etc/sysctl.d/tune.conf
-	echo "vm.swappiness = 0" >> /etc/sysctl.d/tune.conf
-	echo "vm.vfs_cache_pressure = 50" >> /etc/sysctl.d/tune.conf
+	{
+	    echo "vm.dirty_background_ratio = 10"
+	    echo "vm.dirty_ratio = 40"
+	    echo "vm.dirty_expire_centisecs = 42000"
+	    echo "vm.dirty_writeback_centisecs = 7000"
+	    echo "vm.drop_caches = 3"
+	    echo "vm.max_map_count = 262144"
+	    echo "vm.nr_hugepages = 4096"
+	    echo "vm.overcommit_memory = 1"
+	    echo "vm.swappiness = 0"
+	    echo "vm.vfs_cache_pressure = 50"
+	} >> /etc/sysctl.d/tune.conf
 	/usr/sbin/sysctl -p -f /etc/sysctl.d/tune.conf
 
 	echo "htcp" > /etc/modules-load.d/promox.conf
-	echo "kvmgt" >> /etc/modules-load.d/promox.conf
-	echo "vfio" >> /etc/modules-load.d/promox.conf
-	echo "vfio_iommu_type1" >> /etc/modules-load.d/promox.conf
-	echo "vfio_pci" >> /etc/modules-load.d/promox.conf
-	echo "vfio_pci_core" >> /etc/modules-load.d/promox.conf
-	echo "vfio_virqfd" >> /etc/modules-load.d/promox.conf
+	{
+	    echo "kvmgt"
+	    echo "vfio"
+	    echo "vfio_iommu_type1"
+	    echo "vfio_pci"
+	    echo "vfio_pci_core"
+	    echo "vfio_virqfd"
+	} >> /etc/modules-load.d/promox.conf
 
-	if [ $DRIVERS_NVIDIA == "1" ]
+	if [ "$DRIVERS_NVIDIA" == "1" ]
 	then
 
-		echo "nvidia" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_drm" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_modeset" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_uvm" >> /etc/modules-load.d/promox.conf
+		{
+		    echo "nvidia"
+		    echo "nvidia_drm"
+		    echo "nvidia_modeset"
+		    echo "nvidia_uvm"
+		} >> /etc/modules-load.d/promox.conf
 
 		echo "blacklist nouveau" > /etc/modprobe.d/blacklist.conf
 
@@ -3089,127 +2828,135 @@ then
 
 fi
 
-if [ $DEBIAN_TYPE == "PROXMOX" ]
+if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PROXMOX" ]
 then
 
 	echo "kernel.panic = 90" > /etc/sysctl.d/tune.conf
-	echo "kernel.panic_on_oops = 1" >> /etc/sysctl.d/tune.conf
-	echo "kernel.sched_autogroup_enabled = 0" >> /etc/sysctl.d/tune.conf
-	echo "kernel.unprivileged_bpf_disabled=1" >> /etc/sysctl.d/tune.conf
-	echo "kernel.sysrq = 1" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_user_instances = 16777216" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_queued_events = 8388608" >> /etc/sysctl.d/tune.conf
-	echo "fs.inotify.max_user_watches = 4194304" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.accept_redirects = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.secure_redirects = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.all.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.accept_source_route = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.secure_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.send_redirects = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.log_martians = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.conf.default.rp_filter = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_echo_ignore_broadcasts = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.icmp_ignore_bogus_error_responses = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_local_port_range = 1025    65535" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ip_no_pmtu_disc = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.ipfrag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh1 = 1024" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh2 = 2048" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.neigh.default.gc_thresh3 = 4096" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.route.min_pmtu = 536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_adv_win_scale = 14" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_base_mss = 1460" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_challenge_ack_limit = 9999" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_congestion_control = htcp" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_ecn = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fastopen=3" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_fin_timeout = 10" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_time = 600" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_intvl = 15" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_keepalive_probes = 5" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_limit_output_bytes = 65536" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_low_latency = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_sack = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_mtu_probing = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rfc1337 = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_slow_start_after_idle = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_no_metrics_save = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syncookies = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_syn_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_synack_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_orphan_retries = 2" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_syn_backlog = 40000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_max_tw_buckets = 2000000" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_mem = 386916		515889	773832" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_wmem = 4096        524288    67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_rmem = 4096        524288    67108864" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_timestamps = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_tw_reuse = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.tcp_window_scaling = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_mem = 756918	1009225	1513836" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_rmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv4.udp_wmem_min = 8192" >> /etc/sysctl.d/tune.conf
-	echo "net.unix.max_dgram_qlen = 4096" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.all.forwarding = 1" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.conf.default.autoconf = 0" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_high_thresh=8388608" >> /etc/sysctl.d/tune.conf
-	echo "net.ipv6.ip6frag_low_thresh=196608" >> /etc/sysctl.d/tune.conf
-	echo "net.core.default_qdisc = fq_codel" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_budget = 600" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_budget_usecs = 4000" >> /etc/sysctl.d/tune.conf
-	echo "net.core.netdev_max_backlog = 250000" >> /etc/sysctl.d/tune.conf
-	echo "net.core.rmem_default = 33554432" >> /etc/sysctl.d/tune.conf
-	echo "net.core.wmem_default = 33554432" >> /etc/sysctl.d/tune.conf
-	echo "net.core.rmem_max = 134217728" >> /etc/sysctl.d/tune.conf
-	echo "net.core.wmem_max = 134217728" >> /etc/sysctl.d/tune.conf
-	echo "net.core.optmem_max = 4194304" >> /etc/sysctl.d/tune.conf
-	echo "net.core.somaxconn = 256000" >> /etc/sysctl.d/tune.conf
-	echo "net.netfilter.nf_conntrack_max = 1048576" >> /etc/sysctl.d/tune.conf
-	echo "net.nf_conntrack_max = 1048576" >> /etc/sysctl.d/tune.conf
-	echo "net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 5" >> /etc/sysctl.d/tune.conf
+	{
+	    echo "kernel.panic_on_oops = 1"
+	    echo "kernel.sched_autogroup_enabled = 0"
+	    echo "kernel.unprivileged_bpf_disabled=1"
+	    echo "kernel.sysrq = 1"
+	    echo "fs.inotify.max_user_instances = 16777216"
+	    echo "fs.inotify.max_queued_events = 8388608"
+	    echo "fs.inotify.max_user_watches = 4194304"
+	    echo "net.ipv4.conf.all.accept_redirects = 1"
+	    echo "net.ipv4.conf.all.accept_source_route = 0"
+	    echo "net.ipv4.conf.all.secure_redirects = 1"
+	    echo "net.ipv4.conf.all.send_redirects = 0"
+	    echo "net.ipv4.conf.all.log_martians = 0"
+	    echo "net.ipv4.conf.all.rp_filter = 1"
+	    echo "net.ipv4.conf.default.accept_redirects = 0"
+	    echo "net.ipv4.conf.default.accept_source_route = 0"
+	    echo "net.ipv4.conf.default.secure_redirects = 0"
+	    echo "net.ipv4.conf.default.send_redirects = 0"
+	    echo "net.ipv4.conf.default.log_martians = 0"
+	    echo "net.ipv4.conf.default.rp_filter = 1"
+	    echo "net.ipv4.icmp_echo_ignore_broadcasts = 1"
+	    echo "net.ipv4.icmp_ignore_bogus_error_responses = 1"
+	    echo "net.ipv4.ip_forward = 1"
+	    echo "net.ipv4.ip_local_port_range = 1025    65535"
+	    echo "net.ipv4.ip_no_pmtu_disc = 1"
+	    echo "net.ipv4.ipfrag_high_thresh=8388608"
+	    echo "net.ipv4.ipfrag_low_thresh=196608"
+	    echo "net.ipv4.neigh.default.gc_thresh1 = 1024"
+	    echo "net.ipv4.neigh.default.gc_thresh2 = 2048"
+	    echo "net.ipv4.neigh.default.gc_thresh3 = 4096"
+	    echo "net.ipv4.route.min_pmtu = 536"
+	    echo "net.ipv4.tcp_adv_win_scale = 14"
+	    echo "net.ipv4.tcp_base_mss = 1460"
+	    echo "net.ipv4.tcp_challenge_ack_limit = 9999"
+	    echo "net.ipv4.tcp_congestion_control = htcp"
+	    echo "net.ipv4.tcp_ecn = 1"
+	    echo "net.ipv4.tcp_fastopen=3"
+	    echo "net.ipv4.tcp_fin_timeout = 10"
+	    echo "net.ipv4.tcp_keepalive_time = 600"
+	    echo "net.ipv4.tcp_keepalive_intvl = 15"
+	    echo "net.ipv4.tcp_keepalive_probes = 5"
+	    echo "net.ipv4.tcp_limit_output_bytes = 65536"
+	    echo "net.ipv4.tcp_low_latency = 1"
+	    echo "net.ipv4.tcp_sack = 1"
+	    echo "net.ipv4.tcp_mtu_probing = 1"
+	    echo "net.ipv4.tcp_rfc1337 = 1"
+	    echo "net.ipv4.tcp_slow_start_after_idle = 0"
+	    echo "net.ipv4.tcp_no_metrics_save = 1"
+	    echo "net.ipv4.tcp_syncookies = 0"
+	    echo "net.ipv4.tcp_syn_retries = 2"
+	    echo "net.ipv4.tcp_synack_retries = 2"
+	    echo "net.ipv4.tcp_orphan_retries = 2"
+	    echo "net.ipv4.tcp_max_syn_backlog = 40000"
+	    echo "net.ipv4.tcp_max_tw_buckets = 2000000"
+	    echo "net.ipv4.tcp_mem = 386916		515889	773832"
+	    echo "net.ipv4.tcp_wmem = 4096        524288    67108864"
+	    echo "net.ipv4.tcp_rmem = 4096        524288    67108864"
+	    echo "net.ipv4.tcp_timestamps = 1"
+	    echo "net.ipv4.tcp_tw_reuse = 1"
+	    echo "net.ipv4.tcp_window_scaling = 1"
+	    echo "net.ipv4.udp_mem = 756918	1009225	1513836"
+	    echo "net.ipv4.udp_rmem_min = 8192"
+	    echo "net.ipv4.udp_wmem_min = 8192"
+	    echo "net.unix.max_dgram_qlen = 4096"
+	    echo "net.ipv6.conf.all.autoconf = 0"
+	    echo "net.ipv6.conf.all.forwarding = 1"
+	    echo "net.ipv6.conf.default.autoconf = 0"
+	    echo "net.ipv6.ip6frag_high_thresh=8388608"
+	    echo "net.ipv6.ip6frag_low_thresh=196608"
+	    echo "net.core.default_qdisc = fq_codel"
+	    echo "net.core.netdev_budget = 600"
+	    echo "net.core.netdev_budget_usecs = 4000"
+	    echo "net.core.netdev_max_backlog = 250000"
+	    echo "net.core.rmem_default = 33554432"
+	    echo "net.core.wmem_default = 33554432"
+	    echo "net.core.rmem_max = 134217728"
+	    echo "net.core.wmem_max = 134217728"
+	    echo "net.core.optmem_max = 4194304"
+	    echo "net.core.somaxconn = 256000"
+	    echo "net.netfilter.nf_conntrack_max = 1048576"
+	    echo "net.nf_conntrack_max = 1048576"
+	    echo "net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 5"
+	} >> /etc/sysctl.d/tune.conf
 	if [ -f /proc/sys/vm/compaction_proactiveness ]; then
 	  echo "vm.compaction_proactiveness = 20" >> /etc/sysctl.d/tune.conf
 	fi
-	echo "vm.dirty_background_ratio = 10" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_ratio = 40" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_expire_centisecs = 42000" >> /etc/sysctl.d/tune.conf
-	echo "vm.dirty_writeback_centisecs = 7000" >> /etc/sysctl.d/tune.conf
-	echo "vm.drop_caches = 3" >> /etc/sysctl.d/tune.conf
-	echo "vm.max_map_count = 262144" >> /etc/sysctl.d/tune.conf
-	echo "vm.nr_hugepages = 4096" >> /etc/sysctl.d/tune.conf
-	echo "vm.overcommit_memory = 1" >> /etc/sysctl.d/tune.conf
-	echo "vm.swappiness = 1" >> /etc/sysctl.d/tune.conf
-	echo "vm.vfs_cache_pressure = 50" >> /etc/sysctl.d/tune.conf
+	{
+	    echo "vm.dirty_background_ratio = 10"
+	    echo "vm.dirty_ratio = 40"
+	    echo "vm.dirty_expire_centisecs = 42000"
+	    echo "vm.dirty_writeback_centisecs = 7000"
+	    echo "vm.drop_caches = 3"
+	    echo "vm.max_map_count = 262144"
+	    echo "vm.nr_hugepages = 4096"
+	    echo "vm.overcommit_memory = 1"
+	    echo "vm.swappiness = 1"
+	    echo "vm.vfs_cache_pressure = 50"
+	} >> /etc/sysctl.d/tune.conf
 	/usr/sbin/sysctl -p -f /etc/sysctl.d/tune.conf
 
 	echo "htcp" > /etc/modules-load.d/promox.conf
-	echo "kvmgt" >> /etc/modules-load.d/promox.conf
-	echo "vfio" >> /etc/modules-load.d/promox.conf
-	echo "vfio_iommu_type1" >> /etc/modules-load.d/promox.conf
-	echo "vfio_pci" >> /etc/modules-load.d/promox.conf
-	echo "vfio_pci_core" >> /etc/modules-load.d/promox.conf
-	echo "vfio_virqfd" >> /etc/modules-load.d/promox.conf
+	{
+	    echo "kvmgt"
+	    echo "vfio"
+	    echo "vfio_iommu_type1"
+	    echo "vfio_pci"
+	    echo "vfio_pci_core"
+	    echo "vfio_virqfd"
+	} >> /etc/modules-load.d/promox.conf
 
-	if [ $DRIVERS_NVIDIA == "1" ]
+	if [ "$DRIVERS_NVIDIA" == "1" ]
 	then
 
-		echo "nvidia" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_drm" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_modeset" >> /etc/modules-load.d/promox.conf
-		echo "nvidia_uvm" >> /etc/modules-load.d/promox.conf
+		{
+		    echo "nvidia"
+		    echo "nvidia_drm"
+		    echo "nvidia_modeset"
+		    echo "nvidia_uvm"
+		} >> /etc/modules-load.d/promox.conf
 
 		echo "blacklist nouveau" > /etc/modprobe.d/blacklist.conf
 
 	fi
   
-  if [ $DRIVERS_LAST == "1" ]
+  if [ "$DRIVERS_LAST" == "1" ]
 	then
 
 		cd /tmp
@@ -3231,7 +2978,7 @@ then
 	echo "CHECK KSM..."
 	cat /sys/kernel/mm/ksm/pages_shared
 	cat /sys/kernel/mm/ksm/pages_sharing
-	cat /proc/meminfo | grep Huge
+	grep Huge /proc/meminfo
 
 	# Limits
  	echo "* soft nofile 4194304" | tee /etc/security/limits.d/99-limits.conf
@@ -3295,7 +3042,7 @@ EOF
 
 ### LOGROTATE ###
 
-if [ $LOG_ROTATE -eq 1 ]
+if [ "$LOG_ROTATE" -eq 1 ]
 then
 
 	echo "🔧 CONFIGURE LOGOROTATE"
@@ -3348,15 +3095,17 @@ sed -i -E "s|^[#[:space:]]*RuntimeMaxUse=.*|RuntimeMaxUse=${JOURNALD_MAX_USE}|" 
 sed -i -E "s|^[#[:space:]]*RuntimeKeepFree=.*|RuntimeKeepFree=${JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
 systemctl restart systemd-journald
 
-if [ $NO_SLEEP -eq 1 ]
+if [ "$NO_SLEEP" -eq 1 ]
 then
 	echo "🔧 CONFIGURE NO SLEEP"
 	mkdir -p /etc/systemd/sleep.conf.d
 	echo "[Sleep]" > /etc/systemd/sleep.conf.d/nosleep.conf
-	echo "AllowSuspend=no" >> /etc/systemd/sleep.conf.d/nosleep.conf
-	echo "AllowHibernation=no" >> /etc/systemd/sleep.conf.d/nosleep.conf
-	echo "AllowSuspendThenHibernate=no" >> /etc/systemd/sleep.conf.d/nosleep.conf
-	echo "AllowHybridSleep=no" >> /etc/systemd/sleep.conf.d/nosleep.conf
+	{
+	    echo "AllowSuspend=no"
+	    echo "AllowHibernation=no"
+	    echo "AllowSuspendThenHibernate=no"
+	    echo "AllowHybridSleep=no"
+	} >> /etc/systemd/sleep.conf.d/nosleep.conf
 fi
 
 #### SOFTWARES ##########################
@@ -3371,21 +3120,21 @@ if [ "${ACMESH:-0}" -eq 1 ]; then
     ACMESH_EMAIL="${ACMESH_EMAIL:-}"
 
     # Vérification de tous les prérequis, et pas seulement de coreutils.
-    ACMESH_MISSING_PACKAGES=""
+    ACMESH_MISSING_PACKAGES=()
 
     for ACMESH_PACKAGE in cron coreutils curl git grep sed wget; do
         if ! dpkg-query -W -f='${Status}' "${ACMESH_PACKAGE}" 2>/dev/null |
             grep -q '^install ok installed$'
         then
-            ACMESH_MISSING_PACKAGES="${ACMESH_MISSING_PACKAGES} ${ACMESH_PACKAGE}"
+            ACMESH_MISSING_PACKAGES+=("${ACMESH_PACKAGE}")
         fi
     done
 
-    if [ -n "${ACMESH_MISSING_PACKAGES}" ]; then
+    if [ "${#ACMESH_MISSING_PACKAGES[@]}" -gt 0 ]; then
         echo "🔧 INSTALL PREREQUISITES FOR ACME.SH"
 
         apt-get update
-        apt-get install -y ${ACMESH_MISSING_PACKAGES}
+        apt-get install -y "${ACMESH_MISSING_PACKAGES[@]}"
     fi
 
 	systemctl enable --now cron
@@ -3534,14 +3283,10 @@ if [ "${ACMESH:-0}" -eq 1 ]; then
 
 	sed -i ':a;/^[[:space:]]*$/{$d;N;ba;}' "${ACMESH_CRON_TMP}"
 
-	{
-		if [ -s "${ACMESH_CRON_TMP}" ]; then
-			echo
-		fi
-
-		echo "${ACMESH_CRON_MARKER}"
-		echo "${ACMESH_CRON_ENTRY}"
-	} >> "${ACMESH_CRON_TMP}"
+	if [ -s "${ACMESH_CRON_TMP}" ]; then
+		printf '\n' >> "${ACMESH_CRON_TMP}"
+	fi
+	printf '%s\n' "${ACMESH_CRON_MARKER}" "${ACMESH_CRON_ENTRY}" >> "${ACMESH_CRON_TMP}"
 
 	ACMESH_CURRENT_CRON="$(crontab -l 2>/dev/null || true)"
 	ACMESH_NEW_CRON="$(cat "${ACMESH_CRON_TMP}")"
@@ -3687,15 +3432,11 @@ if [ "${ACMESH:-0}" -eq 1 ]; then
 
 		ACMESH_NOW_TIMESTAMP="$(date +%s)"
 
-		ACMESH_REMAINING_SECONDS="$(
-			echo $(( ACMESH_EXPIRY_TIMESTAMP - ACMESH_NOW_TIMESTAMP ))
-		)"
+		ACMESH_REMAINING_SECONDS=$(( ACMESH_EXPIRY_TIMESTAMP - ACMESH_NOW_TIMESTAMP ))
 
 		# Arrondi au supérieur pour éviter d'afficher 89 jours
 		# lorsqu'il reste en réalité 89 jours et plusieurs heures.
-		ACMESH_REMAINING_DAYS="$(
-			echo $(( (ACMESH_REMAINING_SECONDS + 86399) / 86400 ))
-		)"
+		ACMESH_REMAINING_DAYS=$(( (ACMESH_REMAINING_SECONDS + 86399) / 86400 ))
 
 		if [ "${ACMESH_REMAINING_DAYS}" -gt 30 ]; then
 			ACMESH_STATUS="OK"
@@ -3726,10 +3467,10 @@ if [ "${ACMESH:-0}" -eq 1 ]; then
 
 fi
 
-if [ $APACHE2 -eq 1 ]
+if [ "$APACHE2" -eq 1 ]
 then
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "trixie" ]
 	then
 
 		echo ""
@@ -3738,7 +3479,7 @@ then
 
 	fi
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ]
 	then
 
 		echo ""
@@ -3747,7 +3488,7 @@ then
 
 	fi
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]
 	then
 
 		echo ""
@@ -3758,7 +3499,7 @@ then
 
 fi
 
-if [ $CROWDSEC_AGENT -eq 1 ]
+if [ "$CROWDSEC_AGENT" -eq 1 ]
 then
 
 	echo ""
@@ -3799,7 +3540,7 @@ then
 
 fi
 
-if [ $CROWDSEC_BOUNCER -eq 1 ]
+if [ "$CROWDSEC_BOUNCER" -eq 1 ]
 then
 
 	echo ""
@@ -3815,7 +3556,7 @@ then
 
 fi
 
-if [ $DESKTOP -eq 1 ]; then
+if [ "$DESKTOP" -eq 1 ]; then
 
 	if dpkg -s mesa-utils &>/dev/null
 	then
@@ -4059,7 +3800,7 @@ EOF
     curl -fsSL "https://api.github.com/repos/Eugeny/tabby/releases/latest" \
       | awk -F '"' '/"tag_name":/ {sub(/^v/, "", $4); print $4}'
   )"
-	if test -f /root/tabby-${TABBY_VERSION}-linux-x64.deb; then
+	if test -f /root/tabby-"${TABBY_VERSION}"-linux-x64.deb; then
 
 		echo "TABBY_VERSION($TABBY_VERSION) IS OK ✅"		
 
@@ -4067,7 +3808,7 @@ EOF
 
 		echo "🔧 INSTALL TABBY ($TABBY_VERSION)"
 		curl -fOL "https://github.com/Eugeny/tabby/releases/download/v${TABBY_VERSION}/tabby-${TABBY_VERSION}-linux-x64.deb"
-		dpkg -i /root/tabby-${TABBY_VERSION}-linux-x64.deb
+		dpkg -i /root/tabby-"${TABBY_VERSION}"-linux-x64.deb
 
 	fi
 
@@ -4084,7 +3825,7 @@ EOF
 
 	fi
 
-	if [ $AMULE -eq 1 ]; then
+	if [ "$AMULE" -eq 1 ]; then
 
 		if dpkg -s amule-utils-gui &>/dev/null
 		then
@@ -4100,7 +3841,7 @@ EOF
 
   fi
 
-	if [ $VSCODE -eq 1 ]; then
+	if [ "$VSCODE" -eq 1 ]; then
 
 		if dpkg -s code &>/dev/null
 		then
@@ -4131,7 +3872,7 @@ EOF
 
 	fi
 
-	if [ $DESKTOP_GUI == "GNOME" ]
+	if [ "$DESKTOP_GUI" == "GNOME" ]
 	then
 
 		if dpkg -s smbclient &>/dev/null
@@ -4218,7 +3959,7 @@ EOF
 
 		fi
 
-    if [ $AMULE -eq 1 ]; then
+    if [ "$AMULE" -eq 1 ]; then
 
       if dpkg -s amule-gnome-support &>/dev/null
       then
@@ -4238,23 +3979,23 @@ EOF
 
 fi
 
-if [ $ENV_DEVOPS -eq 1 ]
+if [ "$ENV_DEVOPS" -eq 1 ]
 then
 
 	echo ""
-	groupadd -f $ENV_DEVOPS_GROUP
+	groupadd -f "$ENV_DEVOPS_GROUP"
 
-	if id -u $ENV_DEVOPS_USER> /dev/null 2>&1 
+	if id -u "$ENV_DEVOPS_USER"> /dev/null 2>&1 
 	then
 	  echo "USER FOR DEVOPS $ENV_DEVOPS_USER IS OK ✅"
 	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	else
-	  useradd -m $ENV_DEVOPS_USER --gid $ENV_DEVOPS_GROUP -s /bin/bash
+	  useradd -m "$ENV_DEVOPS_USER" --gid "$ENV_DEVOPS_GROUP" -s /bin/bash
 	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	fi
 
-	usermod -aG $ENV_DEVOPS_GROUP $ENV_DEVOPS_USER
-	usermod -aG $ENV_DEVOPS_GROUP $ENV_HUMAN_USER
+	usermod -aG "$ENV_DEVOPS_GROUP" "$ENV_DEVOPS_USER"
+	usermod -aG "$ENV_DEVOPS_GROUP" "$ENV_HUMAN_USER"
 
   if [[ "${ENV_DEVOPS_DOCKER_ROOTLESS:-0}" == "1" ]]; then
       # Rootless : l'utilisateur ENV_DEVOPS_USER NE doit PAS être dans le groupe docker
@@ -4571,7 +4312,6 @@ EOF
 
     NODE_BIN="$CURRENT_LINK/bin/node"
     NPM_BIN="$CURRENT_LINK/bin/npm"
-    NPX_BIN="$CURRENT_LINK/bin/npx"
 
     if [ ! -x "$NODE_BIN" ]
     then
@@ -4879,10 +4619,10 @@ EOF
 
 	fi
 
-  chown -R $ENV_DEVOPS_USER:$ENV_DEVOPS_GROUP /home/$ENV_DEVOPS_USER
-  find /home/$ENV_DEVOPS_USER -type d -exec chmod 2775 {} +
-  find /home/$ENV_DEVOPS_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
-  find /home/$ENV_DEVOPS_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0600 {} +
+  chown -R "$ENV_DEVOPS_USER":"$ENV_DEVOPS_GROUP" /home/"$ENV_DEVOPS_USER"
+  find /home/"$ENV_DEVOPS_USER" -type d -exec chmod 2775 {} +
+  find /home/"$ENV_DEVOPS_USER" -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
+  find /home/"$ENV_DEVOPS_USER" -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0600 {} +
 
   ############################################################
   # DEVOPS PATH
@@ -4960,23 +4700,23 @@ EOF
 
 fi
 
-if [ $ENV_DOCKER -eq 1 ]
+if [ "$ENV_DOCKER" -eq 1 ]
 then
 
   echo ""
-  groupadd -f $ENV_DOCKER_GROUP
+  groupadd -f "$ENV_DOCKER_GROUP"
 
-  if id -u $ENV_DOCKER_USER> /dev/null 2>&1 
+  if id -u "$ENV_DOCKER_USER"> /dev/null 2>&1 
   then
     echo "USER FOR DOCKER $ENV_DOCKER_USER IS OK ✅"
     echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
   else
-    useradd -m $ENV_DOCKER_USER --gid $ENV_DOCKER_GROUP -s /bin/bash
+    useradd -m "$ENV_DOCKER_USER" --gid "$ENV_DOCKER_GROUP" -s /bin/bash
     echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
   fi
 
-  usermod -aG $ENV_DOCKER_GROUP $ENV_DOCKER_USER
-  usermod -aG $ENV_DOCKER_GROUP $ENV_HUMAN_USER
+  usermod -aG "$ENV_DOCKER_GROUP" "$ENV_DOCKER_USER"
+  usermod -aG "$ENV_DOCKER_GROUP" "$ENV_HUMAN_USER"
 
   if [[ "${ENV_DOCKER_DOCKER_ROOTLESS:-0}" == "1" ]]; then
       # Rootless : l'utilisateur ENV_DOCKER_USER NE doit PAS être dans le groupe docker
@@ -4997,50 +4737,50 @@ then
 
   install -d -o "$ENV_DOCKER_USER" -g "$ENV_DOCKER_GROUP" -m 2770 "/home/$ENV_DOCKER_USER/datas" "/home/$ENV_DOCKER_USER/proxy"
 
-  su -c "mkdir -p proxy/dockhand-data" - $ENV_DOCKER_USER
-  su -c "mkdir -p proxy/hawser-data" - $ENV_DOCKER_USER
-  su -c "mkdir -p proxy/librespeed-data" - $ENV_DOCKER_USER
-  su -c "mkdir -p proxy/myspeed-data" - $ENV_DOCKER_USER
-  su -c "mkdir -p proxy/traefik-data/configurations" - $ENV_DOCKER_USER
-  su -c "mkdir -p proxy/traefik-manager/backups" - $ENV_DOCKER_USER
+  su -c "mkdir -p proxy/dockhand-data" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p proxy/hawser-data" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p proxy/librespeed-data" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p proxy/myspeed-data" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p proxy/traefik-data/configurations" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p proxy/traefik-manager/backups" - "$ENV_DOCKER_USER"
 
-  su -c "mkdir -p datas" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/camofox" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/forgejo" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/g4f-cookies" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/g4f-medias" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/ldap/db" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/ldap/config" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/meilisearch" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/pgadmin" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/postgres" - $ENV_DOCKER_USER
-  su -c "mkdir -p datas/redis" - $ENV_DOCKER_USER
-  su -c "mkdir -p inits/postgres" - $ENV_DOCKER_USER
-  su -c "mkdir -p proxy/letsencrypt" - $ENV_DOCKER_USER
-  su -c "touch proxy/.env" - $ENV_DOCKER_USER
-  su -c "touch proxy/letsencrypt/acme.json" - $ENV_DOCKER_USER
+  su -c "mkdir -p datas" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/camofox" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/forgejo" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/g4f-cookies" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/g4f-medias" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/ldap/db" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/ldap/config" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/meilisearch" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/pgadmin" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/postgres" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p datas/redis" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p inits/postgres" - "$ENV_DOCKER_USER"
+  su -c "mkdir -p proxy/letsencrypt" - "$ENV_DOCKER_USER"
+  su -c "touch proxy/.env" - "$ENV_DOCKER_USER"
+  su -c "touch proxy/letsencrypt/acme.json" - "$ENV_DOCKER_USER"
 
-  chown -R $ENV_DOCKER_USER:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER
-  find /home/$ENV_DOCKER_USER -type d -exec chmod 2775 {} +
-  find /home/$ENV_DOCKER_USER -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
-  find /home/$ENV_DOCKER_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
+  chown -R "$ENV_DOCKER_USER":"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"
+  find /home/"$ENV_DOCKER_USER" -type d -exec chmod 2775 {} +
+  find /home/"$ENV_DOCKER_USER" -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
+  find /home/"$ENV_DOCKER_USER" -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
 
-  chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/proxy/librespeed-data
-  chmod 2770 /home/$ENV_DOCKER_USER
-  chmod 2775 /home/$ENV_DOCKER_USER/datas
-  chmod 2770 /home/$ENV_DOCKER_USER/proxy
-  chmod 2770 /home/$ENV_DOCKER_USER/proxy/letsencrypt
-  chmod 600 /home/$ENV_DOCKER_USER/proxy/.env
-  chmod 600 /home/$ENV_DOCKER_USER/proxy/letsencrypt/acme.json
-  chown -R 0:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/camofox
-  chown -R 0:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/meilisearch
-  chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/redis
-  chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/postgres
-  chown -R 999:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/inits/postgres
-  chown -R 1000:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/forgejo
-  chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-cookies
-  chown -R 1200:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/g4f-medias
-  chown -R 5050:$ENV_DOCKER_GROUP /home/$ENV_DOCKER_USER/datas/pgadmin
+  chown -R 1000:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/proxy/librespeed-data
+  chmod 2770 /home/"$ENV_DOCKER_USER"
+  chmod 2775 /home/"$ENV_DOCKER_USER"/datas
+  chmod 2770 /home/"$ENV_DOCKER_USER"/proxy
+  chmod 2770 /home/"$ENV_DOCKER_USER"/proxy/letsencrypt
+  chmod 600 /home/"$ENV_DOCKER_USER"/proxy/.env
+  chmod 600 /home/"$ENV_DOCKER_USER"/proxy/letsencrypt/acme.json
+  chown -R 0:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/camofox
+  chown -R 0:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/meilisearch
+  chown -R 999:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/redis
+  chown -R 999:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/postgres
+  chown -R 999:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/inits/postgres
+  chown -R 1000:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/forgejo
+  chown -R 1200:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/g4f-cookies
+  chown -R 1200:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/g4f-medias
+  chown -R 5050:"$ENV_DOCKER_GROUP" /home/"$ENV_DOCKER_USER"/datas/pgadmin
 
   if [[ "${ACMESH:-0}" -eq 1 ]]; then
 
@@ -5100,7 +4840,7 @@ then
 		else
 
 			echo "🔧 INSTALL DOCKER FIXED VERSION"
-			apt install containerd.io=$DOCKER_CONTAINERDIO_FIXED_VERSION -y --allow-downgrades && apt-mark hold containerd.io
+			apt install containerd.io="$DOCKER_CONTAINERDIO_FIXED_VERSION" -y --allow-downgrades && apt-mark hold containerd.io
 			apt install docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin uidmap -y
 
 		fi
@@ -5116,37 +4856,41 @@ then
 		else
 
 			echo "🔧 INSTALL DOCKER FIXED VERSION"
-			apt install containerd.io=$DOCKER_CONTAINERDIO_FIXED_VERSION -y --allow-downgrades && apt-mark hold containerd.io
+			apt install containerd.io="$DOCKER_CONTAINERDIO_FIXED_VERSION" -y --allow-downgrades && apt-mark hold containerd.io
 			apt install docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin uidmap -y
 		fi
 
 	fi
 
 	echo '{' > /etc/docker/daemon.json
-	echo '  "insecure-registries": [' >> /etc/docker/daemon.json
-	echo '    "0.0.0.0/0"' >> /etc/docker/daemon.json
-	echo '  ],' >> /etc/docker/daemon.json
-	echo '  "log-driver": "syslog",' >> /etc/docker/daemon.json
-	echo '  "log-opts": {' >> /etc/docker/daemon.json
-	echo '    "tag": "docker-{{.Name}}",' >> /etc/docker/daemon.json
-	echo '    "mode": "non-blocking"' >> /etc/docker/daemon.json
-	if [ $DRIVERS_NVIDIA == "1" ]
+	{
+	    echo '  "insecure-registries": ['
+	    echo '    "0.0.0.0/0"'
+	    echo '  ],'
+	    echo '  "log-driver": "syslog",'
+	    echo '  "log-opts": {'
+	    echo '    "tag": "docker-{{.Name}}",'
+	    echo '    "mode": "non-blocking"'
+	} >> /etc/docker/daemon.json
+	if [ "$DRIVERS_NVIDIA" == "1" ]
 	then
-		echo '  },' >> /etc/docker/daemon.json
-		echo '  "runtimes": {' >> /etc/docker/daemon.json
-		echo '    "nvidia": {' >> /etc/docker/daemon.json
-		echo '      "args": [],' >> /etc/docker/daemon.json
-		echo '      "path": "nvidia-container-runtime"' >> /etc/docker/daemon.json
-		echo '    }' >> /etc/docker/daemon.json
-		echo '  }' >> /etc/docker/daemon.json
+		{
+		    echo '  },'
+		    echo '  "runtimes": {'
+		    echo '    "nvidia": {'
+		    echo '      "args": [],'
+		    echo '      "path": "nvidia-container-runtime"'
+		    echo '    }'
+		    echo '  }'
+		} >> /etc/docker/daemon.json
 	else
 		echo '  }' >> /etc/docker/daemon.json
 	fi
 	echo '}' >> /etc/docker/daemon.json
 	echo "DOCKER CONFIGURED ✅"
 
-	DOCKER_COMPOSE_LAST_VERSION=`git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/docker/compose.git | sed -r '/v2|v5\.5|\{\}/d' | tail --lines=1 | cut --delimiter='/' --fields=3`
-	if test -f /usr/local/bin/docker-compose ; then DOCKER_COMPOSE_VERSION=`docker-compose --version | sed -e 's/.* //'` ; else DOCKER_COMPOSE_VERSION=0 ; fi
+	DOCKER_COMPOSE_LAST_VERSION=$(git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/docker/compose.git | sed -r '/v2|v5\.5|\{\}/d' | tail --lines=1 | cut --delimiter='/' --fields=3)
+	if test -f /usr/local/bin/docker-compose ; then DOCKER_COMPOSE_VERSION=$(docker-compose --version | sed -e 's/.* //') ; else DOCKER_COMPOSE_VERSION=0 ; fi
 
 	if [ "$DOCKER_COMPOSE_VERSION" = "$DOCKER_COMPOSE_LAST_VERSION" ]
 	then
@@ -5165,9 +4909,9 @@ then
 	fi
 	
 	# DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-	DIVE_VERSION=`git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/wagoodman/dive.git | tail --lines=1 | sed -e 's/.*v//'`
+	DIVE_VERSION=$(git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/wagoodman/dive.git | tail --lines=1 | sed -e 's/.*v//')
 
-	if test -f /root/dive_${DIVE_VERSION}_linux_amd64.deb
+	if test -f /root/dive_"${DIVE_VERSION}"_linux_amd64.deb
 	then
 
 		echo "DIVE ($DIVE_VERSION) is OK ✅"		
@@ -5176,81 +4920,81 @@ then
 
 		echo "🔧 INSTALL DIVE"
 		curl -fOL "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.deb"
-		dpkg -i /root/dive_${DIVE_VERSION}_linux_amd64.deb
+		dpkg -i /root/dive_"${DIVE_VERSION}"_linux_amd64.deb
 
 	fi
 
-	if [ $DOCKER_STACK_BUNKERWEB -eq 1 ]
+	if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 	then
 		echo "🔧 CONFIGURE /home/$DOCKER_USER FOR BUNKERWEB DOCKHAND"
 		if [ ! -d "/home/$DOCKER_USER" ]; then
-			mkhomedir_helper $DOCKER_USER
+			mkhomedir_helper "$DOCKER_USER"
 		fi	
-		su -c "mkdir -p proxy/bw-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/bw-data-cache/bunkernet" - $DOCKER_USER
-		su -c "mkdir -p proxy/bw-data-cache/bunkerweb" - $DOCKER_USER
-		su -c "mkdir -p proxy/bw-data-cache/crowdsec" - $DOCKER_USER
-		su -c "mkdir -p proxy/bw-data-cache/jinja_cache" - $DOCKER_USER
-		su -c "mkdir -p proxy/bw-data-cache/misc" - $DOCKER_USER
-		su -c "mkdir -p proxy/bw-data-cache/realip" - $DOCKER_USER
-		su -c "mkdir -p proxy/bw-db" - $DOCKER_USER
-		su -c "mkdir -p proxy/nginx-data/conf.d" - $DOCKER_USER
-		su -c "mkdir -p proxy/nginx-data/ssl" - $DOCKER_USER
-		su -c "mkdir -p proxy/dockhand-data" - $DOCKER_USER
-		su -c "mkdir -p proxy/hawser-data" - $DOCKER_USER
-		chown -R $DOCKER_USER:$DOCKER_USER /home/$DOCKER_USER
-		chmod -R 0777 /home/$DOCKER_USER/datas
-		chmod -R 0777 /home/$DOCKER_USER/inits
-		chown -R 101:101 /home/$DOCKER_USER/proxy/bw-data
-		chown -R 101:101 /home/$DOCKER_USER/proxy/bw-data-cache
-		chmod -R 0775 /home/$DOCKER_USER/proxy/bw-data
-		chmod -R 0775 /home/$DOCKER_USER/proxy/bw-data-cache
-		chmod 0775 -R /home/$DOCKER_USER/proxy/letsencrypt
-		chmod 600 /home/$DOCKER_USER/proxy/letsencrypt/acme.json
+		su -c "mkdir -p proxy/bw-data" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/bunkernet" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/bunkerweb" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/crowdsec" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/jinja_cache" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/misc" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/realip" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/bw-db" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/nginx-data/conf.d" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/nginx-data/ssl" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/dockhand-data" - "$DOCKER_USER"
+		su -c "mkdir -p proxy/hawser-data" - "$DOCKER_USER"
+		chown -R "$DOCKER_USER":"$DOCKER_USER" /home/"$DOCKER_USER"
+		chmod -R 0777 /home/"$DOCKER_USER"/datas
+		chmod -R 0777 /home/"$DOCKER_USER"/inits
+		chown -R 101:101 /home/"$DOCKER_USER"/proxy/bw-data
+		chown -R 101:101 /home/"$DOCKER_USER"/proxy/bw-data-cache
+		chmod -R 0775 /home/"$DOCKER_USER"/proxy/bw-data
+		chmod -R 0775 /home/"$DOCKER_USER"/proxy/bw-data-cache
+		chmod 0775 -R /home/"$DOCKER_USER"/proxy/letsencrypt
+		chmod 600 /home/"$DOCKER_USER"/proxy/letsencrypt/acme.json
 	fi
 
-	if [ $SSH -eq 1 ]
+	if [ "$SSH" -eq 1 ]
 	then
 
 		echo "🔧 CONFIGURE /home/$DOCKER_USER FOR OPENSSH SERVER"
-		su -c "mkdir -p .ssh" - $DOCKER_USER
-		su -c " touch .ssh/authorized_keys" - $DOCKER_USER
-		su -c "echo $KEY_SSH_ADMIN > .ssh/authorized_keys" - $DOCKER_USER
-		su -c "echo $KEY_SSH_ACME >> .ssh/authorized_keys" - $DOCKER_USER
-		su -c "chmod 0700 .ssh/authorized_keys" - $DOCKER_USER
+		su -c "mkdir -p .ssh" - "$DOCKER_USER"
+		su -c " touch .ssh/authorized_keys" - "$DOCKER_USER"
+		su -c "echo $KEY_SSH_ADMIN > .ssh/authorized_keys" - "$DOCKER_USER"
+		su -c "echo $KEY_SSH_ACME >> .ssh/authorized_keys" - "$DOCKER_USER"
+		su -c "chmod 0700 .ssh/authorized_keys" - "$DOCKER_USER"
 
 	fi
 
-	if test $DOCKER_TREE_HOME -eq 1
+	if test "$DOCKER_TREE_HOME" -eq 1
 	then
 
-		if [ $DOCKER_STACK_BUNKERWEB -eq 1 ]
+		if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 		then
 
 			echo ""
-			su -c "tree" - $DOCKER_USER
+			su -c "tree" - "$DOCKER_USER"
 
 		fi
 
-		if [ $DOCKER_STACK_TRAEFIK_DOCKHAND -eq 1 ]
+		if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND" -eq 1 ]
 		then
 
 			echo ""
-			su -c "tree -I \"datas|proxy\" /home/$DOCKER_USER && tree -L 2 -I \"nits|proxy\" /home/$DOCKER_USER && tree -L 4 -I \"inits|datas\" /home/$DOCKER_USER" - $DOCKER_USER
+			su -c "tree -I \"datas|proxy\" /home/$DOCKER_USER && tree -L 2 -I \"nits|proxy\" /home/$DOCKER_USER && tree -L 4 -I \"inits|datas\" /home/$DOCKER_USER" - "$DOCKER_USER"
 
 		fi
 
 	fi
 
-	if [ $DOCKER_STACK_BUNKERWEB -eq 1 ]
+	if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 	then
 
-		if [ $DOCKER_STACK_BUNKERWEB_UPGRADE -eq 1 ]
+		if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
 		then
 
-			if [ $DOCKER_STACK_BUNKERWEB_AUTO_UPDATE -eq 1 ]
+			if [ "$DOCKER_STACK_BUNKERWEB_AUTO_UPDATE" -eq 1 ]
 			then
-				DOCKER_BUNKERWEB=`git ls-remote --tags --sort='v:refname' https://github.com/bunkerity/bunkerweb.git | sed -r '/-rc|\^/d' | tail --lines=1 | sed -e 's/.*v//'`
+				DOCKER_BUNKERWEB=$(git ls-remote --tags --sort='v:refname' https://github.com/bunkerity/bunkerweb.git | sed -r '/-rc|\^/d' | tail --lines=1 | sed -e 's/.*v//')
 				DOCKER_BUNKERWEB_SCHEDULER=$DOCKER_BUNKERWEB
 				DOCKER_BUNKERWEB_UI=$DOCKER_BUNKERWEB
 			else
@@ -5258,39 +5002,39 @@ then
 				DOCKER_BUNKERWEB_SCHEDULER=$DOCKER_STACK_BUNKERWEB_VERSION
 				DOCKER_BUNKERWEB_UI=$DOCKER_STACK_BUNKERWEB_VERSION
 			fi
-			DOCKER_DOZZLE=`git ls-remote --tags --sort='v:refname' https://github.com/amir20/dozzle.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//'`
-			DOCKER_OST=`git ls-remote --tags --sort='v:refname' https://github.com/openspeedtest/Docker-Image.git | tail --lines=1 | cut --delimiter='/' --fields=3`
-			DOCKER_PORTAINER=`git ls-remote --tags --sort='v:refname' https://github.com/portainer/portainer.git | sed -r '/edge|internal|v/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//'`
-			DOCKER_POSTGRESQL=`git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_15_|REL_16_|REL_17_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./'`
+			DOCKER_DOZZLE=$(git ls-remote --tags --sort='v:refname' https://github.com/amir20/dozzle.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//')
+			DOCKER_OST=$(git ls-remote --tags --sort='v:refname' https://github.com/openspeedtest/Docker-Image.git | tail --lines=1 | cut --delimiter='/' --fields=3)
+			DOCKER_PORTAINER=$(git ls-remote --tags --sort='v:refname' https://github.com/portainer/portainer.git | sed -r '/edge|internal|v/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//')
+			DOCKER_POSTGRESQL=$(git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_15_|REL_16_|REL_17_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./')
 			# DOCKER_POSTGRESQL=`git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_14_|REL_16_|REL_17_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./'`
 			# DOCKER_POSTGRESQL=`git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_14_|REL_15_|REL_17_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./'`
 			# DOCKER_POSTGRESQL=`git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_14_|REL_15_|REL_16_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./'`
-			DOCKER_WHOAMI=`git ls-remote --tags --sort='v:refname' https://github.com/traefik/whoami.git | tail --lines=1 | cut --delimiter='/' --fields=3`
+			DOCKER_WHOAMI=$(git ls-remote --tags --sort='v:refname' https://github.com/traefik/whoami.git | tail --lines=1 | cut --delimiter='/' --fields=3)
 
 			if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ]
 			then
 
 				echo ""
 				echo "STOP THE STACK PROXY BUNKERWEB"
-				su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - $DOCKER_USER
+				su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - "$DOCKER_USER"
 
 				echo ""
 				echo "CONFIGURE THE STACK PROXY BUNKERWEB"
-				sed -i "s%.*image: bunkerity/bunkerweb:.*%    image: bunkerity/bunkerweb:$DOCKER_BUNKERWEB%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: bunkerity/bunkerweb-scheduler:.*%    image: bunkerity/bunkerweb-scheduler:$DOCKER_BUNKERWEB_SCHEDULER%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: bunkerity/bunkerweb-ui:.*%    image: bunkerity/bunkerweb-ui:$DOCKER_BUNKERWEB_UI%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:$DOCKER_OST%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: portainer/portainer-ce:.*%    image: portainer/portainer-ce:$DOCKER_PORTAINER%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/$DOCKER_USER/proxy/docker-compose.yml	
+				sed -i "s%.*image: bunkerity/bunkerweb:.*%    image: bunkerity/bunkerweb:$DOCKER_BUNKERWEB%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: bunkerity/bunkerweb-scheduler:.*%    image: bunkerity/bunkerweb-scheduler:$DOCKER_BUNKERWEB_SCHEDULER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: bunkerity/bunkerweb-ui:.*%    image: bunkerity/bunkerweb-ui:$DOCKER_BUNKERWEB_UI%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:$DOCKER_OST%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: portainer/portainer-ce:.*%    image: portainer/portainer-ce:$DOCKER_PORTAINER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/"$DOCKER_USER"/proxy/docker-compose.yml	
 
 				if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
 				then
 
 					echo ""
 					echo "START THE STACK PROXY BUNKERWEB"
-					su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml up -d" - $DOCKER_USER
+					su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml up -d" - "$DOCKER_USER"
 					echo "..."
 					# sleep 7
 
@@ -5315,41 +5059,41 @@ then
 
 	fi
 
-	if [ $DOCKER_STACK_TRAEFIK_DOCKHAND -eq 1 ]
+	if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND" -eq 1 ]
 	then
 
 		if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
 		then
 
-			if [ $DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE -eq 1 ]
+			if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
 			then
 
 				echo "🔧 CHECK DOCKER IMAGE STACK PROXY TRAEFIK FOR UPGRADE"
-				DOCKER_DOCKHAND=`git ls-remote --tags --sort='v:refname' https://github.com/Finsys/dockhand.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//'`
-				DOCKER_DOZZLE=`git ls-remote --tags --sort='v:refname' https://github.com/amir20/dozzle.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//'`
-				DOCKER_HAWSER=`git ls-remote --tags --sort='v:refname' https://github.com/Finsys/hawser.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//' | sed -e 's/\^{}//'`
-				DOCKER_LIBRESPEED=`git ls-remote --tags --sort='v:refname' https://github.com/linuxserver/docker-librespeed.git | tail --lines=1 | cut --delimiter='/' --fields=3`
-				DOCKER_MYSPEED=`git ls-remote --tags --sort='v:refname' https://github.com/gnmyt/myspeed.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//'`
+				DOCKER_DOCKHAND=$(git ls-remote --tags --sort='v:refname' https://github.com/Finsys/dockhand.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//')
+				DOCKER_DOZZLE=$(git ls-remote --tags --sort='v:refname' https://github.com/amir20/dozzle.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//')
+				DOCKER_HAWSER=$(git ls-remote --tags --sort='v:refname' https://github.com/Finsys/hawser.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//' | sed -e 's/\^{}//')
+				DOCKER_LIBRESPEED=$(git ls-remote --tags --sort='v:refname' https://github.com/linuxserver/docker-librespeed.git | tail --lines=1 | cut --delimiter='/' --fields=3)
+				DOCKER_MYSPEED=$(git ls-remote --tags --sort='v:refname' https://github.com/gnmyt/myspeed.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//')
 				# DOCKER_OST=`git ls-remote --tags --sort='v:refname' https://github.com/openspeedtest/Docker-Image.git | tail --lines=1 | cut --delimiter='/' --fields=3`
-        DOCKER_SOCKET_PROXY=`git ls-remote --tags --sort='v:refname' https://github.com/tecnativa/docker-socket-proxy.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//'`
-				DOCKER_TRAEFIK3=`git ls-remote --tags --sort='v:refname' https://github.com/traefik/traefik.git | sed -r '/v2/d' | sed -r '/-rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3`
-				DOCKER_TRAEFIK_MANAGER=`git ls-remote --tags --sort='v:refname' https://github.com/chr0nzz/traefik-manager.git | sed -r '/-rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//'`
-				DOCKER_WHOAMI=`git ls-remote --tags --sort='v:refname' https://github.com/traefik/whoami.git | tail --lines=1 | cut --delimiter='/' --fields=3`
+        DOCKER_SOCKET_PROXY=$(git ls-remote --tags --sort='v:refname' https://github.com/tecnativa/docker-socket-proxy.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/\^{}//')
+				DOCKER_TRAEFIK3=$(git ls-remote --tags --sort='v:refname' https://github.com/traefik/traefik.git | sed -r '/v2/d' | sed -r '/-rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3)
+				DOCKER_TRAEFIK_MANAGER=$(git ls-remote --tags --sort='v:refname' https://github.com/chr0nzz/traefik-manager.git | sed -r '/-rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//')
+				DOCKER_WHOAMI=$(git ls-remote --tags --sort='v:refname' https://github.com/traefik/whoami.git | tail --lines=1 | cut --delimiter='/' --fields=3)
 
 				echo "🔧 STOP THE STACK PROXY TRAEFIK DOCKHAND"
 				su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - docker
 
 				echo "🔧 CONFIGURE THE STACK PROXY TRAEFIK DOCKHAND"
-				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:$DOCKER_DOCKHAND%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:$DOCKER_HAWSER%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:$DOCKER_LIBRESPEED%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:$DOCKER_MYSPEED%" /home/$DOCKER_USER/proxy/docker-compose.yml
+				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:$DOCKER_DOCKHAND%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:$DOCKER_HAWSER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:$DOCKER_LIBRESPEED%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:$DOCKER_MYSPEED%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
 				# sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:$DOCKER_OST%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:$DOCKER_SOCKET_PROXY%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik:.*%    image: traefik:$DOCKER_TRAEFIK3%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:$DOCKER_TRAEFIK_MANAGER%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/$DOCKER_USER/proxy/docker-compose.yml
+				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:$DOCKER_SOCKET_PROXY%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik:.*%    image: traefik:$DOCKER_TRAEFIK3%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:$DOCKER_TRAEFIK_MANAGER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
 
 
         if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
@@ -5369,16 +5113,16 @@ then
       else
 
 				echo "🔧 CONFIGURE THE STACK PROXY TRAEFIK DOCKHAND"
-				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
+				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
 				#sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik:.*%    image: traefik:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
+				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik:.*%    image: traefik:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
 
 			fi
 
@@ -5390,10 +5134,10 @@ then
 
 	fi
 
-	if [ $DOCKER_PORTAINER_STACK_ELK -eq 1 ]
+	if [ "$DOCKER_PORTAINER_STACK_ELK" -eq 1 ]
 	then
 
-		if [ $DOCKER_PORTAINER_STACK_ELK_UPGRADE -eq 1 ]
+		if [ "$DOCKER_PORTAINER_STACK_ELK_UPGRADE" -eq 1 ]
 		then
 
 			echo "STOP STACK ELK"
@@ -5406,10 +5150,10 @@ then
 			echo ""
 			echo "CONFIGURE THE STACK ELK"
 			echo ""
-			DOCKER_ELASTICSEARCH=`git ls-remote --tags --sort='v:refname' https://github.com/elastic/elasticsearch.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//'`
-			DOCKER_KIBANA=`git ls-remote --tags --sort='v:refname' https://github.com/elastic/kibana.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//'`
-			sed -i "s%.*image: elasticsearch:.*%    image: elasticsearch:$DOCKER_ELASTICSEARCH%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_ELK_DC_ID/docker-compose.yml
-			sed -i "s%.*image: kibana:.*%    image: kibana:$DOCKER_KIBANA%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_ELK_DC_ID/docker-compose.yml
+			DOCKER_ELASTICSEARCH=$(git ls-remote --tags --sort='v:refname' https://github.com/elastic/elasticsearch.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//')
+			DOCKER_KIBANA=$(git ls-remote --tags --sort='v:refname' https://github.com/elastic/kibana.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//')
+			sed -i "s%.*image: elasticsearch:.*%    image: elasticsearch:$DOCKER_ELASTICSEARCH%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_ELK_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: kibana:.*%    image: kibana:$DOCKER_KIBANA%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_ELK_DC_ID"/docker-compose.yml
 
 			echo "START STACK ELK"
 			curl --request POST --insecure --write-out "%{http_code}" --url "https://localhost:9443/api/stacks/$DOCKER_PORTAINER_STACK_ELK_DC_ID/start?endpointId=$DOCKER_PORTAINER_STACK_ELK_ENDPOINT_ID" --header "x-api-key:$DOCKER_PORTAINER_API_KEY"
@@ -5421,10 +5165,10 @@ then
 
 	fi
 
-	if [ $DOCKER_PORTAINER_STACK_NEXTCLOUD -eq 1 ]
+	if [ "$DOCKER_PORTAINER_STACK_NEXTCLOUD" -eq 1 ]
 	then
 
-		if [ $DOCKER_PORTAINER_STACK_NEXTCLOUD_UPGRADE -eq 1 ]
+		if [ "$DOCKER_PORTAINER_STACK_NEXTCLOUD_UPGRADE" -eq 1 ]
 		then
 
 			echo "STOP STACK NEXTCLOUD"
@@ -5438,18 +5182,18 @@ then
 			echo "CONFIGURE THE STACK NEXTCLOUD"
 			echo ""
 
-			DOCKER_POSTGRESQL=`git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_15_|REL_16_|REL_17_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./'`
-			DOCKER_REDIS=`git ls-remote --tags --sort='v:refname' https://github.com/redis/redis.git | sed -r '/-beta|-deprecated|-int|-m|-playpen|-rc|-watch|twitter|v1|v2/d' | tail --lines=1 | cut --delimiter='/' --fields=3`
-			DOCKER_NEXTCLOUD=`git ls-remote --tags --sort='v:refname' https://github.com/nextcloud/server.git | grep "v$DOCKER_PORTAINER_STACK_NEXTCLOUD_BRANCH" | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//'`
-			DOCKER_NGINX=`git ls-remote --tags --sort='v:refname' https://github.com/nginx/nginx.git | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/release-//'`
-			DOCKER_PGADMIN=`git ls-remote --tags --sort='v:refname' https://github.com/pgadmin-org/pgadmin4.git | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL-//' | sed -e 's/_/./'`
-			DOCKER_COLLABORA=`git ls-remote --tags --sort='v:refname' https://github.com/CollaboraOnline/online.git | grep "cp-" | sed -r '/\^\{\}|android|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/cp-//' | sed -e 's/-/./'`
-			sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/docker-compose.yml
-			sed -i "s%.*image: redis:.*%    image: redis:$DOCKER_REDIS%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/docker-compose.yml
-			sed -i "s%.*image: nextcloud:.*%    image: nextcloud:$DOCKER_NEXTCLOUD-fpm%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/docker-compose.yml
-			sed -i "s%.*image: nginx:.*%    image: nginx:$DOCKER_NGINX%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/docker-compose.yml
-			sed -i "s%.*image: dpage/pgadmin4:.*%    image: dpage/pgadmin4:$DOCKER_PGADMIN%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/docker-compose.yml
-			sed -i "s%.*image: collabora/code:.*%    image: collabora/code:$DOCKER_COLLABORA.1%" /home/$DOCKER_USER/proxy/portainer-data/compose/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/docker-compose.yml
+			DOCKER_POSTGRESQL=$(git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_15_|REL_16_|REL_17_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./')
+			DOCKER_REDIS=$(git ls-remote --tags --sort='v:refname' https://github.com/redis/redis.git | sed -r '/-beta|-deprecated|-int|-m|-playpen|-rc|-watch|twitter|v1|v2/d' | tail --lines=1 | cut --delimiter='/' --fields=3)
+			DOCKER_NEXTCLOUD=$(git ls-remote --tags --sort='v:refname' https://github.com/nextcloud/server.git | grep "v$DOCKER_PORTAINER_STACK_NEXTCLOUD_BRANCH" | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//')
+			DOCKER_NGINX=$(git ls-remote --tags --sort='v:refname' https://github.com/nginx/nginx.git | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/release-//')
+			DOCKER_PGADMIN=$(git ls-remote --tags --sort='v:refname' https://github.com/pgadmin-org/pgadmin4.git | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL-//' | sed -e 's/_/./')
+			DOCKER_COLLABORA=$(git ls-remote --tags --sort='v:refname' https://github.com/CollaboraOnline/online.git | grep "cp-" | sed -r '/\^\{\}|android|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/cp-//' | sed -e 's/-/./')
+			sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: redis:.*%    image: redis:$DOCKER_REDIS%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: nextcloud:.*%    image: nextcloud:$DOCKER_NEXTCLOUD-fpm%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: nginx:.*%    image: nginx:$DOCKER_NGINX%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: dpage/pgadmin4:.*%    image: dpage/pgadmin4:$DOCKER_PGADMIN%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: collabora/code:.*%    image: collabora/code:$DOCKER_COLLABORA.1%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
 
 			echo "START STACK NEXTCLOUD"
 			curl --request POST --insecure --write-out "%{http_code}" --url "https://localhost:9443/api/stacks/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/start?endpointId=$DOCKER_PORTAINER_STACK_NEXTCLOUD_ENDPOINT_ID" --header "x-api-key:$DOCKER_PORTAINER_API_KEY"
@@ -5461,7 +5205,7 @@ then
 
 	fi
 
-	if [ $DOCKER_CLEAN -eq 1 ]
+	if [ "$DOCKER_CLEAN" -eq 1 ]
 	then
 
 		# echo ""
@@ -5482,7 +5226,7 @@ then
 
 		echo ""
 		echo "DOCKER PS"
-		su -c "docker ps" - $DOCKER_USER
+		su -c "docker ps" - "$DOCKER_USER"
 
 		# echo ""
 		# echo 'DOCKER RMI $(DOCKER IMAGE -f "dangling=true"'
@@ -5490,19 +5234,19 @@ then
 
 		echo ""
 		echo "DOCKER IMAGE LS"
-		su -c "docker image ls" - $DOCKER_USER
+		su -c "docker image ls" - "$DOCKER_USER"
 
 		echo ""
 		echo "DOCKER NETWORK LS"
-		su -c "docker network ls" - $DOCKER_USER
+		su -c "docker network ls" - "$DOCKER_USER"
 
 		echo ""
 		echo "DOCKER VOLUME LS"
-		su -c "docker volume ls" - $DOCKER_USER
+		su -c "docker volume ls" - "$DOCKER_USER"
 
 	fi
 
-	if [ $DOCKER_STACK_BUNKERWEB -eq 1 ]
+	if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 	then
 
 		if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ]
@@ -5511,12 +5255,12 @@ then
 			if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
 			then
 
-				if [ $DOCKER_STACK_BUNKERWEB_UPGRADE -eq 1 ]
+				if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
 				then
 
 					echo ""
 					echo "🔧 STOP DOCKER DOZZZLE/OST/PORTAINER/WHOAMI FOR PRODUCTION"
-					su -c "docker stop dozzle && docker stop ost && docker stop portainer && docker stop whoami" - $DOCKER_USER
+					su -c "docker stop dozzle && docker stop ost && docker stop portainer && docker stop whoami" - "$DOCKER_USER"
 
 				fi
 
@@ -5526,7 +5270,7 @@ then
 
 	fi
 
-	if [ $DOCKER_STACK_TRAEFIK_DOCKHAND -eq 1 ]
+	if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND" -eq 1 ]
 	then
 
 		if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
@@ -5535,12 +5279,12 @@ then
 			if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
 			then
 
-        if [ $DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE -eq 1 ]
+        if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
         then
 
           echo ""
           echo "🔧 STOP DOCKER DOCKHAND/DOZZZLE/HAWSER/LIBRESPEED/MYSPEED/SOCKET-PROXY/TRAEFIK-MANAGER/WHOAMI FOR PRODUCTION"
-          su -c "docker stop dockhand && docker stop dozzle && docker stop hawser && docker stop librespeed && docker stop myspeed && docker stop socket-proxy && docker stop traefik-manager && docker stop whoami" - $DOCKER_USER
+          su -c "docker stop dockhand && docker stop dozzle && docker stop hawser && docker stop librespeed && docker stop myspeed && docker stop socket-proxy && docker stop traefik-manager && docker stop whoami" - "$DOCKER_USER"
 
         fi
 
@@ -5565,18 +5309,18 @@ else
 
 			echo ""
 			echo "🔧 STOP THE STACK PROXY"
-			su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - $DOCKER_USER
+			su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - "$DOCKER_USER"
 
 		fi
 
 		DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-		if test -f /root/dive_${DIVE_VERSION}_linux_amd64.deb
+		if test -f /root/dive_"${DIVE_VERSION}"_linux_amd64.deb
 		then
 
 			echo ""
 			echo "🔧 UNINSTALL DIVE"
 			apt purge dive -y
-			rm -f /root/dive_${DIVE_VERSION}_linux_amd64.deb
+			rm -f /root/dive_"${DIVE_VERSION}"_linux_amd64.deb
 
 		fi
 
@@ -5589,7 +5333,14 @@ else
 
 			echo ""
 			echo "🔧 REMOVE IMAGE DOCKER"
-			docker rmi $(docker images -q)
+			if ! DOCKER_IMAGE_IDS="$(docker images -q)"; then
+				printf '%s\n' 'Erreur : découverte des images Docker impossible.' >&2
+				exit 1
+			fi
+			if [[ -n "$DOCKER_IMAGE_IDS" ]]; then
+				mapfile -t DOCKER_IMAGES_TO_REMOVE <<< "$DOCKER_IMAGE_IDS"
+				docker rmi "${DOCKER_IMAGES_TO_REMOVE[@]}"
+			fi
 
 			echo ""
 			echo "🔧 REMOVE SYSTEM DOCKER"
@@ -5625,22 +5376,22 @@ else
 
 fi
 
-if [ $ENV_IA -eq 1 ]
+if [ "$ENV_IA" -eq 1 ]
 then
 
 	echo ""
-  groupadd -f $ENV_IA_GROUP
-	if id -u $ENV_IA_USER> /dev/null 2>&1 
+  groupadd -f "$ENV_IA_GROUP"
+	if id -u "$ENV_IA_USER"> /dev/null 2>&1 
 	then
 	  echo "USER FOR IA $ENV_IA_USER IS OK ✅"
 	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
 	else
-	  useradd -m $ENV_IA_USER --gid $ENV_IA_GROUP -s /bin/bash
+	  useradd -m "$ENV_IA_USER" --gid "$ENV_IA_GROUP" -s /bin/bash
 	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
 	fi
 
-	usermod -aG $ENV_IA_GROUP $ENV_IA_USER
-	usermod -aG $ENV_IA_GROUP $ENV_HUMAN_USER
+	usermod -aG "$ENV_IA_GROUP" "$ENV_IA_USER"
+	usermod -aG "$ENV_IA_GROUP" "$ENV_HUMAN_USER"
 
   if [[ "${ENV_IA_DOCKER_ROOTLESS:-0}" == "1" ]]; then
       if ! id -nG "$ENV_IA_USER" | grep -qw docker; then
@@ -5659,31 +5410,31 @@ then
 
 	install -d -o "$ENV_IA_USER" -g "$ENV_IA_GROUP" -m 2770 "/home/$ENV_IA_USER/download" "/home/$ENV_IA_USER/tools"
 
-  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER
-  chmod 2770 /home/$ENV_IA_USER
-  find /home/$ENV_IA_USER -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
-  find /home/$ENV_IA_USER -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
-  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/hermes
-  find /home/$ENV_IA_USER/hermes -type d -exec chmod 2770 {} + 
-  find /home/$ENV_IA_USER/hermes -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
-  find /home/$ENV_IA_USER/hermes -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
-  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/download
-  find /home/$ENV_IA_USER/download -type d -exec chmod 2770 {} + 
-  find /home/$ENV_IA_USER/download -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
-  find /home/$ENV_IA_USER/download -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
-  chown -R $ENV_IA_USER:$ENV_IA_GROUP /home/$ENV_IA_USER/tools
-  find /home/$ENV_IA_USER/tools -type d -exec chmod 2770 {} + 
-  find /home/$ENV_IA_USER/tools -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
-  find /home/$ENV_IA_USER/tools -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
+  chown -R "$ENV_IA_USER":"$ENV_IA_GROUP" /home/"$ENV_IA_USER"
+  chmod 2770 /home/"$ENV_IA_USER"
+  find /home/"$ENV_IA_USER" -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/"$ENV_IA_USER" -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
+  chown -R "$ENV_IA_USER":"$ENV_IA_GROUP" /home/"$ENV_IA_USER"/hermes
+  find /home/"$ENV_IA_USER"/hermes -type d -exec chmod 2770 {} + 
+  find /home/"$ENV_IA_USER"/hermes -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/"$ENV_IA_USER"/hermes -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
+  chown -R "$ENV_IA_USER":"$ENV_IA_GROUP" /home/"$ENV_IA_USER"/download
+  find /home/"$ENV_IA_USER"/download -type d -exec chmod 2770 {} + 
+  find /home/"$ENV_IA_USER"/download -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/"$ENV_IA_USER"/download -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
+  chown -R "$ENV_IA_USER":"$ENV_IA_GROUP" /home/"$ENV_IA_USER"/tools
+  find /home/"$ENV_IA_USER"/tools -type d -exec chmod 2770 {} + 
+  find /home/"$ENV_IA_USER"/tools -type f ! -name '.env*' ! -name '*.token'  ! -name '*.username' -exec chmod 0770 {} +
+  find /home/"$ENV_IA_USER"/tools -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0666 {} +
 
-  chmod 2770 /home/$ENV_IA_USER
+  chmod 2770 /home/"$ENV_IA_USER"
 
 fi
 
-if [ $FASTFETCH -eq 1 ]
+if [ "$FASTFETCH" -eq 1 ]
 then
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ] || [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]
 	then
 
 		echo "INSTALL NEOFETCH"
@@ -5708,7 +5459,7 @@ then
 
 	fi
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "trixie" ]
 	then
 
 		if dpkg -s fastfetch &>/dev/null
@@ -5727,7 +5478,7 @@ then
 
 fi
 
-if [ $JSVC -eq 1 ]
+if [ "$JSVC" -eq 1 ]
 then
 
 	echo ""
@@ -5736,7 +5487,7 @@ then
 
 fi
 
-if [ $LEMONLDAP -eq 1 ]
+if [ "$LEMONLDAP" -eq 1 ]
 then
 
 	echo ""
@@ -5745,7 +5496,7 @@ then
 
 fi
 
-if [ $MONGODB -eq 1 ]
+if [ "$MONGODB" -eq 1 ]
 then
 
 	echo ""
@@ -5760,10 +5511,10 @@ then
 
 fi
 
-if [ $OPENJDK -eq 1 ]
+if [ "$OPENJDK" -eq 1 ]
 then
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ] || [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]
 	then
 
 		echo ""
@@ -5773,7 +5524,7 @@ then
 		ln -s -f /usr/lib/jvm/java-17-openjdk-amd64/lib/server /usr/lib/jvm/java-17-openjdk-amd64/lib/amd64/
 
 		# CONFIGURE OPENJDK PROXY
-		if [ $PROXY -eq 1 ]
+		if [ "$PROXY" -eq 1 ]
 		then
 
 			sed -i "s%.*java.net.useSystemProxies=.*%java.net.useSystemProxies=true%" /etc/java-17-openjdk/net.properties
@@ -5797,7 +5548,7 @@ then
 
 	fi
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "trixie" ]
 	then
 
 
@@ -5807,7 +5558,7 @@ then
 		mkdir -p /usr/lib/jvm/java-21-openjdk-amd64/lib/amd64
 		ln -s -f /usr/lib/jvm/java-21-openjdk-amd64/lib/server /usr/lib/jvm/java-21-openjdk-amd64/lib/amd64/
 
-		if [ $PROXY_HTTP -eq 1 ]
+		if [ "$PROXY_HTTP" -eq 1 ]
 		then
 
 			sed -i "s%.*java.net.useSystemProxies=.*%java.net.useSystemProxies=true%" /etc/java-21-openjdk/net.properties
@@ -5822,10 +5573,10 @@ then
 
 fi
 
-if [ $OMADA -eq 1 ]
+if [ "$OMADA" -eq 1 ]
 then
 
-	if [ -f /root/omada_v${OMADA_VERSION}.deb ]
+	if [ -f /root/omada_v"${OMADA_VERSION}".deb ]
 	then
 
 		echo ""
@@ -5835,13 +5586,13 @@ then
 
 		echo ""
 		echo "🔧 INSTALL OMADA"
-		wget https://ota-download.tplinkcloud.com/firmware/omada_v${OMADA_VERSION}.deb &&  dpkg -i /root/omada_v${OMADA_VERSION}.deb
+		wget https://ota-download.tplinkcloud.com/firmware/omada_v"${OMADA_VERSION}".deb &&  dpkg -i /root/omada_v"${OMADA_VERSION}".deb
 
 	fi
 
 fi
 
-if [ $OPENVSWITCH -eq 1 ]
+if [ "$OPENVSWITCH" -eq 1 ]
 then
 
 	if dpkg -s openvswitch-switch &>/dev/null
@@ -5859,7 +5610,7 @@ then
 
 fi
 
-if [ $POSTGRESQL -eq 1 ]
+if [ "$POSTGRESQL" -eq 1 ]
 then
 
 	echo ""
@@ -5868,7 +5619,7 @@ then
 
 fi
 
-if [ $POSTFIX -eq 1 ]
+if [ "$POSTFIX" -eq 1 ]
 then
 
 	echo ""
@@ -5879,7 +5630,7 @@ then
 
 fi
 
-if [ $QEMU_GUEST_AGENT -eq 1 ]
+if [ "$QEMU_GUEST_AGENT" -eq 1 ]
 then
 
 	echo ""
@@ -5888,7 +5639,7 @@ then
 
 fi
 
-if [ $SYSLOG_CLIENT -eq 1 ]
+if [ "$SYSLOG_CLIENT" -eq 1 ]
 then
 
 	if dpkg -s rsyslog &>/dev/null
@@ -5904,84 +5655,136 @@ then
 	fi
 
 	echo '' > /etc/rsyslog.conf
-	echo '# MODULES' >> /etc/rsyslog.conf
-	echo 'module(load="imuxsock")' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '# RIGHTS' >> /etc/rsyslog.conf
-	echo '$FileOwner root' >> /etc/rsyslog.conf
-	echo '$FileGroup adm' >> /etc/rsyslog.conf
-	echo '$FileCreateMode 0640' >> /etc/rsyslog.conf
-	echo '$DirCreateMode 0755' >> /etc/rsyslog.conf
-	echo '$Umask 0022' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '# WORKING DIRECTORY' >> /etc/rsyslog.conf
-	echo '$WorkDirectory /tmp' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '# SPECIFIC CONFIGURATIONS' >> /etc/rsyslog.conf
-	echo '$IncludeConfig /etc/rsyslog.d/*.conf' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '# DEFAULT QUEUES TUNNING' >> /etc/rsyslog.conf
-	echo '$ActionQueueFileName siem' >> /etc/rsyslog.conf
-	echo '$ActionQueueMaxDiskSpace 1g' >> /etc/rsyslog.conf
-	echo '$ActionQueueSaveOnShutdown off' >> /etc/rsyslog.conf
-	echo '$ActionQueueType LinkedList' >> /etc/rsyslog.conf
-	echo '$ActionResumeRetryCount -1' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '# DEFAULT ACTIONS' >> /etc/rsyslog.conf
-	echo "*.*	@$SYSLOG_CLIENT_SERVER:514" >> /etc/rsyslog.conf
-	echo 'stop' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
+	{
+	    echo '# MODULES'
+	    echo 'module(load="imuxsock")'
+	    echo ''
+	    echo '# RIGHTS'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$FileOwner root'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$FileGroup adm'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$FileCreateMode 0640'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$DirCreateMode 0755'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$Umask 0022'
+	    echo ''
+	    echo '# WORKING DIRECTORY'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$WorkDirectory /tmp'
+	    echo ''
+	    echo '# SPECIFIC CONFIGURATIONS'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$IncludeConfig /etc/rsyslog.d/*.conf'
+	    echo ''
+	    echo '# DEFAULT QUEUES TUNNING'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueFileName siem'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueMaxDiskSpace 1g'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueSaveOnShutdown off'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueType LinkedList'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionResumeRetryCount -1'
+	    echo ''
+	    echo '# DEFAULT ACTIONS'
+	    echo "*.*	@$SYSLOG_CLIENT_SERVER:514"
+	    echo 'stop'
+	    echo ''
+	} >> /etc/rsyslog.conf
 
 	rm -f /etc/rsyslog.d/*
 
-	# if [ $DEBIAN_TYPE == "LXC" ]
+	# if [ $SYSTEM_DEBIAN_ENVIRONNEMENT == "LXC" ]
 	# then
 
 	echo '' > /etc/rsyslog.d/kernel.conf
-	echo '# TEMPLATE' >> /etc/rsyslog.d/kernel.conf
-	echo 'template (name="ulogd" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% kernel:%msg%\\n")' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
-	echo '# RULESET' >> /etc/rsyslog.d/kernel.conf
-	echo 'ruleset(name="ulogd") {' >> /etc/rsyslog.d/kernel.conf
-	echo "	action(type=\"omfwd\" target=\"$SYSLOG_CLIENT_SERVER\" port=\"514\" protocol=\"udp\" template=\"ulogd\")" >> /etc/rsyslog.d/kernel.conf
-	echo '}' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
-	echo '# SPECIFIC ACTION' >> /etc/rsyslog.d/kernel.conf
-	echo 'if($programname == "ulogd")  then {' >> /etc/rsyslog.d/kernel.conf
-	echo '	# KERNEL QUEUES TUNNING' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueFileName kernel' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueMaxDiskSpace 1g' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueSaveOnShutdown off' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueType LinkedList' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionResumeRetryCount -1' >> /etc/rsyslog.d/kernel.conf
-	echo '	# CALL RULESET' >> /etc/rsyslog.d/kernel.conf
-	echo '	call ulogd' >> /etc/rsyslog.d/kernel.conf
-	echo '	stop' >> /etc/rsyslog.d/kernel.conf
-	echo '}' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
-	echo '# TEMPLATE' >> /etc/rsyslog.d/kernel.conf
-	echo 'template (name="iptables" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% kernel:%msg%\\n")' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
-	echo '# RULESET' >> /etc/rsyslog.d/kernel.conf
-	echo 'ruleset(name="iptables") {' >> /etc/rsyslog.d/kernel.conf
-	echo "	action(type=\"omfwd\" target=\"$SYSLOG_CLIENT_SERVER\" port=\"514\" protocol=\"udp\" template=\"iptables\")" >> /etc/rsyslog.d/kernel.conf
-	echo '}' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
-	echo '# SPECIFIC ACTION' >> /etc/rsyslog.d/kernel.conf
-	echo 'if($msg contains "REJECT")  then {' >> /etc/rsyslog.d/kernel.conf
-	echo '	# KERNEL QUEUES TUNNING' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueFileName kernel' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueMaxDiskSpace 1g' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueSaveOnShutdown off' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionQueueType LinkedList' >> /etc/rsyslog.d/kernel.conf
-	echo '	$ActionResumeRetryCount -1' >> /etc/rsyslog.d/kernel.conf
-	echo '	# CALL RULESET' >> /etc/rsyslog.d/kernel.conf
-	echo '	call iptables' >> /etc/rsyslog.d/kernel.conf
-	echo '	stop' >> /etc/rsyslog.d/kernel.conf
-	echo '}' >> /etc/rsyslog.d/kernel.conf
-	echo '' >> /etc/rsyslog.d/kernel.conf
+	{
+	    echo '# TEMPLATE'
+	    printf '%s\n' 'template (name="ulogd" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% kernel:%msg%\\n")'
+	    echo ''
+	    echo '# RULESET'
+	    echo 'ruleset(name="ulogd") {'
+	    echo "	action(type=\"omfwd\" target=\"$SYSLOG_CLIENT_SERVER\" port=\"514\" protocol=\"udp\" template=\"ulogd\")"
+	    echo '}'
+	    echo ''
+	    echo '# SPECIFIC ACTION'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo 'if($programname == "ulogd")  then {'
+	    echo '	# KERNEL QUEUES TUNNING'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueFileName kernel'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueMaxDiskSpace 1g'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueSaveOnShutdown off'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueType LinkedList'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionResumeRetryCount -1'
+	    echo '	# CALL RULESET'
+	    echo '	call ulogd'
+	    echo '	stop'
+	    echo '}'
+	    echo ''
+	    echo ''
+	    echo ''
+	    echo '# TEMPLATE'
+	    printf '%s\n' 'template (name="iptables" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% kernel:%msg%\\n")'
+	    echo ''
+	    echo '# RULESET'
+	    echo 'ruleset(name="iptables") {'
+	    echo "	action(type=\"omfwd\" target=\"$SYSLOG_CLIENT_SERVER\" port=\"514\" protocol=\"udp\" template=\"iptables\")"
+	    echo '}'
+	    echo ''
+	    echo '# SPECIFIC ACTION'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo 'if($msg contains "REJECT")  then {'
+	    echo '	# KERNEL QUEUES TUNNING'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueFileName kernel'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueMaxDiskSpace 1g'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueSaveOnShutdown off'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionQueueType LinkedList'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	$ActionResumeRetryCount -1'
+	    echo '	# CALL RULESET'
+	    echo '	call iptables'
+	    echo '	stop'
+	    echo '}'
+	    echo ''
+	} >> /etc/rsyslog.d/kernel.conf
 
 	# fi
 
@@ -6009,7 +5812,7 @@ then
 
 fi
 
-if [ $SYSLOG_SERVER -eq 1 ]
+if [ "$SYSLOG_SERVER" -eq 1 ]
 then
 
 	if dpkg -s rsyslog &>/dev/null
@@ -6028,60 +5831,90 @@ then
 	mkdir -p /var/log/machines
 		
 	echo '#' > /etc/rsyslog.conf
-	echo '# nano /etc/rsyslog.conf' >> /etc/rsyslog.conf
-	echo '#' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '### MODULES ###' >> /etc/rsyslog.conf
-	echo 'module(load="imuxsock") # provides support for local system logging' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo 'module(load="imudp")' >> /etc/rsyslog.conf
-	echo 'input(type="imudp" port="514")' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo 'module(load="imtcp")' >> /etc/rsyslog.conf
-	echo 'input(type="imtcp" port="514")' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '### RIGHTS ###' >> /etc/rsyslog.conf
-	echo '$FileOwner root' >> /etc/rsyslog.conf
-	echo '$FileGroup adm' >> /etc/rsyslog.conf
-	echo '$FileCreateMode 0640' >> /etc/rsyslog.conf
-	echo '$DirCreateMode 0755' >> /etc/rsyslog.conf
-	echo '$Umask 0022' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '### WORKING DIRECTORY ###' >> /etc/rsyslog.conf
-	echo '$WorkDirectory /tmp' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '### DEFAULT QUEUE ###' >> /etc/rsyslog.conf
-	echo '$ActionQueueFileName siem' >> /etc/rsyslog.conf
-	echo '$ActionQueueMaxDiskSpace 1g' >> /etc/rsyslog.conf
-	echo '$ActionQueueSaveOnShutdown off' >> /etc/rsyslog.conf
-	echo '$ActionQueueType LinkedList' >> /etc/rsyslog.conf
-	echo '$ActionResumeRetryCount -1' >> /etc/rsyslog.conf
-	echo '' >> /etc/rsyslog.conf
-	echo '### SPECIFIC CONFIGURATIONS ###' >> /etc/rsyslog.conf
-	echo '$IncludeConfig /etc/rsyslog.d/*.conf' >> /etc/rsyslog.conf
+	{
+	    echo '# nano /etc/rsyslog.conf'
+	    echo '#'
+	    echo ''
+	    echo '### MODULES ###'
+	    echo 'module(load="imuxsock") # provides support for local system logging'
+	    echo ''
+	    echo 'module(load="imudp")'
+	    echo 'input(type="imudp" port="514")'
+	    echo ''
+	    echo 'module(load="imtcp")'
+	    echo 'input(type="imtcp" port="514")'
+	    echo ''
+	    echo '### RIGHTS ###'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$FileOwner root'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$FileGroup adm'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$FileCreateMode 0640'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$DirCreateMode 0755'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$Umask 0022'
+	    echo ''
+	    echo '### WORKING DIRECTORY ###'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$WorkDirectory /tmp'
+	    echo ''
+	    echo '### DEFAULT QUEUE ###'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueFileName siem'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueMaxDiskSpace 1g'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueSaveOnShutdown off'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionQueueType LinkedList'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$ActionResumeRetryCount -1'
+	    echo ''
+	    echo '### SPECIFIC CONFIGURATIONS ###'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$IncludeConfig /etc/rsyslog.d/*.conf'
+	} >> /etc/rsyslog.conf
 
-	if [ $SYSLOG_SERVER_SKIL_KERNEL -eq 1 ]
+	if [ "$SYSLOG_SERVER_SKIL_KERNEL" -eq 1 ]
 	then
 
 		echo '#'  > /etc/rsyslog.d/1-kernel.conf
-		echo '# nano /etc/rsyslog.d/1-kernel.conf'  >> /etc/rsyslog.d/1-kernel.conf
-		echo '#'  >> /etc/rsyslog.d/1-kernel.conf
-		echo ''  >> /etc/rsyslog.d/1-kernel.conf
-		echo '# TEMPLATE'  >> /etc/rsyslog.d/1-kernel.conf
-		echo 'template (name="ulogd" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% kernel:%msg%\n")'  >> /etc/rsyslog.d/1-kernel.conf
-		echo ''  >> /etc/rsyslog.d/1-kernel.conf
-		echo '# RULESET'  >> /etc/rsyslog.d/1-kernel.conf
-		echo 'ruleset(name="ulogd") {'  >> /etc/rsyslog.d/1-kernel.conf
-		echo "        action(type=\"omfile\" File=\"/var/log/machines/$HOSTNAME/kernel.log\" template=\"ulogd\")"  >> /etc/rsyslog.d/1-kernel.conf
-		echo '}'  >> /etc/rsyslog.d/1-kernel.conf
-		echo ''  >> /etc/rsyslog.d/1-kernel.conf
-		echo '# ACTION'  >> /etc/rsyslog.d/1-kernel.conf
-		echo 'if($programname == "ulogd")  then {'  >> /etc/rsyslog.d/1-kernel.conf
-		echo '        # CALL RULESET'  >> /etc/rsyslog.d/1-kernel.conf
-		echo '        call ulogd'  >> /etc/rsyslog.d/1-kernel.conf
-		echo '        stop'  >> /etc/rsyslog.d/1-kernel.conf
-		echo '}'  >> /etc/rsyslog.d/1-kernel.conf
-		echo ''  >> /etc/rsyslog.d/1-kernel.conf
+		{
+		    echo '# nano /etc/rsyslog.d/1-kernel.conf' 
+		    echo '#' 
+		    echo '' 
+		    echo '# TEMPLATE' 
+		    printf '%s\n' 'template (name="ulogd" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% kernel:%msg%\n")' 
+		    echo '' 
+		    echo '# RULESET' 
+		    echo 'ruleset(name="ulogd") {' 
+		    echo "        action(type=\"omfile\" File=\"/var/log/machines/$HOSTNAME/kernel.log\" template=\"ulogd\")" 
+		    echo '}' 
+		    echo '' 
+		    echo '# ACTION' 
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if($programname == "ulogd")  then {' 
+		    echo '        # CALL RULESET' 
+		    echo '        call ulogd' 
+		    echo '        stop' 
+		    echo '}' 
+		    echo '' 
+		} >> /etc/rsyslog.d/1-kernel.conf
 
 	else
 
@@ -6094,28 +5927,32 @@ then
 
 	fi
 
-	if [ $SYSLOG_SERVER_SKIL_OMADA -eq 1 ]
+	if [ "$SYSLOG_SERVER_SKIL_OMADA" -eq 1 ]
 	then
 
 		echo '#'  > /etc/rsyslog.d/2-omada.conf
-		echo '# nano /etc/rsyslog.d/2-omada.conf'  >> /etc/rsyslog.d/2-omada.conf
-		echo '#'  >> /etc/rsyslog.d/2-omada.conf
-		echo ''  >> /etc/rsyslog.d/2-omada.conf
-		echo '# TEMPLATE'  >> /etc/rsyslog.d/2-omada.conf
-		echo 'template (name="omada" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% omada:%msg%\n")'  >> /etc/rsyslog.d/2-omada.conf
-		echo ''  >> /etc/rsyslog.d/2-omada.conf
-		echo '# RULESET'  >> /etc/rsyslog.d/2-omada.conf
-		echo 'ruleset(name="omada") {'  >> /etc/rsyslog.d/2-omada.conf
-		echo '		action(type="omfile" File="/var/log/machines/omada/omada.log" template="omada")'  >> /etc/rsyslog.d/2-omada.conf
-		echo '}'  >> /etc/rsyslog.d/2-omada.conf
-		echo ''  >> /etc/rsyslog.d/2-omada.conf
-		echo '# ACTION'  >> /etc/rsyslog.d/2-omada.conf
-		echo 'if($programname == "-")  then {'  >> /etc/rsyslog.d/2-omada.conf
-		echo '        # CALL RULESET'  >> /etc/rsyslog.d/2-omada.conf
-		echo '        call omada'  >> /etc/rsyslog.d/2-omada.conf
-		echo '        stop'  >> /etc/rsyslog.d/2-omada.conf
-		echo '}'  >> /etc/rsyslog.d/2-omada.conf
-		echo ''  >> /etc/rsyslog.d/2-omada.conf
+		{
+		    echo '# nano /etc/rsyslog.d/2-omada.conf' 
+		    echo '#' 
+		    echo '' 
+		    echo '# TEMPLATE' 
+		    printf '%s\n' 'template (name="omada" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% omada:%msg%\n")' 
+		    echo '' 
+		    echo '# RULESET' 
+		    echo 'ruleset(name="omada") {' 
+		    echo '		action(type="omfile" File="/var/log/machines/omada/omada.log" template="omada")' 
+		    echo '}' 
+		    echo '' 
+		    echo '# ACTION' 
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if($programname == "-")  then {' 
+		    echo '        # CALL RULESET' 
+		    echo '        call omada' 
+		    echo '        stop' 
+		    echo '}' 
+		    echo '' 
+		} >> /etc/rsyslog.d/2-omada.conf
 
 	else
 
@@ -6128,29 +5965,33 @@ then
 
 	fi
 
-	if [ $SYSLOG_SERVER_SKIL_SSO -eq 1 ]
+	if [ "$SYSLOG_SERVER_SKIL_SSO" -eq 1 ]
 	then
 
 		echo '#' > /etc/rsyslog.d/3-sso.conf
-		echo '# nano /etc/rsyslog.d/3-sso.conf' >> /etc/rsyslog.d/3-sso.conf
-		echo '#' >> /etc/rsyslog.d/3-sso.conf
-		echo '' >> /etc/rsyslog.d/3-sso.conf
-		echo '# TEMPLATE' >> /etc/rsyslog.d/3-sso.conf
-		echo '' >> /etc/rsyslog.d/3-sso.conf
-		echo 'template (name="sso" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% lemonldap-ng:%msg%\n")' >> /etc/rsyslog.d/3-sso.conf
-		echo '' >> /etc/rsyslog.d/3-sso.conf
-		echo '# RULESET' >> /etc/rsyslog.d/3-sso.conf
-		echo 'ruleset(name="sso") {' >> /etc/rsyslog.d/3-sso.conf
-		echo '        action(type="omfile" File="/var/log/machines/sso/lemonldap-ng.log" template="sso")' >> /etc/rsyslog.d/3-sso.conf
-		echo '}' >> /etc/rsyslog.d/3-sso.conf
-		echo '' >> /etc/rsyslog.d/3-sso.conf
-		echo '# ACTION' >> /etc/rsyslog.d/3-sso.conf
-		echo 'if($msg contains "[LLNG:")  then {' >> /etc/rsyslog.d/3-sso.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/3-sso.conf
-		echo '        call sso' >> /etc/rsyslog.d/3-sso.conf
-		echo '        stop' >> /etc/rsyslog.d/3-sso.conf
-		echo '}' >> /etc/rsyslog.d/3-sso.conf
-		echo '' >> /etc/rsyslog.d/3-sso.conf
+		{
+		    echo '# nano /etc/rsyslog.d/3-sso.conf'
+		    echo '#'
+		    echo ''
+		    echo '# TEMPLATE'
+		    echo ''
+		    printf '%s\n' 'template (name="sso" type="string" string="%TIMESTAMP:::date-rfc3339% %HOSTNAME% lemonldap-ng:%msg%\n")'
+		    echo ''
+		    echo '# RULESET'
+		    echo 'ruleset(name="sso") {'
+		    echo '        action(type="omfile" File="/var/log/machines/sso/lemonldap-ng.log" template="sso")'
+		    echo '}'
+		    echo ''
+		    echo '# ACTION'
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if($msg contains "[LLNG:")  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call sso'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		} >> /etc/rsyslog.d/3-sso.conf
 
 	else
 
@@ -6163,91 +6004,109 @@ then
 
 	fi
 
-	if [ $SYSLOG_SERVER_SKIL_SURICATA -eq 1 ]
+	if [ "$SYSLOG_SERVER_SKIL_SURICATA" -eq 1 ]
 	then
 
 		echo '#' > /etc/rsyslog.d/4-suricata.conf
-		echo '# nano /etc/rsyslog.d/4-suricata.conf' >> /etc/rsyslog.d/4-suricata.conf
-		echo '#' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo '# TEMPLATES' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'template (name="fw-chn-suricata" type="string" string="fw-chn %SYSLOGTAG% %msg%\n")' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'template (name="fw-dmz-suricata" type="string" string="fw-dmz %SYSLOGTAG% %msg%\n")' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'template (name="fw-online-suricata" type="string" string="fw-online %SYSLOGTAG% %msg%\n")' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'template (name="fw-pln-suricata" type="string" string="fw-pln %SYSLOGTAG% %msg%\n")' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'template (name="fw-stp-suricata" type="string" string="fw-stp %SYSLOGTAG% %msg%\n")' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo '# RULESETS' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'ruleset(name="fw-chn-suricata") {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '		action(type="omfile" File="/var/log/machines/fw-chn/suricata.log" template="fw-chn-suricata")' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'ruleset(name="fw-dmz-suricata") {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '		action(type="omfile" File="/var/log/machines/fw-dmz/suricata.log" template="fw-dmz-suricata")' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'ruleset(name="fw-online-suricata") {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '		action(type="omfile" File="/var/log/machines/fw-online/suricata.log" template="fw-online-suricata")' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'ruleset(name="fw-pln-suricata") {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '		action(type="omfile" File="/var/log/machines/fw-pln/suricata.log" template="fw-pln-suricata")' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'ruleset(name="fw-stp-suricata") {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '		action(type="omfile" File="/var/log/machines/fw-stp/suricata.log" template="fw-stp-suricata")' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo '# ACTIONS' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-chn.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-chn-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-dmz.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-dmz-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-online.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-online-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-online-int.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-online-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-pln.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-pln-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-pln-int.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-pln-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-stp.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-stp-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
-		echo 'if(($hostname == "fw-stp-int.ch-nontron.fr") and ($programname == "suricata"))  then {' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        # CALL RULESET' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        call fw-stp-suricata' >> /etc/rsyslog.d/4-suricata.conf
-		echo '        stop' >> /etc/rsyslog.d/4-suricata.conf
-		echo '}' >> /etc/rsyslog.d/4-suricata.conf
-		echo '' >> /etc/rsyslog.d/4-suricata.conf
+		{
+		    echo '# nano /etc/rsyslog.d/4-suricata.conf'
+		    echo '#'
+		    echo ''
+		    echo '# TEMPLATES'
+		    printf '%s\n' 'template (name="fw-chn-suricata" type="string" string="fw-chn %SYSLOGTAG% %msg%\n")'
+		    printf '%s\n' 'template (name="fw-dmz-suricata" type="string" string="fw-dmz %SYSLOGTAG% %msg%\n")'
+		    printf '%s\n' 'template (name="fw-online-suricata" type="string" string="fw-online %SYSLOGTAG% %msg%\n")'
+		    printf '%s\n' 'template (name="fw-pln-suricata" type="string" string="fw-pln %SYSLOGTAG% %msg%\n")'
+		    printf '%s\n' 'template (name="fw-stp-suricata" type="string" string="fw-stp %SYSLOGTAG% %msg%\n")'
+		    echo ''
+		    echo '# RULESETS'
+		    echo 'ruleset(name="fw-chn-suricata") {'
+		    echo '		action(type="omfile" File="/var/log/machines/fw-chn/suricata.log" template="fw-chn-suricata")'
+		    echo '}'
+		    echo ''
+		    echo 'ruleset(name="fw-dmz-suricata") {'
+		    echo '		action(type="omfile" File="/var/log/machines/fw-dmz/suricata.log" template="fw-dmz-suricata")'
+		    echo '}'
+		    echo ''
+		    echo 'ruleset(name="fw-online-suricata") {'
+		    echo '		action(type="omfile" File="/var/log/machines/fw-online/suricata.log" template="fw-online-suricata")'
+		    echo '}'
+		    echo ''
+		    echo 'ruleset(name="fw-pln-suricata") {'
+		    echo '		action(type="omfile" File="/var/log/machines/fw-pln/suricata.log" template="fw-pln-suricata")'
+		    echo '}'
+		    echo ''
+		    echo 'ruleset(name="fw-stp-suricata") {'
+		    echo '		action(type="omfile" File="/var/log/machines/fw-stp/suricata.log" template="fw-stp-suricata")'
+		    echo '}'
+		    echo ''
+		    echo '# ACTIONS'
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-chn.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-chn-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-dmz.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-dmz-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-online.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-online-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-online-int.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-online-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-pln.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-pln-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		    echo ''
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-pln-int.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-pln-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-stp.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-stp-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+		    # shellcheck disable=SC2016
+		    echo 'if(($hostname == "fw-stp-int.ch-nontron.fr") and ($programname == "suricata"))  then {'
+		    echo '        # CALL RULESET'
+		    echo '        call fw-stp-suricata'
+		    echo '        stop'
+		    echo '}'
+		    echo ''
+		} >> /etc/rsyslog.d/4-suricata.conf
 
 	else
 
@@ -6261,12 +6120,16 @@ then
 	fi
 
 	echo '#' > /etc/rsyslog.d/default.conf
-	echo '# nano /etc/rsyslog.d/default.conf' >> /etc/rsyslog.d/default.conf
-	echo '#' >> /etc/rsyslog.d/default.conf
-	echo '' >> /etc/rsyslog.d/default.conf
-	echo '# DEFAULT ACTION' >> /etc/rsyslog.d/default.conf
-	echo '$template remote-incoming-all-logs,"/var/log/machines/%HOSTNAME%/%PROGRAMNAME%.log"' >> /etc/rsyslog.d/default.conf
-	echo '*.*		?remote-incoming-all-logs' >> /etc/rsyslog.d/default.conf
+	{
+	    echo '# nano /etc/rsyslog.d/default.conf'
+	    echo '#'
+	    echo ''
+	    echo '# DEFAULT ACTION'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '$template remote-incoming-all-logs,"/var/log/machines/%HOSTNAME%/%PROGRAMNAME%.log"'
+	    echo '*.*		?remote-incoming-all-logs'
+	} >> /etc/rsyslog.d/default.conf
 
 	service rsyslog restart
 
@@ -6295,7 +6158,7 @@ then
 
 fi
 
-if [ $SSH -eq 1 ]
+if [ "$SSH" -eq 1 ]
 then
 
 	if dpkg -s openssh-server &>/dev/null
@@ -6311,8 +6174,8 @@ then
 	fi
 
 	touch /root/.ssh/authorized_keys
-	echo $KEY_SSH_ADMIN > /root/.ssh/authorized_keys
-	echo $KEY_SSH_ACME >> /root/.ssh/authorized_keys
+	echo "$KEY_SSH_ADMIN" > /root/.ssh/authorized_keys
+	echo "$KEY_SSH_ACME" >> /root/.ssh/authorized_keys
 	sed -i 's%.*AuthorizedKeysFile.*%%' /etc/ssh/sshd_config
 	sed -i 's%.*PermitRootLogin.*%PermitRootLogin yes%' /etc/ssh/sshd_config
 	sed -i 's%.*UsePAM.*%UsePAM yes%' /etc/ssh/sshd_config
@@ -6332,7 +6195,7 @@ if [ "${SYNCTHING}" -eq 1 ]; then
 
 fi
 
-if [ $WEBMIN -eq 1 ]
+if [ "$WEBMIN" -eq 1 ]
 then
 
 	echo "🔧 INSTALL WEBMIN"
@@ -6350,10 +6213,10 @@ else
 
 fi
 
-if [ $WAZUH_CLIENT -eq 1 ]
+if [ "$WAZUH_CLIENT" -eq 1 ]
 then
 
-	if [ -f /root/wazuh-agent_${WAZUH_CLIENT_VERSION}_amd64.deb ]
+	if [ -f /root/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb ]
 	then
 
 		echo ""
@@ -6363,7 +6226,7 @@ then
 
 		echo ""
 		echo "🔧 INSTALL WAZUH-AGENT"
-		wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_${WAZUH_CLIENT_VERSION}_amd64.deb && sudo WAZUH_MANAGER='10.25.106.1' WAZUH_REGISTRATION_PASSWORD='A.JKPIS}x,hck$|;X3(L6ZCO?R,3o@aX' WAZUH_AGENT_GROUP='Linux' WAZUH_PROTOCOL='UDP' dpkg -i /root/wazuh-agent_${WAZUH_CLIENT_VERSION}_amd64.deb
+		wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb && sudo WAZUH_MANAGER='10.25.106.1' WAZUH_REGISTRATION_PASSWORD='A.JKPIS}x,hck$|;X3(L6ZCO?R,3o@aX' WAZUH_AGENT_GROUP='Linux' WAZUH_PROTOCOL='UDP' dpkg -i /root/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb
 		systemctl enable wazuh-agent.service
 		systemctl start wazuh-agent.service
 
@@ -6382,10 +6245,10 @@ else
 
 fi
 
-if [ $WAZUH_SERVER -eq 1 ]
+if [ "$WAZUH_SERVER" -eq 1 ]
 then
 
-	if [ $WAZUH_SERVER_UPGRADE -eq 1 ]
+	if [ "$WAZUH_SERVER_UPGRADE" -eq 1 ]
 	then
 
 		echo ""
@@ -6400,10 +6263,9 @@ then
 
 fi
 
-if [ $ZOOM -eq 1 ]
+if [ "$ZOOM" -eq 1 ]
 then
 
-	APP_NAME="zoom"
 	DEB_URL="https://zoom.us/client/latest/zoom_amd64.deb"
 	ROOT_DEB="/root/zoom_latest.deb"
 	TMP_DEB="/tmp/zoom_latest.deb"
@@ -6446,7 +6308,7 @@ then
 
 fi
 
-if [ $ZSH -eq 1 ]
+if [ "$ZSH" -eq 1 ]
 then
 	
 	if dpkg -s fish &>/dev/null
@@ -6458,7 +6320,7 @@ then
 
 		echo "🔧 INSTALL ZSH"
 		apt install zsh zsh-autosuggestions zsh-syntax-highlighting -y
-		chsh -s $(which zsh)
+		chsh -s "$(command -v zsh)"
 
 		echo "🔧 INSTALL FISH"
 		apt install -y fish
@@ -6542,523 +6404,536 @@ then
 		rm /root/.zshrc
 		cp /etc/zsh/newuser.zshrc.recommended /root/.zshrc
 	fi
-	echo "" >> /root/.zshrc
-	echo "# GLOBAL VARIABLES #" >> /root/.zshrc
-	echo "export API_DEEPSEEK_KEY=$API_DEEPSEEK_KEY" >> /root/.zshrc
-	echo "export API_GEMINI_KEY=$API_GEMINI_KEY" >> /root/.zshrc
-	echo "export API_OPENROUTER_KEY=$API_OPENROUTER_KEY" >> /root/.zshrc
-	echo "export EDITOR=nano" >> /root/.zshrc
-	echo "export LANG=fr_FR.UTF-8" >> /root/.zshrc
+	{
+	    echo ""
+	    echo "# GLOBAL VARIABLES #"
+	    echo "export API_DEEPSEEK_KEY=$API_DEEPSEEK_KEY"
+	    echo "export API_GEMINI_KEY=$API_GEMINI_KEY"
+	    echo "export API_OPENROUTER_KEY=$API_OPENROUTER_KEY"
+	    echo "export EDITOR=nano"
+	    echo "export LANG=fr_FR.UTF-8"
 
-	echo "" >> /root/.zshrc
-	echo "# CLEAN PATH #" >> /root/.zshrc		
-	echo 'typeset -U path PATH' >> /root/.zshrc
+	    echo ""
+	echo "# CLEAN PATH #"		
+	echo 'typeset -U path PATH'
 
-	echo "" >> /root/.zshrc
-	echo "# SOURCES #" >> /root/.zshrc	
-	echo 'source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh' >> /root/.zshrc
-	echo 'source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' >> /root/.zshrc
+	echo ""
+	echo "# SOURCES #"	
+	    echo 'source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh'
+	    echo 'source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh'
 
-	echo "" >> /root/.zshrc
-	echo "# HISTORY #" >> /root/.zshrc
-	echo "HISTSIZE=10000" >> /root/.zshrc
-	echo "SAVEHIST=10000" >> /root/.zshrc
-	echo "setopt inc_append_history" >> /root/.zshrc
-	echo "setopt share_history" >> /root/.zshrc
-	echo "setopt hist_ignore_dups" >> /root/.zshrc
-	echo "setopt hist_reduce_blanks" >> /root/.zshrc
+	    echo ""
+	    echo "# HISTORY #"
+	    echo "HISTSIZE=10000"
+	    echo "SAVEHIST=10000"
+	    echo "setopt inc_append_history"
+	    echo "setopt share_history"
+	    echo "setopt hist_ignore_dups"
+	    echo "setopt hist_reduce_blanks"
 
-	echo "" >> /root/.zshrc
-	echo "# GLOBAL ALIAS #" >> /root/.zshrc
-	echo "alias -g G='| grep --color'" >> /root/.zshrc
-	echo "alias -g H='| head'" >> /root/.zshrc
-	echo "alias -g L='| less'" >> /root/.zshrc
-	echo "alias -g M='| more'" >> /root/.zshrc
-	echo "alias -g W='| wc -l'" >> /root/.zshrc
+	    echo ""
+	    echo "# GLOBAL ALIAS #"
+	    echo "alias -g G='| grep --color'"
+	    echo "alias -g H='| head'"
+	    echo "alias -g L='| less'"
+	    echo "alias -g M='| more'"
+	    echo "alias -g W='| wc -l'"
 
-	echo "" >> /root/.zshrc
-	echo "# APT APTITUDE#" >> /root/.zshrc
-	echo "alias acd='apt-cache depends'" >> /root/.zshrc
-	echo "alias acp='apt-cache policy'" >> /root/.zshrc
-	echo "alias acr='apt-cache rdepends -i --no-pre-depends'" >> /root/.zshrc
-	echo "alias agd='apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade'" >> /root/.zshrc
-	echo "alias agi='apt --show-progress install'" >> /root/.zshrc
-	echo "alias agif='apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress install'" >> /root/.zshrc
-	echo "alias agp='apt --show-progress purge'" >> /root/.zshrc
-	echo "alias agpf='apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress purge'" >> /root/.zshrc
-	echo "alias agu='apt update'" >> /root/.zshrc
-	echo "alias agud='apt update && apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade'" >> /root/.zshrc
-	echo "alias alu='apt list --upgradable'" >> /root/.zshrc
-	echo "alias ama='apt-mark auto'" >> /root/.zshrc
-	echo "alias amm='apt-mark manual'" >> /root/.zshrc
-	echo "alias aps='aptitude search'" >> /root/.zshrc
+	    echo ""
+	    echo "# APT APTITUDE#"
+	    echo "alias acd='apt-cache depends'"
+	    echo "alias acp='apt-cache policy'"
+	    echo "alias acr='apt-cache rdepends -i --no-pre-depends'"
+	    echo "alias agd='apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade'"
+	    echo "alias agi='apt --show-progress install'"
+	    echo "alias agif='apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress install'"
+	    echo "alias agp='apt --show-progress purge'"
+	    echo "alias agpf='apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress purge'"
+	    echo "alias agu='apt update'"
+	    echo "alias agud='apt update && apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade'"
+	    echo "alias alu='apt list --upgradable'"
+	    echo "alias ama='apt-mark auto'"
+	    echo "alias amm='apt-mark manual'"
+	    echo "alias aps='aptitude search'"
 
-	echo "" >> /root/.zshrc
-	echo "# CAT #" >> /root/.zshrc
-	echo "alias c='cat '" >> /root/.zshrc
-	echo "alias cdv='cat /etc/debian_version'" >> /root/.zshrc
-	echo "alias ceh='cat /etc/hosts'" >> /root/.zshrc
-	echo "alias cehc='cat /etc/host.conf'" >> /root/.zshrc
-	echo "alias cel='cat /etc/localtime'" >> /root/.zshrc
-	echo "alias ci='cat /home/devops/datas/template/PROMPTS/INDEX.md'" >> /root/.zshrc
-	echo "alias cm='cat /home/monero/monero.log'" >> /root/.zshrc
-	echo "alias cpmh='cat /proc/meminfo | grep Huge'" >> /root/.zshrc
-	echo "alias cer='cat /etc/rsyslog.conf'" >> /root/.zshrc
-	echo "alias cer1='cat /etc/rsyslog.d/1-kernel.conf'" >> /root/.zshrc
-	echo "alias cerd='cat /etc/rsyslog.d/default.conf'" >> /root/.zshrc
-	echo "alias cerp='cat /etc/rsyslog.d/postfix.conf'" >> /root/.zshrc
-	echo "alias cetv='cat /etc/tmpfiles.d/var2log.conf'" >> /root/.zshrc
-	echo "alias ceu='cat /etc/ulogd.conf'" >> /root/.zshrc
-	echo "alias chda='cat /home/docker/.ssh/authorized_keys'" >> /root/.zshrc
-	echo "alias cp2='cat /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias cra='cat /root/.ssh/authorized_keys'" >> /root/.zshrc
-	echo "alias cvll='cat /var/log/letsencrypt.log'" >> /root/.zshrc
-	echo "alias cx='cat /home/monero/xmrig.log'" >> /root/.zshrc
+	    echo ""
+	    echo "# CAT #"
+	    echo "alias c='cat '"
+	    echo "alias cdv='cat /etc/debian_version'"
+	    echo "alias ceh='cat /etc/hosts'"
+	    echo "alias cehc='cat /etc/host.conf'"
+	    echo "alias cel='cat /etc/localtime'"
+	    echo "alias ci='cat /home/devops/datas/template/PROMPTS/INDEX.md'"
+	    echo "alias cm='cat /home/monero/monero.log'"
+	    echo "alias cpmh='cat /proc/meminfo | grep Huge'"
+	    echo "alias cer='cat /etc/rsyslog.conf'"
+	    echo "alias cer1='cat /etc/rsyslog.d/1-kernel.conf'"
+	    echo "alias cerd='cat /etc/rsyslog.d/default.conf'"
+	    echo "alias cerp='cat /etc/rsyslog.d/postfix.conf'"
+	    echo "alias cetv='cat /etc/tmpfiles.d/var2log.conf'"
+	    echo "alias ceu='cat /etc/ulogd.conf'"
+	    echo "alias chda='cat /home/docker/.ssh/authorized_keys'"
+	    echo "alias cp2='cat /home/monero/p2pool.log'"
+	    echo "alias cra='cat /root/.ssh/authorized_keys'"
+	    echo "alias cvll='cat /var/log/letsencrypt.log'"
+	    echo "alias cx='cat /home/monero/xmrig.log'"
 
-	echo "" >> /root/.zshrc
-	echo "# CD CP MV RM #" >> /root/.zshrc
-	echo "alias ..='cd ..'" >> /root/.zshrc
-	echo "alias ...='cd ../..'" >> /root/.zshrc
-	# echo "alias cd='z'" >> /root/.zshrc
-	echo "alias cde='cd /etc'" >> /root/.zshrc
-	echo "alias cdea='cd /etc/apache2'" >> /root/.zshrc
-	echo "alias cdeapt='cd /etc/apt'" >> /root/.zshrc
-	echo "alias cdeaptconf='cd /etc/apt/apt.conf.d'" >> /root/.zshrc
-	echo "alias cdeaptpref='cd /etc/apt/preferences.d'" >> /root/.zshrc
-	echo "alias cdeaptsl='cd /etc/apt/sources.list.d'" >> /root/.zshrc
-	echo "alias cdeapttrust='cd /etc/apt/trusted.gpg.d'" >> /root/.zshrc
-	echo "alias cdeaca='cd /etc/apache2/conf-available'" >> /root/.zshrc
-	echo "alias cdeace='cd /etc/apache2/conf-enabled'" >> /root/.zshrc
-	echo "alias cdeama='cd /etc/apache2/mods-available'" >> /root/.zshrc
-	echo "alias cdeame='cd /etc/apache2/mods-enabled'" >> /root/.zshrc
-	echo "alias cdeasa='cd /etc/apache2/sites-available'" >> /root/.zshrc
-	echo "alias cdease='cd /etc/apache2/sites-enabled'" >> /root/.zshrc
-	echo "alias cded='cd /etc/default'" >> /root/.zshrc
-	echo "alias cdeg='cd ~/.local/share/gnome-shell/extensions/'" >> /root/.zshrc
-	echo "alias cdel='cd /etc/ldap'" >> /root/.zshrc
-	echo "alias cdels='cd /etc/ldap/slapd.d'" >> /root/.zshrc
-	echo "alias cdelsc='cd /etc/ldap/slapd.d/cn=config'" >> /root/.zshrc
-	echo "alias cden='cd /etc/network'" >> /root/.zshrc
-	echo "alias cdeni='cd /etc/network/interfaces.d'" >> /root/.zshrc
-	echo "alias cdenm='cd /etc/NetworkManager/system-connections'" >> /root/.zshrc
-	echo "alias cdenm='cd /etc/NetworkManager/system-connections'" >> /root/.zshrc
-	echo "alias cdeovpn='cd /etc/openvpn'" >> /root/.zshrc
-	echo "alias cder='cd /etc/rsyslog.d'" >> /root/.zshrc
-	echo "alias cdepf='cd /etc/postfix'" >> /root/.zshrc
-	echo "alias cdes='cd /etc/systemd'" >> /root/.zshrc
-	echo "alias cdesn='cd /etc/systemd/network'" >> /root/.zshrc
-	echo "alias cdess='cd /etc/systemd/system'" >> /root/.zshrc
-	echo "alias cdessh='cd /etc/ssh'" >> /root/.zshrc
-	echo "alias cdessl='cd /etc/ssl'" >> /root/.zshrc
-	echo "alias cdesu='cd /etc/systemd/user'" >> /root/.zshrc
-	echo "alias cdh='cd /home'" >> /root/.zshrc
-	echo "alias cdhde='cd /home/devops'" >> /root/.zshrc
-	echo "alias cdhded='cd /home/devops/datas'" >> /root/.zshrc
-	echo "alias cdhdo='cd /home/docker'" >> /root/.zshrc
-	echo "alias cdhdod='cd /home/docker/datas'" >> /root/.zshrc
-	echo "alias cdhdos='cd /home/docker/.ssh'" >> /root/.zshrc
-	echo "alias cdhdop='cd /home/docker/proxy'" >> /root/.zshrc
-	echo "alias cdhi='cd /home/ia'" >> /root/.zshrc
-	echo "alias cdhid='cd /home/ia/download'" >> /root/.zshrc
-	echo "alias cdhih='cd /home/ia/hermes'" >> /root/.zshrc
-	echo "alias cdhit='cd /home/ia/tools'" >> /root/.zshrc
-	echo "alias cdm='cd /home/monero'" >> /root/.zshrc
-	echo "alias cdr='cd /root'" >> /root/.zshrc
-	echo "alias cdt='cd /tmp'" >> /root/.zshrc
-	echo "alias cdub='cd /usr/bin'" >> /root/.zshrc
-	echo "alias cdv='cd /var'" >> /root/.zshrc
-	echo "alias cdvc='cd /var/cache'" >> /root/.zshrc
-	echo "alias cdvl='cd /var/log'" >> /root/.zshrc
-	echo "alias cdvlm='cd /var/log/machines'" >> /root/.zshrc
-	echo "alias cdvlib='cd /var/lib'" >> /root/.zshrc
-	echo "alias cdvlibl='cd /var/lib/ldap'" >> /root/.zshrc
-	echo "alias cdvm='cd /var/mail'" >> /root/.zshrc
-	echo "alias cdvs='cd /var/spool'" >> /root/.zshrc
-	echo "alias cdvt='cd /var/tmp'" >> /root/.zshrc
-	echo "alias cp='cp -i'" >> /root/.zshrc
-	echo "alias mv='mv -i'" >> /root/.zshrc
-	echo "alias rm='rm -i'" >> /root/.zshrc
+	    echo ""
+	    echo "# CD CP MV RM #"
+	    echo "alias ..='cd ..'"
+	    echo "alias ...='cd ../..'"
+    	# echo "alias cd='z'" >> /root/.zshrc
+	    echo "alias cde='cd /etc'"
+	    echo "alias cdea='cd /etc/apache2'"
+	    echo "alias cdeapt='cd /etc/apt'"
+	    echo "alias cdeaptconf='cd /etc/apt/apt.conf.d'"
+	    echo "alias cdeaptpref='cd /etc/apt/preferences.d'"
+	    echo "alias cdeaptsl='cd /etc/apt/sources.list.d'"
+	    echo "alias cdeapttrust='cd /etc/apt/trusted.gpg.d'"
+	    echo "alias cdeaca='cd /etc/apache2/conf-available'"
+	    echo "alias cdeace='cd /etc/apache2/conf-enabled'"
+	    echo "alias cdeama='cd /etc/apache2/mods-available'"
+	    echo "alias cdeame='cd /etc/apache2/mods-enabled'"
+	    echo "alias cdeasa='cd /etc/apache2/sites-available'"
+	    echo "alias cdease='cd /etc/apache2/sites-enabled'"
+	    echo "alias cded='cd /etc/default'"
+	    echo "alias cdeg='cd ~/.local/share/gnome-shell/extensions/'"
+	    echo "alias cdel='cd /etc/ldap'"
+	    echo "alias cdels='cd /etc/ldap/slapd.d'"
+	    echo "alias cdelsc='cd /etc/ldap/slapd.d/cn=config'"
+	    echo "alias cden='cd /etc/network'"
+	    echo "alias cdeni='cd /etc/network/interfaces.d'"
+	    echo "alias cdenm='cd /etc/NetworkManager/system-connections'"
+	    echo "alias cdenm='cd /etc/NetworkManager/system-connections'"
+	    echo "alias cdeovpn='cd /etc/openvpn'"
+	    echo "alias cder='cd /etc/rsyslog.d'"
+	    echo "alias cdepf='cd /etc/postfix'"
+	    echo "alias cdes='cd /etc/systemd'"
+	    echo "alias cdesn='cd /etc/systemd/network'"
+	    echo "alias cdess='cd /etc/systemd/system'"
+	    echo "alias cdessh='cd /etc/ssh'"
+	    echo "alias cdessl='cd /etc/ssl'"
+	    echo "alias cdesu='cd /etc/systemd/user'"
+	    echo "alias cdh='cd /home'"
+	    echo "alias cdhde='cd /home/devops'"
+	    echo "alias cdhded='cd /home/devops/datas'"
+	    echo "alias cdhdo='cd /home/docker'"
+	    echo "alias cdhdod='cd /home/docker/datas'"
+	    echo "alias cdhdos='cd /home/docker/.ssh'"
+	    echo "alias cdhdop='cd /home/docker/proxy'"
+	    echo "alias cdhi='cd /home/ia'"
+	    echo "alias cdhid='cd /home/ia/download'"
+	    echo "alias cdhih='cd /home/ia/hermes'"
+	    echo "alias cdhit='cd /home/ia/tools'"
+	    echo "alias cdm='cd /home/monero'"
+	    echo "alias cdr='cd /root'"
+	    echo "alias cdt='cd /tmp'"
+	    echo "alias cdub='cd /usr/bin'"
+	    echo "alias cdv='cd /var'"
+	    echo "alias cdvc='cd /var/cache'"
+	    echo "alias cdvl='cd /var/log'"
+	    echo "alias cdvlm='cd /var/log/machines'"
+	    echo "alias cdvlib='cd /var/lib'"
+	    echo "alias cdvlibl='cd /var/lib/ldap'"
+	    echo "alias cdvm='cd /var/mail'"
+	    echo "alias cdvs='cd /var/spool'"
+	    echo "alias cdvt='cd /var/tmp'"
+	    echo "alias cp='cp -i'"
+	    echo "alias mv='mv -i'"
+	    echo "alias rm='rm -i'"
 
-	echo "" >> /root/.zshrc
-	echo "# CODEX #" >> /root/.zshrc
+	    echo ""
+	    echo "# CODEX #"
 
-	echo "" >> /root/.zshrc
-	echo "# COMMAND #" >> /root/.zshrc
-	echo "alias co='command -v '" >> /root/.zshrc
+	    echo ""
+	    echo "# COMMAND #"
+	    echo "alias co='command -v '"
 
-	echo "" >> /root/.zshrc
-	echo "# DIFF #" >> /root/.zshrc
-	echo "alias diffu='diff -u --suppress-common-lines'" >> /root/.zshrc
-	echo "alias diffy='diff -y --suppress-common-lines'" >> /root/.zshrc
+	    echo ""
+	    echo "# DIFF #"
+	    echo "alias diffu='diff -u --suppress-common-lines'"
+	    echo "alias diffy='diff -y --suppress-common-lines'"
 
-	echo "" >> /root/.zshrc
-	echo "# DIU #" >> /root/.zshrc
-	echo "alias rcicddiu='ridt projects cicddiu'" >> /root/.zshrc
-	echo "alias rcicddr='ridt projects cicddr'" >> /root/.zshrc
-	echo "alias rido='rid projects ocrw'" >> /root/.zshrc
-	echo "alias rid='/root/diu/root-install-debian.sh'" >> /root/.zshrc
-	echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'" >> /root/.zshrc
-	echo "alias ridu='rid update'" >> /root/.zshrc
+	    echo ""
+	    echo "# DIU #"
+	    echo "alias rcicddiu='ridt projects cicddiu'"
+	    echo "alias rcicddr='ridt projects cicddr'"
+	    echo "alias rido='rid projects ocrw'"
+	    echo "alias rid='/root/diu/root-install-debian.sh'"
+	    echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'"
+	    echo "alias ridu='rid update'"
 
-	echo "" >> /root/.zshrc
-	echo "# DF #" >> /root/.zshrc
-	echo "alias dfh='df -h'" >> /root/.zshrc
+	    echo ""
+	    echo "# DF #"
+	    echo "alias dfh='df -h'"
 
-	echo "" >> /root/.zshrc
-	echo "# DOCKER #" >> /root/.zshrc
-	echo "alias d0='docker stop'" >> /root/.zshrc
-	echo "alias d0d='docker stop dockhand'" >> /root/.zshrc
-	echo "alias d0dz='docker stop dozzle'" >> /root/.zshrc
-	echo "alias d0h='docker stop hawser'" >> /root/.zshrc
-	echo "alias d0o='docker stop ost'" >> /root/.zshrc
-	echo "alias d0t='docker stop traefik'" >> /root/.zshrc
-	echo "alias d0w='docker stop whoami'" >> /root/.zshrc
-	echo "alias d01d='docker restart dockhand'" >> /root/.zshrc
-	echo "alias d01dz='docker restart dozzle'" >> /root/.zshrc
-	echo "alias d01h='docker restart hawser'" >> /root/.zshrc
-	echo "alias d01o='docker restart ost'" >> /root/.zshrc
-	echo "alias d01t='docker restart traefik'" >> /root/.zshrc
-	echo "alias d01w='docker restart whoami'" >> /root/.zshrc
-	echo "alias d1='docker start'" >> /root/.zshrc
-	echo "alias d1d='docker start dockhand'" >> /root/.zshrc
-	echo "alias d1dz='docker start dozzle'" >> /root/.zshrc
-	echo "alias d1h='docker start hawser'" >> /root/.zshrc
-	echo "alias d1o='docker start ost'" >> /root/.zshrc
-	echo "alias d1t='docker start traefik'" >> /root/.zshrc
-	echo "alias d1w='docker start whoami'" >> /root/.zshrc
-	echo "alias dc='docker-compose --version'" >> /root/.zshrc
-	echo "alias ddp='su -c \"docker-compose -f /home/docker/proxy/docker-compose.yml down\" - docker'" >> /root/.zshrc
-	echo "alias dii='docker image inspect'" >> /root/.zshrc
-	echo "alias dils='docker image ls'" >> /root/.zshrc
-	echo "alias dl='docker logs'" >> /root/.zshrc
-	echo "alias dp='docker ps'" >> /root/.zshrc
-	echo "alias dlb='docker logs bunkerweb'" >> /root/.zshrc
-	echo "alias dlbbd='docker logs bw-bd'" >> /root/.zshrc
-	echo "alias dlbs='docker logs bw-scheduler'" >> /root/.zshrc
-	echo "alias dlbui='docker logs bw-ui'" >> /root/.zshrc
-	echo "alias dld='docker logs dozzle'" >> /root/.zshrc
-	echo "alias dlo='docker logs ost'" >> /root/.zshrc
-	echo "alias dlp='docker logs portainer'" >> /root/.zshrc
-	echo "alias dlt='docker logs traefik'" >> /root/.zshrc
-	echo "alias dlw='docker logs whoami'" >> /root/.zshrc
-	echo "alias dnls='docker network ls'" >> /root/.zshrc
-	echo "alias dpp='su -c \"docker stop dockhand && docker stop dozzle && docker stop hawser && docker stop librespeed && docker stop myspeed && docker stop traefik-manager && docker stop socket-proxy && docker stop whoami\" - docker'" >> /root/.zshrc
-	echo "alias drid='docker run --rm --entrypoint id'" >> /root/.zshrc
-	echo "alias dspa='docker system prune -f -a --volumes'" >> /root/.zshrc
-	echo "alias dup='su -c \"docker-compose -f /home/docker/proxy/docker-compose.yml up -d\" - docker'" >> /root/.zshrc
-	echo "alias dvls='docker volume ls'" >> /root/.zshrc
+	    echo ""
+	    echo "# DOCKER #"
+	    echo "alias d0='docker stop'"
+	    echo "alias d0d='docker stop dockhand'"
+	    echo "alias d0dz='docker stop dozzle'"
+	    echo "alias d0h='docker stop hawser'"
+	    echo "alias d0o='docker stop ost'"
+	    echo "alias d0t='docker stop traefik'"
+	    echo "alias d0w='docker stop whoami'"
+	    echo "alias d01d='docker restart dockhand'"
+	    echo "alias d01dz='docker restart dozzle'"
+	    echo "alias d01h='docker restart hawser'"
+	    echo "alias d01o='docker restart ost'"
+	    echo "alias d01t='docker restart traefik'"
+	    echo "alias d01w='docker restart whoami'"
+	    echo "alias d1='docker start'"
+	    echo "alias d1d='docker start dockhand'"
+	    echo "alias d1dz='docker start dozzle'"
+	    echo "alias d1h='docker start hawser'"
+	    echo "alias d1o='docker start ost'"
+	    echo "alias d1t='docker start traefik'"
+	    echo "alias d1w='docker start whoami'"
+	    echo "alias dc='docker-compose --version'"
+	    echo "alias ddp='su -c \"docker-compose -f /home/docker/proxy/docker-compose.yml down\" - docker'"
+	    echo "alias dii='docker image inspect'"
+	    echo "alias dils='docker image ls'"
+	    echo "alias dl='docker logs'"
+	    echo "alias dp='docker ps'"
+	    echo "alias dlb='docker logs bunkerweb'"
+	    echo "alias dlbbd='docker logs bw-bd'"
+	    echo "alias dlbs='docker logs bw-scheduler'"
+	    echo "alias dlbui='docker logs bw-ui'"
+	    echo "alias dld='docker logs dozzle'"
+	    echo "alias dlo='docker logs ost'"
+	    echo "alias dlp='docker logs portainer'"
+	    echo "alias dlt='docker logs traefik'"
+	    echo "alias dlw='docker logs whoami'"
+	    echo "alias dnls='docker network ls'"
+	    echo "alias dpp='su -c \"docker stop dockhand && docker stop dozzle && docker stop hawser && docker stop librespeed && docker stop myspeed && docker stop traefik-manager && docker stop socket-proxy && docker stop whoami\" - docker'"
+	    echo "alias drid='docker run --rm --entrypoint id'"
+	    echo "alias dspa='docker system prune -f -a --volumes'"
+	    echo "alias dup='su -c \"docker-compose -f /home/docker/proxy/docker-compose.yml up -d\" - docker'"
+	    echo "alias dvls='docker volume ls'"
 
-	echo "" >> /root/.zshrc
-	echo "# EXIT #" >> /root/.zshrc
-	echo "alias e='exit'" >> /root/.zshrc
+	    echo ""
+	    echo "# EXIT #"
+	    echo "alias e='exit'"
 
-	echo "" >> /root/.zshrc
-	echo "# FIND #" >> /root/.zshrc
-	echo "alias f=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -type f -name\"" >> /root/.zshrc
-	echo "alias f1=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -1 -type f -name\"" >> /root/.zshrc
-	echo "alias f7=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -7 -type f -name\"" >> /root/.zshrc
-	echo "alias f70=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -70 -type f -name\"" >> /root/.zshrc
-	echo "alias feg=\"find ~/.local/share/gnome-shell/extensions -maxdepth 2 -type f -name metadata.json -print\"" >> /root/.zshrc
-	echo 'alias fsync="find \"$(pwd)\" -type f -name '\''*sync-conflict*'\''"' >> /root/.zshrc
+	    echo ""
+	    echo "# FIND #"
+	    echo "alias f=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -type f -name\""
+	    echo "alias f1=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -1 -type f -name\""
+	    echo "alias f7=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -7 -type f -name\""
+	    echo "alias f70=\"find / \( ! -regex '\/dev\|\/lost.*\|\/sys\|\/proc' -o -prune \) -mmin -70 -type f -name\""
+	    echo "alias feg=\"find ~/.local/share/gnome-shell/extensions -maxdepth 2 -type f -name metadata.json -print\""
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo 'alias fsync="find \"$(pwd)\" -type f -name '\''*sync-conflict*'\''"'
 
-	echo "" >> /root/.zshrc
-	echo "# FREE #" >> /root/.zshrc
-	echo "alias mem='free -h'" >> /root/.zshrc
+	    echo ""
+	    echo "# FREE #"
+	    echo "alias mem='free -h'"
 
-	echo "" >> /root/.zshrc
-	echo "# GIT #" >> /root/.zshrc
-	echo "alias ga='git add .'" >> /root/.zshrc
-	echo "alias gb='git branch'" >> /root/.zshrc
-	echo "alias gbmain='git branch -M main'" >> /root/.zshrc
-	echo "alias gcll='git config --list --local'" >> /root/.zshrc
-	echo "alias gcoa='git commit -a '" >> /root/.zshrc
-	echo "alias gco1='git commit -m '" >> /root/.zshrc
-	echo "alias gcue='git config user.email'" >> /root/.zshrc
-	echo "alias gcun='git config user.name'" >> /root/.zshrc
-	echo "alias gd='git diff --cached --name-status'" >> /root/.zshrc
-	echo "alias gi='git init'" >> /root/.zshrc
-	echo "alias gls='git ls-files'" >> /root/.zshrc
-	echo "alias glog='git log --oneline --graph --decorate --all'" >> /root/.zshrc
-	echo "alias gp='git push -u origin main'" >> /root/.zshrc
-	echo "alias gr='git remote -v'" >> /root/.zshrc
-	echo "alias gra='git remote add origin'" >> /root/.zshrc
-	echo "alias grs='git remote show origin'" >> /root/.zshrc
-	echo "alias gs='git status'" >> /root/.zshrc
-	echo "alias gsi='git status --ignored'" >> /root/.zshrc
+	    echo ""
+	    echo "# GIT #"
+	    echo "alias ga='git add .'"
+	    echo "alias gb='git branch'"
+	    echo "alias gbmain='git branch -M main'"
+	    echo "alias gcll='git config --list --local'"
+	    echo "alias gcoa='git commit -a '"
+	    echo "alias gco1='git commit -m '"
+	    echo "alias gcue='git config user.email'"
+	    echo "alias gcun='git config user.name'"
+	    echo "alias gd='git diff --cached --name-status'"
+	    echo "alias gi='git init'"
+	    echo "alias gls='git ls-files'"
+	    echo "alias glog='git log --oneline --graph --decorate --all'"
+	    echo "alias gp='git push -u origin main'"
+	    echo "alias gr='git remote -v'"
+	    echo "alias gra='git remote add origin'"
+	    echo "alias grs='git remote show origin'"
+	    echo "alias gs='git status'"
+	    echo "alias gsi='git status --ignored'"
 
-	echo "" >> /root/.zshrc
-	echo "# Hermes #" >> /root/.zshrc
-	echo "alias hermes='docker exec -it hermes /opt/hermes/.venv/bin/hermes --tui'" >> /root/.zshrc
+	    echo ""
+	    echo "# Hermes #"
+	    echo "alias hermes='docker exec -it hermes /opt/hermes/.venv/bin/hermes --tui'"
 
-	echo "" >> /root/.zshrc
-	echo "# IP #" >> /root/.zshrc
-	echo "alias ipr='ip route'" >> /root/.zshrc
+	    echo ""
+	    echo "# IP #"
+	    echo "alias ipr='ip route'"
 
-	echo "" >> /root/.zshrc
-	echo "# IPTABLES #" >> /root/.zshrc
-	echo "alias ipt0='/root/fwoff.sh'" >> /root/.zshrc
-	echo "alias ipt1='/root/fwon.sh'" >> /root/.zshrc
-	echo "alias iptd='iptables -L DOCKER -nvx'" >> /root/.zshrc
-	echo "alias ipti='iptables -L INPUT -nvx'" >> /root/.zshrc
-	echo "alias iptf='iptables -L FORWARD -nvx'" >> /root/.zshrc
-	echo "alias ipto='iptables -L OUTPUT -nvx'" >> /root/.zshrc
+	    echo ""
+	    echo "# IPTABLES #"
+	    echo "alias ipt0='/root/fwoff.sh'"
+	    echo "alias ipt1='/root/fwon.sh'"
+	    echo "alias iptd='iptables -L DOCKER -nvx'"
+	    echo "alias ipti='iptables -L INPUT -nvx'"
+	    echo "alias iptf='iptables -L FORWARD -nvx'"
+	    echo "alias ipto='iptables -L OUTPUT -nvx'"
 
-	echo "# IPSET #" >> /root/.zshrc
-	echo "alias isd='ipset destroy'" >> /root/.zshrc
-	echo "alias isf='ipset flush'" >> /root/.zshrc
-	echo "alias isl='ipset -name list'" >> /root/.zshrc
+	    echo "# IPSET #"
+	    echo "alias isd='ipset destroy'"
+	    echo "alias isf='ipset flush'"
+	    echo "alias isl='ipset -name list'"
 
-	echo "" >> /root/.zshrc
-	echo "# JOURNALCTL #" >> /root/.zshrc
-	echo "alias j='journalctl -f'" >> /root/.zshrc
-	echo "alias jf='journalctl -feu'" >> /root/.zshrc
-	echo "alias jx='journalctl -xeu'" >> /root/.zshrc
+	    echo ""
+	    echo "# JOURNALCTL #"
+	    echo "alias j='journalctl -f'"
+	    echo "alias jf='journalctl -feu'"
+	    echo "alias jx='journalctl -xeu'"
 
-	echo "" >> /root/.zshrc
-	echo "# LOCATE #" >> /root/.zshrc
-	echo "alias lo='locate'" >> /root/.zshrc
+	    echo ""
+	    echo "# LOCATE #"
+	    echo "alias lo='locate'"
 
-	echo "" >> /root/.zshrc
-	echo "# LS #" >> /root/.zshrc
-	echo "alias la='ls -lA --color'" >> /root/.zshrc
-	echo "alias ll='ls -lah --color'" >> /root/.zshrc
-	echo "alias lll='ls -las --color'" >> /root/.zshrc
-	echo "alias ls='ls --color'" >> /root/.zshrc
+	    echo ""
+	    echo "# LS #"
+	    echo "alias la='ls -lA --color'"
+	    echo "alias ll='ls -lah --color'"
+	    echo "alias lll='ls -las --color'"
+	    echo "alias ls='ls --color'"
 
-	echo "" >> /root/.zshrc
-	echo "# MORE #" >> /root/.zshrc
-	echo "alias logs='more /var/log/syslog'" >> /root/.zshrc
+	    echo ""
+	    echo "# MORE #"
+	    echo "alias logs='more /var/log/syslog'"
 
-	echo "" >> /root/.zshrc
-	echo "# NANO #" >> /root/.zshrc
-	echo "alias n='nano'" >> /root/.zshrc
-	echo "alias ndc='nano /home/docker/proxy/docker-compose.yml'" >> /root/.zshrc
-	echo "alias ndipb='nano /home/docker/inits/postgres/bases.sql'" >> /root/.zshrc
-	echo "alias nedd='nano /etc/docker/daemon.json'" >> /root/.zshrc
-	echo "alias nedns='nano /etc/resolv.conf'" >> /root/.zshrc
-	echo "alias neni='nano /etc/network/interfaces'" >> /root/.zshrc
-	echo "alias nef='nano /etc/fstab'" >> /root/.zshrc
-	echo "alias neg='nano /etc/group'" >> /root/.zshrc
-	echo "alias neh='nano /etc/hosts'" >> /root/.zshrc
-	echo "alias nehc='nano /etc/host.conf'" >> /root/.zshrc
-	echo "alias nep='nano /etc/passwd'" >> /root/.zshrc
-	echo "alias ner='nano /etc/rsyslog.conf'" >> /root/.zshrc
-	echo "alias ner1='nano /etc/rsyslog.d/1-kernel.conf'" >> /root/.zshrc
-	echo "alias nerc='nano /etc/rc.local'" >> /root/.zshrc
-	echo "alias nerd='nano /etc/rsyslog.d/default.conf'" >> /root/.zshrc
-	echo "alias nerp='nano /etc/rsyslog.d/postfix.conf'" >> /root/.zshrc
-	echo "alias nesj='nano /etc/systemd/journald.conf'" >> /root/.zshrc
-	echo "alias nesshd='nano /etc/ssh/sshd_config'" >> /root/.zshrc
-	echo "alias netv='nano /etc/tmpfiles.d/var2log.conf'" >> /root/.zshrc
-	echo "alias neu='nano /etc/ulogd.conf'" >> /root/.zshrc
-	echo "alias ng='nano /etc/group'" >> /root/.zshrc
-	echo "alias nm='nano /etc/monero/monerod.conf'" >> /root/.zshrc
+	    echo ""
+	    echo "# NANO #"
+	    echo "alias n='nano'"
+	    echo "alias ndc='nano /home/docker/proxy/docker-compose.yml'"
+	    echo "alias ndipb='nano /home/docker/inits/postgres/bases.sql'"
+	    echo "alias nedd='nano /etc/docker/daemon.json'"
+	    echo "alias nedns='nano /etc/resolv.conf'"
+	    echo "alias neni='nano /etc/network/interfaces'"
+	    echo "alias nef='nano /etc/fstab'"
+	    echo "alias neg='nano /etc/group'"
+	    echo "alias neh='nano /etc/hosts'"
+	    echo "alias nehc='nano /etc/host.conf'"
+	    echo "alias nep='nano /etc/passwd'"
+	    echo "alias ner='nano /etc/rsyslog.conf'"
+	    echo "alias ner1='nano /etc/rsyslog.d/1-kernel.conf'"
+	    echo "alias nerc='nano /etc/rc.local'"
+	    echo "alias nerd='nano /etc/rsyslog.d/default.conf'"
+	    echo "alias nerp='nano /etc/rsyslog.d/postfix.conf'"
+	    echo "alias nesj='nano /etc/systemd/journald.conf'"
+	    echo "alias nesshd='nano /etc/ssh/sshd_config'"
+	    echo "alias netv='nano /etc/tmpfiles.d/var2log.conf'"
+	    echo "alias neu='nano /etc/ulogd.conf'"
+	    echo "alias ng='nano /etc/group'"
+	    echo "alias nm='nano /etc/monero/monerod.conf'"
+	} >> /root/.zshrc
 	echo "alias np='nano /etc/passwd'" >> /root/.zschrc
-	echo "alias nrid='nano /root/diu/root-install-debian.sh'" >> /root/.zshrc
-	echo "alias nriv='nano /root/diu/variables.sh'" >> /root/.zshrc
-	echo "alias nriidjd='nano /root/root-install-init-django-dev.sh'" >> /root/.zshrc
-	echo "alias nriidjp='nano /root/root-install-init-django-prod.sh'" >> /root/.zshrc
-	echo "alias nriim='nano /root/root-install-init-monero.sh'" >> /root/.zshrc
-	echo "alias nriip='nano /root/root-install-init-p2pool.sh'" >> /root/.zshrc
-	echo "alias nriix='nano /root/root-install-init-xmrig.sh'" >> /root/.zshrc
-	echo "alias nriw='nano root-install-wazuh-step-by-step-single-node.sh'" >> /root/.zshrc
-	echo "alias nt='nano /etc/tor/torrc'" >> /root/.zshrc
-	echo "alias ntd='nano /home/docker/proxy/traefik-data/configurations/dynamic.yml'" >> /root/.zshrc
-	echo "alias ntdpixs='nano /home/docker/proxy/traefik-data/configurations/1-stack-pixs.yml'" >> /root/.zshrc
-	echo "alias nts='nano /home/docker/proxy/traefik-data/static.yml'" >> /root/.zshrc
-	echo "alias nulfdp='nano /usr/lib/firefox-esr/distribution/policies.json'" >> /root/.zshrc
-	echo "alias nz='nano /root/.zshrc'" >> /root/.zshrc
+	{
+	    echo "alias nrid='nano /root/diu/root-install-debian.sh'"
+	    echo "alias nriv='nano /root/diu/variables.sh'"
+	    echo "alias nriidjd='nano /root/root-install-init-django-dev.sh'"
+	    echo "alias nriidjp='nano /root/root-install-init-django-prod.sh'"
+	    echo "alias nriim='nano /root/root-install-init-monero.sh'"
+	    echo "alias nriip='nano /root/root-install-init-p2pool.sh'"
+	    echo "alias nriix='nano /root/root-install-init-xmrig.sh'"
+	    echo "alias nriw='nano root-install-wazuh-step-by-step-single-node.sh'"
+	    echo "alias nt='nano /etc/tor/torrc'"
+	    echo "alias ntd='nano /home/docker/proxy/traefik-data/configurations/dynamic.yml'"
+	    echo "alias ntdpixs='nano /home/docker/proxy/traefik-data/configurations/1-stack-pixs.yml'"
+	    echo "alias nts='nano /home/docker/proxy/traefik-data/static.yml'"
+	    echo "alias nulfdp='nano /usr/lib/firefox-esr/distribution/policies.json'"
+	    echo "alias nz='nano /root/.zshrc'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande NETSTAT #" >> /root/.zshrc
-	echo "alias net='netstat -plantu'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande NETSTAT #"
+	    echo "alias net='netstat -plantu'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande OPENCODE #" >> /root/.zshrc
-	echo "alias oc='opencode --version'" >> /root/.zshrc
-	echo "alias oca='/opsx:apply'" >> /root/.zshrcd
-	echo "alias ocar='/opsx:archive'" >> /root/.zshrcd
-	echo "alias occ='/opsx:continue'" >> /root/.zshrcd
-	echo "alias oce='/opsx:explore'" >> /root/.zshrcd
-	echo "alias ocp='/opsx:propose'" >> /root/.zshrcd
-	echo "alias ocs='/opsx:sync'" >> /root/.zshrcd
-	echo "alias ocv='/opsx:verify'" >> /root/.zshrcd
+	    echo ""
+	    echo "# Commande OPENCODE #"
+	    echo "alias oc='opencode --version'"
+	} >> /root/.zshrc
+	{
+	    echo "alias oca='/opsx:apply'"
+	    echo "alias ocar='/opsx:archive'"
+	    echo "alias occ='/opsx:continue'"
+	    echo "alias oce='/opsx:explore'"
+	    echo "alias ocp='/opsx:propose'"
+	    echo "alias ocs='/opsx:sync'"
+	    echo "alias ocv='/opsx:verify'"
+	} >> /root/.zshrcd
 
-	echo "" >> /root/.zshrc
-	echo "# Commande OPENSPEC #" >> /root/.zshrc
-	echo "alias os='openspec --version'" >> /root/.zshrc
-	echo "alias osi='openspec init --tools opencode --profile custom'" >> /root/.zshrc
-	echo "alias oscl='openspec config list'" >> /root/.zshrc
-	echo "alias oscp='openspec config path'" >> /root/.zshrc
-	echo "alias oscpr='openspec config profile'" >> /root/.zshrc
-	echo "alias oscpr='openspec config schema'" >> /root/.zshrc
-	echo "alias oscgd='oopenspec config get delivery'" >> /root/.zshrc
-	echo "alias oscgp='oopenspec config get profile'" >> /root/.zshrc
-	echo "alias oscgt='oopenspec config get telemetry.enabled'" >> /root/.zshrc
-	echo "alias osl='openspec list'" >> /root/.zshrc
-	echo "alias osnc='openspec new change'" >> /root/.zshrc
-	echo "alias oss='openspec status'" >> /root/.zshrc
-	echo "alias osshe='openspec schemas'" >> /root/.zshrc
-	echo "alias ossho='openspec show'" >> /root/.zshrc
-	echo "alias osu='openspec update'" >> /root/.zshrc
-	echo "alias osv='openspec validate'" >> /root/.zshrc
+	{
+	    echo ""
+	    echo "# Commande OPENSPEC #"
+	    echo "alias os='openspec --version'"
+	    echo "alias osi='openspec init --tools opencode --profile custom'"
+	    echo "alias oscl='openspec config list'"
+	    echo "alias oscp='openspec config path'"
+	    echo "alias oscpr='openspec config profile'"
+	    echo "alias oscpr='openspec config schema'"
+	    echo "alias oscgd='oopenspec config get delivery'"
+	    echo "alias oscgp='oopenspec config get profile'"
+	    echo "alias oscgt='oopenspec config get telemetry.enabled'"
+	    echo "alias osl='openspec list'"
+	    echo "alias osnc='openspec new change'"
+	    echo "alias oss='openspec status'"
+	    echo "alias osshe='openspec schemas'"
+	    echo "alias ossho='openspec show'"
+	    echo "alias osu='openspec update'"
+	    echo "alias osv='openspec validate'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande OVS-VSCTL #" >> /root/.zshrc
-	echo "alias ovs='ovs-vsctl'" >> /root/.zshrc
-	echo "alias ovss='ovs-vsctl show'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande OVS-VSCTL #"
+	    echo "alias ovs='ovs-vsctl'"
+	    echo "alias ovss='ovs-vsctl show'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande P2POOL #" >> /root/.zshrc
-	echo "alias p2pb='echo \"bans\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2pe='echo \"exit\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2ph='echo \"hosts\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2phelp='echo \"help\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2plog0='echo \"loglevel 0\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2plog1='echo \"loglevel 1\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2plog2='echo \"loglevel 2\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2plog3='echo \"loglevel 3\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2pp='echo \"peers\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2ps='echo \"status\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2pv='echo \"version\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias p2pw='echo \"workers\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande P2POOL #"
+	    echo "alias p2pb='echo \"bans\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2pe='echo \"exit\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2ph='echo \"hosts\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2phelp='echo \"help\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2plog0='echo \"loglevel 0\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2plog1='echo \"loglevel 1\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2plog2='echo \"loglevel 2\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2plog3='echo \"loglevel 3\" > /run/p2pool/p2pool.control | sleep 1 | tail -f -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2pp='echo \"peers\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2ps='echo \"status\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2pv='echo \"version\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
+	    echo "alias p2pw='echo \"workers\" > /run/p2pool/p2pool.control | sleep 1 | tail -n 100 /home/monero/p2pool.log'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande PING #" >> /root/.zshrc
-	echo "alias p='ping -4'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande PING #"
+	    echo "alias p='ping -4'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande PS #" >> /root/.zshrc
-	echo "alias psc='ps xawf -eo pid,user,cgroup,args'" >> /root/.zshrc
-	echo "alias psf='ps faux'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande PS #"
+	    echo "alias psc='ps xawf -eo pid,user,cgroup,args'"
+	    echo "alias psf='ps faux'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande PYTHON #" >> /root/.zshrc
-	echo "alias pv=' python3 -m pip --version'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande PYTHON #"
+	    echo "alias pv=' python3 -m pip --version'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande SESH #" >> /root/.zshrc
-	echo "alias sl='sesh list'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande SESH #"
+	    echo "alias sl='sesh list'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande SOURCE #" >> /root/.zshrc
-	echo "alias sa='zsh -n ~/.zshrc && source ~/.zshrc && hash -r'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande SOURCE #"
+	    echo "alias sa='zsh -n ~/.zshrc && source ~/.zshrc && hash -r'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande SS #" >> /root/.zshrc
-	echo "alias ss='ss -tulpn'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande SS #"
+	    echo "alias ss='ss -tulpn'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande SU #" >> /root/.zshrc
-	echo "alias s='su -'" >> /root/.zshrc
-	echo "alias sudev='su - devops'" >> /root/.zshrc
-	echo "alias sudoc='su - docker'" >> /root/.zshrc
-	echo "alias suia='su - ia'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande SU #"
+	    echo "alias s='su -'"
+	    echo "alias sudev='su - devops'"
+	    echo "alias sudoc='su - docker'"
+	    echo "alias suia='su - ia'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande SYSTEMCTL #" >> /root/.zshrc
-	echo "alias sd='systemctl disable'" >> /root/.zshrc
-	echo "alias sdr='systemctl daemon-reload'" >> /root/.zshrc
-	echo "alias se='systemctl enable'" >> /root/.zshrc
-	echo "alias sss='systemctl status'" >> /root/.zshrc
-	echo "alias ssrc='systemctl status rc-local.service'" >> /root/.zshrc
-	echo "alias s0='systemctl stop'" >> /root/.zshrc
-	echo "alias s0rc='systemctl stop rc-local.service'" >> /root/.zshrc
-	echo "alias s1='systemctl start'" >> /root/.zshrc
-	echo "alias s1rc='systemctl start rc-local.service'" >> /root/.zshrc
-	echo "alias s01='systemctl restart'" >> /root/.zshrc
-	echo "alias s11='systemctl reload'" >> /root/.zshrc
-	echo "alias sser='systemctl -t service'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande SYSTEMCTL #"
+	    echo "alias sd='systemctl disable'"
+	    echo "alias sdr='systemctl daemon-reload'"
+	    echo "alias se='systemctl enable'"
+	    echo "alias sss='systemctl status'"
+	    echo "alias ssrc='systemctl status rc-local.service'"
+	    echo "alias s0='systemctl stop'"
+	    echo "alias s0rc='systemctl stop rc-local.service'"
+	    echo "alias s1='systemctl start'"
+	    echo "alias s1rc='systemctl start rc-local.service'"
+	    echo "alias s01='systemctl restart'"
+	    echo "alias s11='systemctl reload'"
+	    echo "alias sser='systemctl -t service'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande SYSTEMD-ANALYSE #" >> /root/.zshrc
-	echo "alias sdana='systemd-analyze'" >> /root/.zshrc
-	echo "alias sdanab='systemd-analyze blame'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande SYSTEMD-ANALYSE #"
+	    echo "alias sdana='systemd-analyze'"
+	    echo "alias sdanab='systemd-analyze blame'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande SYSTEMD-CGLS #" >> /root/.zshrc
-	echo "alias syscg='systemd-cgls'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande SYSTEMD-CGLS #"
+	    echo "alias syscg='systemd-cgls'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande TAIL #" >> /root/.zshrc
-	echo "alias ta='tail -f -n 100'" >> /root/.zshrc
-	echo "alias tam='tail -f -n 100 /home/monero/monero.log'" >> /root/.zshrc
-	echo "alias tap='tail -f -n 100 /home/monero/p2pool.log'" >> /root/.zshrc
-	echo "alias tax='tail -f -n 100 /home/monero/xmrig.log'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande TAIL #"
+	    echo "alias ta='tail -f -n 100'"
+	    echo "alias tam='tail -f -n 100 /home/monero/monero.log'"
+	    echo "alias tap='tail -f -n 100 /home/monero/p2pool.log'"
+	    echo "alias tax='tail -f -n 100 /home/monero/xmrig.log'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande TMUX SESH #" >> /root/.zshrc
-	echo "alias tm='tmux'" >> /root/.zshrc
-	echo "alias tma='tmux attach'" >> /root/.zshrc
-	echo "alias tmk='tmux kill-session -t'" >> /root/.zshrc
-	echo "alias tml='tmux ls'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande TMUX SESH #"
+	    echo "alias tm='tmux'"
+	    echo "alias tma='tmux attach'"
+	    echo "alias tmk='tmux kill-session -t'"
+	    echo "alias tml='tmux ls'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande TREE #" >> /root/.zshrc
-	echo 'alias t0="tree -a"' >> /root/.zshrc
-	echo 'alias t1="tree -a -L 1"' >> /root/.zshrc
-	echo 'alias t2="tree -a -L 2"' >> /root/.zshrc
-	echo 'alias t3="tree -a -L 3"' >> /root/.zshrc
-	echo 'alias t4="tree -a -L 4"' >> /root/.zshrc
-	echo 'alias thde0="tree -a /home/devops"' >> /root/.zshrc
-	echo 'alias thde1="tree -a -L 1 /home/devops"' >> /root/.zshrc
-	echo 'alias thde2="tree -a -L 2 /home/devops"' >> /root/.zshrc
-	echo 'alias thde3="tree -a -L 3 /home/devops"' >> /root/.zshrc
-	echo 'alias thde4="tree -a -L 4 /home/devops"' >> /root/.zshrc
-	echo 'alias thded0="tree -a /home/devops/datas"' >> /root/.zshrc
-	echo 'alias thded1="tree -a -L 1 /home/devops/datas"' >> /root/.zshrc
-	echo 'alias thded2="tree -a -L 2 /home/devops/datas"' >> /root/.zshrc
-	echo 'alias thded3="tree -a -L 3 /home/devops/datas"' >> /root/.zshrc
-	echo 'alias thded4="tree -a -L 4 /home/devops/datas"' >> /root/.zshrc
-	echo 'alias thdo="tree -a -I \"datas|proxy\" /home/docker && tree -a -L 2 -I \"inits|proxy\" /home/docker && tree -a -L 4 -I \"inits|datas\" /home/docker"' >> /root/.zshrc
-	echo 'alias thdo1="tree -a -L 1 /home/docker"' >> /root/.zshrc
-	echo 'alias thdo2="tree -a -L 2 /home/docker"' >> /root/.zshrc
-	echo 'alias thdo3="tree -a -L 3 /home/docker"' >> /root/.zshrc
-	echo 'alias thdo4="tree -a -L 4 /home/docker"' >> /root/.zshrc
-	echo "alias tvl='tree /var/log'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande TREE #"
+	    echo 'alias t0="tree -a"'
+	    echo 'alias t1="tree -a -L 1"'
+	    echo 'alias t2="tree -a -L 2"'
+	    echo 'alias t3="tree -a -L 3"'
+	    echo 'alias t4="tree -a -L 4"'
+	    echo 'alias thde0="tree -a /home/devops"'
+	    echo 'alias thde1="tree -a -L 1 /home/devops"'
+	    echo 'alias thde2="tree -a -L 2 /home/devops"'
+	    echo 'alias thde3="tree -a -L 3 /home/devops"'
+	    echo 'alias thde4="tree -a -L 4 /home/devops"'
+	    echo 'alias thded0="tree -a /home/devops/datas"'
+	    echo 'alias thded1="tree -a -L 1 /home/devops/datas"'
+	    echo 'alias thded2="tree -a -L 2 /home/devops/datas"'
+	    echo 'alias thded3="tree -a -L 3 /home/devops/datas"'
+	    echo 'alias thded4="tree -a -L 4 /home/devops/datas"'
+	    echo 'alias thdo="tree -a -I \"datas|proxy\" /home/docker && tree -a -L 2 -I \"inits|proxy\" /home/docker && tree -a -L 4 -I \"inits|datas\" /home/docker"'
+	    echo 'alias thdo1="tree -a -L 1 /home/docker"'
+	    echo 'alias thdo2="tree -a -L 2 /home/docker"'
+	    echo 'alias thdo3="tree -a -L 3 /home/docker"'
+	    echo 'alias thdo4="tree -a -L 4 /home/docker"'
+	    echo "alias tvl='tree /var/log'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande UNAME #" >> /root/.zshrc
-	echo 'alias u="uname -r"' >> /root/.zshrc
+	    echo ""
+	    echo "# Commande UNAME #"
+	    echo 'alias u="uname -r"'
 
-	echo "" >> /root/.zshrc
-	echo "# Commande WHICH #" >> /root/.zshrc
-	echo 'alias wh="which "' >> /root/.zshrc
+	    echo ""
+	    echo "# Commande WHICH #"
+	    echo 'alias wh="which "'
 
-	echo "" >> /root/.zshrc
-	echo "# Commande ZOXIDE #" >> /root/.zshrc
-	echo "alias ze='zoxide edit'" >> /root/.zshrc
-	echo "alias zl='zoxide query -l'" >> /root/.zshrc
-	echo "alias zq='zoxide query'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande ZOXIDE #"
+	    echo "alias ze='zoxide edit'"
+	    echo "alias zl='zoxide query -l'"
+	    echo "alias zq='zoxide query'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commande ZSH #" >> /root/.zshrc
-	echo "alias zshc='zsh -n ~/.zshrc'" >> /root/.zshrc
+	    echo ""
+	    echo "# Commande ZSH #"
+	    echo "alias zshc='zsh -n ~/.zshrc'"
 
-	echo "" >> /root/.zshrc
-	echo "# Commands on loading #" >> /root/.zshrc
+	    echo ""
+	    echo "# Commands on loading #"
 
-	echo 'eval "$(zoxide init zsh)"' >> /root/.zshrc
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo 'eval "$(zoxide init zsh)"'
+	} >> /root/.zshrc
 
 	# echo 'if command -v tmux >/dev/null && [ -z "$TMUX" ]; then' >> /root/.zshrc
 	# echo '  tmux attach -t main || tmux new -s main' >> /root/.zshrc
 	# echo 'fi' >> /root/.zshrc
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "bookworm" ] || [ $SYSTEM_DEBIAN_RELEASE = "bullseye" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ] || [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]
 	then
 
 		echo "neofetch" >> /root/.zshrc
 
 	fi
 
-	if [ $SYSTEM_DEBIAN_RELEASE = "trixie" ]
+	if [ "$SYSTEM_DEBIAN_RELEASE" = "trixie" ]
 	then
 
 		echo "fastfetch" >> /root/.zshrc
 
 	fi
 
-	cat >> /root/.zshrc <<'EOF'
+	{
+	    cat <<'EOF'
 
 sc() {
   [[ -t 1 ]] || return
@@ -7094,7 +6969,7 @@ sc() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 ai() {
   echo "aid		-->		deepseek-v4-flash"
@@ -7112,7 +6987,7 @@ ai() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aid() {
   local MODEL="deepseek-v4-flash"   # deepseek-v4-flash / deepseek-v4-pro
@@ -7151,7 +7026,7 @@ aid() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aidc() {
   local MODEL="deepseek-v4-pro"   # deepseek-v4-flash / deepseek-v4-pro
@@ -7190,7 +7065,7 @@ aidc() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aig() {
   local MODEL="gemini-3-flash-preview" # gemini-2.5-flash / gemini-2.5-pro / gemini-3.1-pro-preview / gemma-4-31b-it
@@ -7231,7 +7106,7 @@ aig() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aiod() {
 
@@ -7258,7 +7133,7 @@ aiod() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aiodc() {
 
@@ -7285,7 +7160,7 @@ aiodc() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aiog() {
 
@@ -7312,7 +7187,7 @@ aiog() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aiok() {
 
@@ -7339,7 +7214,7 @@ aiok() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aiol() {
 
@@ -7366,7 +7241,7 @@ aiol() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aiom5() {
 
@@ -7393,7 +7268,7 @@ aiom5() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aiom7() {
 
@@ -7420,7 +7295,7 @@ aiom7() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aioq() {
 
@@ -7447,7 +7322,7 @@ aioq() {
 }
 
 EOF
-	cat >> /root/.zshrc <<'EOF'
+	    cat <<'EOF'
 
 aip() {
   local MODEL="auto"
@@ -7488,6 +7363,7 @@ aip() {
 }
 
 EOF
+	} >> /root/.zshrc
 
 	ZPROFILE="/root/.zprofile"
 
@@ -7577,60 +7453,64 @@ EOF
 
 	echo "🔧 CONFIGURE TMUX FOR USER ROOT"
 	echo "" > /root/.tmux.conf
-	echo "# BASE #" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
-	echo "set -g mouse on" >> /root/.tmux.conf
-	echo "set -g history-limit 20000" >> /root/.tmux.conf
-	echo "set -g base-index 1" >> /root/.tmux.conf
-	echo "setw -g pane-base-index 1" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
-	echo "# PREFIX #" >> /root/.tmux.conf
-	echo "unbind C-b" >> /root/.tmux.conf
-	echo "set -g prefix C-a" >> /root/.tmux.conf
-	echo "bind C-a send-prefix" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
-	echo "# RELOADING CONFIG #" >> /root/.tmux.conf
-	echo "bind r source-file ~/.tmux.conf \; display-message "Reloaded!"" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
-	echo "# SPLITS #" >> /root/.tmux.conf
-	echo "bind | split-window -h" >> /root/.tmux.conf
-	echo "bind - split-window -v" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
+	{
+	    echo "# BASE #"
+	    echo ""
+	    echo "set -g mouse on"
+	    echo "set -g history-limit 20000"
+	    echo "set -g base-index 1"
+	    echo "setw -g pane-base-index 1"
+	    echo ""
+	    echo "# PREFIX #"
+	    echo "unbind C-b"
+	    echo "set -g prefix C-a"
+	    echo "bind C-a send-prefix"
+	    echo ""
+	    echo "# RELOADING CONFIG #"
+	    echo "bind r source-file ~/.tmux.conf \; display-message "Reloaded!""
+	    echo ""
+	    echo "# SPLITS #"
+	    echo "bind | split-window -h"
+	    echo "bind - split-window -v"
+	    echo ""
 
-	echo "# NAVIGATION #" >> /root/.tmux.conf
-	echo "bind h select-pane -L" >> /root/.tmux.conf
-	echo "bind l select-pane -R" >> /root/.tmux.conf
-	echo "bind k select-pane -U" >> /root/.tmux.conf
-	echo "bind j select-pane -D" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
-	echo "# COPY MODE #" >> /root/.tmux.conf
-	echo "setw -g mode-keys vi" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
-	echo "# STATUS BAR #" >> /root/.tmux.conf
-	echo "set -g status-bg colour235" >> /root/.tmux.conf
-	echo "set -g status-fg white" >> /root/.tmux.conf
-	echo "set -g status-left " DEVOPS "" >> /root/.tmux.conf
-	echo "set -g status-right '#(hostname) | %H:%M'" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
-	echo "" >> /root/.tmux.conf
+	    echo "# NAVIGATION #"
+	    echo "bind h select-pane -L"
+	    echo "bind l select-pane -R"
+	    echo "bind k select-pane -U"
+	    echo "bind j select-pane -D"
+	    echo ""
+	    echo "# COPY MODE #"
+	    echo "setw -g mode-keys vi"
+	    echo ""
+	    echo "# STATUS BAR #"
+	    echo "set -g status-bg colour235"
+	    echo "set -g status-fg white"
+	    echo "set -g status-left " DEVOPS ""
+	    echo "set -g status-right '#(hostname) | %H:%M'"
+	    echo ""
+	    echo ""
+	} >> /root/.tmux.conf
 
 	echo "🔧 CONFIGURE SESH FOR USER ROOT"
 	mkdir -p /root/.config/sesh
 	echo "" > /root/.config/sesh/config.yaml
-	echo "# DOCKER #" >> /root/.config/sesh/config.yaml
-	echo "projects:" >> /root/.config/sesh/config.yaml
-	echo "  docker:" >> /root/.config/sesh/config.yaml
-	echo "    path: ~/docker" >> /root/.config/sesh/config.yaml
-	echo "    command: tmux new-session -A -s docker" >> /root/.config/sesh/config.yaml
-	echo "" >> /root/.config/sesh/config.yaml
-	echo "  infra:" >> /root/.config/sesh/config.yaml
-	echo "    path: ~/infra" >> /root/.config/sesh/config.yaml
-	echo "    command: tmux new-session -A -s infra" >> /root/.config/sesh/config.yaml
-	echo "" >> /root/.config/sesh/config.yaml
-	echo "  homelab:" >> /root/.config/sesh/config.yaml
-	echo "    path: ~/homelab" >> /root/.config/sesh/config.yaml
-	echo "    command: tmux new-session -A -s homelab" >> /root/.config/sesh/config.yaml
-	echo "" >> /root/.config/sesh/config.yaml
+	{
+	    echo "# DOCKER #"
+	    echo "projects:"
+	    echo "  docker:"
+	    echo "    path: ~/docker"
+	    echo "    command: tmux new-session -A -s docker"
+	    echo ""
+	    echo "  infra:"
+	    echo "    path: ~/infra"
+	    echo "    command: tmux new-session -A -s infra"
+	    echo ""
+	    echo "  homelab:"
+	    echo "    path: ~/homelab"
+	    echo "    command: tmux new-session -A -s homelab"
+	    echo ""
+	} >> /root/.config/sesh/config.yaml
 
 	# echo 'zoxide init fish | source' >> ~/.config/fish/config.fish
 
@@ -7638,7 +7518,7 @@ fi
 
 ### RC.LOCAL ###
 
-if [ $RCLOCAL -eq 1 ]
+if [ "$RCLOCAL" -eq 1 ]
 then
 
 	echo "🔧 CONFIGURE RC.LOCAL"
@@ -7646,37 +7526,45 @@ then
 	touch /etc/rc.local
 	chmod +x /etc/rc.local
 	echo '#!/bin/bash -e' > /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
 
-	echo 'case "$1" in' >> /etc/rc.local
-	echo '	start)' >> /etc/rc.local
-	echo '		echo "rc.local Start..."' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo 'case "$1" in'
+	    echo '	start)'
+	    echo '		echo "rc.local Start..."'
+	    echo ''
+	    echo ''
+	    echo ''
+	} >> /etc/rc.local
 
-	if [ $DEBIAN_TYPE == "PROXMOX" ]
+	if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" == "PROXMOX" ]
 	then
 
-		if [ $BRIDGE_ETHERNET1_CONFIG_IP == "PROXMOX" ]
+		if [ "$BRIDGE_ETHERNET1_CONFIG_IP" == "PROXMOX" ]
 		then
 
-			echo '# CONFIGURE FILE HOST' >> /etc/rc.local
-			echo "HOSTNAME=$HOSTNAME"  >> /etc/rc.local
-			echo "HOSTNAME_FQDN=$HOSTNAME_FQDN"  >> /etc/rc.local
-			echo "BRIDGE_ETHERNET1_IP=\`ip a show $BRIDGE_ETHERNET1 | grep inet | sed -e 's/^.*inet[[:space:]]//' | sed -e 's/[[:space:]]brd.*//' | sed -e 's/\/.*//'\`"  >> /etc/rc.local
-			echo 'echo "127.0.0.1       localhost" > /etc/hosts' >> /etc/rc.local
-			echo 'echo "$BRIDGE_ETHERNET1_IP	$HOSTNAME_FQDN	$HOSTNAME" >> /etc/hosts' >> /etc/rc.local
-			echo 'echo "" >> /etc/hosts' >> /etc/rc.local
-			echo 'echo "# The following lines are desirable for IPv6 capable hosts" >> /etc/hosts' >> /etc/rc.local
-			echo 'echo "::1     localhost ip6-localhost ip6-loopback" >> /etc/hosts' >> /etc/rc.local
-			echo 'echo "ff02::1 ip6-allnodes" >> /etc/hosts' >> /etc/rc.local
-			echo 'echo "ff02::2 ip6-allrouters" >> /etc/hosts' >> /etc/rc.local
-			echo "" >> /etc/rc.local
-			echo "" >> /etc/rc.local
-			echo "" >> /etc/rc.local
+			{
+			    echo '# CONFIGURE FILE HOST'
+			    echo "HOSTNAME=$HOSTNAME" 
+			    echo "HOSTNAME_FQDN=$HOSTNAME_FQDN" 
+			    echo "BRIDGE_ETHERNET1_IP=\`ip a show $BRIDGE_ETHERNET1 | grep inet | sed -e 's/^.*inet[[:space:]]//' | sed -e 's/[[:space:]]brd.*//' | sed -e 's/\/.*//'\`" 
+			    echo 'echo "127.0.0.1       localhost" > /etc/hosts'
+			    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+			    # shellcheck disable=SC2016
+			    echo 'echo "$BRIDGE_ETHERNET1_IP	$HOSTNAME_FQDN	$HOSTNAME" >> /etc/hosts'
+			    echo 'echo "" >> /etc/hosts'
+			    echo 'echo "# The following lines are desirable for IPv6 capable hosts" >> /etc/hosts'
+			    echo 'echo "::1     localhost ip6-localhost ip6-loopback" >> /etc/hosts'
+			    echo 'echo "ff02::1 ip6-allnodes" >> /etc/hosts'
+			    echo 'echo "ff02::2 ip6-allrouters" >> /etc/hosts'
+			    echo ""
+			    echo ""
+			    echo ""
+			} >> /etc/rc.local
 
 		fi
 
@@ -7684,7 +7572,7 @@ then
 
 	echo '# IPTABLES INIT' >> /etc/rc.local
 	echo '# IPTABLES INIT' > /root/fwon.sh
-	if test $DOCKER -eq 1
+	if test "$DOCKER" -eq 1
 	then
 		echo 'if iptables -L | grep -q "^Chain DOCKER"' >> /etc/rc.local
 		echo 'if iptables -L | grep -q "^Chain DOCKER"' >>  /root/fwon.sh
@@ -7703,38 +7591,46 @@ then
 	echo 'iptables -t filter -F' >> /root/fwon.sh
 	echo 'iptables -t filter -X' >> /etc/rc.local
 	echo 'iptables -t filter -X' >> /root/fwon.sh
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
 
-	echo '# IPTABLES STATES RELATED AND ESTABLISHED' >> /etc/rc.local
+	    echo '# IPTABLES STATES RELATED AND ESTABLISHED'
+	} >> /etc/rc.local
 	echo '# IPTABLES STATES RELATED AND ESTABLISHED' >> /root/fwon.sh
 	echo 'iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT' >> /etc/rc.local
 	echo 'iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT' >> /root/fwon.sh
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
 
-	echo '# IPTABLES FILTER LOCALHOST' >> /etc/rc.local
+	    echo '# IPTABLES FILTER LOCALHOST'
+	} >> /etc/rc.local
 	echo '# IPTABLES FILTER LOCALHOST' >> /root/fwon.sh
 	echo 'iptables -A INPUT -i lo -j ACCEPT' >> /etc/rc.local
 	echo 'iptables -A INPUT -i lo -j ACCEPT' >> /root/fwon.sh
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
 
-	echo '# IPTABLES FILTER ICMP' >> /etc/rc.local
+	    echo '# IPTABLES FILTER ICMP'
+	} >> /etc/rc.local
 	echo '# IPTABLES FILTER ICMP' >> /root/fwon.sh
 	echo 'iptables -A INPUT -p icmp -j ACCEPT' >> /etc/rc.local
 	echo 'iptables -A INPUT -p icmp -j ACCEPT' >> /root/fwon.sh
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
+	} >> /etc/rc.local
 
-	if [ $DOCKER -eq 1 ]
+	if [ "$DOCKER" -eq 1 ]
 	then
 
-		DOCKER_BRIDGE=`ip a | grep docker | grep 1500 | grep -v "veth" | sed -e 's/[[:digit:]]*:[[:space:]]//' | sed -e 's/:[[:space:]].*//'`
+		DOCKER_BRIDGE=$(ip a | grep docker | grep 1500 | grep -v "veth" | sed -e 's/[[:digit:]]*:[[:space:]]//' | sed -e 's/:[[:space:]].*//')
 		[[ "$DOCKER_BRIDGE" == *"docker"* ]] && echo "Bridge DOCKER OK --> $DOCKER_BRIDGE" || echo "Bridge DOCKER KO"
 
 		if [[ "$DOCKER_BRIDGE" == *"docker"* ]]
@@ -7744,248 +7640,256 @@ then
 			echo '# IPTABLES FILTER FOR DOCKER BRIDGE' >> /root/fwon.sh
 			echo "iptables -A INPUT -s 192.168.100.0/24 -j ACCEPT" >> /etc/rc.local
 			echo "iptables -A INPUT -s 192.168.100.0/24 -j ACCEPT" >> /root/fwon.sh
-			echo '' >> /etc/rc.local
-			echo '' >> /etc/rc.local
-			echo '' >> /etc/rc.local
+			{
+			    echo ''
+			    echo ''
+			    echo ''
+			} >> /etc/rc.local
 
 		fi
 
 	fi
 
-	if [ $ADMIN_NETWORK1 != "NONE" ]
+	if [ "$ADMIN_NETWORK1" != "NONE" ]
 	then
 
 		echo "# IPTABLES FILTER ADMIN NETWORK 1" >> /etc/rc.local
 		echo "# IPTABLES FILTER ADMIN NETWORK 1" >> /root/fwon.sh
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -s $ADMIN_NETWORK1 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -s $ADMIN_NETWORK1 -j ACCEPT" >> /root/fwon.sh
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
+		{
+		    echo ""
+		    echo ""
+		    echo ""
+		} >> /etc/rc.local
 
 	fi
 
-	if [ $ADMIN_NETWORK2 != "NONE" ]
+	if [ "$ADMIN_NETWORK2" != "NONE" ]
 	then
 
 		echo "# IPTABLES FILTER ADMIN NETWORK 2" >> /etc/rc.local
 		echo "# IPTABLES FILTER ADMIN NETWORK 2" >> /root/fwon.sh
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -s $ADMIN_NETWORK2 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -s $ADMIN_NETWORK2 -j ACCEPT" >> /root/fwon.sh
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
+		{
+		    echo ""
+		    echo ""
+		    echo ""
+		} >> /etc/rc.local
 
 	fi
 
-	if [ $ACME != "NONE" ]
+	if [ "$ACME" != "NONE" ]
 	then
 
 		echo "# IPTABLES FILTER ACME" >> /etc/rc.local
 		echo "# IPTABLES FILTER ACME" >> /root/fwon.sh
 		echo "iptables -A INPUT -s $ACME -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -s $ACME -j ACCEPT" >> /root/fwon.sh
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
+		{
+		    echo ""
+		    echo ""
+		    echo ""
+		} >> /etc/rc.local
 
 	fi
 
 	echo "# IPTABLES FILTER TCP/UDP PORT(S)" >> /etc/rc.local
 	echo "# IPTABLES FILTER TCP/UDP PORT(S)" >> /root/fwon.sh
-	if [ $OPEN_22_TCP -eq 1 ]
+	if [ "$OPEN_22_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 22 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 22 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_53_TCP -eq 1 ]
+	if [ "$OPEN_53_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 53 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 53 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_53_UDP -eq 1 ]
+	if [ "$OPEN_53_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 53 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 53 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_80_TCP -eq 1 ]
+	if [ "$OPEN_80_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 80 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 80 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_88_TCP -eq 1 ]
+	if [ "$OPEN_88_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 88 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 88 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_88_UDP -eq 1 ]
+	if [ "$OPEN_88_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 88 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 88 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_123_UDP -eq 1 ]
+	if [ "$OPEN_123_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 123 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 123 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_389_TCP -eq 1 ]
+	if [ "$OPEN_389_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 389 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 389 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_443_TCP -eq 1 ]
+	if [ "$OPEN_443_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 443 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 443 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_443_UDP -eq 1 ]
+	if [ "$OPEN_443_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 443 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 443 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_464_TCP -eq 1 ]
+	if [ "$OPEN_464_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 464 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 464 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_464_UDP -eq 1 ]
+	if [ "$OPEN_464_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 464 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 464 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_514_TCP -eq 1 ]
+	if [ "$OPEN_514_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 514 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 514 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_514_UDP -eq 1 ]
+	if [ "$OPEN_514_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 514 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 514 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_636_TCP -eq 1 ]
+	if [ "$OPEN_636_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 636 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 636 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_1514_UDP -eq 1 ]
+	if [ "$OPEN_1514_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 1514 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 1514 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_1515_TCP -eq 1 ]
+	if [ "$OPEN_1515_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 1515 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 1515 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_2222_TCP -eq 1 ]
+	if [ "$OPEN_2222_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 2222 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 2222 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_3001_TCP -eq 1 ]
+	if [ "$OPEN_3001_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 3001 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 3001 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_4443_TCP -eq 1 ]
+	if [ "$OPEN_4443_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 4443 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 4443 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_4662_TCP -eq 1 ]
+	if [ "$OPEN_4662_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -p tcp --dport 4662 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p tcp --dport 4662 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_4662_TCP -eq 1 ]
+	if [ "$OPEN_4662_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -p tcp --dport 4662 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p tcp --dport 4662 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_4665_UDP -eq 1 ]
+	if [ "$OPEN_4665_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -p udp --dport 4665 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p udp --dport 4665 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_4672_UDP -eq 1 ]
+	if [ "$OPEN_4672_UDP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -p udp --dport 4672 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p udp --dport 4672 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_7389_TCP -eq 1 ]
+	if [ "$OPEN_7389_TCP" -eq 1 ]
 	
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 7389 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 7389 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_7422_TCP -eq 1 ]
+	if [ "$OPEN_7422_TCP" -eq 1 ]
 	
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 7422 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 7422 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_8006_TCP -eq 1 ]
+	if [ "$OPEN_8006_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8006 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8006 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_8043_TCP -eq 1 ]
+	if [ "$OPEN_8043_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8043 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8043 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_8080_TCP -eq 1 ]
+	if [ "$OPEN_8080_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8080 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8080 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_8088_TCP -eq 1 ]
+	if [ "$OPEN_8088_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8088 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8088 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_8843_TCP -eq 1 ]
+	if [ "$OPEN_8843_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8843 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 8843 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_9000_TCP -eq 1 ]
+	if [ "$OPEN_9000_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9000 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9000 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_9443_TCP -eq 1 ]
+	if [ "$OPEN_9443_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9443 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9443 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_9444_TCP -eq 1 ]
+	if [ "$OPEN_9444_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9444 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9444 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_9445_TCP -eq 1 ]
+	if [ "$OPEN_9445_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9445 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9445 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_9200_TCP -eq 1 ]
+	if [ "$OPEN_9200_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9200 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 9200 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_10000_TCP -eq 1 ]
+	if [ "$OPEN_10000_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 10000 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 10000 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OPEN_50000_TCP -eq 1 ]
+	if [ "$OPEN_50000_TCP" -eq 1 ]
 	then
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ $OMADA -eq 1 ]
+	if [ "$OMADA" -eq 1 ]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /root/fwon.sh
@@ -8013,19 +7917,23 @@ then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p tcp --dport 29817 -j ACCEPT" >> /root/fwon.sh
 	fi
 
-	echo "" >> /etc/rc.local
-	echo "" >> /etc/rc.local
-	echo "" >> /etc/rc.local
+	{
+	    echo ""
+	    echo ""
+	    echo ""
 
-	echo '# IPITABLES LOG' >> /etc/rc.local
+	    echo '# IPITABLES LOG'
+	} >> /etc/rc.local
 	echo '# IPITABLES LOG' >> /root/fwon.sh
 	echo 'iptables -A INPUT -m state --state NEW -j NFLOG --nflog-group 2 --nflog-prefix "REJECT"' >> /etc/rc.local
 	echo 'iptables -A INPUT -m state --state NEW -j NFLOG --nflog-group 2 --nflog-prefix "REJECT"' >> /root/fwon.sh
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
 
-	echo '# IPITABLES POLICY' >> /etc/rc.local
+	    echo '# IPITABLES POLICY'
+	} >> /etc/rc.local
 	echo '# IPITABLES POLICY' >> /root/fwon.sh
 	echo 'iptables -t filter -P INPUT DROP' >> /etc/rc.local
 	echo 'iptables -t filter -P INPUT DROP' >> /root/fwon.sh
@@ -8033,32 +7941,40 @@ then
 	echo 'iptables -t filter -P FORWARD ACCEPT' >> /root/fwon.sh
 	echo 'iptables -t filter -P OUTPUT ACCEPT' >> /etc/rc.local
 	echo 'iptables -t filter -P OUTPUT ACCEPT' >> /root/fwon.sh
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
 
-	echo 'TIMEOUT=30' >> /etc/rc.local
-	echo 'COUNT=0' >> /etc/rc.local
+	    echo 'TIMEOUT=30'
+	    echo 'COUNT=0'
 
-	echo "until ping -c1 -W1 $GATEWAY >/dev/null 2>&1" >> /etc/rc.local
-	echo 'do' >> /etc/rc.local
-	echo '	sleep 1' >> /etc/rc.local
-	echo '	COUNT=$((COUNT+1))' >> /etc/rc.local
+    	# GATEWAY est une entrée de la configuration historique, distincte des variables locales.
+    	# shellcheck disable=SC2153
+	    echo "until ping -c1 -W1 $GATEWAY >/dev/null 2>&1"
+	    echo 'do'
+	    echo '	sleep 1'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	COUNT=$((COUNT+1))'
 
-	echo '	if [ $COUNT -ge $TIMEOUT ]; then' >> /etc/rc.local
-	echo '		echo "Network Timeout"' >> /etc/rc.local
-	echo '		exit 1' >> /etc/rc.local
-	echo '	fi' >> /etc/rc.local
-	echo 'done' >> /etc/rc.local
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '	if [ $COUNT -ge $TIMEOUT ]; then'
+	    echo '		echo "Network Timeout"'
+	    echo '		exit 1'
+	    echo '	fi'
+	    echo 'done'
 
-	echo '' >> /etc/rc.local
-	echo 'echo "Nextwork OK"' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	    echo ''
+	    echo 'echo "Nextwork OK"'
+	    echo ''
+	} >> /etc/rc.local
 
 	if [ $INTERFACE_ETHERNET1 != "NONE" ]
 	then
 
-		if [ "$DEBIAN_TYPE" = "LXC" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "LXC" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR ETHERNET1"
@@ -8082,7 +7998,7 @@ then
 				} >> /etc/rc.local
 		fi
 
-		if [ "$DEBIAN_TYPE" = "PHYSICAL" ] || [ "$DEBIAN_TYPE" = "PROXMOX" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PHYSICAL" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PROXMOX" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR ETHERNET1"
@@ -8112,18 +8028,20 @@ then
 				} >> /etc/rc.local
 		fi
 
-		echo "# SET UP INTERFACE" >> /etc/rc.local
-		echo "ip link set $INTERFACE_ETHERNET1 up" >> /etc/rc.local
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
+		{
+		    echo "# SET UP INTERFACE"
+		    echo "ip link set $INTERFACE_ETHERNET1 up"
+		    echo ""
+		    echo ""
+		    echo ""
+		} >> /etc/rc.local
 
 	fi
 
 	if [ $INTERFACE_ETHERNET2 != "NONE" ]
 	then
 
-		if [ "$DEBIAN_TYPE" = "LXC" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "LXC" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR INTERFACE_ETHERNET2"
@@ -8147,7 +8065,7 @@ then
 				} >> /etc/rc.local
 		fi
 
-		if [ "$DEBIAN_TYPE" = "PHYSICAL" ] || [ "$DEBIAN_TYPE" = "PROXMOX" ] || [ "$DEBIAN_TYPE" = "VM" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PHYSICAL" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PROXMOX" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "VM" ]
 		then
 			{
 				echo "# DISABLE MULTICAST FOR INTERFACE_ETHERNET2"
@@ -8177,18 +8095,20 @@ then
 			} >> /etc/rc.local
 		fi
 
-		echo "# SET UP INTERFACE" >> /etc/rc.local
-		echo "ip link set $INTERFACE_ETHERNET2 up" >> /etc/rc.local
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
-		echo "" >> /etc/rc.local
+		{
+		    echo "# SET UP INTERFACE"
+		    echo "ip link set $INTERFACE_ETHERNET2 up"
+		    echo ""
+		    echo ""
+		    echo ""
+		} >> /etc/rc.local
 
 	fi
 
-	if [ $BRIDGE_ETHERNET1 != "NONE" ]
+	if [ "$BRIDGE_ETHERNET1" != "NONE" ]
 	then
 
-		if [ "$DEBIAN_TYPE" = "PHYSICAL" ] || [ "$DEBIAN_TYPE" = "PROXMOX" ]
+		if [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PHYSICAL" ] || [ "$SYSTEM_DEBIAN_ENVIRONNEMENT" = "PROXMOX" ]
 		then
 			{
 			echo "# DISABLE MULTICAST FOR BRIDGE_ETHERNET1"
@@ -8214,63 +8134,71 @@ then
 
 	fi
 
-	if [ $CROWDSEC_BOUNCER -eq 1 ]
+	if [ "$CROWDSEC_BOUNCER" -eq 1 ]
 	then
-		echo '# RESTART CROWDSEC FIREWALL BOUNCER' >> /etc/rc.local
-		echo 'systemctl restart crowdsec-firewall-bouncer.service' >> /etc/rc.local
-		echo '' >> /etc/rc.local
-		echo '' >> /etc/rc.local
-		echo '' >> /etc/rc.local
+		{
+		    echo '# RESTART CROWDSEC FIREWALL BOUNCER'
+		    echo 'systemctl restart crowdsec-firewall-bouncer.service'
+		    echo ''
+		    echo ''
+		    echo ''
+		} >> /etc/rc.local
 	fi
 
 	echo '# TUNING ROUTE' >> /etc/rc.local
 	echo "ip route change default via $GATEWAY dev $GATEWAY_INTERFACE proto kernel onlink initcwnd 44 initrwnd 44" >> /etc/rc.local
-	if [ $ROUTE1 -eq 1 ]
+	if [ "$ROUTE1" -eq 1 ]
 	then
 
 		echo "$ROUTE1_DATA" >> /etc/rc.local
 
 	fi
-	if [ $ROUTE2 -eq 1 ]
+	if [ "$ROUTE2" -eq 1 ]
 	then
 
 		echo "$ROUTE2_DATA" >> /etc/rc.local
 
 	fi
-	if [ $ROUTE3 -eq 1 ]
+	if [ "$ROUTE3" -eq 1 ]
 	then
 
 		echo "$ROUTE3_DATA" >> /etc/rc.local
 
 	fi
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
-	echo '' >> /etc/rc.local
+	{
+	    echo ''
+	    echo ''
+	    echo ''
 
-	echo '		exit 0' >> /etc/rc.local
-	echo '	;;' >> /etc/rc.local
-	echo '	stop)' >> /etc/rc.local
-	echo '		echo "rc.local Stop..."' >> /etc/rc.local
-	echo '		exit 0' >> /etc/rc.local
-	echo '	;;' >> /etc/rc.local
-	echo '	*)' >> /etc/rc.local
-	echo '		echo "Usage: $0 {start|stop}"' >> /etc/rc.local
-	echo '		exit 1' >> /etc/rc.local
-	echo '	;;' >> /etc/rc.local
-	echo 'esac' >> /etc/rc.local
+	    echo '		exit 0'
+	    echo '	;;'
+	    echo '	stop)'
+	    echo '		echo "rc.local Stop..."'
+	    echo '		exit 0'
+	    echo '	;;'
+	    echo '	*)'
+	    # Dollars littéraux destinés au fichier généré, sans expansion ici.
+	    # shellcheck disable=SC2016
+	    echo '		echo "Usage: $0 {start|stop}"'
+	    echo '		exit 1'
+	    echo '	;;'
+	    echo 'esac'
+	} >> /etc/rc.local
 
 	# FW OFF
 	echo '#!/bin/sh -e' > /root/fwoff.sh
-	echo '' >> /root/fwoff.sh
-	echo '' >> /root/fwoff.sh
-	echo '' >> /root/fwoff.sh
-	echo '# IPTABLES OFF' >> /root/fwoff.sh
-	echo 'iptables -t filter -P INPUT ACCEPT' >> /root/fwoff.sh
-	echo 'iptables -t filter -P FORWARD ACCEPT' >> /root/fwoff.sh
-	echo 'iptables -t filter -P OUTPUT ACCEPT' >> /root/fwoff.sh
-	echo 'iptables -t filter -F' >> /root/fwoff.sh
-	echo 'iptables -t filter -X' >> /root/fwoff.sh
-	if [ $DOCKER -eq 1 ]
+	{
+	    echo ''
+	    echo ''
+	    echo ''
+	    echo '# IPTABLES OFF'
+	    echo 'iptables -t filter -P INPUT ACCEPT'
+	    echo 'iptables -t filter -P FORWARD ACCEPT'
+	    echo 'iptables -t filter -P OUTPUT ACCEPT'
+	    echo 'iptables -t filter -F'
+	    echo 'iptables -t filter -X'
+	} >> /root/fwoff.sh
+	if [ "$DOCKER" -eq 1 ]
 	then
 		echo 'iptables -X DOCKER' >> /root/fwoff.sh
 	fi
@@ -8286,7 +8214,7 @@ then
 
 fi
 
-if [ $DOCKER_STACK_BUNKERWEB_UPGRADE -eq 1 ]
+if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
 then
 
 	echo "###############################################"
@@ -8307,7 +8235,7 @@ then
 
 fi
 
-if [ $DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE -eq 1 ]
+if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
 then
 
 	echo "##############################################"
@@ -8334,16 +8262,18 @@ echo ""
 echo "######################################"
 echo "# Update ALIAS 		: $VERSION_ALIAS #"
 echo "# Update VARIABLES 	: $VERSION_VARIABLES #"
+# VERSION provient de la configuration historique, distincte des versions locales des modules.
+# shellcheck disable=SC2153
 echo "# Update SCRIPT - RI 	: $VERSION #"
 echo "######################################"
 echo ""
 echo ""
 echo ""
 
-if [[ "${DEBIAN_TYPE}" == "PROXMOX" ]]; then
+if [[ "${SYSTEM_DEBIAN_ENVIRONNEMENT}" == "PROXMOX" ]]; then
   dmesg | grep -e DMAR -e IOMMU -e AMD-Vi || true
 fi
 
-display_infos
+system_info_network
 
 exit 0

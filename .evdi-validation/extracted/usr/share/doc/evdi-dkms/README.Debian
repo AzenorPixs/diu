@@ -1,0 +1,7 @@
+evdi for Debian
+--------------
+
+This package is mostly intended for use with DisplayLink devices. For more
+information about evdi see https://github.com/DisplayLink/evdi.
+
+ -- Hanno Stock <opensource@hanno-stock.de>  Wed, 16 Jan 2019 11:45:57 +0100
