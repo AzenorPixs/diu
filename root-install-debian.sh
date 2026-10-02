@@ -1388,15 +1388,22 @@ manage_project_action() {
 
         template)
             project_id="${3:-}"
-            if [[ "$#" -ne 3 || ( "${2:-}" != openspec && "${2:-}" != devops ) || -z "${project_id}" ||
+            if [[ "$#" -ne 3 || ( "${2:-}" != openspec && "${2:-}" != devops && "${2:-}" != all ) ||
+                ( "${2:-}" == all && "${project_id}" != all ) || -z "${project_id}" ||
                 "${project_id}" == */* || "${project_id}" == . || "${project_id}" == .. ||
                 "${project_id}" =~ [[:cntrl:]] ]]; then
-                echo '❌ Usage : rid projects template openspec <ID PROJECT> ou rid projects template devops <ID PROJECT>'
+                echo '❌ Usage : rid projects template openspec <ID PROJECT>, rid projects template devops <ID PROJECT> ou rid projects template all all'
                 rid_display_command_error projects template
                 return 2
             fi
-            if [[ "${2}" == openspec ]]; then
-                projects_template_openspec "${project_id}"
+            if [[ "${2}" == all ]]; then
+                projects_template_all_all
+            elif [[ "${2}" == openspec ]]; then
+                if [[ "${project_id}" == all ]]; then
+                    projects_template_openspec_all
+                else
+                    projects_template_openspec "${project_id}"
+                fi
             elif [[ "${project_id}" == all ]]; then
                 projects_template_devops_all
             else
@@ -1472,8 +1479,15 @@ manage_project_action() {
             ;;
 
         update)
-            update_projects \
-                "$project_id"
+            if [[ "$#" -eq 1 ]]; then
+                projects_update
+            elif [[ "$#" -eq 2 && -n "${project_id}" ]]; then
+                update_projects "${project_id}"
+            else
+                echo '❌ Usage : rid projects update ou rid projects update <ID PROJECT>'
+                rid_display_command_error projects update
+                return 2
+            fi
             ;;
 
         sync)

@@ -239,21 +239,21 @@ L'aide create SHALL préciser la génération finale de DEVOPS.md.
 
 Les aides projects et projects template SHALL présenter
 `rid projects template openspec <ID PROJECT>` avec le libellé
-« Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT> ».
+« Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT> »
+et `rid projects template openspec all` pour tous les projets configurés.
 Les aides `projects template openspec` et `projects template openspec <ID PROJECT>`
 SHALL fonctionner avec help et ? avant tout chargement de configuration et
-sans mutation. L'aide spécifique SHALL expliquer init avec le profil custom,
-le choix OPENCODE et update pour un dossier OpenSpec existant. L'aide create
-SHALL préciser OpenSpec avant DevOps. Les aides DevOps individuelles et groupées
-SHALL suivre `projects template devops <ID PROJECT>` et `projects template devops all` ;
-openspec all SHALL décrire seulement le projet nommé all. Les arguments
-surnuméraires ou invalides et l'ancienne syntaxe terminale qui ne correspond
-pas déjà à une commande valide SHALL être rejetés avec une aide contextuelle.
+sans mutation. L'aide spécifique individuelle SHALL expliquer init avec le
+profil custom, le choix OPENCODE et update pour un dossier OpenSpec existant.
+L'aide create SHALL préciser OpenSpec avant DevOps. Les aides DevOps SHALL
+être conservées. Les arguments surnuméraires ou invalides et l'ancienne
+syntaxe terminale qui ne correspond pas déjà à une commande valide SHALL
+être rejetés avec une aide contextuelle.
 
 #### Scenario: Découverte et aide terminale
 
 - **WHEN** help ou ? suit projects, projects template, projects template openspec ou projects template openspec application
-- **THEN** l'aide présente la nouvelle commande OpenSpec sans charger la configuration
+- **THEN** l'aide présente la commande OpenSpec appropriée sans charger la configuration
 
 #### Scenario: Création avec OpenSpec
 
@@ -264,3 +264,72 @@ pas déjà à une commande valide SHALL être rejetés avec une aide contextuell
 
 - **WHEN** une aide OpenSpec contient un chemin invalide, un argument supplémentaire ou la syntaxe projects template application openspec help
 - **THEN** un code d'erreur et une aide contextuelle sont rendus sans effet de bord
+
+#### Scenario: Aide groupée OpenSpec
+
+- **WHEN** help ou ? suit projects template openspec all
+- **THEN** l'aide présente les cinq variables requises, la poursuite après échec et le bilan, sans sélection ni génération
+
+#### Scenario: Découverte du traitement OpenSpec groupé
+
+- **WHEN** help ou ? suit projects, projects template ou projects template openspec
+- **THEN** l'aide présente la commande openspec all pour tous les projets configurés
+
+### Requirement: Aide de tous les modèles pour tous les projets
+
+Les aides projects et projects template SHALL présenter
+`rid projects template all all`. Les contextes projects template all et
+projects template all all SHALL fonctionner avec help et ? avant tout
+chargement de configuration et sans traitement. L'aide SHALL expliquer
+les deux all, les cinq variables requises, OpenSpec puis DevOps en dernier
+pour chaque projet, la poursuite sur les autres projets après échec et le
+bilan. Elle SHALL préciser qu'un échec OpenSpec empêche DevOps sur ce projet.
+Les cibles individuelles après all et arguments supplémentaires SHALL être
+rejetés avec une aide contextuelle. Les aides existantes SHALL être conservées.
+
+#### Scenario: Découverte
+
+- **WHEN** help ou ? suit projects ou projects template
+- **THEN** l'aide présente la commande all all sans charger de configuration
+
+#### Scenario: Aide du traitement complet
+
+- **WHEN** help ou ? suit projects template all ou projects template all all
+- **THEN** l'aide présente les sélecteurs, les critères et l'ordre par projet sans traitement
+
+#### Scenario: Aide invalide
+
+- **WHEN** un projet individuel suit all ou un argument supplémentaire suit all all avant help
+- **THEN** l'aide rend un code non nul avec le contexte template all sans charger de configuration
+
+### Requirement: Aide de la mise à jour générale des projets
+
+L'aide projects SHALL présenter rid projects update et conserver rid projects
+update <ID PROJECT>. Les contextes projects update et projects update
+<ID PROJECT> SHALL fonctionner avec help et ? avant tout chargement de
+configuration et sans opération. L'aide générale SHALL indiquer tous les
+modèles de tous les projets configurés, OpenSpec puis DevOps en dernier.
+L'aide ciblée SHALL expliquer la mise à jour des variables du seul projet.
+L'aide rid update SHALL indiquer l'inclusion de la mise à jour générale des
+projets. Les arguments d'aide supplémentaires SHALL être refusés avec un
+diagnostic contextuel et les aides existantes SHALL être préservées.
+
+#### Scenario: Découverte et contexte général
+
+- **WHEN** help ou ? suit projects ou projects update
+- **THEN** l'aide présente les deux usages sans charger la configuration
+
+#### Scenario: Aide ciblée
+
+- **WHEN** help ou ? suit projects update application ou projects update all
+- **THEN** l'aide décrit la modification des variables du projet ciblé sans appeler de modèle
+
+#### Scenario: Aide globale
+
+- **WHEN** l'utilisateur demande rid update help ou rid update ?
+- **THEN** l'aide indique la mise à jour générale des projets sans opération
+
+#### Scenario: Arguments d'aide supplémentaires
+
+- **WHEN** un argument supplémentaire suit l'identifiant avant help
+- **THEN** l'aide rend un code non nul sans configuration ni écriture

@@ -100,8 +100,8 @@ printf '16.4\n'
         # code exécuté en mémoire : aucun accès à un véritable modèle utilisateur.
         source = MODULE.read_text(encoding='utf-8')
         home_assignment = 'local devops_home="/home/${ENV_DEVOPS_USER:-}"'
-        self.assertEqual(source.count(home_assignment), 2,
-                         'Le test doit isoler les deux domiciles, sans toucher aux projets réels')
+        self.assertEqual(source.count(home_assignment), 4,
+                         'Le test doit isoler les quatre domiciles, sans toucher aux projets réels')
         source = source.replace(home_assignment, 'local devops_home="$TEST_DEVOPS_HOME"')
         script = source + r'''
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
@@ -536,11 +536,17 @@ exit $?
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
 projects_template_devops_all() { printf 'batch\n'; }
 projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
+projects_template_openspec_all() { printf 'openspec-batch\n'; }
+projects_template_all_all() { printf 'all-models-batch\n'; }
 rid_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
         for arguments, status, expected in (
             (('template', 'devops', 'application'), 0, 'generation:application\n'),
+            (('template', 'all', 'all'), 0, 'all-models-batch\n'),
+            (('template', 'all', 'all', 'extra'), 2, 'help:projects template'),
+            (('template', 'all', 'application'), 2, 'help:projects template'),
+            (('template', 'all'), 2, 'help:projects template'),
             (('template', 'devops', 'template'), 0, 'generation:template\n'),
             (('template', 'devops', 'all'), 0, 'batch\n'),
             (('template', 'devops', 'devops'), 0, 'generation:devops\n'),
@@ -554,7 +560,8 @@ manage_project_action "$@"
             (('template', 'devops', '.'), 2, 'help:projects template'),
             (('template', 'devops', 'line\nbreak'), 2, 'help:projects template'),
             (('template', 'openspec', 'application'), 0, 'openspec:application\n'),
-            (('template', 'openspec', 'all'), 0, 'openspec:all\n'),
+            (('template', 'openspec', 'all'), 0, 'openspec-batch\n'),
+            (('template', 'openspec', 'all', 'extra'), 2, 'help:projects template'),
             (('template', 'openspec', 'devops'), 0, 'openspec:devops\n'),
             (('template', 'openspec', 'openspec'), 0, 'openspec:openspec\n'),
             (('template', 'openspec'), 2, 'help:projects template'),
