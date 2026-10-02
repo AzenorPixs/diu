@@ -19,13 +19,14 @@ system_apt_repository_engine() {
     local modern_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.sources"
     local legacy_file="${SYSTEM_APT_THIRD_PARTY_DIRECTORY}/${name}.list"
     local keyring="${SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY}/${name}-archive-keyring.gpg"
+    local legacy_keyring="${SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY}/crowdsec-crowdsec-archive-keyring.gpg"
 
     [[ "$name" =~ ^[a-z0-9][a-z0-9+._-]*$ ]] || { print_error "Nom de dépôt APT invalide : $name"; return 1; }
     [[ "$type" =~ ^[a-z][a-z0-9-]*$ ]] || { print_error "Type de dépôt APT invalide : $type"; return 1; }
     [[ "$enable" == 0 || "$enable" == 1 ]] || { print_error "Activation de dépôt APT invalide : $name"; return 1; }
 
     if [[ "$enable" == 0 ]]; then
-        rm -f -- "$modern_file" "$legacy_file" "$keyring"
+        rm -f -- "$modern_file" "$legacy_file" "$keyring" || return 1
         return 0
     fi
 
@@ -33,15 +34,22 @@ system_apt_repository_engine() {
         print_error "Paramètres incomplets pour le dépôt APT : $name"
         return 1
     }
-    install -d -m 0755 "$SYSTEM_APT_THIRD_PARTY_DIRECTORY" "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY"
-    if ! curl -fsSL "$url_gpg_key" | gpg --dearmor --yes --output "$keyring"; then
-        print_error "Impossible d'installer la clé GPG du dépôt APT : $name"
-        return 1
+    install -d -m 0755 "$SYSTEM_APT_THIRD_PARTY_DIRECTORY" "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY" || return 1
+    if [[ ! -f "$keyring" || ! -r "$keyring" || ! -s "$keyring" ]]; then
+        if [[ "$name" == crowdsec && -f "$legacy_keyring" && -r "$legacy_keyring" && -s "$legacy_keyring" ]]; then
+            if ! install -m 0644 "$legacy_keyring" "$keyring"; then
+                print_error "Impossible d'installer la clé GPG historique du dépôt APT : $name"
+                return 1
+            fi
+        elif ! curl -fsSL "$url_gpg_key" | gpg --dearmor --yes --output "$keyring"; then
+            print_error "Impossible d'installer la clé GPG du dépôt APT : $name"
+            return 1
+        fi
     fi
-    chmod 0644 "$keyring"
+    chmod 0644 "$keyring" || return 1
 
     if system_apt_is_deb822; then
-        rm -f -- "$legacy_file"
+        rm -f -- "$legacy_file" || return 1
         {
             printf 'Types: %s\n' "$type"
             printf 'URIs: %s\n' "$uris"
@@ -51,7 +59,7 @@ system_apt_repository_engine() {
             printf 'Signed-By: %s\n\n' "$keyring"
         } > "$modern_file"
     else
-        rm -f -- "$modern_file"
+        rm -f -- "$modern_file" || return 1
         local options="signed-by=${keyring}"
         [[ -n "$architecture" ]] && options="arch=${architecture} ${options}"
         printf '%s [%s] %s %s %s\n' "$type" "$options" "$uris" "$suites" "$components" > "$legacy_file"
@@ -59,34 +67,44 @@ system_apt_repository_engine() {
 }
 
 system_apt_configure_unofficial() {
+    local wazuh_enable mongodb_version mongodb_release=bookworm
+    case "${SYSTEM_APT_WAZUH:-0}" in
+        0) wazuh_enable=0 ;;
+        1|4) wazuh_enable=1 ;;
+        *) print_error "Activation de dépôt APT invalide : wazuh"; return 1 ;;
+    esac
+    [[ "${SYSTEM_DEBIAN_RELEASE}" == bullseye ]] && mongodb_release=bullseye
     system_apt_repository_engine "${SYSTEM_APT_CROWDSEC:-0}" crowdsec \
-        https://packagecloud.io/crowdsec/crowdsec/gpgkey deb any "" http://packagecloud.io/crowdsec/crowdsec/any
+        https://packagecloud.io/crowdsec/crowdsec/gpgkey deb any "" http://packagecloud.io/crowdsec/crowdsec/any || return 1
     system_apt_repository_engine "${SYSTEM_APT_DOCKER:-0}" docker \
-        https://download.docker.com/linux/debian/gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" https://download.docker.com/linux/debian stable
+        https://download.docker.com/linux/debian/gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" https://download.docker.com/linux/debian stable || return 1
     system_apt_repository_engine "${SYSTEM_APT_LEMONLDAP:-0}" lemonldap \
-        https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg deb 2.0 amd64 https://lemonldap-ng.org/deb
+        https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg deb 2.0 amd64 https://lemonldap-ng.org/deb || return 1
     case "${SYSTEM_APT_MONGODB:-0}" in
-        4|5|6|7|8) system_apt_repository_engine 1 mongodb \
-            "https://www.mongodb.org/static/pgp/server-${SYSTEM_APT_MONGODB}.0.asc" deb \
-            "bookworm/mongodb-org/${SYSTEM_APT_MONGODB}.0" amd64 http://repo.mongodb.org/apt/debian ;;
-        *) system_apt_repository_engine 0 mongodb "" deb "" "" "" ;;
+        4|5|6|7|8)
+            mongodb_version="${SYSTEM_APT_MONGODB}.0"
+            [[ "$SYSTEM_APT_MONGODB" == 4 ]] && mongodb_version=4.4
+            system_apt_repository_engine 1 mongodb \
+                "https://www.mongodb.org/static/pgp/server-${mongodb_version}.asc" deb \
+                "${mongodb_release}/mongodb-org/${mongodb_version}" amd64 http://repo.mongodb.org/apt/debian || return 1 ;;
+        *) system_apt_repository_engine 0 mongodb "" deb "" "" "" || return 1 ;;
     esac
     system_apt_repository_engine "${SYSTEM_APT_NODEJS:-0}" nodesource \
-        https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key deb nodistro amd64 https://deb.nodesource.com/node_24.x
+        https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key deb nodistro amd64 https://deb.nodesource.com/node_24.x || return 1
     system_apt_repository_engine "${SYSTEM_APT_NVIDIA:-0}" nvidia \
-        https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub deb / amd64 https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/ ""
+        https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/8793F200.pub deb / amd64 https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/ "" || return 1
     system_apt_repository_engine "${SYSTEM_APT_NVIDIA:-0}" nvidia-container-toolkit \
-        https://nvidia.github.io/libnvidia-container/gpgkey deb / amd64 https://nvidia.github.io/libnvidia-container/stable/deb/amd64/ ""
+        https://nvidia.github.io/libnvidia-container/gpgkey deb / amd64 https://nvidia.github.io/libnvidia-container/stable/deb/amd64/ "" || return 1
     system_apt_repository_engine "${SYSTEM_APT_PROXMOX:-0}" proxmox \
-        https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" http://download.proxmox.com/debian/pve pve-no-subscription
+        https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" http://download.proxmox.com/debian/pve pve-no-subscription || return 1
     system_apt_repository_engine "${SYSTEM_APT_VSCODE:-0}" vscode \
-        https://packages.microsoft.com/keys/microsoft.asc deb stable amd64 https://packages.microsoft.com/repos/code
-    system_apt_repository_engine "${SYSTEM_APT_WAZUH:-0}" wazuh \
-        https://packages.wazuh.com/key/GPG-KEY-WAZUH deb stable amd64 https://packages.wazuh.com/4.x/apt
+        https://packages.microsoft.com/keys/microsoft.asc deb stable amd64 https://packages.microsoft.com/repos/code || return 1
+    system_apt_repository_engine "$wazuh_enable" wazuh \
+        https://packages.wazuh.com/key/GPG-KEY-WAZUH deb stable amd64 https://packages.wazuh.com/4.x/apt || return 1
     system_apt_repository_engine "${SYSTEM_APT_WEBMIN:-0}" webmin \
-        https://download.webmin.com/jcameron-key.asc deb sarge "" http://download.webmin.com/download/repository contrib
+        https://download.webmin.com/jcameron-key.asc deb sarge "" http://download.webmin.com/download/repository contrib || return 1
     if [[ "${SYSTEM_APT_CGPT:-0}" == 1 ]]; then
-        system_apt_cgpt_configure
+        system_apt_cgpt_configure || return 1
     else
         rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" \
             "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY/chatgpt-archive-keyring.gpg"
@@ -95,10 +113,10 @@ system_apt_configure_unofficial() {
 
 system_apt_cgpt_configure() {
     local keyring="$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY/chatgpt-archive-keyring.gpg"
-    install -d -m 0755 "$SYSTEM_APT_THIRD_PARTY_DIRECTORY" "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY"
-    install -m 0644 "$SYSTEM_APT_CGPT_KEY_FILE" "$keyring"
+    install -d -m 0755 "$SYSTEM_APT_THIRD_PARTY_DIRECTORY" "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY" || return 1
+    install -m 0644 "$SYSTEM_APT_CGPT_KEY_FILE" "$keyring" || return 1
     if system_apt_is_deb822; then
-        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list"
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" || return 1
         cat > "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" <<EOF
 ### THIS FILE IS MANAGED BY DIU ###
 X-Repolib-Name: ChatGPT
@@ -110,7 +128,7 @@ Architectures: amd64
 Signed-By: $keyring
 EOF
     else
-        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources"
+        rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" || return 1
         printf 'deb [arch=amd64 signed-by=%s] %s stable main\n' "$keyring" \
             https://persistent.oaistatic.com/codex-app-prod/linux/deb > "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list"
     fi
@@ -363,10 +381,15 @@ system_apt_install_repository() {
     }
     if [[ "$requested" =~ ^mongodb-([45678])$ ]]; then
         value="${BASH_REMATCH[1]}"
+    elif [[ "$variable" == SYSTEM_APT_MONGODB ]]; then
+        case "${SYSTEM_APT_MONGODB:-0}" in
+            4|5|6|7|8) value="$SYSTEM_APT_MONGODB" ;;
+            *) value=8 ;;
+        esac
     elif [[ "$requested" == wazuh-4 ]]; then
         value=4
     fi
-    system_apt_set_repository_variable "$variable" "$value"
+    system_apt_set_repository_variable "$variable" "$value" || return 1
     system_apt_debian_configure
 }
 
@@ -376,7 +399,7 @@ system_apt_remove_repository() {
         print_error "Dépôt APT non supporté : $requested"
         return 2
     }
-    system_apt_set_repository_variable "$variable" 0
+    system_apt_set_repository_variable "$variable" 0 || return 1
     if [[ "$variable" == SYSTEM_APT_CGPT ]]; then
         rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" \
             "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" \

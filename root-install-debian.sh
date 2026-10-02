@@ -128,6 +128,9 @@ config_cleanup || exit 1
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/projects.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/projects/template.sh"
 # shellcheck disable=SC1091 source=modules/desktop/infos.sh
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
@@ -186,6 +189,104 @@ check_devops_user() {
         echo "❌ Le groupe '$DEVOPS_GROUP' n'existe pas."
         exit 1
     fi
+}
+
+configure_environment_sudoers() {
+    local scope="${1:-}" target_user label
+    local passwd_file="${2:-/etc/passwd}"
+    local login_defs="${3:-/etc/login.defs}"
+    local sudoers_dir="${4:-/etc/sudoers.d}"
+    local uid_limits uid_min uid_max human_accounts candidate human_user human_shell
+    local configured_users
+
+    case "$scope" in
+        devops) target_user="${ENV_DEVOPS_USER:-}"; label="DevOps" ;;
+        docker) target_user="${ENV_DOCKER_USER:-}"; label="Docker" ;;
+        *) echo "❌ Sudoers : environnement inconnu." >&2; return 1 ;;
+    esac
+    if [ -z "$target_user" ] || ! id -u "$target_user" >/dev/null 2>&1; then
+        echo "ℹ️ Sudoers $label ignoré : le compte '$target_user' n'existe pas."
+        return 0
+    fi
+    if [[ ! "$target_user" =~ ^[[:alnum:]_][[:alnum:]_.-]*[$]?$ ]]; then
+        echo "❌ Sudoers $label : nom du compte cible incompatible avec la génération." >&2
+        return 1
+    fi
+    if ! command -v visudo >/dev/null 2>&1; then
+        echo "❌ Sudoers $label : visudo est nécessaire." >&2
+        return 1
+    fi
+    if ! uid_limits=$(awk '
+        $1 == "UID_MIN" { minimum = $2 }
+        $1 == "UID_MAX" { maximum = $2 }
+        END {
+            if (minimum !~ /^[0-9]+$/ || maximum !~ /^[0-9]+$/ ||
+                minimum + 0 <= 0 || maximum + 0 < minimum + 0) exit 1
+            print minimum, maximum
+        }
+    ' "$login_defs"); then
+        echo "❌ Sudoers $label : lecture ou bornes UID_MIN/UID_MAX invalides." >&2
+        return 1
+    fi
+    read -r uid_min uid_max <<< "$uid_limits"
+    if ! human_accounts=$(awk -F: -v minimum="$uid_min" -v maximum="$uid_max" \
+        -v devops="${ENV_DEVOPS_USER:-}" -v docker="${ENV_DOCKER_USER:-}" -v ia="${ENV_IA_USER:-}" '
+        $3 ~ /^[0-9]+$/ && $3 + 0 >= minimum + 0 && $3 + 0 <= maximum + 0 &&
+        $1 != "root" && $1 != devops && $1 != docker && $1 != ia && !seen[$1]++ {
+            print $1 ":" $7
+        }
+    ' "$passwd_file"); then
+        echo "❌ Sudoers $label : lecture des comptes locaux impossible." >&2
+        return 1
+    fi
+    if [ ! -d "$sudoers_dir" ]; then
+        if ! install -d -o root -g root -m 0750 "$sudoers_dir"; then
+            echo "❌ Sudoers $label : création du répertoire impossible." >&2
+            return 1
+        fi
+    fi
+    # Le point dans le nom exclut le candidat de l'inclusion sudoers.d.
+    if ! candidate=$(mktemp "$sudoers_dir/.diu-$scope.XXXXXX"); then
+        echo "❌ Sudoers $label : création du candidat impossible." >&2
+        return 1
+    fi
+    if ! (
+        printf '# Managed by DIU: local human accounts to %s\n' "$label" || exit 1
+        while IFS=: read -r human_user human_shell; do
+            [ -n "$human_user" ] && [ -f "$human_shell" ] && [ -x "$human_shell" ] || continue
+            case "${human_shell##*/}" in
+                nologin|false) continue ;;
+            esac
+            if [[ ! "$human_user" =~ ^[[:alnum:]_][[:alnum:]_.-]*[$]?$ ]]; then
+                echo "❌ Sudoers $label : nom de compte local incompatible avec la génération." >&2
+                exit 1
+            fi
+            printf '%s ALL=(%s) NOPASSWD: ALL\n' "$human_user" "$target_user" || exit 1
+        done <<< "$human_accounts"
+    ) > "$candidate" || ! configured_users=$(awk '
+        NF && $1 !~ /^#/ { printf "%s%s", separator, $1; separator = " " }
+    ' "$candidate") || ! visudo -cf "$candidate" \
+        || ! chown root:root "$candidate" || ! chmod 0440 "$candidate" \
+        || ! mv -fT -- "$candidate" "$sudoers_dir/99-diu-$scope"; then
+        echo "❌ Sudoers $label : génération ou publication échouée ; fragment précédent préservé." >&2
+        if ! rm -f -- "$candidate"; then
+            echo "❌ Sudoers $label : nettoyage du candidat impossible." >&2
+        fi
+        return 1
+    fi
+    if [ -n "$configured_users" ]; then
+        printf '✅ Sudoers %s configuré pour %s.\n' "$label" "$configured_users"
+    else
+        printf 'ℹ️ Sudoers %s : aucun compte humain retenu.\n' "$label"
+    fi
+}
+
+configure_devops_sudoers() {
+    configure_environment_sudoers devops "${1:-/etc/passwd}" "${2:-/etc/login.defs}" "${3:-/etc/sudoers.d}"
+}
+
+configure_docker_sudoers() {
+    configure_environment_sudoers docker "${1:-/etc/passwd}" "${2:-/etc/login.defs}" "${3:-/etc/sudoers.d}"
 }
 
 config_host () {
@@ -1285,6 +1386,21 @@ manage_project_action() {
 
     case "$action" in
 
+        template)
+            if [[ "$#" -ne 3 || "${3:-}" != devops || -z "${project_id}" ||
+                "${project_id}" == */* || "${project_id}" == . || "${project_id}" == .. ||
+                "${project_id}" =~ [[:cntrl:]] ]]; then
+                echo '❌ Usage : rid projects template <ID PROJECT> devops'
+                rid_display_command_error projects template
+                return 2
+            fi
+            if [[ "${project_id}" == all ]]; then
+                projects_template_devops_all
+            else
+                projects_template_devops "${project_id}"
+            fi
+            ;;
+
         cicd)
             case "${project_id}" in
                 help|?)
@@ -1848,95 +1964,9 @@ then
 	    echo ''
 	} >> /etc/apt/sources.list
 
-	if [ "$CROWDSEC_BOUNCER" == "1" ]
-	then
 
-		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BOOKWORM"
-		echo 'deb [signed-by=/usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg] http://packagecloud.io/crowdsec/crowdsec/debian/ bookworm main' > /etc/apt/sources.list.d/crowdsec.list
-		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
 
-	fi
 
-	if [ "$LEMONLDAP" == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN BOOKWMORM"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/lemonldap-archive-keyring.gpg] https://lemonldap-ng.org/deb 2.0 main' > /etc/apt/sources.list.d/lemonldap.list
-		curl -fsSL https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg | gpg --dearmor > /usr/share/keyrings/lemonldap-archive-keyring.gpg
-
-	fi
-
-	if [ "$MONGODB" == "1" ]
-	then
-
-		if [ "$MONGODB_VERSION" == "4.4" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 4.4 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/4.4 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "5" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 5 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/5.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "6" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 6 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/6.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "7" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "8" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-	fi
-
-	if [ "$WAZUH_SERVER" == "1" ]
-	then
-
-		if [ "$WAZUH_SERVER_UPGRADE" == "1" ]
-		then
-
-			echo "🔧 CONFIGURE APT WAZUH SOURCES FOR DEBIAN BOOKWMORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt/ stable main' > /etc/apt/sources.list.d/wazuh.list
-			curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
-
-		else
-
-			if [ -f /etc/apt/sources.list.d/wazuh.list ]
-			then
-
-				rm -f /etc/apt/sources.list.d/wazuh.list
-
-			fi
-
-		fi
-
-	else
-
-		if [ -f /etc/apt/sources.list.d/wazuh.list ]
-		then
-
-			rm -f /etc/apt/sources.list.d/wazuh.list
-
-		fi
-
-	fi
 
 	echo ""
 	echo "🔧 CLEAN AND PURGE AND REMOVE"
@@ -1979,14 +2009,6 @@ then
 	# echo 'deb http://deb.debian.org/debian bullseye-backports main contrib non-free' >> /etc/apt/sources.list
 	# echo '' >> /etc/apt/sources.list
 
-	if [ "$CROWDSEC_BOUNCER" == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BULLSEYE"
-		echo 'deb [signed-by=/usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg] http://packagecloud.io/crowdsec/crowdsec/debian/ bullseye main' > /etc/apt/sources.list.d/crowdsec.list
-		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
-
-	fi
 
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
@@ -2008,54 +2030,7 @@ then
 
 	fi
 
-	if [ "$LEMONLDAP" == "1" ]
-	then
 
-		echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN BULLSEYE"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/lemonldap-archive-keyring.gpg] https://lemonldap-ng.org/deb 2.0 main' > /etc/apt/sources.list.d/lemonldap.list
-		curl -fsSL https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg | gpg --dearmor > /usr/share/keyrings/lemonldap-archive-keyring.gpg
-
-	fi
-
-	if [ "$MONGODB" == "1" ]
-	then
-
-		if [ "$MONGODB_VERSION" == "4.4" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 4.4 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/4.4 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "5" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 5 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/5.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "6" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 6 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "7" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/7.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "8" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/8.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-	fi
 
 	echo ""
 	echo "🔧 CLEAN AND PURGE AND REMOVE"
@@ -4200,8 +4175,21 @@ EOF
 
     NODE_INDEX="https://nodejs.org/dist/index.tab"
 
+    if NODE_INDEX_CONTENT="$(curl -fsSL --connect-timeout 10 --max-time 60 "$NODE_INDEX")"
+    then
+
+        :
+
+    else
+
+        NODE_INDEX_STATUS=$?
+        printf '❌ Node.js : échec de lecture de %s (curl=%s).\n' "$NODE_INDEX" "$NODE_INDEX_STATUS" >&2
+        exit "$NODE_INDEX_STATUS"
+
+    fi
+
     NODE_LATEST="$(
-        curl -fsSL "$NODE_INDEX" |
+        printf '%s\n' "$NODE_INDEX_CONTENT" |
         awk -v series="v${NODEJS_SERIES}." '
             NR > 1 && index($1, series) == 1 {
                 version=$1
@@ -4609,6 +4597,41 @@ EOF
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/python${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/python3"
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/pip${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/pip3"
 
+		if ! PYTHON_PSYCOPG_PREVIOUS_VERSION="$(
+			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" -I -B -c '
+from importlib.metadata import PackageNotFoundError, version
+try:
+    print(version("psycopg"))
+except PackageNotFoundError:
+    print("")
+'
+		)"; then
+			echo "❌ Échec de la lecture de la version installée de Psycopg dans le Python DevOps" >&2
+			exit 1
+		fi
+
+		if ! "/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
+			-m pip install --upgrade --no-user --quiet "psycopg[binary]>=3.2,<4"; then
+			echo "❌ Échec de l'installation ou mise à jour de Psycopg dans le Python DevOps" >&2
+			exit 1
+		fi
+
+		if ! PYTHON_PSYCOPG_VERSION="$(
+			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
+				-I -B -c 'import psycopg; print(psycopg.__version__)'
+		)"; then
+			echo "❌ Échec du contrôle de Psycopg dans le Python DevOps" >&2
+			exit 1
+		fi
+		if [ "$PYTHON_PSYCOPG_PREVIOUS_VERSION" != "$PYTHON_PSYCOPG_VERSION" ]; then
+			if [ -n "$PYTHON_PSYCOPG_PREVIOUS_VERSION" ]; then
+				echo "🔧 UPDATE PSYCOPG DEVOPS ($PYTHON_PSYCOPG_PREVIOUS_VERSION → $PYTHON_PSYCOPG_VERSION)"
+			else
+				echo "🔧 INSTALL PSYCOPG DEVOPS ($PYTHON_PSYCOPG_VERSION)"
+			fi
+		fi
+		echo "PSYCOPG DEVOPS OK ✅ ($PYTHON_PSYCOPG_VERSION)"
+
     cat > /etc/profile.d/python-dev.sh <<EOF
 # Python Dev environment (managed by DIU)
 export PYTHON_DEV_HOME="${INSTALL_PYTHON_ROOT}/current"
@@ -4698,12 +4721,13 @@ EOF
 
   chmod 644 "$DEVOPS_PROFILE"
 
+  configure_devops_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d
+
 fi
 
 if [ "$ENV_DOCKER" -eq 1 ]
 then
 
-  echo ""
   groupadd -f "$ENV_DOCKER_GROUP"
 
   if id -u "$ENV_DOCKER_USER"> /dev/null 2>&1 
@@ -5299,6 +5323,8 @@ then
 
 	fi
 
+  configure_docker_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d
+
 else
 
 	if test -f "/home/$DOCKER_USER/proxy/docker-compose.yml"
@@ -5379,7 +5405,6 @@ fi
 if [ "$ENV_IA" -eq 1 ]
 then
 
-	echo ""
   groupadd -f "$ENV_IA_GROUP"
 	if id -u "$ENV_IA_USER"> /dev/null 2>&1 
 	then

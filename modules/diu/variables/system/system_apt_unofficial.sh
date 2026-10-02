@@ -9,11 +9,13 @@ scope="system"
 variable_config_file="/root/diu/config/${scope}.env"
 
 system_apt_unofficial_detect() {
-    local variable="$1"
+    local variable="$1" version pattern
     case "$variable" in
         SYSTEM_APT_MONGODB)
             for version in 8 7 6 5 4; do
-                if grep -RqsE "mongodb-org/${version}\.0|mongodb-${version}\.0|server-${version}\.0" \
+                pattern="${version}\.0"
+                [[ "$version" == 4 ]] && pattern='4\.(0|4)'
+                if grep -RqsE "mongodb-org/${pattern}|mongodb-${pattern}|server-${pattern}" \
                     /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
                     printf '%s' "$version"
                     return 0
@@ -47,10 +49,43 @@ system_apt_unofficial_detect() {
     esac
 }
 
+system_apt_unofficial_legacy_value() {
+    case "$1" in
+        SYSTEM_APT_CROWDSEC)
+            [[ "${CROWDSEC_BOUNCER:-0}" == 1 ]] && printf '1' || printf '0'
+            ;;
+        SYSTEM_APT_LEMONLDAP)
+            [[ "${LEMONLDAP:-0}" == 1 ]] && printf '1' || printf '0'
+            ;;
+        SYSTEM_APT_MONGODB)
+            if [[ "${MONGODB:-0}" == 1 ]]; then
+                case "${MONGODB_VERSION:-}" in
+                    4|4.0|4.4) printf '4' ;;
+                    5|5.0|6|6.0|7|7.0|8|8.0) printf '%s' "${MONGODB_VERSION%%.*}" ;;
+                    *) printf '0' ;;
+                esac
+            else
+                printf '0'
+            fi
+            ;;
+        SYSTEM_APT_WAZUH)
+            if [[ "${WAZUH_SERVER:-0}" == 1 && "${WAZUH_SERVER_UPGRADE:-0}" == 1 ]]; then
+                printf '4'
+            else
+                printf '0'
+            fi
+            ;;
+        *) printf '0' ;;
+    esac
+}
+
 system_apt_unofficial_declare() {
     local variable="$1" default_value
     if [[ -z "${!variable+x}" ]]; then
         default_value="$(system_apt_unofficial_detect "$variable")"
+        if [[ "$default_value" == 0 ]]; then
+            default_value="$(system_apt_unofficial_legacy_value "$variable")"
+        fi
         export "${variable}=${default_value}"
         printf 'export %s=%s\n' "$variable" "$default_value" >> "$variable_config_file"
     fi
