@@ -43,11 +43,11 @@ rid_display_help_context() {
         elif [[ -n "$leaf" ]]; then
             rid_help_line "rid projects template ${leaf} devops" 'Crée ou actualise DEVOPS.md pour ce projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
             if [[ -z "$target" ]]; then
-                rid_help_line "rid projects template ${leaf} openspec" 'Initialise ou actualise OpenSpec sous ENV_DEVOPS_USER.'
+                rid_help_line "rid projects template ${leaf} openspec" "Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet ${leaf}"
             fi
         else
             rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
-            rid_help_line 'rid projects template <ID PROJECT> openspec' 'Initialise ou actualise OpenSpec sous ENV_DEVOPS_USER.'
+            rid_help_line 'rid projects template <ID PROJECT> openspec' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
             rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés.'
         fi
         return 0
@@ -208,7 +208,7 @@ rid_display_help_context() {
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
             rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet.'
-            rid_help_line 'rid projects template <ID PROJECT> openspec' 'Initialise ou actualise OpenSpec sous ENV_DEVOPS_USER.'
+            rid_help_line 'rid projects template <ID PROJECT> openspec' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
             rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés.'
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local, prépare OpenSpec puis génère DEVOPS.md.'
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
