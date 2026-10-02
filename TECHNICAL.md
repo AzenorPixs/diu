@@ -419,8 +419,10 @@ les entrées générées.
 `system_apt_repository_engine` est le moteur commun des dépôts tiers. Il :
 
 1. valide le nom, le type et l'état du dépôt ;
-2. télécharge la clé GPG déclarée et la convertit dans
-   `/usr/share/keyrings/` ;
+2. réutilise le trousseau `/usr/share/keyrings/<name>-archive-keyring.gpg`
+   s'il est présent, lisible et non vide ; sinon, télécharge la clé GPG
+   déclarée et la convertit à cet emplacement, avec un échec bloquant si
+   l'installation échoue et sans désactiver la vérification TLS ;
 3. écrit un fichier `.sources` ou `.list` selon la version Debian ;
 4. supprime le format alternatif géré par le DIUE ;
 5. retire les fichiers et le trousseau lorsque le dépôt est désactivé.
