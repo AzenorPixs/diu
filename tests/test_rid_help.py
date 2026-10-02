@@ -414,30 +414,45 @@ forgejo_api_get /tmp /repos/owner/project
             ('projects', 'help'),
             ('projects', 'template', 'help'),
             ('projects', 'template', '?'),
-            ('projects', 'template', 'devops', 'help'),
-            ('projects', 'template', 'devops', '?'),
+            ('projects', 'template', 'application', 'help'),
+            ('projects', 'template', 'application', '?'),
+            ('projects', 'template', 'application', 'devops', 'help'),
+            ('projects', 'template', 'application', 'devops', '?'),
+            ('projects', 'template', 'template', 'devops', 'help'),
         ):
             with self.subTest(arguments=arguments):
                 result = self.run_rid(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects template devops', result.stdout)
+                expected = ('application' if 'application' in arguments else
+                            'template' if arguments.count('template') == 2 else '<ID PROJECT>')
+                self.assertIn(f'rid projects template {expected} devops', result.stdout)
+                self.assertNotIn('rid projects template devops', result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_unknown_template_help_suggests_template_context(self):
-        result = self.run_rid('projects', 'template', 'unknown', 'help')
+        result = self.run_rid('projects', 'template', 'application', 'unknown', 'help')
         self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn('rid projects template help', result.stdout)
+        self.assertIn('rid projects template application help', result.stdout)
 
     def test_template_devops_help_rejects_extra_arguments(self):
-        result = self.run_rid('projects', 'template', 'devops', 'extra', 'help')
+        result = self.run_rid('projects', 'template', 'application', 'devops', 'extra', 'help')
         self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn('rid projects template devops help', result.stdout)
+        self.assertIn('rid projects template application help', result.stdout)
+
+    def test_template_help_rejects_invalid_project_paths(self):
+        for project in ('../elsewhere', '.', '..', 'line\nbreak'):
+            with self.subTest(project=project):
+                result = self.run_rid('projects', 'template', project, 'devops', '?')
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn('rid projects template help', result.stdout)
+                self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_create_help_describes_template_creation(self):
         result = self.run_rid('projects', 'create', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid projects create <ID PROJECT>', result.stdout)
         self.assertIn('modèle local', result.stdout)
+        self.assertIn('génère DEVOPS.md', result.stdout)
 
     def test_projects_clone_help_describes_clone_command(self):
         projects_result = self.run_rid('projects', 'help')

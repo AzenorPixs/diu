@@ -163,10 +163,61 @@ print(f'  * {version}\n  * {address}')
 PY
 }
 
+projects_template_devops_python_manifest() {
+    local devops_home="$1" project_path="$2" project_id="$3"
+    if [[ -e "${project_path}/pyproject.toml" || -L "${project_path}/pyproject.toml" ]]; then
+        return 0
+    fi
+    if [[ ! -x /usr/bin/python3 ]]; then
+        print_error 'Impossible de vérifier PROJECT_TYPE : Python système absent.'
+        return 1
+    fi
+
+    projects_template_devops_user_run "${devops_home}" /usr/bin/python3 -I -B - \
+        "${project_path}" "${project_id}" <<'PY'
+from pathlib import Path
+import re
+import shlex
+import sys
+
+project_path = Path(sys.argv[1])
+try:
+    lines = (project_path / 'project.env').read_text(encoding='utf-8').splitlines()
+except FileNotFoundError:
+    sys.exit(0)
+except (OSError, UnicodeError):
+    print('Impossible de lire PROJECT_TYPE dans project.env.', file=sys.stderr)
+    sys.exit(1)
+project_type = ''
+try:
+    for line in lines:
+        match = re.match(r'^\s*(?:export\s+)?PROJECT_TYPE\s*=\s*(.*)$', line)
+        if match:
+            values = shlex.split(match[1], comments=True)
+            if len(values) > 1:
+                raise ValueError('affectation non littérale')
+            project_type = values[0] if values else ''
+except ValueError:
+    print('PROJECT_TYPE doit être une affectation littérale.', file=sys.stderr)
+    sys.exit(1)
+if project_type == 'PYTHON':
+    name = re.sub(r'[^A-Za-z0-9._-]', '-', sys.argv[2]).strip('._-') or 'project'
+    try:
+        # Création exclusive : un manifeste apparu entre-temps reste conservé.
+        with (project_path / 'pyproject.toml').open('x', encoding='utf-8', newline='\n') as stream:
+            stream.write(f'[project]\nname = "{name}"\nversion = "0.0.0"\ndependencies = []\n')
+    except FileExistsError:
+        pass
+    except OSError:
+        print('Impossible de créer pyproject.toml pour le projet Python.', file=sys.stderr)
+        sys.exit(1)
+PY
+}
+
 projects_template_devops_dependencies() {
     local devops_home="$1" template_path="$2" python_binary="$3"
     if [[ ! -f "${template_path}/pyproject.toml" ]]; then
-        printf '  * pyproject.toml absent : dépendances non déclarées dans le modèle\n'
+        printf '  * pyproject.toml absent : dépendances non déclarées dans le projet\n'
         return 0
     fi
     if [[ ! -x "${python_binary}" ]]; then
@@ -216,6 +267,7 @@ PY
 
 projects_template_devops_render() {
     local devops_home="$1" template_path="$2"
+    local project_title="${3:-${template_path##*/}}"
     local name="" binary="" version="" context="" operating_system=""
     local psql_binary="" compose_binary="" python_binary="${devops_home}/python/current/bin/python3"
     local venv_status='indisponible'
@@ -230,7 +282,10 @@ projects_template_devops_render() {
     else
         operating_system='indisponible (/etc/os-release absent)'
     fi
-    printf '# DEVOPS.md — Template\n\nVersion : 0.2\n\n\n# Système d\047exploitation\n\n  * %s\n\n\n' "${operating_system}" || return 1
+    if [[ "${project_title}" == template ]]; then
+        project_title=Template
+    fi
+    printf '# DEVOPS.md — %s\n\nVersion : 0.2\n\n\n# Système d\047exploitation\n\n  * %s\n\n\n' "${project_title}" "${operating_system}" || return 1
 
     for name in Docker Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
         context=host
@@ -267,7 +322,7 @@ projects_template_devops_render() {
 
     printf '# PostgreSQL Serveur\n\n' || return 1
     projects_template_devops_postgresql "${template_path}/project.env" "${psql_binary}" || return 1
-    printf '  * Les variables PostgreSQL sont chargées depuis project.env\n  * PG_DATABASE PG_USERNAME PG_PASSWORD\n\n\n' || return 1
+    printf '  * Les variables PostgreSQL sont chargées depuis project.env\n  * PG_HOST PG_PORT PG_DATABASE PG_USERNAME PG_PASSWORD\n\n\n' || return 1
 
     version="$(projects_template_devops_version user "${devops_home}" "${python_binary}" --version)" || return 1
     if [[ -x "${python_binary}" ]] && projects_template_devops_user_run \
@@ -289,20 +344,28 @@ projects_template_devops_render() {
 
 projects_template_devops() {
     local devops_home="/home/${ENV_DEVOPS_USER:-}"
-    local template_path="${devops_home}/datas/template"
+    local project_id="${1:-}"
+    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local template_path="${projects_root}/${project_id}"
     local document="${template_path}/DEVOPS.md" temporary_document="" content=""
     local devops_group=""
 
-    if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
-        print_error 'Usage : rid projects template devops (ENV_DEVOPS_USER doit être un utilisateur valide).'
+    if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
+        -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
+        "${project_id}" == .. || "${project_id}" =~ [[:cntrl:]] ]]; then
+        print_error 'Usage : rid projects template <ID PROJECT> devops (identifiant sans chemin et utilisateur DevOps valide).'
+        return 1
+    fi
+    if [[ -L "${template_path}" ]]; then
+        print_error 'Le dossier du projet doit être un chemin ordinaire.'
         return 1
     fi
     if [[ ! -d "${template_path}" ]]; then
-        print_info "Dossier modèle absent : ${template_path}. Aucune action effectuée."
+        print_info "Dossier du projet absent : ${template_path}. Aucune action effectuée."
         return 0
     fi
     if [[ -L "${template_path}" || -L "${document}" || ( -e "${document}" && ! -f "${document}" ) ]]; then
-        print_error 'Le modèle et son fichier DEVOPS.md doivent être des chemins ordinaires.'
+        print_error 'Le projet et son fichier DEVOPS.md doivent être des chemins ordinaires.'
         return 1
     fi
     if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
@@ -313,7 +376,11 @@ projects_template_devops() {
         print_error "Exécuter cette génération en root ou sous ${ENV_DEVOPS_USER}."
         return 1
     fi
-    if ! content="$(projects_template_devops_render "${devops_home}" "${template_path}")"; then
+    if ! projects_template_devops_python_manifest "${devops_home}" "${template_path}" "${project_id}"; then
+        print_error 'Impossible de préparer le manifeste Python ; DEVOPS.md est conservé.'
+        return 1
+    fi
+    if ! content="$(projects_template_devops_render "${devops_home}" "${template_path}" "${project_id}")"; then
         print_error 'Impossible de préparer DEVOPS.md ; le document existant est conservé.'
         return 1
     fi
