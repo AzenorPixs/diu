@@ -125,9 +125,16 @@ noms commençant par un caractère alphanumérique ou underscore, puis composés
 caractères alphanumériques, underscores, points ou tirets, avec dollar final
 facultatif.
 
+Après publication réussie, le compte rendu affiche les comptes réellement
+autorisés, séparés par un espace, par exemple
+`Sudoers DevOps configuré pour alice bob.`. Une sélection vide affiche
+`Sudoers DevOps : aucun compte humain retenu.` après publication du fragment
+commenté. Un échec ou un compte cible absent ne produit aucun message de succès.
+
 ### Accès sudo sans mot de passe au compte Docker
 
-À la fin du bloc `ENV_DOCKER=1`, `configure_docker_sudoers` génère
+À la fin de la branche active du bloc `ENV_DOCKER=1`, avant son `else` de
+désactivation, `configure_docker_sudoers` génère
 `/etc/sudoers.d/99-diu-docker` si `ENV_DOCKER_USER` existe. Chaque compte humain
 retenu reçoit `compte ALL=(ENV_DOCKER_USER) NOPASSWD: ALL`, avec les noms réels.
 La sélection UID/shell, les exclusions et les contrôles de publication sont
@@ -141,6 +148,8 @@ son fragment indépendant ; une génération ne remplace pas celui de l'autre
 environnement. Le fragment Docker reçoit `root:root` et `0440` après validation
 `visudo -cf`, puis publication atomique. Les autres fragments et PAM restent
 inchangés ; la politique globale peut influer sur les accès effectifs.
+Le compte rendu suit le même format : `Sudoers Docker configuré pour alice bob.`
+ou `Sudoers Docker : aucun compte humain retenu.` en cas de sélection vide.
 
 ### Dépendance Python DevOps
 
