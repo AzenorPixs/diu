@@ -1394,7 +1394,11 @@ manage_project_action() {
                 rid_display_command_error projects template
                 return 2
             fi
-            projects_template_devops "${project_id}"
+            if [[ "${project_id}" == all ]]; then
+                projects_template_devops_all
+            else
+                projects_template_devops "${project_id}"
+            fi
             ;;
 
         cicd)
@@ -1960,95 +1964,9 @@ then
 	    echo ''
 	} >> /etc/apt/sources.list
 
-	if [ "$CROWDSEC_BOUNCER" == "1" ]
-	then
 
-		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BOOKWORM"
-		echo 'deb [signed-by=/usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg] http://packagecloud.io/crowdsec/crowdsec/debian/ bookworm main' > /etc/apt/sources.list.d/crowdsec.list
-		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
 
-	fi
 
-	if [ "$LEMONLDAP" == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN BOOKWMORM"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/lemonldap-archive-keyring.gpg] https://lemonldap-ng.org/deb 2.0 main' > /etc/apt/sources.list.d/lemonldap.list
-		curl -fsSL https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg | gpg --dearmor > /usr/share/keyrings/lemonldap-archive-keyring.gpg
-
-	fi
-
-	if [ "$MONGODB" == "1" ]
-	then
-
-		if [ "$MONGODB_VERSION" == "4.4" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 4.4 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/4.4 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "5" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 5 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/5.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "6" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 6 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/6.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "7" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "8" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN BOOKWORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-	fi
-
-	if [ "$WAZUH_SERVER" == "1" ]
-	then
-
-		if [ "$WAZUH_SERVER_UPGRADE" == "1" ]
-		then
-
-			echo "🔧 CONFIGURE APT WAZUH SOURCES FOR DEBIAN BOOKWMORM"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/wazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt/ stable main' > /etc/apt/sources.list.d/wazuh.list
-			curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor > /usr/share/keyrings/wazuh-archive-keyring.gpg
-
-		else
-
-			if [ -f /etc/apt/sources.list.d/wazuh.list ]
-			then
-
-				rm -f /etc/apt/sources.list.d/wazuh.list
-
-			fi
-
-		fi
-
-	else
-
-		if [ -f /etc/apt/sources.list.d/wazuh.list ]
-		then
-
-			rm -f /etc/apt/sources.list.d/wazuh.list
-
-		fi
-
-	fi
 
 	echo ""
 	echo "🔧 CLEAN AND PURGE AND REMOVE"
@@ -2091,14 +2009,6 @@ then
 	# echo 'deb http://deb.debian.org/debian bullseye-backports main contrib non-free' >> /etc/apt/sources.list
 	# echo '' >> /etc/apt/sources.list
 
-	if [ "$CROWDSEC_BOUNCER" == "1" ]
-	then
-
-		echo "🔧 CONFIGURE APT CROWDSEC SOURCES FOR DEBIAN BULLSEYE"
-		echo 'deb [signed-by=/usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg] http://packagecloud.io/crowdsec/crowdsec/debian/ bullseye main' > /etc/apt/sources.list.d/crowdsec.list
-		curl -fsSL https://packagecloud.io/crowdsec/crowdsec/gpgkey | gpg --dearmor > /usr/share/keyrings/crowdsec-crowdsec-archive-keyring.gpg
-
-	fi
 
 	if [[ "${DIU_APT_REPOSITORY_FD:-0}" == "1" ]]; then
 
@@ -2120,54 +2030,7 @@ then
 
 	fi
 
-	if [ "$LEMONLDAP" == "1" ]
-	then
 
-		echo "🔧 CONFIGURE APT LEMONLDAP SOURCES FOR DEBIAN BULLSEYE"
-		echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/lemonldap-archive-keyring.gpg] https://lemonldap-ng.org/deb 2.0 main' > /etc/apt/sources.list.d/lemonldap.list
-		curl -fsSL https://lemonldap-ng.org/lemonldap-debian-packages-pub.gpg | gpg --dearmor > /usr/share/keyrings/lemonldap-archive-keyring.gpg
-
-	fi
-
-	if [ "$MONGODB" == "1" ]
-	then
-
-		if [ "$MONGODB_VERSION" == "4.4" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 4.4 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/4.4 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "5" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 5 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/5.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "6" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 6 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "7" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 7 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/7.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-		if [ "$MONGODB_VERSION" == "8" ]
-		then
-			echo "🔧 CONFIGURE APT MONGODB 8 SOURCES FOR DEBIAN BULLSEYE"
-			echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/8.0 main' > /etc/apt/sources.list.d/mongodb.list
-			curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg
-		fi
-
-	fi
 
 	echo ""
 	echo "🔧 CLEAN AND PURGE AND REMOVE"
