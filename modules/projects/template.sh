@@ -9,7 +9,7 @@ projects_template_openspec() {
     if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
         -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
         "${project_id}" == .. || "${project_id}" =~ [[:cntrl:]] ]]; then
-        print_error 'Usage : rid projects template <ID PROJECT> openspec (identifiant sans chemin et utilisateur DevOps valide).'
+        print_error 'Usage : rid projects template openspec <ID PROJECT> (identifiant sans chemin et utilisateur DevOps valide).'
         return 1
     fi
     if [[ -L "${project_path}" || ! -d "${project_path}" ]]; then
