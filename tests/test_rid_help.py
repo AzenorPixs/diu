@@ -489,26 +489,35 @@ forgejo_api_get /tmp /repos/owner/project
 
     def test_projects_template_openspec_help_without_configuration(self):
         for ending in ('help', '?'):
-            for project in ('application', 'all', "projet d'essai"):
+            for project in ('application', 'all', 'devops', 'openspec', "projet d'essai"):
                 with self.subTest(project=project, ending=ending):
-                    result = self.run_rid('projects', 'template', project, 'openspec', ending)
+                    result = self.run_rid('projects', 'template', 'openspec', project, ending)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertIn(f'rid projects template {project} openspec', result.stdout)
+                    self.assertIn(f'rid projects template openspec {project}', result.stdout)
                     self.assertIn('profil custom', result.stdout)
                     self.assertIn('OPENCODE=1', result.stdout)
                     self.assertIn('openspec update', result.stdout)
                     self.assertNotIn('variables.sh', result.stdout + result.stderr)
                     self.assertNotIn('tous les projets', result.stdout)
-        for context in (('projects',), ('projects', 'template'),
-                        ('projects', 'template', 'application')):
-            result = self.run_rid(*context, 'help')
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn(' openspec', result.stdout)
+        for ending in ('help', '?'):
+            for context in (('projects',), ('projects', 'template'),
+                            ('projects', 'template', 'openspec'),
+                            ('projects', 'template', 'application')):
+                with self.subTest(context=context, ending=ending):
+                    result = self.run_rid(*context, ending)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    project = 'application' if 'application' in context else '<ID PROJECT>'
+                    self.assertIn(f'rid projects template openspec {project}', result.stdout)
+                    self.assertIn(f'via ENV_DEVOPS_USER pour le projet {project}', result.stdout)
 
     def test_projects_template_openspec_help_rejects_invalid_arguments(self):
-        for arguments in (('application', 'openspec', 'extra', 'help'),
-                          ('../elsewhere', 'openspec', '?'),
-                          ('.', 'openspec', 'help')):
+        for arguments in (('openspec', 'application', 'extra', 'help'),
+                          ('openspec', '../elsewhere', '?'),
+                          ('openspec', '.', 'help'),
+                          ('openspec', '..', '?'),
+                          ('openspec', 'line\nbreak', 'help'),
+                          ('application', 'openspec', 'help'),
+                          ('all', 'openspec', '?')):
             with self.subTest(arguments=arguments):
                 result = self.run_rid('projects', 'template', *arguments)
                 self.assertEqual(result.returncode, 2, result.stderr)

@@ -543,8 +543,18 @@ manage_project_action "$@"
             (('template', 'application', 'devops'), 0, 'generation:application\n'),
             (('template', 'template', 'devops'), 0, 'generation:template\n'),
             (('template', 'all', 'devops'), 0, 'batch\n'),
-            (('template', 'application', 'openspec'), 0, 'openspec:application\n'),
-            (('template', 'all', 'openspec'), 0, 'openspec:all\n'),
+            (('template', 'openspec', 'application'), 0, 'openspec:application\n'),
+            (('template', 'openspec', 'all'), 0, 'openspec:all\n'),
+            (('template', 'openspec', 'devops'), 0, 'openspec:devops\n'),
+            (('template', 'openspec', 'openspec'), 0, 'openspec:openspec\n'),
+            (('template', 'openspec'), 2, 'help:projects template'),
+            (('template', 'openspec', ''), 2, 'help:projects template'),
+            (('template', 'openspec', 'application', 'extra'), 2, 'help:projects template'),
+            (('template', 'openspec', '../elsewhere'), 2, 'help:projects template'),
+            (('template', 'openspec', '.'), 2, 'help:projects template'),
+            (('template', 'openspec', 'line\nbreak'), 2, 'help:projects template'),
+            (('template', 'application', 'openspec'), 2, 'help:projects template'),
+            (('template', 'all', 'openspec'), 2, 'help:projects template'),
             (('template', 'application', 'openspec', 'extra'), 2, 'help:projects template'),
             (('template', 'unknown'), 2, 'help:projects template'),
             (('template',), 2, 'help:projects template'),
@@ -562,6 +572,7 @@ manage_project_action "$@"
                 if status:
                     self.assertNotIn('generation', result.stdout)
                     self.assertNotIn('batch', result.stdout)
+                    self.assertNotIn('openspec:', result.stdout)
 
     def configured_project(self, root, project, updates=None):
         path = root / project

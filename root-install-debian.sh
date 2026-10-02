@@ -1387,14 +1387,17 @@ manage_project_action() {
     case "$action" in
 
         template)
-            if [[ "$#" -ne 3 || ( "${3:-}" != devops && "${3:-}" != openspec ) || -z "${project_id}" ||
+            if [[ "${2:-}" == openspec ]]; then
+                project_id="${3:-}"
+            fi
+            if [[ "$#" -ne 3 || ( "${2:-}" != openspec && "${3:-}" != devops ) || -z "${project_id}" ||
                 "${project_id}" == */* || "${project_id}" == . || "${project_id}" == .. ||
                 "${project_id}" =~ [[:cntrl:]] ]]; then
-                echo '❌ Usage : rid projects template <ID PROJECT> <devops|openspec>'
+                echo '❌ Usage : rid projects template openspec <ID PROJECT> ou rid projects template <ID PROJECT> devops'
                 rid_display_command_error projects template
                 return 2
             fi
-            if [[ "${3}" == openspec ]]; then
+            if [[ "${2}" == openspec ]]; then
                 projects_template_openspec "${project_id}"
             elif [[ "${project_id}" == all ]]; then
                 projects_template_devops_all

@@ -209,7 +209,7 @@ déjà séparées.
 
 ### Template OpenSpec des projets
 
-`rid projects template <ID PROJECT> openspec` prépare OpenSpec dans
+`rid projects template openspec <ID PROJECT>` prépare OpenSpec dans
 `${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
 `/home/${ENV_DEVOPS_USER}/datas/<ID PROJECT>`). La fonction
 `projects_template_openspec`, dans `modules/projects/template.sh`, utilise
@@ -220,8 +220,14 @@ déjà séparées.
 - `openspec init --profile custom` si ce dossier est absent et `OPENCODE=0` ;
 - `openspec update` si ce dossier existe, y compris après copie du modèle.
 
-L'identifiant `all` désigne un seul projet pour cette commande. Les chemins
-invalides, les dossiers symboliques, les utilisateurs absents et les valeurs
+L'identifiant `all` désigne un seul projet pour cette commande.
+L'ancienne syntaxe `rid projects template <ID PROJECT> openspec` est rejetée,
+sauf lorsqu'elle coïncide avec la nouvelle commande pour le projet `openspec`.
+Le sélecteur `openspec` après `template` est prioritaire :
+`rid projects template openspec devops` vise OpenSpec pour le projet `devops`.
+Les commandes `rid projects template <ID PROJECT> devops` et
+`rid projects template all devops` gardent leur syntaxe pour les autres cibles.
+Les chemins invalides, les dossiers symboliques, les utilisateurs absents et les valeurs
 OPENCODE autres que 0 ou 1 lors d'une initialisation provoquent un échec.
 L'opération ne lit pas `project.env`. Un outil absent ou en échec est signalé
 avec un code non nul ; ses éventuelles écritures partielles sont conservées.
