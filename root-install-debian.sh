@@ -4538,6 +4538,29 @@ EOF
 
       fi
 
+      # Initialisation ou mise à jour des commandes OpenSpec du domicile DevOps
+      OPENSPEC_HOME="/home/$ENV_DEVOPS_USER"
+      OPENSPEC_OPENCODE="${OPENCODE:-}"
+
+      if ! su - "$ENV_DEVOPS_USER" -c "
+          cd '${OPENSPEC_HOME//\'/\'\\\'\'}' || exit 1
+          export PATH='${OPENSPEC_HOME//\'/\'\\\'\'}/node/current/bin:${OPENSPEC_HOME//\'/\'\\\'\'}/.local/npm/bin':\"\$PATH\"
+          if [ -d openspec ]; then
+              openspec update
+          else
+              case '${OPENSPEC_OPENCODE//\'/\'\\\'\'}' in
+                  1) openspec init --tools opencode --profile custom ;;
+                  0) openspec init --profile custom ;;
+                  *) echo '❌ ERREUR : OPENCODE doit valoir 0 ou 1 pour initialiser OpenSpec.' >&2; exit 1 ;;
+              esac
+          fi"
+      then
+          echo "❌ ERREUR : préparation OpenSpec échouée dans $OPENSPEC_HOME" >&2
+          exit 1
+      fi
+
+      echo "Commandes OpenSpec préparées ✅ ($OPENSPEC_HOME)"
+
   fi
 
 	if [ "$PYTHON" -eq 1 ]
