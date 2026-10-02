@@ -22,16 +22,50 @@ rid_display_help_context() {
         return 0
     fi
 
+    if [[ "$context:$subcontext" == projects:update ]]; then
+        if [[ $# -gt 3 ]]; then
+            rid_display_command_error projects update
+            return 2
+        fi
+        if [[ -n "$leaf" ]]; then
+            rid_help_line "rid projects update ${leaf}" 'Met à jour les variables générales de ce seul projet, avec saisie interactive.'
+        else
+            rid_help_line 'rid projects update' 'Applique tous les modèles à tous les projets configurés ; OpenSpec puis DevOps en dernier pour chaque projet.'
+            rid_help_line 'rid projects update <ID PROJECT>' 'Met à jour les variables générales du seul projet ciblé, avec saisie interactive.'
+            printf '%s\n' 'Sans identifiant : même sélection project.env, traitement et bilan que rid projects template all all.'
+        fi
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == projects:template ]]; then
+        if [[ "$leaf" == all ]]; then
+            if [[ $# -gt 4 || ( -n "$target" && "$target" != all ) ]]; then
+                rid_display_command_error projects template all
+                return 2
+            fi
+            rid_help_line 'rid projects template all all' 'Applique tous les modèles à tous les projets configurés ; OpenSpec puis DevOps en dernier pour chaque projet.'
+            printf '%s\n' 'Premier all : tous les modèles, actuellement OpenSpec et DevOps ; second all : tous les projets configurés.'
+            printf '%s\n' 'Variables requises dans project.env : PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED PROJECT_DEBIAN_PACKAGE ; PROJECT_ID doit correspondre au dossier.'
+            printf '%s\n' 'Un échec OpenSpec empêche DevOps pour ce projet ; le traitement poursuit les autres projets et affiche un bilan.'
+            return 0
+        fi
         if [[ "$leaf" == openspec ]]; then
             if [[ $# -gt 4 || "$target" == */* || "$target" == . ||
                 "$target" == .. || "$target" =~ [[:cntrl:]] ]]; then
                 rid_display_command_error projects template openspec
                 return 2
             fi
-            local openspec_project="${target:-<ID PROJECT>}"
-            rid_help_line "rid projects template openspec ${openspec_project}" "Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet ${openspec_project}"
-            printf '%s\n' 'Initialisation avec profil custom ; opencode si OPENCODE=1 ; projet existant : openspec update.'
+            if [[ "$target" == all ]]; then
+                rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés ; poursuit après un échec et affiche un bilan.'
+                printf '%s\n' 'Variables requises dans project.env : PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED PROJECT_DEBIAN_PACKAGE.'
+            else
+                local openspec_project="${target:-<ID PROJECT>}"
+                rid_help_line "rid projects template openspec ${openspec_project}" "Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet ${openspec_project}"
+                printf '%s\n' 'Initialisation avec profil custom ; opencode si OPENCODE=1 ; projet existant : openspec update.'
+                if [[ -z "$target" ]]; then
+                    rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés.'
+                fi
+            fi
             return 0
         fi
         if [[ "$leaf" == devops ]]; then
@@ -52,7 +86,9 @@ rid_display_help_context() {
         elif [[ $# -le 4 && -z "$leaf" && -z "$target" ]]; then
             rid_help_line 'rid projects template devops <ID PROJECT>' 'Crée ou actualise DEVOPS.md pour le projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
             rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
+            rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés.'
             rid_help_line 'rid projects template devops all' 'Génère DEVOPS.md pour tous les projets configurés.'
+            rid_help_line 'rid projects template all all' 'Applique tous les modèles à tous les projets configurés ; OpenSpec puis DevOps en dernier pour chaque projet.'
         else
             rid_display_command_error projects template
             return 2
@@ -216,10 +252,13 @@ rid_display_help_context() {
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
             rid_help_line 'rid projects template devops <ID PROJECT>' 'Crée ou actualise DEVOPS.md pour le projet.'
             rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
+            rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés.'
             rid_help_line 'rid projects template devops all' 'Génère DEVOPS.md pour tous les projets configurés.'
+            rid_help_line 'rid projects template all all' 'Applique tous les modèles à tous les projets configurés ; OpenSpec puis DevOps en dernier pour chaque projet.'
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local, prépare OpenSpec puis génère DEVOPS.md.'
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'
+            rid_help_line 'rid projects update' 'Applique tous les modèles à tous les projets configurés ; OpenSpec puis DevOps en dernier pour chaque projet.'
             rid_help_line 'rid projects update <ID PROJECT>' 'Met à jour les variables du projet.'
             rid_help_line 'rid projects sync <ID PROJECT>' 'Synchronise le projet depuis le modèle local.'
             rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
@@ -308,7 +347,7 @@ rid_display_help_context() {
             rid_help_line "rid ${context} apt <SOFTWARE>" 'Opération sur un logiciel tiers.'
             ;;
         update::)
-            rid_help_line 'rid update' 'Met à jour les modules du DIU.'
+            rid_help_line 'rid update' 'Met à jour les modules du DIU, dont tous les modèles des projets configurés via rid projects update.'
             ;;
         *)
             rid_display_command_error "$context" "$subcontext" "$leaf"

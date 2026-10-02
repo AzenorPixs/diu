@@ -3,7 +3,11 @@
 # Gestions des projets géré par le DIU
 
 projects_update() {
-    return 0
+    if [[ "$#" -ne 0 ]]; then
+        print_error 'Usage : rid projects update (sans identifiant pour tous les modèles).'
+        return 1
+    fi
+    projects_template_all_all
 }
 
 sync_project_template_is_valid() {
