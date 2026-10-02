@@ -12,13 +12,16 @@ serveur PostgreSQL configuré, avec un manifeste minimal conditionnel pour Pytho
 ### Requirement: Commande de génération du modèle DevOps
 
 DIU SHALL fournir `projects_template_devops`, appelée par la commande
-`rid projects template <ID PROJECT> devops`, avec un identifiant obligatoire. La fonction SHALL
-générer ou actualiser `${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`.
-La racine SHALL utiliser DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon
-/home/${ENV_DEVOPS_USER}/datas. La fonction SHALL valider le nom d'utilisateur
-et l'identifiant de projet, SHALL refuser les chemins, les identifiants . et ..
-et les liens symboliques du dossier cible, et SHALL NOT créer le dossier du projet.
-L'ancienne syntaxe sans identifiant SHALL être rejetée avec la nouvelle utilisation.
+`rid projects template devops <ID PROJECT>`, avec un identifiant obligatoire.
+La CLI SHALL exiger le sélecteur devops avant l'identifiant et SHALL rejeter
+les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide.
+La fonction SHALL générer ou actualiser
+`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`. La racine SHALL utiliser
+DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon /home/${ENV_DEVOPS_USER}/datas.
+La fonction SHALL valider le nom d'utilisateur et l'identifiant de projet,
+SHALL refuser les chemins, les identifiants . et .. et les liens symboliques
+du dossier cible, et SHALL NOT créer le dossier du projet. L'ancienne syntaxe
+sans identifiant SHALL être rejetée avec la nouvelle utilisation.
 
 #### Scenario: Dossier absent
 
@@ -33,14 +36,19 @@ L'ancienne syntaxe sans identifiant SHALL être rejetée avec la nouvelle utilis
 
 #### Scenario: Projet sélectionné
 
-- **WHEN** l'utilisateur exécute rid projects template application devops
+- **WHEN** l'utilisateur exécute rid projects template devops application
 - **THEN** seul le DEVOPS.md du projet application est généré ou actualisé
 - **AND THEN** project.env et pyproject.toml sont ceux de ce projet
 
 #### Scenario: Ancienne syntaxe ou identifiant invalide
 
-- **WHEN** l'identifiant manque ou contient un chemin
+- **WHEN** l'identifiant manque, contient un chemin ou la commande utilise template application devops
 - **THEN** la commande échoue avant toute écriture avec la nouvelle utilisation
+
+#### Scenario: Projets nommés comme les sélecteurs
+
+- **WHEN** la commande utilise template devops devops ou template devops openspec
+- **THEN** seule la génération DevOps du projet désigné est appelée
 
 ### Requirement: Structure et version documentaire
 
@@ -237,7 +245,7 @@ un code non nul, signaler cet échec et conserver le projet déjà préparé. Un
 
 ### Requirement: Génération DevOps de tous les projets configurés
 
-DIU SHALL exposer rid projects template all devops et projects_template_devops_all.
+DIU SHALL exposer rid projects template devops all et projects_template_devops_all.
 La fonction SHALL utiliser DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
 et parcourir uniquement ses dossiers directs, y compris les dossiers cachés.
 Elle SHALL sélectionner les project.env ordinaires dont les affectations
@@ -269,6 +277,16 @@ illisibles ou invalides SHALL être signalés puis ignorés.
 
 - **WHEN** le dossier all remplit les critères
 - **THEN** la boucle appelle directement projects_template_devops avec all sans relancer le traitement groupé
+
+#### Scenario: Nouvelle syntaxe groupée
+
+- **WHEN** l'utilisateur exécute rid projects template devops all
+- **THEN** la fonction groupée est appelée une seule fois
+
+#### Scenario: Ancienne syntaxe groupée
+
+- **WHEN** l'utilisateur exécute rid projects template all devops
+- **THEN** la CLI rend un code non nul sans génération
 
 ### Requirement: Bilan et poursuite du traitement groupé
 

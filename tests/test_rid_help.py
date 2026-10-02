@@ -414,70 +414,85 @@ forgejo_api_get /tmp /repos/owner/project
             ('projects', 'help'),
             ('projects', 'template', 'help'),
             ('projects', 'template', '?'),
-            ('projects', 'template', 'application', 'help'),
-            ('projects', 'template', 'application', '?'),
-            ('projects', 'template', 'application', 'devops', 'help'),
-            ('projects', 'template', 'application', 'devops', '?'),
-            ('projects', 'template', 'template', 'devops', 'help'),
+            ('projects', 'template', 'devops', 'help'),
+            ('projects', 'template', 'devops', '?'),
+            ('projects', 'template', 'devops', 'application', 'help'),
+            ('projects', 'template', 'devops', 'application', '?'),
+            ('projects', 'template', 'devops', 'template', 'help'),
+            ('projects', 'template', 'devops', 'devops', 'help'),
+            ('projects', 'template', 'devops', 'openspec', '?'),
         ):
             with self.subTest(arguments=arguments):
                 result = self.run_rid(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                expected = ('application' if 'application' in arguments else
-                            'template' if arguments.count('template') == 2 else '<ID PROJECT>')
-                self.assertIn(f'rid projects template {expected} devops', result.stdout)
-                self.assertNotIn('rid projects template devops', result.stdout)
+                expected = arguments[3] if len(arguments) == 5 else '<ID PROJECT>'
+                self.assertIn(f'rid projects template devops {expected}', result.stdout)
+                self.assertNotIn('rid projects template <ID PROJECT> devops', result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_unknown_template_help_suggests_template_context(self):
         result = self.run_rid('projects', 'template', 'application', 'unknown', 'help')
         self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn('rid projects template application help', result.stdout)
+        self.assertIn('rid projects template help', result.stdout)
 
     def test_template_all_help_lists_selection_criteria_without_configuration(self):
         for ending in ('help', '?'):
-            for arguments in (('projects', 'template', 'all', ending),
-                              ('projects', 'template', 'all', 'devops', ending)):
-                with self.subTest(arguments=arguments):
-                    result = self.run_rid(*arguments)
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertIn('rid projects template all devops', result.stdout)
-                    self.assertIn('tous les projets configurés', result.stdout)
-                    for key in ('PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE',
-                                'PROJECT_DOCKERED', 'PROJECT_DEBIAN_PACKAGE'):
-                        self.assertIn(key, result.stdout)
-                    self.assertNotIn('variables.sh', result.stdout + result.stderr)
-
-    def test_projects_and_template_help_advertise_individual_and_all_commands(self):
-        for arguments in (('projects', 'help'), ('projects', 'template', 'help'),
-                          ('projects', 'template', '?')):
+            arguments = ('projects', 'template', 'devops', 'all', ending)
             with self.subTest(arguments=arguments):
                 result = self.run_rid(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects template <ID PROJECT> devops', result.stdout)
-                self.assertIn('rid projects template all devops', result.stdout)
+                self.assertIn('rid projects template devops all', result.stdout)
+                self.assertIn('tous les projets configurés', result.stdout)
+                for key in ('PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE',
+                            'PROJECT_DOCKERED', 'PROJECT_DEBIAN_PACKAGE'):
+                    self.assertIn(key, result.stdout)
+                self.assertNotIn('variables.sh', result.stdout + result.stderr)
+
+    def test_projects_and_template_help_advertise_individual_and_all_commands(self):
+        for arguments in (('projects', 'help'), ('projects', 'template', 'help'),
+                          ('projects', 'template', '?'),
+                          ('projects', 'template', 'devops', 'help'),
+                          ('projects', 'template', 'devops', '?')):
+            with self.subTest(arguments=arguments):
+                result = self.run_rid(*arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('rid projects template devops <ID PROJECT>', result.stdout)
+                self.assertIn('rid projects template devops all', result.stdout)
 
     def test_template_all_help_rejects_extra_arguments_and_unknown_operation(self):
-        for arguments in (('projects', 'template', 'all', 'devops', 'extra', 'help'),
-                          ('projects', 'template', 'all', 'unknown', '?')):
+        for arguments, suggestion in (
+                (('projects', 'template', 'devops', 'all', 'extra', 'help'),
+                 'rid projects template devops help'),
+                (('projects', 'template', 'unknown', 'all', '?'),
+                 'rid projects template help')):
             with self.subTest(arguments=arguments):
                 result = self.run_rid(*arguments)
                 self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn('rid projects template all help', result.stdout)
+                self.assertIn(suggestion, result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_template_devops_help_rejects_extra_arguments(self):
-        result = self.run_rid('projects', 'template', 'application', 'devops', 'extra', 'help')
+        result = self.run_rid('projects', 'template', 'devops', 'application', 'extra', 'help')
         self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn('rid projects template application help', result.stdout)
+        self.assertIn('rid projects template devops help', result.stdout)
 
     def test_template_help_rejects_invalid_project_paths(self):
         for project in ('../elsewhere', '.', '..', 'line\nbreak'):
             with self.subTest(project=project):
-                result = self.run_rid('projects', 'template', project, 'devops', '?')
+                result = self.run_rid('projects', 'template', 'devops', project, '?')
                 self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn('rid projects template help', result.stdout)
+                self.assertIn('rid projects template devops help', result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
+
+    def test_old_devops_help_contexts_are_rejected(self):
+        for ending in ('help', '?'):
+            for arguments in (('application', 'devops'), ('all', 'devops'),
+                              ('application',), ('all',)):
+                with self.subTest(arguments=arguments, ending=ending):
+                    result = self.run_rid('projects', 'template', *arguments, ending)
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn('rid projects template help', result.stdout)
+                    self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_create_help_describes_template_creation(self):
         result = self.run_rid('projects', 'create', 'help')
@@ -502,7 +517,7 @@ forgejo_api_get /tmp /repos/owner/project
         for ending in ('help', '?'):
             for context in (('projects',), ('projects', 'template'),
                             ('projects', 'template', 'openspec'),
-                            ('projects', 'template', 'application')):
+                            ('projects', 'template', 'openspec', 'application')):
                 with self.subTest(context=context, ending=ending):
                     result = self.run_rid(*context, ending)
                     self.assertEqual(result.returncode, 0, result.stderr)
