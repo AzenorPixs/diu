@@ -109,16 +109,17 @@ keys = {'PG_HOST', 'PG_SERVER', 'PG_PORT', 'PG_DATABASE', 'PG_USERNAME',
 values = {}
 version = 'indisponible (configuration absente ou invalide)'
 address = 'adresse non configurée'
+diagnostic = 'fichier project.env absent ou illisible'
 try:
-    for line in Path(config_path).read_text(encoding='utf-8').splitlines():
+    lines = Path(config_path).read_text(encoding='utf-8').splitlines()
+    for line in lines:
         match = re.match(r'^\s*(?:export\s+)?([A-Z_]+)\s*=\s*(.*)$', line)
         if not match or match[1] not in keys:
             continue
         literal = match[2].strip()
-        # Les caractères shell ne sont acceptés qu'à l'intérieur d'une valeur
-        # entre guillemets simples ; aucune expansion n'est effectuée.
-        if not (literal.startswith("'") and literal.endswith("'")) and re.search(r'[$`;|&<>]', literal):
-            raise ValueError('expression shell')
+        diagnostic = f'affectation non littérale pour {match[1]}'
+        # shlex retire les guillemets sans développer variables ou commandes.
+        # Les caractères spéciaux d'un mot de passe restent donc littéraux.
         parsed = shlex.split(literal, comments=True)
         if len(parsed) > 1:
             raise ValueError('affectation non littérale')
@@ -129,8 +130,12 @@ try:
         host, server_port = host.split(':')
         port = port or server_port
     port = port or '5432'
-    if not re.fullmatch(r'[A-Za-z0-9_./:-]+', host) or not port.isascii() or not port.isdigit() or not 0 < int(port) < 65536:
+    diagnostic = 'PG_HOST ou PG_SERVER absent' if not host else 'adresse invalide'
+    if not re.fullmatch(r'[A-Za-z0-9_./:-]+', host):
         raise ValueError('adresse invalide')
+    diagnostic = 'PG_PORT invalide'
+    if not port.isascii() or not port.isdigit() or not 0 < int(port) < 65536:
+        raise ValueError('port invalide')
     address = f'[{host}]:{port}' if ':' in host else f'{host}:{port}'
     version = 'indisponible (client PostgreSQL absent)'
     if psql and os.access(psql, os.X_OK):
@@ -152,6 +157,8 @@ try:
 except (OSError, ValueError, UnicodeError, subprocess.TimeoutExpired):
     if address != 'adresse non configurée':
         version = 'indisponible (connexion ou configuration non vérifiable)'
+    else:
+        version = f'indisponible (configuration absente ou invalide : {diagnostic})'
 print(f'  * {version}\n  * {address}')
 PY
 }
