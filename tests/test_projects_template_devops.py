@@ -95,13 +95,13 @@ printf '16.4\n'
         path.chmod(0o755)
 
     def run_generation(self, extra='', user=None, project='template', projects_root=None,
-                       arguments=None):
+                       arguments=None, batch=False):
         # Remplacer uniquement le domicile fixé par le contrat public, dans le
         # code exécuté en mémoire : aucun accès à un véritable modèle utilisateur.
         source = MODULE.read_text(encoding='utf-8')
         home_assignment = 'local devops_home="/home/${ENV_DEVOPS_USER:-}"'
-        self.assertEqual(source.count(home_assignment), 1,
-                         'Le test doit isoler exactement le domicile, sans toucher au modèle réel')
+        self.assertEqual(source.count(home_assignment), 2,
+                         'Le test doit isoler les deux domiciles, sans toucher aux projets réels')
         source = source.replace(home_assignment, 'local devops_home="$TEST_DEVOPS_HOME"')
         script = source + r'''
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
@@ -116,13 +116,14 @@ projects_template_devops_host_binary() {
 }
 ENV_DEVOPS_USER="$1"
 '''
-        script += extra + '\nshift\nprojects_template_devops "$@"\n'
+        function = 'projects_template_devops_all' if batch else 'projects_template_devops'
+        script += extra + '\nshift\n' + function + ' "$@"\n'
         environment = dict(self.environment)
         if projects_root is not None:
             environment['DEVOPS_PROJECTS_ROOT'] = str(projects_root)
         return subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script, 'bash',
                                getpass.getuser() if user is None else user,
-                               *(arguments if arguments is not None else (project,))],
+                               *(arguments if arguments is not None else (() if batch else (project,)))],
                               text=True, capture_output=True, env=environment,
                               timeout=30, check=False)
 
@@ -521,17 +522,21 @@ exit $?
         function = re.search(r'^manage_project_action\(\) \{\n.*?^\}', source, re.M | re.S)[0]
         script = function + r'''
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
+projects_template_devops_all() { printf 'batch\n'; }
 rid_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
         for arguments, status, expected in (
             (('template', 'application', 'devops'), 0, 'generation:application\n'),
             (('template', 'template', 'devops'), 0, 'generation:template\n'),
+            (('template', 'all', 'devops'), 0, 'batch\n'),
             (('template', 'unknown'), 2, 'help:projects template'),
             (('template',), 2, 'help:projects template'),
             (('template', 'devops'), 2, 'help:projects template'),
             (('template', 'template', 'devops', 'extra'), 2, 'help:projects template'),
             (('template', '../elsewhere', 'devops'), 2, 'help:projects template'),
+            (('template', 'all', 'devops', 'extra'), 2, 'help:projects template'),
+            (('template', 'all', 'unknown'), 2, 'help:projects template'),
         ):
             with self.subTest(arguments=arguments):
                 result = subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script, 'bash', *arguments],
@@ -540,6 +545,150 @@ manage_project_action "$@"
                 self.assertIn(expected, result.stdout)
                 if status:
                     self.assertNotIn('generation', result.stdout)
+                    self.assertNotIn('batch', result.stdout)
+
+    def configured_project(self, root, project, updates=None):
+        path = root / project
+        path.mkdir(parents=True)
+        values = dict(PROJECT_ID=project, PROJECT_NAME='Test project', PROJECT_TYPE='NODE',
+                      PROJECT_DOCKERED='No', PROJECT_DEBIAN_PACKAGE='0')
+        values.update(updates or {})
+        text = ''.join(f"export {key}='{value}' # test-only\n" for key, value in values.items()
+                       if value is not None)
+        (path / 'project.env').write_text(text, encoding='utf-8')
+        return path
+
+    def test_batch_selects_only_five_nonempty_variables_and_matching_id(self):
+        root = self.fixture / 'configured projects'
+        for project in ('template', 'all', '.hidden', 'with spaces'):
+            self.configured_project(root, project)
+        keys = ('PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE', 'PROJECT_DOCKERED',
+                'PROJECT_DEBIAN_PACKAGE')
+        for index, key in enumerate(keys):
+            self.configured_project(root, f'missing-{index}', {key: None})
+            self.configured_project(root, f'empty-{index}', {key: ''})
+        self.configured_project(root, 'mismatch', {'PROJECT_ID': 'another-project'})
+        self.configured_project(root / 'container', 'nested')
+        result = self.run_generation(
+            'projects_template_devops() { printf "called:%s\\n" "$1"; }',
+            projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(set(re.findall(r'^called:(.*)$', result.stdout, re.M)),
+                         {'template', 'all', '.hidden', 'with spaces'})
+        self.assertEqual(len(re.findall(r'^called:', result.stdout, re.M)), 4)
+        self.assertIn('4 sélectionné(s), 4 réussi(s), 12 ignoré(s), 0 échoué(s)', result.stdout)
+        self.assertFalse(self.document.exists())
+
+    def test_batch_does_not_inherit_or_execute_configuration_or_follow_links(self):
+        root = self.fixture / 'projects'
+        self.configured_project(root, 'complete')
+        incomplete = self.configured_project(root, 'inherited', {'PROJECT_TYPE': None})
+        for key in ('PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE', 'PROJECT_DOCKERED',
+                    'PROJECT_DEBIAN_PACKAGE'):
+            self.environment[key] = 'PYTHON'
+        marker = self.fixture / 'configuration-must-not-execute'
+        injection = self.configured_project(root, 'injection')
+        with (injection / 'project.env').open('a') as stream:
+            stream.write(f'PROJECT_TYPE=$(touch {marker})\n')
+        with (incomplete / 'project.env').open('a') as stream:
+            stream.write('# PROJECT_TYPE=PYTHON\nPG_PASSWORD=test-only-not-to-display\n')
+        (root / 'linked-folder').symlink_to(root / 'complete', target_is_directory=True)
+        linked = root / 'linked-config'
+        linked.mkdir()
+        (linked / 'project.env').symlink_to(root / 'complete/project.env')
+        result = self.run_generation(
+            'projects_template_devops() { printf "called:%s\\n" "$1"; }',
+            projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(re.findall(r'^called:(.*)$', result.stdout, re.M), ['complete'])
+        self.assertIn('1 sélectionné(s), 1 réussi(s), 4 ignoré(s), 0 échoué(s)', result.stdout)
+        self.assertFalse(marker.exists())
+        self.assertNotIn('test-only-not-to-display', result.stdout + result.stderr)
+        self.assertNotIn(str(marker), result.stdout + result.stderr)
+
+    def test_batch_continues_after_failure_and_returns_failed_summary(self):
+        root = self.fixture / 'projects'
+        self.configured_project(root, 'a-failure')
+        self.configured_project(root, 'b-success')
+        extra = r'''
+projects_template_devops() {
+    printf 'called:%s\n' "$1"
+    [[ "$1" != a-failure ]]
+}
+'''
+        result = self.run_generation(extra, projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(re.findall(r'^called:(.*)$', result.stdout, re.M),
+                         ['a-failure', 'b-success'])
+        self.assertIn('2 sélectionné(s), 1 réussi(s), 0 ignoré(s), 1 échoué(s)', result.stdout)
+        self.assertIn('Génération DevOps échouée pour le projet : a-failure', result.stderr)
+
+    def test_batch_empty_missing_and_unreadable_configurations_are_explicit(self):
+        root = self.fixture / 'projects'
+        result = self.run_generation(projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(root.exists())
+        root.mkdir()
+        result = self.run_generation(projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Aucun projet éligible', result.stdout)
+        self.assertIn('0 sélectionné(s), 0 réussi(s), 0 ignoré(s), 0 échoué(s)', result.stdout)
+        (root / 'absent').mkdir()
+        malformed = self.configured_project(root, 'malformed')
+        (malformed / 'project.env').write_text('PROJECT_ID="unterminated\n')
+        invalid = self.configured_project(root, 'invalid-encoding')
+        (invalid / 'project.env').write_bytes(b'PROJECT_ID=\xff\n')
+        ignored = 3
+        # Root peut lire un fichier de mode 000 : le cas de permissions est
+        # vérifié uniquement lorsque ces permissions peuvent être effectives.
+        if os.geteuid() != 0:
+            unreadable = self.configured_project(root, 'unreadable')
+            (unreadable / 'project.env').chmod(0)
+            self.addCleanup((unreadable / 'project.env').chmod, 0o600)
+            ignored += 1
+        result = self.run_generation(projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f'0 sélectionné(s), 0 réussi(s), {ignored} ignoré(s), 0 échoué(s)', result.stdout)
+
+    def test_batch_generates_real_documents_and_preserves_them_on_repeat(self):
+        root = self.fixture / 'projects'
+        before = {}
+        for project, project_type in (('template', 'NODE'), ('all', 'NODE'), ('python-app', 'PYTHON')):
+            path = self.configured_project(root, project, {'PROJECT_TYPE': project_type})
+            with (path / 'project.env').open('a') as stream:
+                stream.write((self.template / 'project.env').read_text())
+        for iteration in range(2):
+            result = self.run_generation(projects_root=root, batch=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('3 sélectionné(s), 3 réussi(s), 0 ignoré(s), 0 échoué(s)', result.stdout)
+            for project in ('template', 'all', 'python-app'):
+                path = root / project
+                content = (path / 'DEVOPS.md').read_bytes()
+                self.assertIn(b'16.4', content)
+                self.assertIn(b'PG_HOST PG_PORT PG_DATABASE PG_USERNAME PG_PASSWORD', content)
+                if iteration:
+                    self.assertEqual(content, before[project])
+                before[project] = content
+                self.assertEqual((path / 'pyproject.toml').exists(), project == 'python-app')
+        self.assertEqual(tomllib.loads((root / 'python-app/pyproject.toml').read_text())['project'],
+                         {'name': 'python-app', 'version': '0.0.0', 'dependencies': []})
+        self.assertFalse(self.document.exists())
+
+    def test_batch_default_root_arguments_and_user_validation(self):
+        with (self.template / 'project.env').open('a') as stream:
+            stream.write('PROJECT_ID=template\nPROJECT_NAME=Template\nPROJECT_TYPE=NODE\n'
+                         'PROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=No\n')
+        extra = 'projects_template_devops() { printf "called:%s\\n" "$1"; }'
+        result = self.run_generation(extra, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(re.findall(r'^called:(.*)$', result.stdout, re.M), ['template'])
+        result = self.run_generation(extra, batch=True, arguments=('extra',))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('called:', result.stdout)
+        for user in ('', '../other'):
+            result = self.run_generation(extra, user=user, batch=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn('called:', result.stdout)
 
 
 class ProjectsTemplateDevopsRuntimeTests(unittest.TestCase):

@@ -442,6 +442,22 @@ configuration APT existante au premier chargement. Elles couvrent notamment
 CrowdSec, Docker, LemonLDAP, MongoDB, NodeSource, NVIDIA, Proxmox, VS Code,
 Wazuh, Webmin et les dépôts OpenAI/ChatGPT.
 
+Une valeur `SYSTEM_APT_*` déjà initialisée est prioritaire. Si aucune source
+APT n'est détectée lors de l'initialisation, les activations historiques
+CrowdSec, LemonLDAP, MongoDB et Wazuh restent prises en compte. MongoDB 4
+utilise la version historique 4.4 ; sa suite reste Bullseye pour Bullseye et
+Bookworm pour les versions suivantes. L'installation sans branche explicite
+conserve une branche configurée de 4 à 8, ou choisit 8 si aucune n'est définie.
+Wazuh accepte 4 et l'activation historique 1, traduites en activation 1 pour
+le moteur ; 0 le désactive. Le trousseau CrowdSec historique sous le nom
+`crowdsec-crowdsec-archive-keyring.gpg` peut être copié vers le nom géré sans
+téléchargement lorsqu'il est lisible et non vide.
+
+Le bloc APT du monolithe délègue ces dépôts au moteur commun. Ses branches
+Bookworm et Bullseye conservent les traitements système indépendants et la
+recette FusionDirectory, contrôlée par `DIU_APT_REPOSITORY_FD`. Les exigences
+de référence sont dans `openspec/specs/system-debian-apt/spec.md`.
+
 Les fichiers tiers non gérés par le DIUE sont préservés. La régénération ne
 doit pas introduire implicitement une source étrangère dans la résolution des
 paquets Debian officiels.

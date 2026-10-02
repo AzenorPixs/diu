@@ -434,6 +434,38 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn('rid projects template application help', result.stdout)
 
+    def test_template_all_help_lists_selection_criteria_without_configuration(self):
+        for ending in ('help', '?'):
+            for arguments in (('projects', 'template', 'all', ending),
+                              ('projects', 'template', 'all', 'devops', ending)):
+                with self.subTest(arguments=arguments):
+                    result = self.run_rid(*arguments)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn('rid projects template all devops', result.stdout)
+                    self.assertIn('tous les projets configurés', result.stdout)
+                    for key in ('PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE',
+                                'PROJECT_DOCKERED', 'PROJECT_DEBIAN_PACKAGE'):
+                        self.assertIn(key, result.stdout)
+                    self.assertNotIn('variables.sh', result.stdout + result.stderr)
+
+    def test_projects_and_template_help_advertise_individual_and_all_commands(self):
+        for arguments in (('projects', 'help'), ('projects', 'template', 'help'),
+                          ('projects', 'template', '?')):
+            with self.subTest(arguments=arguments):
+                result = self.run_rid(*arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('rid projects template <ID PROJECT> devops', result.stdout)
+                self.assertIn('rid projects template all devops', result.stdout)
+
+    def test_template_all_help_rejects_extra_arguments_and_unknown_operation(self):
+        for arguments in (('projects', 'template', 'all', 'devops', 'extra', 'help'),
+                          ('projects', 'template', 'all', 'unknown', '?')):
+            with self.subTest(arguments=arguments):
+                result = self.run_rid(*arguments)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn('rid projects template all help', result.stdout)
+                self.assertNotIn('variables.sh', result.stdout + result.stderr)
+
     def test_template_devops_help_rejects_extra_arguments(self):
         result = self.run_rid('projects', 'template', 'application', 'devops', 'extra', 'help')
         self.assertEqual(result.returncode, 2, result.stderr)

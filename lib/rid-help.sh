@@ -32,10 +32,14 @@ rid_display_help_context() {
             rid_display_command_error projects template "$leaf"
             return 2
         fi
-        if [[ -n "$leaf" ]]; then
+        if [[ "$leaf" == all ]]; then
+            rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés ; poursuit après un échec.'
+            printf '%s\n' 'Variables requises dans project.env : PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED PROJECT_DEBIAN_PACKAGE.'
+        elif [[ -n "$leaf" ]]; then
             rid_help_line "rid projects template ${leaf} devops" 'Crée ou actualise DEVOPS.md pour ce projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
         else
             rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
+            rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés.'
         fi
         return 0
     fi
@@ -195,6 +199,7 @@ rid_display_help_context() {
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
             rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet.'
+            rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés.'
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local, puis génère DEVOPS.md.'
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'
