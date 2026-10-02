@@ -485,6 +485,34 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertIn('rid projects create <ID PROJECT>', result.stdout)
         self.assertIn('modèle local', result.stdout)
         self.assertIn('génère DEVOPS.md', result.stdout)
+        self.assertIn('prépare OpenSpec puis génère DEVOPS.md', result.stdout)
+
+    def test_projects_template_openspec_help_without_configuration(self):
+        for ending in ('help', '?'):
+            for project in ('application', 'all', "projet d'essai"):
+                with self.subTest(project=project, ending=ending):
+                    result = self.run_rid('projects', 'template', project, 'openspec', ending)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn(f'rid projects template {project} openspec', result.stdout)
+                    self.assertIn('profil custom', result.stdout)
+                    self.assertIn('OPENCODE=1', result.stdout)
+                    self.assertIn('openspec update', result.stdout)
+                    self.assertNotIn('variables.sh', result.stdout + result.stderr)
+                    self.assertNotIn('tous les projets', result.stdout)
+        for context in (('projects',), ('projects', 'template'),
+                        ('projects', 'template', 'application')):
+            result = self.run_rid(*context, 'help')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(' openspec', result.stdout)
+
+    def test_projects_template_openspec_help_rejects_invalid_arguments(self):
+        for arguments in (('application', 'openspec', 'extra', 'help'),
+                          ('../elsewhere', 'openspec', '?'),
+                          ('.', 'openspec', 'help')):
+            with self.subTest(arguments=arguments):
+                result = self.run_rid('projects', 'template', *arguments)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_clone_help_describes_clone_command(self):
         projects_result = self.run_rid('projects', 'help')
