@@ -409,6 +409,30 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertIn('rid projects git update <ID PROJECT>', result.stdout)
         self.assertNotIn('rid projects gitu <ID PROJECT>', result.stdout)
 
+    def test_projects_template_devops_help_does_not_generate_document(self):
+        for arguments in (
+            ('projects', 'help'),
+            ('projects', 'template', 'help'),
+            ('projects', 'template', '?'),
+            ('projects', 'template', 'devops', 'help'),
+            ('projects', 'template', 'devops', '?'),
+        ):
+            with self.subTest(arguments=arguments):
+                result = self.run_rid(*arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('rid projects template devops', result.stdout)
+                self.assertNotIn('variables.sh', result.stdout + result.stderr)
+
+    def test_unknown_template_help_suggests_template_context(self):
+        result = self.run_rid('projects', 'template', 'unknown', 'help')
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn('rid projects template help', result.stdout)
+
+    def test_template_devops_help_rejects_extra_arguments(self):
+        result = self.run_rid('projects', 'template', 'devops', 'extra', 'help')
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn('rid projects template devops help', result.stdout)
+
     def test_projects_create_help_describes_template_creation(self):
         result = self.run_rid('projects', 'create', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
