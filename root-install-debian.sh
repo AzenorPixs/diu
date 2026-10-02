@@ -1387,24 +1387,14 @@ manage_project_action() {
     case "$action" in
 
         template)
-            case "${project_subaction}" in
-                devops)
-                    if [[ "$#" -ne 2 ]]; then
-                        echo '❌ Usage : rid projects template devops'
-                        rid_display_command_error projects template
-                        return 2
-                    fi
-                    projects_template_devops
-                    ;;
-                help|?)
-                    display_help_context projects template
-                    ;;
-                *)
-                    echo "❌ Action inconnue pour la classe 'projects template' : ${project_subaction}"
-                    rid_display_command_error projects template
-                    return 2
-                    ;;
-            esac
+            if [[ "$#" -ne 3 || "${3:-}" != devops || -z "${project_id}" ||
+                "${project_id}" == */* || "${project_id}" == . || "${project_id}" == .. ||
+                "${project_id}" =~ [[:cntrl:]] ]]; then
+                echo '❌ Usage : rid projects template <ID PROJECT> devops'
+                rid_display_command_error projects template
+                return 2
+            fi
+            projects_template_devops "${project_id}"
             ;;
 
         cicd)
@@ -4322,8 +4312,21 @@ EOF
 
     NODE_INDEX="https://nodejs.org/dist/index.tab"
 
+    if NODE_INDEX_CONTENT="$(curl -fsSL --connect-timeout 10 --max-time 60 "$NODE_INDEX")"
+    then
+
+        :
+
+    else
+
+        NODE_INDEX_STATUS=$?
+        printf '❌ Node.js : échec de lecture de %s (curl=%s).\n' "$NODE_INDEX" "$NODE_INDEX_STATUS" >&2
+        exit "$NODE_INDEX_STATUS"
+
+    fi
+
     NODE_LATEST="$(
-        curl -fsSL "$NODE_INDEX" |
+        printf '%s\n' "$NODE_INDEX_CONTENT" |
         awk -v series="v${NODEJS_SERIES}." '
             NR > 1 && index($1, series) == 1 {
                 version=$1
@@ -4862,7 +4865,6 @@ fi
 if [ "$ENV_DOCKER" -eq 1 ]
 then
 
-  echo ""
   groupadd -f "$ENV_DOCKER_GROUP"
 
   if id -u "$ENV_DOCKER_USER"> /dev/null 2>&1 
@@ -5540,7 +5542,6 @@ fi
 if [ "$ENV_IA" -eq 1 ]
 then
 
-	echo ""
   groupadd -f "$ENV_IA_GROUP"
 	if id -u "$ENV_IA_USER"> /dev/null 2>&1 
 	then

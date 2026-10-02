@@ -734,6 +734,7 @@ chown() { :; }
 update_projects() {
     printf 'PROJECT_ID=%q\nPROJECT_NAME=%q\n' "$1" 'Projet & modèle' > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
+projects_template_devops() { printf 'generation:%s\n' "$1"; }
 DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 DEVOPS_PROJECTS_ROOT="$3"
@@ -748,6 +749,7 @@ create_project projet-test
 
             project_path = projects_root / 'projet-test'
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'generation:projet-test\n')
             self.assertEqual(
                 (project_path / 'README.md').read_text(encoding='utf-8'),
                 '# Projet & modèle\nprojet-test\n',
