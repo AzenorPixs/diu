@@ -30,6 +30,10 @@ production. Aucun change actif consulté ne couvre cette génération.
   DevOps. NPM et OpenSpec sont exécutés avec son Node explicite ; pip avec son
   Python explicite, indépendamment du shebang des scripts. Les sondes Go
   utilisent GOTOOLCHAIN=local pour empêcher un téléchargement de toolchain.
+- Exécuter les sondes DevOps depuis son domicile, dans un sous-processus pour
+  préserver le répertoire appelant. Un runuser sans changement de répertoire
+  conserve potentiellement /root : le vrai binaire Go échoue alors avec
+  `cannot determine current directory: stat .: permission denied`.
 - Résoudre les outils hôte avec un PATH système. Docker désigne la version
   du client installé. Compose accepte le binaire autonome ou un plugin système.
 - Tester venv et ensurepip sans créer d'environnement virtuel.
@@ -48,6 +52,18 @@ production. Aucun change actif consulté ne couvre cette génération.
   seule, sans mot de passe interactif ni affichage des erreurs du serveur.
 - Préparer le Markdown dans le dossier cible et le remplacer seulement après
   succès, avec conservation des permissions et de la propriété du fichier existant.
+
+## Validation
+
+Les tests déterministes de génération sont complétés par des sondes utilisant
+de vrais binaires Go et Node, un environnement virtuel Python temporaire et
+ses métadonnées de distributions, des permissions de dossier effectivement
+non inscriptibles et un véritable délai d'expiration. DIU_TEST_GO,
+DIU_TEST_NODE et DIU_TEST_PYTHON permettent de sélectionner ces exécutables
+dans les tests uniquement. Leur indisponibilité est signalée par un test ignoré.
+Le module n'est pas réécrit dans les tests de sondes réelles. L'enveloppe
+runuser est testée avec un vrai shell enfant ; le changement effectif
+d'identité root vers devops exige encore la vérification sur l'hôte.
 
 ## Risks / Trade-offs
 

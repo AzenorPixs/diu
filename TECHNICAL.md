@@ -98,6 +98,68 @@ exécutées sous `DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. Le
 script principal vérifie également que l'exécution globale dispose des droits
 root lorsque l'opération modifie le système.
 
+### Accès sudo sans mot de passe au compte DevOps
+
+À la fin du bloc `ENV_DEVOPS=1`, `configure_devops_sudoers` génère
+`/etc/sudoers.d/99-diu-devops` si `ENV_DEVOPS_USER` existe. Chaque compte humain
+retenu reçoit `compte ALL=(ENV_DEVOPS_USER) NOPASSWD: ALL`, avec les noms réels,
+pour utiliser `sudo -u` ou `sudo -iu` sans mot de passe.
+
+La sélection repose sur les comptes locaux de `/etc/passwd`, dans la plage
+`UID_MIN`–`UID_MAX` de `/etc/login.defs`, avec un shell existant et exécutable.
+Elle exclut `root`, les shells vides, `nologin` et `false`, ainsi que les
+comptes configurés `ENV_DEVOPS_USER`, `ENV_DOCKER_USER` et `ENV_IA_USER`.
+C'est une convention : un autre compte technique doté d'un UID ordinaire et
+d'un shell de connexion peut satisfaire ces critères.
+
+Le candidat caché est contrôlé avec `visudo -cf`, reçoit `root:root` et `0440`,
+puis remplace atomiquement le fragment géré. Un échec préalable préserve le
+fragment précédent et provoque un diagnostic et un retour non nul. Une
+sélection vide produit un fichier commenté sans règle ; les réexécutions ne
+créent aucun doublon. Les autres fragments sudoers et PAM ne sont pas modifiés.
+Un bloc désactivé ou un compte DevOps absent ne révoque pas de règles existantes.
+Une règle sudoers ultérieure contradictoire peut influer sur l'accès effectif.
+Les noms contenant des caractères de syntaxe sudoers, tels que virgules ou
+espaces, provoquent une erreur sans remplacement : la génération accepte des
+noms commençant par un caractère alphanumérique ou underscore, puis composés de
+caractères alphanumériques, underscores, points ou tirets, avec dollar final
+facultatif.
+
+### Accès sudo sans mot de passe au compte Docker
+
+À la fin du bloc `ENV_DOCKER=1`, `configure_docker_sudoers` génère
+`/etc/sudoers.d/99-diu-docker` si `ENV_DOCKER_USER` existe. Chaque compte humain
+retenu reçoit `compte ALL=(ENV_DOCKER_USER) NOPASSWD: ALL`, avec les noms réels.
+La sélection UID/shell, les exclusions et les contrôles de publication sont
+identiques à ceux décrits pour DevOps, y compris l'exclusion des comptes
+configurés DevOps, Docker et IA. Un bloc désactivé ou un compte absent ne
+révoque pas de règles déjà installées.
+
+Les deux fonctions utilisent `configure_environment_sudoers`, limité aux
+scopes fixes `devops` et `docker`. Chaque scope possède son candidat caché et
+son fragment indépendant ; une génération ne remplace pas celui de l'autre
+environnement. Le fragment Docker reçoit `root:root` et `0440` après validation
+`visudo -cf`, puis publication atomique. Les autres fragments et PAM restent
+inchangés ; la politique globale peut influer sur les accès effectifs.
+
+### Dépendance Python DevOps
+
+Dans le monolithe, le bloc `ENV_DEVOPS=1` et `PYTHON=1` installe ou met à jour
+`psycopg[binary]>=3.2,<4` après la préparation des liens Python/pip. Il utilise
+`/home/${ENV_DEVOPS_USER}/python/current/bin/python3 -m pip install --upgrade --no-user`
+à chaque passage, même lorsque Python est déjà à jour. Pip conserve les
+paquets déjà à jour sans réinstallation forcée et sélectionne une version
+plus récente compatible lorsqu'elle est disponible sur l'index configuré.
+
+L'appel utilise les droits root du DIU, nécessaires pour un préfixe fraîchement
+compilé ; la gestion existante des droits du domicile DevOps s'applique ensuite.
+Le contrôle d'import isolé affiche la version après réussite. Un échec de pip
+ou de l'import provoque un diagnostic et un arrêt non nul avant la génération
+du profil Python. Aucun retour automatique à une ancienne version n'est prévu.
+Cette dépendance de l'environnement est distincte des dépendances de chaque
+projet déclarées dans son `pyproject.toml`. La spécification de référence est
+`openspec/specs/devops-python/spec.md`.
+
 ## Architecture du code
 
 L'architecture fonctionnelle est organisée par domaines :

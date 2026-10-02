@@ -42,7 +42,10 @@ relever Go, Node, NPM, OpenCode, OpenSpec, Python et pip depuis les binaires
 situés dans `/home/${ENV_DEVOPS_USER}`, sous cet utilisateur. DIU SHALL NOT
 remplacer un outil DevOps manquant par un outil hôte. NPM et OpenSpec SHALL
 utiliser le Node DevOps et pip SHALL utiliser le Python DevOps, sans dépendre
-des shebangs des scripts. Une sonde absente, échouée ou sans version reconnue
+des shebangs des scripts. Les sondes DevOps SHALL être exécutées depuis le
+domicile de cet utilisateur sans changer le répertoire de l'appelant, y
+compris lorsque son répertoire courant lui est inaccessible après changement
+d'utilisateur. Une sonde absente, échouée ou sans version reconnue
 SHALL être indiquée explicitement, sans conserver une version ancienne.
 
 #### Scenario: Versions hôte différentes
@@ -55,6 +58,12 @@ SHALL être indiquée explicitement, sans conserver une version ancienne.
 - **WHEN** un outil est absent ou sa sonde échoue
 - **THEN** sa rubrique indique que sa version est indisponible et le chemin attendu ou l'absence de binaire
 - **AND THEN** aucune installation n'est réalisée
+
+#### Scenario: Répertoire de l'appelant inaccessible à DevOps
+
+- **WHEN** la génération est lancée depuis un dossier inaccessible à l'utilisateur DevOps, par exemple /root
+- **THEN** les sondes, notamment go version, sont exécutées depuis son domicile accessible
+- **AND THEN** la version Go disponible est relevée et le répertoire courant de l'appelant est préservé
 
 ### Requirement: Python et dépendances déclarées
 

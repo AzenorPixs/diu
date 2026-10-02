@@ -11,10 +11,16 @@ projects_template_devops_user_run() {
     local user_path="${devops_home}/node/current/bin:${devops_home}/python/current/bin:${devops_home}/go/current/bin:/usr/local/bin:/usr/bin:/bin"
 
     if [[ "$(id -un)" == "${ENV_DEVOPS_USER}" ]]; then
-        PATH="${user_path}" GOTOOLCHAIN=local /usr/bin/timeout 15s "$@"
+        (
+            cd -- "${devops_home}" || return 1
+            PATH="${user_path}" GOTOOLCHAIN=local /usr/bin/timeout 15s "$@"
+        )
     else
+        # Expansion des arguments dans le shell enfant, après changement d'utilisateur.
+        # shellcheck disable=SC2016
         runuser -u "${ENV_DEVOPS_USER}" -- env PATH="${user_path}" GOTOOLCHAIN=local \
-            /usr/bin/timeout 15s "$@"
+            bash -c 'cd -- "$1" || exit 1; shift; exec /usr/bin/timeout 15s "$@"' \
+            bash "${devops_home}" "$@"
     fi
 }
 
