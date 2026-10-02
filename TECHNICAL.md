@@ -207,6 +207,24 @@ module de mise à jour. L'architecture cible décrite dans
 `PROJECT.md` ne doit pas être interprétée comme l'existence d'implémentations
 déjà séparées.
 
+### Commandes OpenSpec du domicile DevOps
+
+À la fin du bloc `OPENSPEC=1`, après la vérification du binaire, le monolithe
+prépare OpenSpec dans `/home/${ENV_DEVOPS_USER}` via
+`su - "$ENV_DEVOPS_USER" -c`. Le shell de connexion rejoint ce domicile et
+ajoute les chemins Node et npm DevOps à PATH. Si le dossier `openspec/` existe,
+il exécute `openspec update`, indépendamment de `OPENCODE`. Sinon, il exécute
+`openspec init --tools opencode --profile custom` pour `OPENCODE=1` ou
+`openspec init --profile custom` pour `OPENCODE=0`.
+
+Une valeur OpenCode absente ou invalide empêche l'initialisation. Un échec de
+changement de répertoire, de su ou d'OpenSpec provoque un diagnostic et un
+arrêt non nul avant la suite du DIU, sans message de réussite de cette étape
+ni suppression des écritures partielles. Un bloc désactivé ne prépare pas
+le domicile. Ce traitement est indépendant des templates de projets.
+La spécification de référence est
+`openspec/specs/devops-home-openspec/spec.md`.
+
 ### Template OpenSpec des projets
 
 `rid projects template openspec <ID PROJECT>` prépare OpenSpec dans
