@@ -11,3 +11,7 @@ déduite de la présence du dépôt dans la configuration APT, puis persistée d
 
 Le changement inclut le retrait des recettes équivalentes du monolithe, sans
 modifier les installations de logiciels qui les consomment.
+
+Lors des réexécutions, le moteur réutilise le trousseau géré s'il est présent,
+lisible et non vide. Le téléchargement reste nécessaire lorsqu'il est absent,
+vide ou illisible ; son échec reste bloquant sans désactiver la vérification TLS.

@@ -181,6 +181,150 @@ system_apt_repository_engine 1 nvidia-container-toolkit key deb / amd64 https://
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def run_repository(self, directory, modern, enable='1', failure=''):
+        script = r'''
+set -Eeuo pipefail
+print_error() { printf '%s\n' "$*" >&2; }
+source "$ROOT/modules/system/apt.sh"
+SYSTEM_APT_THIRD_PARTY_DIRECTORY="$TMPDIR/sources.list.d"
+SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY="$TMPDIR/keyrings"
+system_apt_is_deb822() { [[ "$TEST_MODERN" == 1 ]]; }
+curl() {
+    printf 'curl %s\n' "$*" >> "$TMPDIR/calls"
+    [[ "$*" == '-fsSL https://docker.example/gpg' ]] || return 99
+    if [[ "$TEST_FAILURE" == curl ]]; then
+        printf 'curl: (60) simulated TLS certificate mismatch\n' >&2
+        return 60
+    fi
+    printf 'synthetic-public-key'
+}
+gpg() {
+    printf 'gpg %s\n' "$*" >> "$TMPDIR/calls"
+    [[ "$1" == --dearmor && "$2" == --yes && "$3" == --output ]] || return 99
+    cat >/dev/null
+    [[ "$TEST_FAILURE" != gpg ]] || return 1
+    printf 'synthetic-keyring' > "$4"
+}
+system_apt_repository_engine "$TEST_ENABLE" docker https://docker.example/gpg \
+    deb trixie amd64 https://docker.example/debian stable
+'''
+        return subprocess.run(
+            ['bash', '-c', script], text=True, capture_output=True,
+            env=dict(os.environ, ROOT=str(ROOT), TMPDIR=str(directory),
+                     TEST_MODERN=str(int(modern)), TEST_ENABLE=enable,
+                     TEST_FAILURE=failure),
+        )
+
+    def assert_repository_source(self, directory, modern):
+        sources = directory / 'sources.list.d'
+        keyring = directory / 'keyrings/docker-archive-keyring.gpg'
+        if modern:
+            self.assertEqual((sources / 'docker.sources').read_text(),
+                             'Types: deb\nURIs: https://docker.example/debian\n'
+                             'Suites: trixie\nArchitectures: amd64\n'
+                             f'Components: stable\nSigned-By: {keyring}\n\n')
+            self.assertFalse((sources / 'docker.list').exists())
+        else:
+            self.assertEqual((sources / 'docker.list').read_text(),
+                             f'deb [arch=amd64 signed-by={keyring}] '
+                             'https://docker.example/debian trixie stable\n')
+            self.assertFalse((sources / 'docker.sources').exists())
+
+    def test_existing_keyring_skips_download_even_with_tls_failure(self):
+        for modern in (False, True):
+            with self.subTest(modern=modern), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+                directory = Path(tmp)
+                keyring = directory / 'keyrings/docker-archive-keyring.gpg'
+                keyring.parent.mkdir()
+                keyring.write_text('existing-synthetic-keyring')
+                sources = directory / 'sources.list.d'
+                sources.mkdir()
+                alternate = 'docker.list' if modern else 'docker.sources'
+                (sources / alternate).write_text('old-source')
+                result = self.run_repository(directory, modern, failure='curl')
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stderr, '')
+                self.assertFalse((directory / 'calls').exists())
+                self.assertEqual(keyring.read_text(), 'existing-synthetic-keyring')
+                self.assert_repository_source(directory, modern)
+
+    def test_missing_or_empty_keyring_downloads_once(self):
+        for modern in (False, True):
+            for empty in (False, True):
+                with self.subTest(modern=modern, empty=empty), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+                    directory = Path(tmp)
+                    keyring = directory / 'keyrings/docker-archive-keyring.gpg'
+                    if empty:
+                        keyring.parent.mkdir()
+                        keyring.touch()
+                    result = self.run_repository(directory, modern)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertEqual(keyring.read_text(), 'synthetic-keyring')
+                    self.assertEqual(keyring.stat().st_mode & 0o777, 0o644)
+                    calls = (directory / 'calls').read_text().splitlines()
+                    self.assertEqual(calls, [
+                        'curl -fsSL https://docker.example/gpg',
+                        f'gpg --dearmor --yes --output {keyring}',
+                    ])
+                    self.assert_repository_source(directory, modern)
+                    result = self.run_repository(directory, modern, failure='curl')
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertEqual((directory / 'calls').read_text().splitlines(), calls)
+                    self.assertEqual(keyring.read_text(), 'synthetic-keyring')
+                    self.assert_repository_source(directory, modern)
+
+    @unittest.skipIf(os.geteuid() == 0, 'root peut lire un fichier sans permission de lecture')
+    def test_unreadable_keyring_is_not_reused(self):
+        for modern in (False, True):
+            with self.subTest(modern=modern), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+                directory = Path(tmp)
+                keyring = directory / 'keyrings/docker-archive-keyring.gpg'
+                keyring.parent.mkdir()
+                keyring.write_text('unreadable-synthetic-keyring')
+                keyring.chmod(0o200)
+                self.assertFalse(os.access(keyring, os.R_OK))
+                result = self.run_repository(directory, modern)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(keyring.read_text(), 'synthetic-keyring')
+                self.assertEqual(keyring.stat().st_mode & 0o777, 0o644)
+                self.assertEqual(len((directory / 'calls').read_text().splitlines()), 2)
+                self.assert_repository_source(directory, modern)
+
+    def test_required_key_failure_preserves_existing_sources(self):
+        for modern in (False, True):
+            for failure in ('curl', 'gpg'):
+                with self.subTest(modern=modern, failure=failure), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+                    directory = Path(tmp)
+                    sources = directory / 'sources.list.d'
+                    sources.mkdir()
+                    for name in ('docker.list', 'docker.sources'):
+                        (sources / name).write_text('existing-source')
+                    result = self.run_repository(directory, modern, failure=failure)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("Impossible d'installer la clé GPG du dépôt APT : docker",
+                                  result.stderr)
+                    for name in ('docker.list', 'docker.sources'):
+                        self.assertEqual((sources / name).read_text(), 'existing-source')
+
+    def test_disabled_repository_removes_managed_files_without_download(self):
+        for modern in (False, True):
+            with self.subTest(modern=modern), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+                directory = Path(tmp)
+                keyring = directory / 'keyrings/docker-archive-keyring.gpg'
+                keyring.parent.mkdir()
+                keyring.write_text('existing-synthetic-keyring')
+                sources = directory / 'sources.list.d'
+                sources.mkdir()
+                for name in ('docker.list', 'docker.sources', 'unmanaged.list'):
+                    (sources / name).write_text('existing-source')
+                result = self.run_repository(directory, modern, enable='0', failure='curl')
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse(keyring.exists())
+                self.assertFalse((sources / 'docker.list').exists())
+                self.assertFalse((sources / 'docker.sources').exists())
+                self.assertEqual((sources / 'unmanaged.list').read_text(), 'existing-source')
+                self.assertFalse((directory / 'calls').exists())
+
 
 if __name__ == "__main__":
     unittest.main()
