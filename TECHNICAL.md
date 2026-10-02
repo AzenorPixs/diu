@@ -77,6 +77,16 @@ Un module sourcé s'exécute donc dans le même contexte strict. Les commandes
 dont l'échec est attendu doivent être placées dans une condition explicite ;
 aucune erreur ne doit être ignorée silencieusement.
 
+Dans le bloc Node.js DevOps, le téléchargement de l'index officiel des versions
+est séparé de leur sélection. Curl conserve la vérification TLS et utilise
+`--connect-timeout 10 --max-time 60`. Un échec conserve le diagnostic curl,
+affiche sur stderr un seul diagnostic DIU avec Node.js, l'URL et le code curl,
+puis quitte avec ce code avant toute mutation du bloc Node.js. Il ne déclenche
+pas de rapport ERR générique supplémentaire et n'annule pas les étapes
+antérieures. La sélection de la dernière version de `NODEJS_SERIES` et le
+diagnostic de série absente sont conservés. La spécification de référence est
+`openspec/specs/devops-nodejs-download/spec.md`.
+
 ## Contextes, utilisateurs et chemins
 
 | Élément | Valeur ou convention | Rôle |
@@ -97,6 +107,77 @@ Les opérations nécessitant un dépôt de projet ou Git sont normalement
 exécutées sous `DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. Le
 script principal vérifie également que l'exécution globale dispose des droits
 root lorsque l'opération modifie le système.
+
+### Accès sudo sans mot de passe au compte DevOps
+
+À la fin du bloc `ENV_DEVOPS=1`, `configure_devops_sudoers` génère
+`/etc/sudoers.d/99-diu-devops` si `ENV_DEVOPS_USER` existe. Chaque compte humain
+retenu reçoit `compte ALL=(ENV_DEVOPS_USER) NOPASSWD: ALL`, avec les noms réels,
+pour utiliser `sudo -u` ou `sudo -iu` sans mot de passe.
+
+La sélection repose sur les comptes locaux de `/etc/passwd`, dans la plage
+`UID_MIN`–`UID_MAX` de `/etc/login.defs`, avec un shell existant et exécutable.
+Elle exclut `root`, les shells vides, `nologin` et `false`, ainsi que les
+comptes configurés `ENV_DEVOPS_USER`, `ENV_DOCKER_USER` et `ENV_IA_USER`.
+C'est une convention : un autre compte technique doté d'un UID ordinaire et
+d'un shell de connexion peut satisfaire ces critères.
+
+Le candidat caché est contrôlé avec `visudo -cf`, reçoit `root:root` et `0440`,
+puis remplace atomiquement le fragment géré. Un échec préalable préserve le
+fragment précédent et provoque un diagnostic et un retour non nul. Une
+sélection vide produit un fichier commenté sans règle ; les réexécutions ne
+créent aucun doublon. Les autres fragments sudoers et PAM ne sont pas modifiés.
+Un bloc désactivé ou un compte DevOps absent ne révoque pas de règles existantes.
+Une règle sudoers ultérieure contradictoire peut influer sur l'accès effectif.
+Les noms contenant des caractères de syntaxe sudoers, tels que virgules ou
+espaces, provoquent une erreur sans remplacement : la génération accepte des
+noms commençant par un caractère alphanumérique ou underscore, puis composés de
+caractères alphanumériques, underscores, points ou tirets, avec dollar final
+facultatif.
+
+Après publication réussie, le compte rendu affiche les comptes réellement
+autorisés, séparés par un espace, par exemple
+`Sudoers DevOps configuré pour alice bob.`. Une sélection vide affiche
+`Sudoers DevOps : aucun compte humain retenu.` après publication du fragment
+commenté. Un échec ou un compte cible absent ne produit aucun message de succès.
+
+### Accès sudo sans mot de passe au compte Docker
+
+À la fin de la branche active du bloc `ENV_DOCKER=1`, avant son `else` de
+désactivation, `configure_docker_sudoers` génère
+`/etc/sudoers.d/99-diu-docker` si `ENV_DOCKER_USER` existe. Chaque compte humain
+retenu reçoit `compte ALL=(ENV_DOCKER_USER) NOPASSWD: ALL`, avec les noms réels.
+La sélection UID/shell, les exclusions et les contrôles de publication sont
+identiques à ceux décrits pour DevOps, y compris l'exclusion des comptes
+configurés DevOps, Docker et IA. Un bloc désactivé ou un compte absent ne
+révoque pas de règles déjà installées.
+
+Les deux fonctions utilisent `configure_environment_sudoers`, limité aux
+scopes fixes `devops` et `docker`. Chaque scope possède son candidat caché et
+son fragment indépendant ; une génération ne remplace pas celui de l'autre
+environnement. Le fragment Docker reçoit `root:root` et `0440` après validation
+`visudo -cf`, puis publication atomique. Les autres fragments et PAM restent
+inchangés ; la politique globale peut influer sur les accès effectifs.
+Le compte rendu suit le même format : `Sudoers Docker configuré pour alice bob.`
+ou `Sudoers Docker : aucun compte humain retenu.` en cas de sélection vide.
+
+### Dépendance Python DevOps
+
+Dans le monolithe, le bloc `ENV_DEVOPS=1` et `PYTHON=1` installe ou met à jour
+`psycopg[binary]>=3.2,<4` après la préparation des liens Python/pip. Il utilise
+`/home/${ENV_DEVOPS_USER}/python/current/bin/python3 -m pip install --upgrade --no-user`
+à chaque passage, même lorsque Python est déjà à jour. Pip conserve les
+paquets déjà à jour sans réinstallation forcée et sélectionne une version
+plus récente compatible lorsqu'elle est disponible sur l'index configuré.
+
+L'appel utilise les droits root du DIU, nécessaires pour un préfixe fraîchement
+compilé ; la gestion existante des droits du domicile DevOps s'applique ensuite.
+Le contrôle d'import isolé affiche la version après réussite. Un échec de pip
+ou de l'import provoque un diagnostic et un arrêt non nul avant la génération
+du profil Python. Aucun retour automatique à une ancienne version n'est prévu.
+Cette dépendance de l'environnement est distincte des dépendances de chaque
+projet déclarées dans son `pyproject.toml`. La spécification de référence est
+`openspec/specs/devops-python/spec.md`.
 
 ## Architecture du code
 
@@ -348,8 +429,10 @@ les entrées générées.
 `system_apt_repository_engine` est le moteur commun des dépôts tiers. Il :
 
 1. valide le nom, le type et l'état du dépôt ;
-2. télécharge la clé GPG déclarée et la convertit dans
-   `/usr/share/keyrings/` ;
+2. réutilise le trousseau `/usr/share/keyrings/<name>-archive-keyring.gpg`
+   s'il est présent, lisible et non vide ; sinon, télécharge la clé GPG
+   déclarée et la convertit à cet emplacement, avec un échec bloquant si
+   l'installation échoue et sans désactiver la vérification TLS ;
 3. écrit un fichier `.sources` ou `.list` selon la version Debian ;
 4. supprime le format alternatif géré par le DIUE ;
 5. retire les fichiers et le trousseau lorsque le dépôt est désactivé.
@@ -358,6 +441,22 @@ Les variables persistantes de dépôts tiers sont détectées depuis la
 configuration APT existante au premier chargement. Elles couvrent notamment
 CrowdSec, Docker, LemonLDAP, MongoDB, NodeSource, NVIDIA, Proxmox, VS Code,
 Wazuh, Webmin et les dépôts OpenAI/ChatGPT.
+
+Une valeur `SYSTEM_APT_*` déjà initialisée est prioritaire. Si aucune source
+APT n'est détectée lors de l'initialisation, les activations historiques
+CrowdSec, LemonLDAP, MongoDB et Wazuh restent prises en compte. MongoDB 4
+utilise la version historique 4.4 ; sa suite reste Bullseye pour Bullseye et
+Bookworm pour les versions suivantes. L'installation sans branche explicite
+conserve une branche configurée de 4 à 8, ou choisit 8 si aucune n'est définie.
+Wazuh accepte 4 et l'activation historique 1, traduites en activation 1 pour
+le moteur ; 0 le désactive. Le trousseau CrowdSec historique sous le nom
+`crowdsec-crowdsec-archive-keyring.gpg` peut être copié vers le nom géré sans
+téléchargement lorsqu'il est lisible et non vide.
+
+Le bloc APT du monolithe délègue ces dépôts au moteur commun. Ses branches
+Bookworm et Bullseye conservent les traitements système indépendants et la
+recette FusionDirectory, contrôlée par `DIU_APT_REPOSITORY_FD`. Les exigences
+de référence sont dans `openspec/specs/system-debian-apt/spec.md`.
 
 Les fichiers tiers non gérés par le DIUE sont préservés. La régénération ne
 doit pas introduire implicitement une source étrangère dans la résolution des

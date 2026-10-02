@@ -622,6 +622,7 @@ create_project() {
     local project_name_sed=""
     local project_id_sed=""
     local markdown_file=""
+    local -a template_exclusions=()
 
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : create_project <project_id>"
@@ -663,7 +664,7 @@ create_project() {
         return 1
     fi
 
-    unset PROJECT_ID PROJECT_NAME
+    unset PROJECT_ID PROJECT_NAME PROJECT_TYPE
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -682,7 +683,11 @@ create_project() {
     project_name_sed="$(printf '%s' "${project_name}" | sed 's/[&|\\]/\\&/g')"
     project_id_sed="$(printf '%s' "${project_id}" | sed 's/[&|\\]/\\&/g')"
 
+    if [[ "${PROJECT_TYPE:-}" != PYTHON ]]; then
+        template_exclusions=(! -name pyproject.toml)
+    fi
     if ! find "${template_path}" -mindepth 1 -maxdepth 1 ! -name project.env \
+        "${template_exclusions[@]}" \
         -exec cp -a -- {} "${project_path}/" \;; then
 
         print_error "Impossible de copier le modèle de projet : ${template_path}"
@@ -702,6 +707,11 @@ create_project() {
 
     if ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_path}"; then
         print_error "Impossible de définir le propriétaire du projet : ${project_path}"
+        return 1
+    fi
+
+    if ! projects_template_devops "${project_id}"; then
+        print_error "Projet préparé mais génération de DEVOPS.md échouée : ${project_path}"
         return 1
     fi
 
