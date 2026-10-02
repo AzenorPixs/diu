@@ -10,6 +10,12 @@ class DockerSudoersTests(sudoers_tests.DevopsSudoersTests):
     LABEL = 'Docker'
     TARGET = 'containers'
 
+    def test_hook_is_last_statement_in_active_branch(self):
+        active, inactive = self.environment_block.split('\nelse\n', 1)
+        call = 'configure_docker_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d'
+        self.assertTrue(active.rstrip().endswith(call))
+        self.assertNotIn(call, inactive)
+
     def test_configured_docker_target_is_used(self):
         self.passwd.write_text(self.passwd.read_text().replace('containers', 'dock-worker'))
         result = self.run_generator(target='dock-worker')

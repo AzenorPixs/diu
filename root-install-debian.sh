@@ -4724,9 +4724,21 @@ EOF
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/python${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/python3"
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/pip${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/pip3"
 
-		echo "🔧 INSTALL/UPDATE PSYCOPG DEVOPS"
+		if ! PYTHON_PSYCOPG_PREVIOUS_VERSION="$(
+			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" -I -B -c '
+from importlib.metadata import PackageNotFoundError, version
+try:
+    print(version("psycopg"))
+except PackageNotFoundError:
+    print("")
+'
+		)"; then
+			echo "❌ Échec de la lecture de la version installée de Psycopg dans le Python DevOps" >&2
+			exit 1
+		fi
+
 		if ! "/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
-			-m pip install --upgrade --no-user "psycopg[binary]>=3.2,<4"; then
+			-m pip install --upgrade --no-user --quiet "psycopg[binary]>=3.2,<4"; then
 			echo "❌ Échec de l'installation ou mise à jour de Psycopg dans le Python DevOps" >&2
 			exit 1
 		fi
@@ -4737,6 +4749,13 @@ EOF
 		)"; then
 			echo "❌ Échec du contrôle de Psycopg dans le Python DevOps" >&2
 			exit 1
+		fi
+		if [ "$PYTHON_PSYCOPG_PREVIOUS_VERSION" != "$PYTHON_PSYCOPG_VERSION" ]; then
+			if [ -n "$PYTHON_PSYCOPG_PREVIOUS_VERSION" ]; then
+				echo "🔧 UPDATE PSYCOPG DEVOPS ($PYTHON_PSYCOPG_PREVIOUS_VERSION → $PYTHON_PSYCOPG_VERSION)"
+			else
+				echo "🔧 INSTALL PSYCOPG DEVOPS ($PYTHON_PSYCOPG_VERSION)"
+			fi
 		fi
 		echo "PSYCOPG DEVOPS OK ✅ ($PYTHON_PSYCOPG_VERSION)"
 

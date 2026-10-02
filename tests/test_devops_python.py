@@ -57,7 +57,13 @@ if arguments == ['--version']:
     sys.exit(0)
 state = Path(os.environ['TEST_STATE'])
 fault = os.environ['TEST_FAULT']
-if arguments == ['-m', 'pip', 'install', '--upgrade', '--no-user', 'psycopg[binary]>=3.2,<4']:
+if arguments[:3] == ['-I', '-B', '-c'] and 'from importlib.metadata import' in arguments[3]:
+    if fault == 'metadata':
+        print('lecture simulée impossible', file=sys.stderr)
+        sys.exit(1)
+    print(json.loads(state.read_text())['psycopg'] if state.exists() else '')
+    sys.exit(0)
+if arguments == ['-m', 'pip', 'install', '--upgrade', '--no-user', '--quiet', 'psycopg[binary]>=3.2,<4']:
     if fault == 'pip':
         print('index simulé inaccessible', file=sys.stderr)
         sys.exit(1)
@@ -112,6 +118,7 @@ sys.exit(90)
                          {'psycopg': '3.3.5', 'psycopg-binary': '3.3.5'})
         self.assertEqual(len(self.pip_calls()), 1)
         self.assertIn('PSYCOPG DEVOPS OK ✅ (3.3.5)', result.stdout)
+        self.assertIn('🔧 INSTALL PSYCOPG DEVOPS (3.3.5)', result.stdout)
         self.assertIn('PYTHON 3 DEV OK', result.stdout)
         self.assertNotIn('INSTALL/UPDATE PYTHON 3 DEV', result.stdout)
         self.assertTrue(self.profile.exists())
@@ -126,6 +133,8 @@ sys.exit(90)
         self.assertEqual(len(self.pip_calls()), 2)
         self.assertEqual(hashlib.sha256(self.state.read_bytes()).digest(), digest)
         self.assertEqual(self.state.stat().st_mtime_ns, modified)
+        self.assertEqual([line for line in second.stdout.splitlines() if 'PSYCOPG' in line],
+                         ['PSYCOPG DEVOPS OK ✅ (3.3.5)'])
 
     def test_newer_version_without_python_rebuild(self):
         first = self.run_block()
@@ -136,6 +145,7 @@ sys.exit(90)
                          {'psycopg': '3.3.6', 'psycopg-binary': '3.3.6'})
         self.assertEqual(len(self.pip_calls()), 2)
         self.assertIn('PSYCOPG DEVOPS OK ✅ (3.3.6)', second.stdout)
+        self.assertIn('🔧 UPDATE PSYCOPG DEVOPS (3.3.5 → 3.3.6)', second.stdout)
         self.assertNotIn('INSTALL/UPDATE PYTHON 3 DEV', second.stdout)
 
     def test_disabled_blocks_do_not_install_or_import(self):
@@ -152,7 +162,8 @@ sys.exit(90)
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn("Échec de l'installation ou mise à jour de Psycopg", result.stderr)
         self.assertEqual(len(self.pip_calls()), 1)
-        self.assertFalse(any('-c' in arguments for arguments in self.observed_calls()))
+        self.assertFalse(any('import psycopg; print(psycopg.__version__)' in arguments
+                             for arguments in self.observed_calls()))
         self.assertNotIn('PSYCOPG DEVOPS OK', result.stdout)
         self.assertFalse(self.profile.exists())
 
@@ -160,7 +171,16 @@ sys.exit(90)
         result = self.run_block(TEST_FAULT='import')
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn('Échec du contrôle de Psycopg', result.stderr)
-        self.assertTrue(any('-c' in arguments for arguments in self.observed_calls()))
+        self.assertTrue(any('import psycopg; print(psycopg.__version__)' in arguments
+                            for arguments in self.observed_calls()))
+        self.assertNotIn('PSYCOPG DEVOPS OK', result.stdout)
+        self.assertFalse(self.profile.exists())
+
+    def test_metadata_failure_stops_before_pip(self):
+        result = self.run_block(TEST_FAULT='metadata')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('Échec de la lecture de la version installée de Psycopg', result.stderr)
+        self.assertEqual(self.pip_calls(), [])
         self.assertNotIn('PSYCOPG DEVOPS OK', result.stdout)
         self.assertFalse(self.profile.exists())
 

@@ -36,12 +36,20 @@ class DevopsSudoersTests(unittest.TestCase):
         start = source.index(f'if [ "${variable}" -eq 1 ]\nthen\n')
         end = source.index(f'if [ "${next_variable}" -eq 1 ]\nthen\n', start)
         block = source[start:end]
+        cls.environment_block = block
         call = f'  configure_{cls.SCOPE}_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d\n'
         if block.count(call) != 1:
             raise AssertionError(f'appel unique {cls.SCOPE} absent')
-        # Exécuter uniquement l'ajout final ; aucune installation du monolithe.
-        tail = block[block.index(call):]
-        cls.activation = f'if [ "${variable}" -eq 1 ]; then\n' + tail
+        # Préserver la branche réelle de l'appel ; aucune installation du monolithe.
+        if cls.SCOPE == 'docker':
+            active, inactive = block.split('\nelse\n', 1)
+            active_tail = active[active.index(call):] if call in active else '  :\n'
+            inactive_tail = inactive[inactive.index(call):] if call in inactive else '  :\nfi\n'
+            cls.activation = (f'if [ "${variable}" -eq 1 ]; then\n' + active_tail
+                              + '\nelse\n' + inactive_tail)
+        else:
+            tail = block[block.index(call):]
+            cls.activation = f'if [ "${variable}" -eq 1 ]; then\n' + tail
 
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(prefix='.diu-sudoers-test.', dir=ROOT)
