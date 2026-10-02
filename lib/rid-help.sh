@@ -176,6 +176,7 @@ rid_display_help_context() {
             ;;
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
+            rid_help_line 'rid projects template devops' 'Génère ou actualise DEVOPS.md dans le modèle local.'
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'
@@ -207,6 +208,17 @@ rid_display_help_context() {
             rid_help_line 'rid projects deb <ID PROJECT>' 'Construit le paquet Debian.'
             rid_help_line 'rid projects cicddiu' 'Lance la CI/CD du projet DIU.'
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
+            ;;
+        projects:template:|projects:template:devops)
+            if [[ -n "$target" || $# -gt 3 ]]; then
+                rid_display_command_error projects template devops
+                return 2
+            fi
+            rid_help_line 'rid projects template devops' 'Génère ou actualise DEVOPS.md dans le modèle local.'
+            ;;
+        projects:template:*)
+            rid_display_command_error projects template
+            return 2
             ;;
         projects:cicd:|projects:cicd:*)
             rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute commit, publications, build et releases configurés.'

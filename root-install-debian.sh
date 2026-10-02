@@ -128,6 +128,9 @@ config_cleanup || exit 1
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/projects.sh"
+# Chargement externe ; analyse séparée, sans lecture de la configuration privée.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/projects/template.sh"
 # shellcheck disable=SC1091 source=modules/desktop/infos.sh
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
@@ -1284,6 +1287,27 @@ manage_project_action() {
     local commit_timestamp=""
 
     case "$action" in
+
+        template)
+            case "${project_subaction}" in
+                devops)
+                    if [[ "$#" -ne 2 ]]; then
+                        echo '❌ Usage : rid projects template devops'
+                        rid_display_command_error projects template
+                        return 2
+                    fi
+                    projects_template_devops
+                    ;;
+                help|?)
+                    display_help_context projects template
+                    ;;
+                *)
+                    echo "❌ Action inconnue pour la classe 'projects template' : ${project_subaction}"
+                    rid_display_command_error projects template
+                    return 2
+                    ;;
+            esac
+            ;;
 
         cicd)
             case "${project_id}" in

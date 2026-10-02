@@ -44,6 +44,11 @@ Version : 0.2
   * /home/devops/node/current/bin/npm
 
 
+# OpenCode
+
+  * v1.18.34
+  * /home/devops/.opencode/bin/opencode
+
 # OpenSpec
 
   * v1.13
