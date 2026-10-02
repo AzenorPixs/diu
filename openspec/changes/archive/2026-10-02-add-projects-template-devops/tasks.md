@@ -16,9 +16,11 @@
 - [x] 3.2 Vérifier UTF-8/LF, le périmètre des fichiers et la cohérence documentaire et OpenSpec. Réussis : 10 fichiers UTF-8/LF, syntaxe Python des tests et des deux scripts intégrés, validation stricte du change. Les cadrages existants restent cohérents ; aucune inspection Git réalisée.
 - [x] 3.3 Effectuer la génération réelle du modèle et constater les limites éventuelles des sondes. Accès sudo sans mot de passe à devops confirmé ; génération réelle sous devops réussie : Go 1.27.1, PostgreSQL serveur 16.15 sur 127.0.0.1:5432, Python 3.14.8 et venv disponible. La configuration PostgreSQL a été actualisée par le développeur ; aucun contenu sensible lu ou affiché par l'agent. Une seconde génération conserve contenu, propriété et permissions. Le modèle ne contient pas de pyproject.toml, absence indiquée explicitement. L'accès sudo root nécessite encore un mot de passe ; aucun lancement root réel effectué par l'agent.
 
-Archivage ciblé et validation des spécifications synchronisées : en attente de
-la confirmation demandée par OpenSpec. La commande `openspec archive
-add-projects-template-devops --json`, exécutée sous devops, a répondu
-`archive_confirmation_required` sans effectuer l'archivage ; elle demande
-`--yes` pour synchroniser les deux spécifications. SCM impose d'attendre la
-décision du développeur face à cette confirmation.
+Archivage ciblé effectué après confirmation explicite du développeur :
+`openspec archive add-projects-template-devops --json --yes`, sous devops,
+a créé `2026-10-02-add-projects-template-devops` et synchronisé les deux
+spécifications (7 exigences ajoutées). Le Purpose provisoire produit par
+OpenSpec pour la nouvelle capacité a été remplacé par son objet réel.
+Les validations strictes de `projects-template-devops` et `rid-help` sont
+réussies. Les remarques informatives de longueur d'exigence ne bloquent pas
+la validation. Aucun autre change n'a été archivé.
