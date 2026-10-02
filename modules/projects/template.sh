@@ -1,5 +1,54 @@
 #!/usr/bin/env bash
 
+projects_template_openspec() {
+    local project_id="${1:-}"
+    local projects_root="${DEVOPS_PROJECTS_ROOT:-/home/${ENV_DEVOPS_USER:-}/datas}"
+    local project_path="${projects_root}/${project_id}"
+    local openspec_command="" command=""
+
+    if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
+        -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
+        "${project_id}" == .. || "${project_id}" =~ [[:cntrl:]] ]]; then
+        print_error 'Usage : rid projects template <ID PROJECT> openspec (identifiant sans chemin et utilisateur DevOps valide).'
+        return 1
+    fi
+    if [[ -L "${project_path}" || ! -d "${project_path}" ]]; then
+        print_error "Le dossier du projet est absent ou symbolique : ${project_path}"
+        return 1
+    fi
+    if [[ -L "${project_path}/openspec" ||
+        ( -e "${project_path}/openspec" && ! -d "${project_path}/openspec" ) ]]; then
+        print_error 'La cible openspec doit être un répertoire ordinaire.'
+        return 1
+    fi
+    if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
+        print_error "Utilisateur DevOps introuvable : ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+
+    if [[ -d "${project_path}/openspec" ]]; then
+        openspec_command='openspec update'
+    else
+        case "${OPENCODE:-}" in
+            1) openspec_command='openspec init --tools opencode --profile custom' ;;
+            0) openspec_command='openspec init --profile custom' ;;
+            *) print_error 'OPENCODE doit valoir 0 ou 1 pour initialiser OpenSpec.'; return 1 ;;
+        esac
+    fi
+
+    # Un chemin absolu et des apostrophes échappées préservent le chemin dans le shell de connexion.
+    if ! project_path="$(cd -- "${project_path}" && pwd -P)"; then
+        print_error 'Impossible de résoudre le répertoire du projet.'
+        return 1
+    fi
+    command="cd '${project_path//\'/\'\\\'\'}' && ${openspec_command}"
+    if ! su - "${ENV_DEVOPS_USER}" -c "${command}"; then
+        print_error "Initialisation ou mise à jour OpenSpec échouée : ${project_path}"
+        return 1
+    fi
+    print_success "OpenSpec préparé : ${project_path}"
+}
+
 # Les outils hôte ne doivent pas être résolus dans le PATH DevOps.
 projects_template_devops_host_binary() {
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin type -P -- "$1"

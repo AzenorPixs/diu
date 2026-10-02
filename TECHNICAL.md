@@ -207,6 +207,31 @@ module de mise à jour. L'architecture cible décrite dans
 `PROJECT.md` ne doit pas être interprétée comme l'existence d'implémentations
 déjà séparées.
 
+### Template OpenSpec des projets
+
+`rid projects template <ID PROJECT> openspec` prépare OpenSpec dans
+`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
+`/home/${ENV_DEVOPS_USER}/datas/<ID PROJECT>`). La fonction
+`projects_template_openspec`, dans `modules/projects/template.sh`, utilise
+`su - "$ENV_DEVOPS_USER" -c` et le shell de connexion pour exécuter :
+
+- `openspec init --tools opencode --profile custom` si le dossier `openspec/`
+  est absent et `OPENCODE=1` ;
+- `openspec init --profile custom` si ce dossier est absent et `OPENCODE=0` ;
+- `openspec update` si ce dossier existe, y compris après copie du modèle.
+
+L'identifiant `all` désigne un seul projet pour cette commande. Les chemins
+invalides, les dossiers symboliques, les utilisateurs absents et les valeurs
+OPENCODE autres que 0 ou 1 lors d'une initialisation provoquent un échec.
+L'opération ne lit pas `project.env`. Un outil absent ou en échec est signalé
+avec un code non nul ; ses éventuelles écritures partielles sont conservées.
+
+`rid projects create <ID PROJECT>` appelle cette préparation après la copie,
+la personnalisation et l'attribution des droits, puis génère `DEVOPS.md`.
+Un échec OpenSpec empêche la génération DevOps et le message de succès, en
+conservant le projet préparé. La capacité de référence est
+`openspec/specs/projects-template-openspec/spec.md`.
+
 ### Ordre de chargement actuel
 
 Après l'aide précoce et le nettoyage de la configuration historique, le point

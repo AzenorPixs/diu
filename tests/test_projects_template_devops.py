@@ -475,6 +475,10 @@ chown() { printf 'rights\n' >> "$TEST_DEVOPS_HOME/order"; }
 update_projects() {
     printf 'PROJECT_ID=%s\nPROJECT_NAME="Application"\nPROJECT_TYPE=%s\n' "$1" "$TEST_PROJECT_TYPE" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
+projects_template_openspec() {
+    printf 'openspec:%s\n' "$1" >> "$TEST_DEVOPS_HOME/order"
+    if [[ "${TEST_CREATE_OPENSPEC_FAILURE:-0}" == 1 ]]; then return 8; fi
+}
 eval "$(declare -f projects_template_devops | sed '1s/projects_template_devops/original_template_devops/')"
 projects_template_devops() {
     printf 'generation:%s\n' "$1" >> "$TEST_DEVOPS_HOME/order"
@@ -490,21 +494,29 @@ exit $?
         for project, project_type, failure in (
                 ('node-app', 'NODE', '0'), ('python-app', 'PYTHON', '0'),
                 ('python-minimal', 'PYTHON', '0'),
-                ('failed-app', 'PYTHON', '1')):
+                ('failed-app', 'PYTHON', '1'), ('failed-openspec', 'PYTHON', '0')):
             with self.subTest(project=project):
                 if project == 'python-minimal':
                     (self.template / 'pyproject.toml').unlink()
                 self.environment.update(TEST_CREATED_PROJECT=project, TEST_PROJECT_TYPE=project_type,
-                                        TEST_CREATE_FAILURE=failure)
+                                        TEST_CREATE_FAILURE=failure,
+                                        TEST_CREATE_OPENSPEC_FAILURE=str(int(project == 'failed-openspec')))
                 order = self.home / 'order'
                 if order.exists():
                     order.unlink()
                 result = self.run_generation(extra)
                 target = self.home / 'datas' / project
                 self.assertTrue(target.is_dir())
-                self.assertEqual(order.read_text().splitlines(), ['rights', f'generation:{project}'] +
-                                 ([] if failure == '1' else ['rights']))
-                if failure == '1':
+                expected_order = ['rights', f'openspec:{project}']
+                if project != 'failed-openspec':
+                    expected_order += [f'generation:{project}'] + ([] if failure == '1' else ['rights'])
+                self.assertEqual(order.read_text().splitlines(), expected_order)
+                if project == 'failed-openspec':
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('OpenSpec échouée', result.stderr)
+                    self.assertNotIn('créé avec succès', result.stdout)
+                    self.assertFalse((target / 'DEVOPS.md').exists())
+                elif failure == '1':
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn('génération de DEVOPS.md échouée', result.stderr)
                     self.assertNotIn('créé avec succès', result.stdout)
@@ -523,6 +535,7 @@ exit $?
         script = function + r'''
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
 projects_template_devops_all() { printf 'batch\n'; }
+projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
 rid_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
@@ -530,6 +543,9 @@ manage_project_action "$@"
             (('template', 'application', 'devops'), 0, 'generation:application\n'),
             (('template', 'template', 'devops'), 0, 'generation:template\n'),
             (('template', 'all', 'devops'), 0, 'batch\n'),
+            (('template', 'application', 'openspec'), 0, 'openspec:application\n'),
+            (('template', 'all', 'openspec'), 0, 'openspec:all\n'),
+            (('template', 'application', 'openspec', 'extra'), 2, 'help:projects template'),
             (('template', 'unknown'), 2, 'help:projects template'),
             (('template',), 2, 'help:projects template'),
             (('template', 'devops'), 2, 'help:projects template'),

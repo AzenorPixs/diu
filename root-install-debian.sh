@@ -1387,14 +1387,16 @@ manage_project_action() {
     case "$action" in
 
         template)
-            if [[ "$#" -ne 3 || "${3:-}" != devops || -z "${project_id}" ||
+            if [[ "$#" -ne 3 || ( "${3:-}" != devops && "${3:-}" != openspec ) || -z "${project_id}" ||
                 "${project_id}" == */* || "${project_id}" == . || "${project_id}" == .. ||
                 "${project_id}" =~ [[:cntrl:]] ]]; then
-                echo '❌ Usage : rid projects template <ID PROJECT> devops'
+                echo '❌ Usage : rid projects template <ID PROJECT> <devops|openspec>'
                 rid_display_command_error projects template
                 return 2
             fi
-            if [[ "${project_id}" == all ]]; then
+            if [[ "${3}" == openspec ]]; then
+                projects_template_openspec "${project_id}"
+            elif [[ "${project_id}" == all ]]; then
                 projects_template_devops_all
             else
                 projects_template_devops "${project_id}"
@@ -4406,10 +4408,10 @@ EOF
   then
 
       OPENSPEC_PACKAGE="@fission-ai/openspec"
-      OPENSPEC_BIN="/home/$DEVOPS_USER/.local/npm/bin/openspec"
+      OPENSPEC_BIN="/home/$ENV_DEVOPS_USER/.local/npm/bin/openspec"
 
       # Vérification de npm
-      NPM_BIN="/home/$DEVOPS_USER/node/current/bin/npm"
+      NPM_BIN="/home/$ENV_DEVOPS_USER/node/current/bin/npm"
 
       if [ -z "$NPM_BIN" ] || [ ! -x "$NPM_BIN" ]
       then
@@ -4421,8 +4423,8 @@ EOF
 
       # Recherche de la dernière version disponible d'OpenSpec
       OPENSPEC_LATEST="$(
-          su - "$DEVOPS_USER" -c \
-          "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+          su - "$ENV_DEVOPS_USER" -c \
+          "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
           \"$NPM_BIN\" view '$OPENSPEC_PACKAGE' version" 2>/dev/null
       )"
 
@@ -4439,7 +4441,7 @@ EOF
       then
 
         OPENSPEC_CURRENT="$(
-            PATH="/home/$DEVOPS_USER/node/current/bin:$PATH" \
+            PATH="/home/$ENV_DEVOPS_USER/node/current/bin:$PATH" \
             "$OPENSPEC_BIN" --version 2>/dev/null |
             grep -oE '[0-9]+\.[0-9]+\.[0-9]+' |
             head -n 1
@@ -4457,8 +4459,8 @@ EOF
 
         echo "🔧 INSTALL/UPDATE OPENSPEC ($OPENSPEC_CURRENT → $OPENSPEC_LATEST)"
 
-        if ! su - "$DEVOPS_USER" -c \
-            "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+        if ! su - "$ENV_DEVOPS_USER" -c \
+            "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
             \"$NPM_BIN\" install -g '$OPENSPEC_PACKAGE@$OPENSPEC_LATEST' \
             --allow-scripts='$OPENSPEC_PACKAGE' \
             --no-fund \
@@ -4475,10 +4477,10 @@ EOF
       then
 
           # Création de la configuration OpenSpec
-          su - "$DEVOPS_USER" -c \
-              "mkdir -p /home/$DEVOPS_USER/.config/openspec"
+          su - "$ENV_DEVOPS_USER" -c \
+              "mkdir -p /home/$ENV_DEVOPS_USER/.config/openspec"
 
-          cat > "/home/$DEVOPS_USER/.config/openspec/config.json" <<'EOF'
+          cat > "/home/$ENV_DEVOPS_USER/.config/openspec/config.json" <<'EOF'
 {
   "featureFlags": {},
   "profile": "custom",
@@ -4501,14 +4503,14 @@ EOF
 }
 EOF
 
-          chown "$DEVOPS_USER:$DEVOPS_GROUP" \
-              "/home/$DEVOPS_USER/.config/openspec/config.json"
+          chown "$ENV_DEVOPS_USER:$DEVOPS_GROUP" \
+              "/home/$ENV_DEVOPS_USER/.config/openspec/config.json"
 
           chmod 660 \
-              "/home/$DEVOPS_USER/.config/openspec/config.json"
+              "/home/$ENV_DEVOPS_USER/.config/openspec/config.json"
 
           OPENSPEC_VERSION="$(
-              PATH="/home/$DEVOPS_USER/node/current/bin:$PATH" \
+              PATH="/home/$ENV_DEVOPS_USER/node/current/bin:$PATH" \
               "$OPENSPEC_BIN" --version
           )"
 
