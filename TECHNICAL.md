@@ -77,6 +77,16 @@ Un module sourcé s'exécute donc dans le même contexte strict. Les commandes
 dont l'échec est attendu doivent être placées dans une condition explicite ;
 aucune erreur ne doit être ignorée silencieusement.
 
+Dans le bloc Node.js DevOps, le téléchargement de l'index officiel des versions
+est séparé de leur sélection. Curl conserve la vérification TLS et utilise
+`--connect-timeout 10 --max-time 60`. Un échec conserve le diagnostic curl,
+affiche sur stderr un seul diagnostic DIU avec Node.js, l'URL et le code curl,
+puis quitte avec ce code avant toute mutation du bloc Node.js. Il ne déclenche
+pas de rapport ERR générique supplémentaire et n'annule pas les étapes
+antérieures. La sélection de la dernière version de `NODEJS_SERIES` et le
+diagnostic de série absente sont conservés. La spécification de référence est
+`openspec/specs/devops-nodejs-download/spec.md`.
+
 ## Contextes, utilisateurs et chemins
 
 | Élément | Valeur ou convention | Rôle |

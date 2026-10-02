@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 import unittest
 
 
@@ -34,6 +35,7 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
                                 TEST_METADATA=str(self.metadata),
                                 TEST_QUERY_LOG=str(self.query_log),
                                 TEST_VENV_STATUS='0', TEST_PG_FAILURE='0')
+        self.environment.pop('DEVOPS_PROJECTS_ROOT', None)
         self.executable(self.host_bin / 'docker', "printf 'Docker version 29.1.2, build fixture\\n'")
         self.executable(self.host_bin / 'docker-compose', "printf 'Docker Compose version v5.2.3\\n'")
         self.executable(self.host_bin / 'git', "printf 'git version 2.47.9\\n'")
@@ -92,7 +94,8 @@ printf '16.4\n'
         path.write_text('#!/bin/sh\n' + body + '\n', encoding='utf-8')
         path.chmod(0o755)
 
-    def run_generation(self, extra='', user=None):
+    def run_generation(self, extra='', user=None, project='template', projects_root=None,
+                       arguments=None):
         # Remplacer uniquement le domicile fixé par le contrat public, dans le
         # code exécuté en mémoire : aucun accès à un véritable modèle utilisateur.
         source = MODULE.read_text(encoding='utf-8')
@@ -113,10 +116,14 @@ projects_template_devops_host_binary() {
 }
 ENV_DEVOPS_USER="$1"
 '''
-        script += extra + '\nprojects_template_devops\n'
+        script += extra + '\nshift\nprojects_template_devops "$@"\n'
+        environment = dict(self.environment)
+        if projects_root is not None:
+            environment['DEVOPS_PROJECTS_ROOT'] = str(projects_root)
         return subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script, 'bash',
-                               getpass.getuser() if user is None else user],
-                              text=True, capture_output=True, env=self.environment,
+                               getpass.getuser() if user is None else user,
+                               *(arguments if arguments is not None else (project,))],
+                              text=True, capture_output=True, env=environment,
                               timeout=30, check=False)
 
     def successful_document(self, result):
@@ -177,7 +184,7 @@ ENV_DEVOPS_USER="$1"
         self.template.rename(self.home / 'existing-fixture')
         result = self.run_generation('projects_template_devops_render() { return 99; }')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('Dossier modèle absent', result.stdout)
+        self.assertIn('Dossier du projet absent', result.stdout)
         self.assertFalse(self.template.exists())
         self.assertFalse(self.query_log.exists())
 
@@ -267,6 +274,7 @@ ENV_DEVOPS_USER="$1"
         self.assertIn('fichier project.env absent ou illisible', content)
         self.assertIn('adresse non configurée', content)
         self.assertFalse(self.query_log.exists())
+        self.assertFalse((self.template / 'pyproject.toml').exists())
 
     def test_server_alias_host_and_port_and_missing_client(self):
         project_env = self.template / 'project.env'
@@ -359,19 +367,171 @@ ENV_DEVOPS_USER="$1"
         self.assertNotEqual(self.run_generation().returncode, 0)
         self.assertEqual(target.read_text(), 'conservé\n')
 
+    def test_two_projects_use_their_own_configuration_and_manifest(self):
+        projects_root = self.fixture / 'projects with spaces'
+        initial_configuration = (self.template / 'project.env').read_text()
+        previous_document = None
+        for project, port in (('alpha', 5501), ('beta', 5502)):
+            path = projects_root / project
+            path.mkdir(parents=True)
+            (path / 'project.env').write_text(initial_configuration.replace(
+                'PG_PORT=5544', f'PG_PORT={port}'), encoding='utf-8')
+            (path / 'pyproject.toml').write_text(
+                f'[project]\ndependencies = ["{project}>=1"]\n', encoding='utf-8')
+            result = self.run_generation(project=project, projects_root=projects_root)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            content = (path / 'DEVOPS.md').read_text()
+            self.assertIn(f'# DEVOPS.md — {project}\n', content)
+            self.assertIn(f'database.example.test:{port}', content)
+            self.assertIn(f'{project} >=1 : non installé', content)
+            self.assertNotIn('beta >=1' if project == 'alpha' else 'alpha >=1', content)
+            self.assertIn('  * PG_HOST PG_PORT PG_DATABASE PG_USERNAME PG_PASSWORD\n', content)
+            if previous_document is not None:
+                self.assertEqual((projects_root / 'alpha/DEVOPS.md').read_bytes(), previous_document)
+            previous_document = (path / 'DEVOPS.md').read_bytes()
+        self.assertFalse(self.document.exists())
+        self.assertIn('database.example.test|5501|', self.query_log.read_text())
+        self.assertIn('database.example.test|5502|', self.query_log.read_text())
+
+    def test_python_manifest_created_only_for_exact_python_type(self):
+        project_env = self.template / 'project.env'
+        initial_configuration = project_env.read_text()
+        manifest = self.template / 'pyproject.toml'
+        for project_type in ('', 'NODE', 'python', 'PYTHON'):
+            with self.subTest(project_type=project_type):
+                project_env.write_text(initial_configuration + f'PROJECT_TYPE="{project_type}"\n')
+                content = self.successful_document(self.run_generation())
+                self.assertEqual(manifest.exists(), project_type == 'PYTHON')
+                if project_type == 'PYTHON':
+                    self.assertEqual(tomllib.loads(manifest.read_text()), {
+                        'project': {'name': 'template', 'version': '0.0.0', 'dependencies': []}})
+                    self.assertEqual(manifest.stat().st_uid, os.getuid())
+                    self.assertIn('Aucune dépendance déclarée dans [project].dependencies', content)
+                else:
+                    self.assertIn('pyproject.toml absent', content)
+
+    def test_existing_manifest_is_preserved_for_any_project_type(self):
+        manifest = self.template / 'pyproject.toml'
+        manifest.write_text('[project]\nname="existing"\nversion="9.8.7"\ndependencies=[]\n')
+        manifest.chmod(0o640)
+        before = manifest.stat()
+        content = manifest.read_bytes()
+        for project_type in ('PYTHON', 'NODE'):
+            with self.subTest(project_type=project_type):
+                with (self.template / 'project.env').open('a') as stream:
+                    stream.write(f'PROJECT_TYPE={project_type}\n')
+                self.successful_document(self.run_generation())
+                after = manifest.stat()
+                self.assertEqual(manifest.read_bytes(), content)
+                self.assertEqual((after.st_ino, after.st_mode, after.st_uid, after.st_gid),
+                                 (before.st_ino, before.st_mode, before.st_uid, before.st_gid))
+
+    def test_project_type_is_never_executed(self):
+        marker = self.fixture / 'type-command-must-not-run'
+        with (self.template / 'project.env').open('a') as stream:
+            stream.write(f'PROJECT_TYPE=$(touch {marker})\n')
+        result = self.run_generation()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(marker.exists())
+        self.assertFalse((self.template / 'pyproject.toml').exists())
+        self.assertNotIn(str(marker), result.stdout + result.stderr)
+
+    def test_project_identifiers_arity_and_symlink_directory_are_rejected(self):
+        for project in ('', '.', '..', '../elsewhere', '/absolute', 'part/path', 'line\nbreak'):
+            with self.subTest(project=project):
+                result = self.run_generation(project=project)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Usage : rid projects template <ID PROJECT> devops', result.stderr)
+        for arguments in ((), ('template', 'extra')):
+            self.assertNotEqual(self.run_generation(arguments=arguments).returncode, 0)
+        link = self.home / 'datas/link'
+        link.symlink_to(self.template, target_is_directory=True)
+        self.assertNotEqual(self.run_generation(project='link').returncode, 0)
+        self.assertFalse(self.document.exists())
+
+    def test_python_project_with_spaces_gets_a_valid_minimal_name(self):
+        path = self.home / 'datas/Projet & essai'
+        path.mkdir()
+        (path / 'project.env').write_text('PROJECT_TYPE=PYTHON\n')
+        result = self.run_generation(project=path.name)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(tomllib.loads((path / 'pyproject.toml').read_text())['project']['name'],
+                         'Projet---essai')
+        self.assertIn('# DEVOPS.md — Projet & essai', (path / 'DEVOPS.md').read_text())
+
+    def test_create_project_runs_real_generation_after_copy_and_rights(self):
+        projects_source = (ROOT / 'modules/projects/projects.sh').read_text()
+        projects_source = projects_source.replace(
+            'local template_path="/home/${DEVOPS_USER}/datas/template"',
+            'local template_path="$TEST_DEVOPS_HOME/datas/template"')
+        (self.template / 'README.md').write_text('# Template\n')
+        # Un modèle Python ne doit pas transmettre son manifeste à un projet Node.
+        (self.template / 'pyproject.toml').write_text('[project]\nname="existing"\ndependencies=[]\n')
+        extra = projects_source + r'''
+check_devops_user() { return 0; }
+install() { mkdir -p "${!#}"; }
+chown() { printf 'rights\n' >> "$TEST_DEVOPS_HOME/order"; }
+update_projects() {
+    printf 'PROJECT_ID=%s\nPROJECT_NAME="Application"\nPROJECT_TYPE=%s\n' "$1" "$TEST_PROJECT_TYPE" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+}
+eval "$(declare -f projects_template_devops | sed '1s/projects_template_devops/original_template_devops/')"
+projects_template_devops() {
+    printf 'generation:%s\n' "$1" >> "$TEST_DEVOPS_HOME/order"
+    if [[ "$TEST_CREATE_FAILURE" == 1 ]]; then return 9; fi
+    original_template_devops "$@"
+}
+DEVOPS_USER="$ENV_DEVOPS_USER"
+DEVOPS_GROUP="$(id -gn)"
+DEVOPS_PROJECTS_ROOT="$TEST_DEVOPS_HOME/datas"
+create_project "$TEST_CREATED_PROJECT"
+exit $?
+'''
+        for project, project_type, failure in (
+                ('node-app', 'NODE', '0'), ('python-app', 'PYTHON', '0'),
+                ('python-minimal', 'PYTHON', '0'),
+                ('failed-app', 'PYTHON', '1')):
+            with self.subTest(project=project):
+                if project == 'python-minimal':
+                    (self.template / 'pyproject.toml').unlink()
+                self.environment.update(TEST_CREATED_PROJECT=project, TEST_PROJECT_TYPE=project_type,
+                                        TEST_CREATE_FAILURE=failure)
+                order = self.home / 'order'
+                if order.exists():
+                    order.unlink()
+                result = self.run_generation(extra)
+                target = self.home / 'datas' / project
+                self.assertTrue(target.is_dir())
+                self.assertEqual(order.read_text().splitlines(), ['rights', f'generation:{project}'] +
+                                 ([] if failure == '1' else ['rights']))
+                if failure == '1':
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('génération de DEVOPS.md échouée', result.stderr)
+                    self.assertNotIn('créé avec succès', result.stdout)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn(f'# DEVOPS.md — {project}', (target / 'DEVOPS.md').read_text())
+                    self.assertEqual((target / 'pyproject.toml').exists(), project_type == 'PYTHON')
+                    if project == 'python-minimal':
+                        self.assertEqual(tomllib.loads((target / 'pyproject.toml').read_text())['project'],
+                                         {'name': project, 'version': '0.0.0', 'dependencies': []})
+                    self.assertEqual((target / 'README.md').read_text(), '# Application\n')
+
     def test_dispatch_invokes_only_the_requested_leaf_without_configuration(self):
         source = (ROOT / 'root-install-debian.sh').read_text(encoding='utf-8')
         function = re.search(r'^manage_project_action\(\) \{\n.*?^\}', source, re.M | re.S)[0]
         script = function + r'''
-projects_template_devops() { printf 'generation\n'; }
+projects_template_devops() { printf 'generation:%s\n' "$1"; }
 rid_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
         for arguments, status, expected in (
-            (('template', 'devops'), 0, 'generation\n'),
+            (('template', 'application', 'devops'), 0, 'generation:application\n'),
+            (('template', 'template', 'devops'), 0, 'generation:template\n'),
             (('template', 'unknown'), 2, 'help:projects template'),
             (('template',), 2, 'help:projects template'),
-            (('template', 'devops', 'extra'), 2, 'help:projects template'),
+            (('template', 'devops'), 2, 'help:projects template'),
+            (('template', 'template', 'devops', 'extra'), 2, 'help:projects template'),
+            (('template', '../elsewhere', 'devops'), 2, 'help:projects template'),
         ):
             with self.subTest(arguments=arguments):
                 result = subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script, 'bash', *arguments],

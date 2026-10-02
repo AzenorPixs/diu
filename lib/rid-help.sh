@@ -22,6 +22,24 @@ rid_display_help_context() {
         return 0
     fi
 
+    if [[ "$context:$subcontext" == projects:template ]]; then
+        if [[ ( -n "$target" && -z "$leaf" ) || "$leaf" == */* ||
+            "$leaf" == . || "$leaf" == .. || "$leaf" =~ [[:cntrl:]] ]]; then
+            rid_display_command_error projects template
+            return 2
+        fi
+        if [[ $# -gt 4 || ( -n "$target" && "$target" != devops ) ]]; then
+            rid_display_command_error projects template "$leaf"
+            return 2
+        fi
+        if [[ -n "$leaf" ]]; then
+            rid_help_line "rid projects template ${leaf} devops" 'Crée ou actualise DEVOPS.md pour ce projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
+        else
+            rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
+        fi
+        return 0
+    fi
+
     case "$context:$subcontext:$leaf" in
         infos::)
             rid_help_line 'rid infos' 'Affiche les informations de tous les modules.'
@@ -176,8 +194,8 @@ rid_display_help_context() {
             ;;
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
-            rid_help_line 'rid projects template devops' 'Génère ou actualise DEVOPS.md dans le modèle local.'
-            rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
+            rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet.'
+            rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local, puis génère DEVOPS.md.'
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'
             rid_help_line 'rid projects update <ID PROJECT>' 'Met à jour les variables du projet.'
@@ -209,17 +227,6 @@ rid_display_help_context() {
             rid_help_line 'rid projects cicddiu' 'Lance la CI/CD du projet DIU.'
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
             ;;
-        projects:template:|projects:template:devops)
-            if [[ -n "$target" || $# -gt 3 ]]; then
-                rid_display_command_error projects template devops
-                return 2
-            fi
-            rid_help_line 'rid projects template devops' 'Génère ou actualise DEVOPS.md dans le modèle local.'
-            ;;
-        projects:template:*)
-            rid_display_command_error projects template
-            return 2
-            ;;
         projects:cicd:|projects:cicd:*)
             rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute commit, publications, build et releases configurés.'
             ;;
@@ -227,7 +234,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects docker build <ID PROJECT>' "Construit l'image Docker du projet."
             ;;
         projects:create:)
-            rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local.'
+            rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local, puis génère DEVOPS.md.'
             ;;
         projects:clone:)
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
