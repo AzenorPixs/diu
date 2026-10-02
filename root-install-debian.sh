@@ -191,6 +191,97 @@ check_devops_user() {
     fi
 }
 
+configure_environment_sudoers() {
+    local scope="${1:-}" target_user label
+    local passwd_file="${2:-/etc/passwd}"
+    local login_defs="${3:-/etc/login.defs}"
+    local sudoers_dir="${4:-/etc/sudoers.d}"
+    local uid_limits uid_min uid_max human_accounts candidate human_user human_shell
+
+    case "$scope" in
+        devops) target_user="${ENV_DEVOPS_USER:-}"; label="DevOps" ;;
+        docker) target_user="${ENV_DOCKER_USER:-}"; label="Docker" ;;
+        *) echo "❌ Sudoers : environnement inconnu." >&2; return 1 ;;
+    esac
+    if [ -z "$target_user" ] || ! id -u "$target_user" >/dev/null 2>&1; then
+        echo "ℹ️ Sudoers $label ignoré : le compte '$target_user' n'existe pas."
+        return 0
+    fi
+    if [[ ! "$target_user" =~ ^[[:alnum:]_][[:alnum:]_.-]*[$]?$ ]]; then
+        echo "❌ Sudoers $label : nom du compte cible incompatible avec la génération." >&2
+        return 1
+    fi
+    if ! command -v visudo >/dev/null 2>&1; then
+        echo "❌ Sudoers $label : visudo est nécessaire." >&2
+        return 1
+    fi
+    if ! uid_limits=$(awk '
+        $1 == "UID_MIN" { minimum = $2 }
+        $1 == "UID_MAX" { maximum = $2 }
+        END {
+            if (minimum !~ /^[0-9]+$/ || maximum !~ /^[0-9]+$/ ||
+                minimum + 0 <= 0 || maximum + 0 < minimum + 0) exit 1
+            print minimum, maximum
+        }
+    ' "$login_defs"); then
+        echo "❌ Sudoers $label : lecture ou bornes UID_MIN/UID_MAX invalides." >&2
+        return 1
+    fi
+    read -r uid_min uid_max <<< "$uid_limits"
+    if ! human_accounts=$(awk -F: -v minimum="$uid_min" -v maximum="$uid_max" \
+        -v devops="${ENV_DEVOPS_USER:-}" -v docker="${ENV_DOCKER_USER:-}" -v ia="${ENV_IA_USER:-}" '
+        $3 ~ /^[0-9]+$/ && $3 + 0 >= minimum + 0 && $3 + 0 <= maximum + 0 &&
+        $1 != "root" && $1 != devops && $1 != docker && $1 != ia && !seen[$1]++ {
+            print $1 ":" $7
+        }
+    ' "$passwd_file"); then
+        echo "❌ Sudoers $label : lecture des comptes locaux impossible." >&2
+        return 1
+    fi
+    if [ ! -d "$sudoers_dir" ]; then
+        if ! install -d -o root -g root -m 0750 "$sudoers_dir"; then
+            echo "❌ Sudoers $label : création du répertoire impossible." >&2
+            return 1
+        fi
+    fi
+    # Le point dans le nom exclut le candidat de l'inclusion sudoers.d.
+    if ! candidate=$(mktemp "$sudoers_dir/.diu-$scope.XXXXXX"); then
+        echo "❌ Sudoers $label : création du candidat impossible." >&2
+        return 1
+    fi
+    if ! (
+        printf '# Managed by DIU: local human accounts to %s\n' "$label" || exit 1
+        while IFS=: read -r human_user human_shell; do
+            [ -n "$human_user" ] && [ -f "$human_shell" ] && [ -x "$human_shell" ] || continue
+            case "${human_shell##*/}" in
+                nologin|false) continue ;;
+            esac
+            if [[ ! "$human_user" =~ ^[[:alnum:]_][[:alnum:]_.-]*[$]?$ ]]; then
+                echo "❌ Sudoers $label : nom de compte local incompatible avec la génération." >&2
+                exit 1
+            fi
+            printf '%s ALL=(%s) NOPASSWD: ALL\n' "$human_user" "$target_user" || exit 1
+        done <<< "$human_accounts"
+    ) > "$candidate" || ! visudo -cf "$candidate" \
+        || ! chown root:root "$candidate" || ! chmod 0440 "$candidate" \
+        || ! mv -fT -- "$candidate" "$sudoers_dir/99-diu-$scope"; then
+        echo "❌ Sudoers $label : génération ou publication échouée ; fragment précédent préservé." >&2
+        if ! rm -f -- "$candidate"; then
+            echo "❌ Sudoers $label : nettoyage du candidat impossible." >&2
+        fi
+        return 1
+    fi
+    echo "✅ Sudoers $label configuré pour les comptes humains locaux."
+}
+
+configure_devops_sudoers() {
+    configure_environment_sudoers devops "${1:-/etc/passwd}" "${2:-/etc/login.defs}" "${3:-/etc/sudoers.d}"
+}
+
+configure_docker_sudoers() {
+    configure_environment_sudoers docker "${1:-/etc/passwd}" "${2:-/etc/login.defs}" "${3:-/etc/sudoers.d}"
+}
+
 config_host () {
 
   local hosts_ip=""
@@ -4633,6 +4724,22 @@ EOF
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/python${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/python3"
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/pip${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/pip3"
 
+		echo "🔧 INSTALL/UPDATE PSYCOPG DEVOPS"
+		if ! "/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
+			-m pip install --upgrade --no-user "psycopg[binary]>=3.2,<4"; then
+			echo "❌ Échec de l'installation ou mise à jour de Psycopg dans le Python DevOps" >&2
+			exit 1
+		fi
+
+		if ! PYTHON_PSYCOPG_VERSION="$(
+			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
+				-I -B -c 'import psycopg; print(psycopg.__version__)'
+		)"; then
+			echo "❌ Échec du contrôle de Psycopg dans le Python DevOps" >&2
+			exit 1
+		fi
+		echo "PSYCOPG DEVOPS OK ✅ ($PYTHON_PSYCOPG_VERSION)"
+
     cat > /etc/profile.d/python-dev.sh <<EOF
 # Python Dev environment (managed by DIU)
 export PYTHON_DEV_HOME="${INSTALL_PYTHON_ROOT}/current"
@@ -4721,6 +4828,8 @@ fi
 EOF
 
   chmod 644 "$DEVOPS_PROFILE"
+
+  configure_devops_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d
 
 fi
 
@@ -5397,6 +5506,8 @@ else
 		rm -R -f /home/docker/proxy
 
 	fi
+
+  configure_docker_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d
 
 fi
 

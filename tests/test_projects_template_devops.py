@@ -4,8 +4,11 @@ import getpass
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 
 
@@ -92,10 +95,11 @@ printf '16.4\n'
     def run_generation(self, extra='', user=None):
         # Remplacer uniquement le domicile fixé par le contrat public, dans le
         # code exécuté en mémoire : aucun accès à un véritable modèle utilisateur.
-        source = MODULE.read_text(encoding='utf-8').replace(
-            'local devops_home="/home/${ENV_DEVOPS_USER:-}"',
-            'local devops_home="$TEST_DEVOPS_HOME"',
-        )
+        source = MODULE.read_text(encoding='utf-8')
+        home_assignment = 'local devops_home="/home/${ENV_DEVOPS_USER:-}"'
+        self.assertEqual(source.count(home_assignment), 1,
+                         'Le test doit isoler exactement le domicile, sans toucher au modèle réel')
+        source = source.replace(home_assignment, 'local devops_home="$TEST_DEVOPS_HOME"')
         script = source + r'''
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
@@ -112,7 +116,8 @@ ENV_DEVOPS_USER="$1"
         script += extra + '\nprojects_template_devops\n'
         return subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script, 'bash',
                                getpass.getuser() if user is None else user],
-                              text=True, capture_output=True, env=self.environment, check=False)
+                              text=True, capture_output=True, env=self.environment,
+                              timeout=30, check=False)
 
     def successful_document(self, result):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -305,6 +310,22 @@ ENV_DEVOPS_USER="$1"
                 self.assertEqual(self.document.read_text(), 'document conservé\n')
                 self.assertEqual(list(self.template.glob('.DEVOPS.md.*')), [])
 
+    def test_real_directory_permissions_prevent_writing_without_altering_document(self):
+        if os.geteuid() == 0:
+            self.skipTest('Root contourne les permissions ordinaires du dossier')
+        self.document.write_text('document conservé\n', encoding='utf-8')
+        before = self.document.stat()
+        self.template.chmod(0o555)
+        try:
+            result = self.run_generation()
+        finally:
+            self.template.chmod(0o755)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Impossible de créer le fichier temporaire', result.stderr)
+        self.assertEqual(self.document.read_text(), 'document conservé\n')
+        self.assertEqual(self.document.stat().st_ino, before.st_ino)
+        self.assertEqual(list(self.template.glob('.DEVOPS.md.*')), [])
+
     def test_invalid_username_and_symlink_target_are_rejected(self):
         for user in ('', '../elsewhere', 'user;command'):
             with self.subTest(user=user):
@@ -336,6 +357,163 @@ manage_project_action "$@"
                 self.assertIn(expected, result.stdout)
                 if status:
                     self.assertNotIn('generation', result.stdout)
+
+
+class ProjectsTemplateDevopsRuntimeTests(unittest.TestCase):
+    """Sondes réelles ; aucun remplacement du code du module testé."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-test-runtime-')
+        self.addCleanup(self.temporary.cleanup)
+        self.fixture = Path(self.temporary.name)
+        self.home = self.fixture / 'home with spaces'
+        self.home.mkdir()
+        self.environment = {'PATH': '/usr/local/bin:/usr/bin:/bin', 'LC_ALL': 'C.UTF-8'}
+
+    def runtime(self, name):
+        binary = os.environ.get(f'DIU_TEST_{name.upper()}') or shutil.which(name)
+        if not binary or not os.access(binary, os.X_OK):
+            self.skipTest(f'Binaire réel {name} absent ; définir DIU_TEST_{name.upper()}')
+        return binary
+
+    def call_function(self, function, *arguments, cwd=None, restrict_directory=False,
+                      extra='', preserve_cwd=False):
+        script = 'source "$1"\nENV_DEVOPS_USER="$2"\nshift 2\n' + extra + '\n'
+        script += function + ' "$@"\n'
+        if preserve_cwd:
+            script += 'printf "CALLER_CWD:%s\\n" "$(readlink /proc/$$/cwd)"\n'
+        directory = Path(cwd) if cwd else self.home
+        try:
+            return subprocess.run(
+                ['bash', '-Eeuo', 'pipefail', '-c', script, 'bash', str(MODULE),
+                 getpass.getuser(), *map(str, arguments)], cwd=directory,
+                preexec_fn=(lambda: os.chmod('.', 0)) if restrict_directory else None,
+                env=self.environment, text=True, capture_output=True, timeout=25, check=False,
+            )
+        finally:
+            if restrict_directory:
+                directory.chmod(0o700)
+
+    def test_real_go_version_from_inaccessible_caller_directory(self):
+        if os.geteuid() == 0:
+            self.skipTest('La reproduction des permissions nécessite un utilisateur non root')
+        go = self.runtime('go')
+        reference = subprocess.run([go, 'version'], cwd=self.home,
+                                   env=dict(self.environment, GOTOOLCHAIN='local'),
+                                   text=True, capture_output=True, timeout=10, check=False)
+        self.assertEqual(reference.returncode, 0, reference.stderr)
+        expected_version = reference.stdout.split()[2].removeprefix('go')
+        restricted = self.fixture / 'caller'
+        restricted.mkdir()
+        result = self.call_function('projects_template_devops_version', 'user', self.home,
+                                    go, 'version', cwd=restricted, restrict_directory=True,
+                                    preserve_cwd=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [expected_version, f'CALLER_CWD:{restricted}'])
+
+    def test_runuser_execution_envelope_preserves_arguments_and_changes_child_directory(self):
+        go = self.runtime('go')
+        reference = subprocess.run([go, 'version'], cwd=self.home,
+                                   env=dict(self.environment, GOTOOLCHAIN='local'),
+                                   text=True, capture_output=True, timeout=10, check=False)
+        self.assertEqual(reference.returncode, 0, reference.stderr)
+        caller = self.fixture / 'caller'
+        caller.mkdir()
+        # La permission de changer réellement d'identité reste hors de ce test.
+        # L'enveloppe runuser exécute néanmoins le vrai shell enfant et le vrai Go.
+        extra = r'''
+id() { printf 'other-user\n'; }
+runuser() {
+    [[ "$1" == -u && "$2" == "${ENV_DEVOPS_USER}" && "$3" == -- ]] || return 99
+    shift 3
+    "$@"
+}
+'''
+        result = self.call_function('projects_template_devops_user_run', self.home, '/bin/bash', '-c',
+                                    'printf "CHILD_CWD:%s\\n" "$(pwd -P)"; exec "$1" version',
+                                    'bash', go, cwd=caller, preserve_cwd=True, extra=extra)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [f'CHILD_CWD:{self.home}', reference.stdout.strip(),
+                                                     f'CALLER_CWD:{caller}'])
+
+    def test_real_node_ignores_host_interpreter_and_runs_from_user_home(self):
+        node = self.runtime('node')
+        node_binary = self.home / 'node/current/bin/node'
+        node_binary.parent.mkdir(parents=True)
+        node_binary.symlink_to(Path(node).resolve())
+        script_binary = node_binary.parent / 'npm'
+        script_binary.write_text('''#!/nonexistent/host-node
+require('fs').appendFileSync(process.env.TEST_NODE_LOG, JSON.stringify({
+  executable: process.execPath, directory: process.cwd(), user: process.getuid()
+}) + '\\n');
+console.log(process.versions.node);
+''', encoding='utf-8')
+        script_binary.chmod(0o755)
+        log = self.fixture / 'node-provenance.jsonl'
+        self.environment['TEST_NODE_LOG'] = str(log)
+        caller = self.fixture / 'caller'
+        caller.mkdir()
+        reference = subprocess.run([node, '--version'], text=True, capture_output=True,
+                                   env=self.environment, timeout=10, check=False)
+        self.assertEqual(reference.returncode, 0, reference.stderr)
+        result = self.call_function('projects_template_devops_version', 'node', self.home,
+                                    script_binary, '--version', cwd=caller, preserve_cwd=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [reference.stdout.strip().removeprefix('v'),
+                                                     f'CALLER_CWD:{caller}'])
+        import json
+        self.assertEqual(json.loads(log.read_text()), {
+            'executable': str(Path(node).resolve()), 'directory': str(self.home), 'user': os.getuid(),
+        })
+
+    def test_real_python_virtual_environment_and_metadata_ignore_host_pythonpath(self):
+        python = os.environ.get('DIU_TEST_PYTHON', sys.executable)
+        python_home = self.home / 'python/current'
+        created = subprocess.run([python, '-I', '-B', '-m', 'venv', '--without-pip', str(python_home)],
+                                 cwd=self.home, env=self.environment, text=True,
+                                 capture_output=True, timeout=20, check=False)
+        self.assertEqual(created.returncode, 0, created.stderr)
+        binary = python_home / 'bin/python3'
+        site_packages = subprocess.run(
+            [str(binary), '-I', '-B', '-c', 'import sysconfig; print(sysconfig.get_path("purelib"))'],
+            env=self.environment, text=True, capture_output=True, timeout=10, check=False,
+        )
+        self.assertEqual(site_packages.returncode, 0, site_packages.stderr)
+        distribution = Path(site_packages.stdout.strip()) / 'runtime_only-7.6.5.dist-info'
+        distribution.mkdir()
+        (distribution / 'METADATA').write_text('Name: runtime-only\nVersion: 7.6.5\n', encoding='utf-8')
+        decoy = self.fixture / 'host-packages/runtime_only-99.99.99.dist-info'
+        decoy.mkdir(parents=True)
+        (decoy / 'METADATA').write_text('Name: runtime-only\nVersion: 99.99.99\n', encoding='utf-8')
+        self.environment['PYTHONPATH'] = str(decoy.parent)
+        template = self.home / 'datas/template'
+        template.mkdir(parents=True)
+        (template / 'pyproject.toml').write_text(
+            '[project]\ndependencies = ["runtime-only>=7", "uninstalled-runtime-package"]\n',
+            encoding='utf-8',
+        )
+        observed = self.call_function('projects_template_devops_dependencies', self.home, template, binary)
+        self.assertEqual(observed.returncode, 0, observed.stderr)
+        self.assertIn(f'runtime-only >=7 : 7.6.5 --> {binary}', observed.stdout)
+        self.assertIn('uninstalled-runtime-package : non installé', observed.stdout)
+        self.assertNotIn('99.99.99', observed.stdout)
+        reference = subprocess.run([str(binary), '--version'], env=self.environment, text=True,
+                                   capture_output=True, timeout=10, check=False)
+        version = self.call_function('projects_template_devops_version', 'user', self.home, binary, '--version')
+        self.assertEqual(version.returncode, 0, version.stderr)
+        self.assertEqual(version.stdout.strip(), reference.stdout.split()[1])
+
+    def test_real_timeout_bounds_a_blocking_probe(self):
+        blocking_binary = self.fixture / 'blocking-tool'
+        blocking_binary.write_text('#!/bin/sh\nexec /bin/sleep 20\n', encoding='utf-8')
+        blocking_binary.chmod(0o755)
+        started = time.monotonic()
+        result = self.call_function('projects_template_devops_version', 'user', self.home, blocking_binary)
+        elapsed = time.monotonic() - started
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'indisponible (sonde échouée)')
+        self.assertGreaterEqual(elapsed, 14)
+        self.assertLess(elapsed, 24)
 
 
 if __name__ == '__main__':
