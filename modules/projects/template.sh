@@ -424,3 +424,97 @@ projects_template_devops() {
     fi
     print_success "DEVOPS.md généré ou actualisé : ${document}. Les versions indisponibles sont indiquées dans le document."
 }
+
+projects_template_devops_project_is_configured() {
+    local project_env="$1" project_id="$2"
+
+    /usr/bin/timeout 15s /usr/bin/python3 -I -B - "${project_env}" "${project_id}" <<'PY'
+from pathlib import Path
+import re
+import shlex
+import sys
+
+required = {'PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE',
+            'PROJECT_DOCKERED', 'PROJECT_DEBIAN_PACKAGE'}
+values = {}
+try:
+    for line in Path(sys.argv[1]).read_text(encoding='utf-8').splitlines():
+        match = re.match(r'^\s*(?:export\s+)?([A-Z_]+)\s*=\s*(.*)$', line)
+        if not match or match[1] not in required:
+            continue
+        parsed = shlex.split(match[2], comments=True)
+        if len(parsed) > 1:
+            raise ValueError('affectation non littérale')
+        values[match[1]] = parsed[0] if parsed else ''
+except (OSError, ValueError, UnicodeError):
+    sys.exit(1)
+valid = all(values.get(key, '').strip() for key in required)
+sys.exit(0 if valid and values['PROJECT_ID'] == sys.argv[2] else 1)
+PY
+}
+
+projects_template_devops_all() {
+    local devops_home="/home/${ENV_DEVOPS_USER:-}"
+    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local project_path="" project_id=""
+    local selected=0 succeeded=0 ignored=0 failed=0
+
+    if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
+        print_error 'Usage : rid projects template all devops (utilisateur DevOps valide).'
+        return 1
+    fi
+    if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
+        print_error "Utilisateur DevOps introuvable : ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+    if [[ "${EUID}" -ne 0 && "$(id -un)" != "${ENV_DEVOPS_USER}" ]]; then
+        print_error "Exécuter cette génération en root ou sous ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+    if [[ ! -d "${projects_root}" ]]; then
+        print_error "Répertoire des projets introuvable : ${projects_root}"
+        return 1
+    fi
+    if [[ ! -x /usr/bin/python3 ]]; then
+        print_error 'Impossible de sélectionner les projets : Python système absent.'
+        return 1
+    fi
+
+    # Les trois motifs disjoints incluent les dossiers cachés sans modifier
+    # les options de glob du shell appelant ni suivre les liens symboliques.
+    for project_path in "${projects_root}"/* "${projects_root}"/.[!.]* "${projects_root}"/..?*; do
+        if [[ ! -d "${project_path}" && ! -L "${project_path}" ]]; then
+            continue
+        fi
+        project_id="${project_path##*/}"
+        if [[ "${project_id}" =~ [[:cntrl:]] ]]; then
+            ignored=$((ignored + 1))
+            print_info 'Projet ignoré : identifiant invalide.'
+            continue
+        fi
+        if [[ -L "${project_path}" || -L "${project_path}/project.env" ||
+            ! -f "${project_path}/project.env" ]] ||
+            ! projects_template_devops_project_is_configured "${project_path}/project.env" "${project_id}"; then
+            ignored=$((ignored + 1))
+            print_info "Projet ignoré : ${project_id} (chemin symbolique ou configuration absente, incomplète, illisible ou invalide)."
+            continue
+        fi
+
+        selected=$((selected + 1))
+        if projects_template_devops "${project_id}"; then
+            succeeded=$((succeeded + 1))
+        else
+            failed=$((failed + 1))
+            print_error "Génération DevOps échouée pour le projet : ${project_id}."
+        fi
+    done
+
+    if [[ "${selected}" -eq 0 ]]; then
+        print_info "Aucun projet éligible à la génération DevOps dans ${projects_root}."
+    fi
+    print_info "Bilan DevOps : ${selected} sélectionné(s), ${succeeded} réussi(s), ${ignored} ignoré(s), ${failed} échoué(s)."
+    if [[ "${failed}" -gt 0 ]]; then
+        return 1
+    fi
+    return 0
+}
