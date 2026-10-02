@@ -114,6 +114,10 @@ mktemp() {
     [ "$FAULT" != mktemp ] || return 1
     command mktemp "$@"
 }
+awk() {
+    if [ "$FAULT" = summary_awk ] && [[ "${@: -1}" == "$SUDOERS_DIR"/.diu-* ]]; then return 1; fi
+    command awk "$@"
+}
 command() {
     if [ "$*" = '-v visudo' ] && [ "$FAULT" = missing_visudo ]; then return 1; fi
     builtin command "$@"
@@ -123,7 +127,8 @@ command() {
                    ENV_IA_USER='assistant', ENV_DEVOPS=str(enabled),
                    ENV_DOCKER=str(enabled), REQUESTED_SCOPE=scope, FAULT=fault,
                    MISSING_TARGET='1' if fault == 'missing_target' else '0',
-                   REAL_VISUDO=VISUDO or '', CALLS=str(self.calls))
+                   REAL_VISUDO=VISUDO or '', CALLS=str(self.calls),
+                   SUDOERS_DIR=str(self.sudoers))
         if scope in ('devops', 'docker'):
             env['ENV_' + scope.upper() + '_USER'] = target
         if activation:
@@ -155,7 +160,23 @@ command() {
         calls = self.calls.read_text().splitlines()
         self.assertTrue(calls[0].startswith('visudo <-cf> '))
         self.assertEqual(calls[1:], ['chown <root:root>', 'chmod <0440>', 'mv <-fT> <-->'])
+        self.assertEqual(result.stdout.splitlines()[-1],
+                         f'✅ Sudoers {self.LABEL} configuré pour alice bob.')
         self.assert_no_candidate()
+
+    def test_summary_follows_filtered_rule_order(self):
+        self.passwd.write_text('ignored:x:1000:1000::/home/ignored:/bin/false\n'
+                               'zoe:x:1001:1001::/home/zoe:/bin/bash\n'
+                               'alice:x:1002:1002::/home/alice:/bin/sh\n'
+                               'zoe:x:1001:1001::/home/zoe:/bin/bash\n')
+        result = self.run_generator()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines()[-1],
+                         f'✅ Sudoers {self.LABEL} configuré pour zoe alice.')
+        self.assertEqual(self.destination.read_text(),
+                         f'# Managed by DIU: local human accounts to {self.LABEL}\n'
+                         f'zoe ALL=({self.TARGET}) NOPASSWD: ALL\n'
+                         f'alice ALL=({self.TARGET}) NOPASSWD: ALL\n')
 
     def test_idempotence_and_other_fragments_preserved(self):
         other = self.sudoers / 'other-policy'
@@ -191,6 +212,9 @@ command() {
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.destination.read_text(),
                          f'# Managed by DIU: local human accounts to {self.LABEL}\n')
+        self.assertEqual(result.stdout.splitlines()[-1],
+                         f'ℹ️ Sudoers {self.LABEL} : aucun compte humain retenu.')
+        self.assertNotIn('configuré pour', result.stdout)
 
     def test_duplicate_local_account_has_one_rule(self):
         self.passwd.write_text('alice:x:1000:1000::/home/alice:/bin/bash\n' * 2)
@@ -227,6 +251,7 @@ command() {
         result = self.run_generator(fault='missing_target')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('ignoré', result.stdout)
+        self.assertNotIn('configuré pour', result.stdout)
         self.assertEqual(self.destination.read_text(), 'previous policy\n')
         self.assertFalse(self.calls.exists())
         self.assert_no_candidate()
@@ -235,6 +260,8 @@ command() {
         result = self.run_generator(activation=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.destination.exists())
+        self.assertEqual(result.stdout.splitlines()[-1],
+                         f'✅ Sudoers {self.LABEL} configuré pour alice bob.')
 
     def test_disabled_environment_leaves_policy_unchanged(self):
         self.destination.write_text('previous policy\n')
@@ -242,15 +269,17 @@ command() {
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.destination.read_text(), 'previous policy\n')
         self.assertFalse(self.calls.exists())
+        self.assertEqual(result.stdout, '')
         self.assert_no_candidate()
 
     def test_failure_preserves_policy_and_cleans_candidate(self):
         self.destination.write_text('previous policy\n')
-        for fault in ('visudo', 'chown', 'chmod', 'mv', 'mktemp', 'missing_visudo'):
+        for fault in ('visudo', 'chown', 'chmod', 'mv', 'mktemp', 'missing_visudo', 'summary_awk'):
             with self.subTest(fault=fault):
                 result = self.run_generator(fault=fault)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('Sudoers ' + self.LABEL, result.stderr)
+                self.assertNotIn('configuré pour', result.stdout)
                 self.assertEqual(self.destination.read_text(), 'previous policy\n')
                 self.assert_no_candidate()
 

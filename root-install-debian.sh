@@ -197,6 +197,7 @@ configure_environment_sudoers() {
     local login_defs="${3:-/etc/login.defs}"
     local sudoers_dir="${4:-/etc/sudoers.d}"
     local uid_limits uid_min uid_max human_accounts candidate human_user human_shell
+    local configured_users
 
     case "$scope" in
         devops) target_user="${ENV_DEVOPS_USER:-}"; label="DevOps" ;;
@@ -262,7 +263,9 @@ configure_environment_sudoers() {
             fi
             printf '%s ALL=(%s) NOPASSWD: ALL\n' "$human_user" "$target_user" || exit 1
         done <<< "$human_accounts"
-    ) > "$candidate" || ! visudo -cf "$candidate" \
+    ) > "$candidate" || ! configured_users=$(awk '
+        NF && $1 !~ /^#/ { printf "%s%s", separator, $1; separator = " " }
+    ' "$candidate") || ! visudo -cf "$candidate" \
         || ! chown root:root "$candidate" || ! chmod 0440 "$candidate" \
         || ! mv -fT -- "$candidate" "$sudoers_dir/99-diu-$scope"; then
         echo "❌ Sudoers $label : génération ou publication échouée ; fragment précédent préservé." >&2
@@ -271,7 +274,11 @@ configure_environment_sudoers() {
         fi
         return 1
     fi
-    echo "✅ Sudoers $label configuré pour les comptes humains locaux."
+    if [ -n "$configured_users" ]; then
+        printf '✅ Sudoers %s configuré pour %s.\n' "$label" "$configured_users"
+    else
+        printf 'ℹ️ Sudoers %s : aucun compte humain retenu.\n' "$label"
+    fi
 }
 
 configure_devops_sudoers() {
@@ -5451,6 +5458,8 @@ then
 
 	fi
 
+  configure_docker_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d
+
 else
 
 	if test -f "/home/$DOCKER_USER/proxy/docker-compose.yml"
@@ -5525,8 +5534,6 @@ else
 		rm -R -f /home/docker/proxy
 
 	fi
-
-  configure_docker_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d
 
 fi
 

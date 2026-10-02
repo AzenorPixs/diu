@@ -90,10 +90,16 @@ la version et le chemin du pip de cet environnement.
 DIU SHALL déterminer l'adresse du serveur depuis les affectations littérales
 PG_HOST ou PG_SERVER et PG_PORT de project.env, et vérifier sa version avec
 `SHOW server_version`. Les paramètres de connexion SHALL rester locaux.
+Les caractères spéciaux des valeurs citées, notamment PG_PASSWORD, SHALL
+être conservés littéralement, sans expansion de variable ou de commande.
+Lorsque PG_PORT est absent, DIU SHALL utiliser le port standard 5432.
 DIU SHALL NOT exécuter le contenu de project.env, publier les identifiants ou
 mots de passe, demander un mot de passe interactif, ni modifier le serveur.
 Une configuration absente ou invalide, un client manquant ou un serveur
 inaccessible SHALL être indiqué explicitement. Les sondes SHALL être bornées.
+Le diagnostic de configuration SHALL distinguer un fichier illisible, une
+affectation non littérale, une adresse absente ou invalide et un port invalide,
+en utilisant uniquement des libellés fixes et les noms de variables reconnus.
 
 #### Scenario: Serveur distant disponible
 
@@ -103,9 +109,16 @@ inaccessible SHALL être indiqué explicitement. Les sondes SHALL être bornées
 
 #### Scenario: Configuration invalide ou serveur inaccessible
 
-- **WHEN** la configuration est absente, contient une expression shell, ou la connexion échoue
+- **WHEN** la configuration est absente, contient une affectation invalide, ou la connexion échoue
 - **THEN** la rubrique indique que la version serveur n'est pas vérifiable
 - **AND THEN** aucune expression shell n'est exécutée ni connexion vers une adresse implicite réalisée
+- **AND THEN** le diagnostic précise la catégorie d'erreur sans restituer la valeur rejetée
+
+#### Scenario: Mot de passe contenant des caractères spéciaux
+
+- **WHEN** PG_PASSWORD contient une valeur citée avec des caractères ayant un sens pour le shell
+- **THEN** le client reçoit exactement la valeur littérale, sans expansion ni exécution
+- **AND THEN** le document indique la version du serveur accessible sans afficher le mot de passe
 
 ### Requirement: Écriture limitée et robuste
 

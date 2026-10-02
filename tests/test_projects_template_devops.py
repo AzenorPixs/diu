@@ -75,7 +75,7 @@ if [ "$TEST_PG_FAILURE" = 1 ]; then
     printf 'test-only-private-value\n' >&2
     exit 1
 fi
-[ "$PGPASSWORD" = 'test-only-private-value' ] || exit 1
+[ "$PGPASSWORD" = "${TEST_EXPECTED_PASSWORD:-test-only-private-value}" ] || exit 1
 [ "$PGUSER" = 'test-only-user' ] || exit 1
 [ "$PGDATABASE" = 'test-only-database' ] || exit 1
 printf '16.4\n'
@@ -264,6 +264,7 @@ ENV_DEVOPS_USER="$1"
         (self.template / 'project.env').unlink()
         content = self.successful_document(self.run_generation())
         self.assertIn('configuration absente ou invalide', content)
+        self.assertIn('fichier project.env absent ou illisible', content)
         self.assertIn('adresse non configurée', content)
         self.assertFalse(self.query_log.exists())
 
@@ -287,18 +288,40 @@ ENV_DEVOPS_USER="$1"
         )
         content = self.successful_document(self.run_generation())
         self.assertIn('configuration absente ou invalide', content)
+        self.assertIn('affectation non littérale pour PG_HOST', content)
         self.assertFalse(marker.exists())
         self.assertFalse(self.query_log.exists())
 
     def test_invalid_host_or_port_does_not_connect(self):
-        for configuration in ('PG_HOST=https://user:password@example.test\n',
-                              'PG_HOST=database.example.test\nPG_PORT=99999\n',
-                              'PG_PORT=5432\n'):
+        for configuration, diagnostic in (
+                ('PG_HOST=https://user:password@example.test\n', 'adresse invalide'),
+                ('PG_HOST=database.example.test\nPG_PORT=99999\n', 'PG_PORT invalide'),
+                ('PG_PORT=5432\n', 'PG_HOST ou PG_SERVER absent')):
             with self.subTest(configuration=configuration):
                 (self.template / 'project.env').write_text(configuration, encoding='utf-8')
                 content = self.successful_document(self.run_generation())
                 self.assertIn('adresse non configurée', content)
+                self.assertIn(diagnostic, content)
+                self.assertNotIn('user:password', content)
                 self.assertFalse(self.query_log.exists())
+
+    def test_password_special_characters_remain_literal_and_private(self):
+        project_env = self.template / 'project.env'
+        marker = self.fixture / 'password-command-must-not-run'
+        password = f'test-only-private-value$expression;$(touch {marker})`id`&<>#'
+        self.environment['TEST_EXPECTED_PASSWORD'] = password
+        for quote in ('"', "'"):
+            with self.subTest(quote=quote):
+                project_env.write_text(
+                    'PG_HOST=database.example.test\nPG_DATABASE=test-only-database\n'
+                    'PG_USERNAME=test-only-user\n'
+                    f'PG_PASSWORD={quote}{password}{quote}\n', encoding='utf-8')
+                result = self.run_generation()
+                content = self.successful_document(result)
+                self.assertIn('# PostgreSQL Serveur\n\n  * 16.4\n  * database.example.test:5432', content)
+                self.assertNotIn(password, content + result.stdout + result.stderr)
+                self.assertFalse(marker.exists())
+                self.assertTrue(self.query_log.exists())
 
     def test_render_or_replace_failure_preserves_document_and_cleans_temporary_file(self):
         for extra in ('projects_template_devops_render() { printf partial; return 1; }',

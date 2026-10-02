@@ -43,8 +43,13 @@ production. Aucun change actif consulté ne couvre cette génération.
 - Pour PostgreSQL, parser uniquement des affectations littérales ciblées de
   project.env, sans source ni eval. Accepter PG_HOST (ou PG_SERVER), PG_PORT,
   PG_DATABASE, PG_USERNAME (ou PG_USER), PG_PASSWORD et PG_SSLMODE. PG_SERVER
-  peut également contenir un hôte suivi de son port. Une configuration absente
-  ou invalide est indiquée explicitement, sans connexion par défaut à l'hôte.
+  peut également contenir un hôte suivi de son port. Un port absent utilise
+  5432. Les valeurs citées sont décodées par shlex sans
+  expansion shell : les caractères spéciaux d'un mot de passe restent littéraux.
+  Une configuration absente ou invalide est indiquée explicitement, sans
+  connexion par défaut à l'hôte.
+  Le diagnostic utilise des catégories fixes et les seuls noms de variables
+  reconnus, jamais la valeur rejetée ni le texte d'une exception.
 - Le Python système, déjà présent dans le socle Debian, réalise ce parsing
   local et appelle psql avec les identifiants dans son environnement, jamais
   dans les arguments. Seules la version et l'adresse non sensible sont rendues.
