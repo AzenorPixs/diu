@@ -34,9 +34,11 @@ system_apt_repository_engine() {
         return 1
     }
     install -d -m 0755 "$SYSTEM_APT_THIRD_PARTY_DIRECTORY" "$SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY"
-    if ! curl -fsSL "$url_gpg_key" | gpg --dearmor --yes --output "$keyring"; then
-        print_error "Impossible d'installer la clé GPG du dépôt APT : $name"
-        return 1
+    if [[ ! -f "$keyring" || ! -r "$keyring" || ! -s "$keyring" ]]; then
+        if ! curl -fsSL "$url_gpg_key" | gpg --dearmor --yes --output "$keyring"; then
+            print_error "Impossible d'installer la clé GPG du dépôt APT : $name"
+            return 1
+        fi
     fi
     chmod 0644 "$keyring"
 
