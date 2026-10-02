@@ -221,12 +221,14 @@ déjà séparées.
 - `openspec update` si ce dossier existe, y compris après copie du modèle.
 
 L'identifiant `all` désigne un seul projet pour cette commande.
-L'ancienne syntaxe `rid projects template <ID PROJECT> openspec` est rejetée,
-sauf lorsqu'elle coïncide avec la nouvelle commande pour le projet `openspec`.
+L'ancienne syntaxe `rid projects template <ID PROJECT> openspec` est rejetée
+lorsqu'elle ne correspond pas déjà à une commande valide avec sélecteur
+`openspec` ou `devops`.
 Le sélecteur `openspec` après `template` est prioritaire :
 `rid projects template openspec devops` vise OpenSpec pour le projet `devops`.
-Les commandes `rid projects template <ID PROJECT> devops` et
-`rid projects template all devops` gardent leur syntaxe pour les autres cibles.
+La génération DevOps utilise `rid projects template devops <ID PROJECT>` ou
+`rid projects template devops all` pour tous les projets configurés. Les anciens
+ordres sont rejetés lorsqu'ils ne correspondent pas déjà à une commande valide.
 Les chemins invalides, les dossiers symboliques, les utilisateurs absents et les valeurs
 OPENCODE autres que 0 ou 1 lors d'une initialisation provoquent un échec.
 L'opération ne lit pas `project.env`. Un outil absent ou en échec est signalé

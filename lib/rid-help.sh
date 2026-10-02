@@ -34,30 +34,28 @@ rid_display_help_context() {
             printf '%s\n' 'Initialisation avec profil custom ; opencode si OPENCODE=1 ; projet existant : openspec update.'
             return 0
         fi
-        if [[ ( -n "$target" && -z "$leaf" ) || "$leaf" == */* ||
-            "$leaf" == . || "$leaf" == .. || "$leaf" =~ [[:cntrl:]] ]]; then
+        if [[ "$leaf" == devops ]]; then
+            if [[ $# -gt 4 || "$target" == */* || "$target" == . ||
+                "$target" == .. || "$target" =~ [[:cntrl:]] ]]; then
+                rid_display_command_error projects template devops
+                return 2
+            fi
+            if [[ "$target" == all ]]; then
+                rid_help_line 'rid projects template devops all' 'Génère DEVOPS.md pour tous les projets configurés ; poursuit après un échec.'
+                printf '%s\n' 'Variables requises dans project.env : PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED PROJECT_DEBIAN_PACKAGE.'
+            else
+                rid_help_line "rid projects template devops ${target:-<ID PROJECT>}" 'Crée ou actualise DEVOPS.md pour ce projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
+                if [[ -z "$target" ]]; then
+                    rid_help_line 'rid projects template devops all' 'Génère DEVOPS.md pour tous les projets configurés.'
+                fi
+            fi
+        elif [[ $# -le 4 && -z "$leaf" && -z "$target" ]]; then
+            rid_help_line 'rid projects template devops <ID PROJECT>' 'Crée ou actualise DEVOPS.md pour le projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
+            rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
+            rid_help_line 'rid projects template devops all' 'Génère DEVOPS.md pour tous les projets configurés.'
+        else
             rid_display_command_error projects template
             return 2
-        fi
-        if [[ $# -gt 4 || ( -n "$target" && "$target" != devops ) ]]; then
-            rid_display_command_error projects template "$leaf"
-            return 2
-        fi
-        if [[ "$leaf" == all ]]; then
-            rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés ; poursuit après un échec.'
-            printf '%s\n' 'Variables requises dans project.env : PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED PROJECT_DEBIAN_PACKAGE.'
-            if [[ -z "$target" ]]; then
-                rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec uniquement dans le projet nommé all.'
-            fi
-        elif [[ -n "$leaf" ]]; then
-            rid_help_line "rid projects template ${leaf} devops" 'Crée ou actualise DEVOPS.md pour ce projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
-            if [[ -z "$target" ]]; then
-                rid_help_line "rid projects template openspec ${leaf}" "Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet ${leaf}"
-            fi
-        else
-            rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet ; manifeste minimal si PROJECT_TYPE=PYTHON.'
-            rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
-            rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés.'
         fi
         return 0
     fi
@@ -216,9 +214,9 @@ rid_display_help_context() {
             ;;
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
-            rid_help_line 'rid projects template <ID PROJECT> devops' 'Crée ou actualise DEVOPS.md pour le projet.'
+            rid_help_line 'rid projects template devops <ID PROJECT>' 'Crée ou actualise DEVOPS.md pour le projet.'
             rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
-            rid_help_line 'rid projects template all devops' 'Génère DEVOPS.md pour tous les projets configurés.'
+            rid_help_line 'rid projects template devops all' 'Génère DEVOPS.md pour tous les projets configurés.'
             rid_help_line 'rid projects create <ID PROJECT>' 'Crée un projet depuis le modèle local, prépare OpenSpec puis génère DEVOPS.md.'
             rid_help_line 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>' 'Clone un projet local sans ses métadonnées Git.'
             rid_help_line 'rid projects del <ID PROJECT>' 'Supprime un projet.'

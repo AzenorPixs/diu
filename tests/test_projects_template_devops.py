@@ -442,7 +442,7 @@ ENV_DEVOPS_USER="$1"
             with self.subTest(project=project):
                 result = self.run_generation(project=project)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn('Usage : rid projects template <ID PROJECT> devops', result.stderr)
+                self.assertIn('Usage : rid projects template devops <ID PROJECT>', result.stderr)
         for arguments in ((), ('template', 'extra')):
             self.assertNotEqual(self.run_generation(arguments=arguments).returncode, 0)
         link = self.home / 'datas/link'
@@ -540,9 +540,19 @@ rid_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
         for arguments, status, expected in (
-            (('template', 'application', 'devops'), 0, 'generation:application\n'),
-            (('template', 'template', 'devops'), 0, 'generation:template\n'),
-            (('template', 'all', 'devops'), 0, 'batch\n'),
+            (('template', 'devops', 'application'), 0, 'generation:application\n'),
+            (('template', 'devops', 'template'), 0, 'generation:template\n'),
+            (('template', 'devops', 'all'), 0, 'batch\n'),
+            (('template', 'devops', 'devops'), 0, 'generation:devops\n'),
+            (('template', 'devops', 'openspec'), 0, 'generation:openspec\n'),
+            (('template', 'application', 'devops'), 2, 'help:projects template'),
+            (('template', 'all', 'devops'), 2, 'help:projects template'),
+            (('template', 'devops', ''), 2, 'help:projects template'),
+            (('template', 'devops', 'application', 'extra'), 2, 'help:projects template'),
+            (('template', 'devops', 'all', 'extra'), 2, 'help:projects template'),
+            (('template', 'devops', '../elsewhere'), 2, 'help:projects template'),
+            (('template', 'devops', '.'), 2, 'help:projects template'),
+            (('template', 'devops', 'line\nbreak'), 2, 'help:projects template'),
             (('template', 'openspec', 'application'), 0, 'openspec:application\n'),
             (('template', 'openspec', 'all'), 0, 'openspec:all\n'),
             (('template', 'openspec', 'devops'), 0, 'openspec:devops\n'),

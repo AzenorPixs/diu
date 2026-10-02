@@ -12,12 +12,12 @@ avant la génération DevOps lors de la création d'un projet.
 DIU SHALL exposer `rid projects template openspec <ID PROJECT>` et
 `projects_template_openspec` avec exactement un identifiant de projet. Le
 sélecteur openspec après template SHALL être prioritaire sur le routage
-DevOps. L'ancienne syntaxe SHALL être rejetée, sauf lorsqu'elle coïncide avec
-la nouvelle commande pour le projet nommé openspec. Le chemin SHALL utiliser
-DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas. La fonction SHALL
-refuser les identifiants vides, chemins, points et caractères de contrôle, un
-utilisateur DevOps absent ou invalide, un projet absent ou symbolique, et une
-cible openspec symbolique ou non répertoire. Elle SHALL NOT lire project.env.
+DevOps. L'ancienne syntaxe SHALL être rejetée lorsqu'elle ne correspond pas
+déjà à une commande valide avec sélecteur openspec ou devops. Le chemin SHALL
+utiliser DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas. La fonction
+SHALL refuser les identifiants vides, chemins, points et caractères de contrôle,
+un utilisateur DevOps absent ou invalide, un projet absent ou symbolique, et
+une cible openspec symbolique ou non répertoire. Elle SHALL NOT lire project.env.
 L'identifiant all SHALL désigner uniquement le projet all.
 
 #### Scenario: Nouvelle syntaxe
@@ -44,6 +44,11 @@ L'identifiant all SHALL désigner uniquement le projet all.
 
 - **WHEN** la commande vise openspec devops
 - **THEN** OpenSpec traite uniquement le projet devops, sans lancer la génération DevOps
+
+#### Scenario: DevOps pour un projet nommé openspec
+
+- **WHEN** la commande vise devops openspec
+- **THEN** seule la génération DevOps du projet openspec est appelée
 
 ### Requirement: Initialisation ou actualisation sous le compte DevOps
 

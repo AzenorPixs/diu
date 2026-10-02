@@ -201,22 +201,23 @@ L'aide SHALL exposer les commandes rid system drivers install displaylink et rid
 
 ### Requirement: Aide de génération du modèle DevOps
 
-L'aide rid projects help SHALL présenter rid projects template <ID PROJECT>
-devops et rid projects template all devops. Les aides du contexte template, du projet ciblé et de la commande
-terminale SHALL fonctionner avec help et ?, avant tout chargement de
-configuration et sans génération. Les arguments surnuméraires, les chemins
-et une opération terminale inconnue SHALL être rejetés avec une aide
-contextuelle. L'aide create SHALL préciser la génération finale de DEVOPS.md.
+L'aide rid projects help SHALL présenter rid projects template devops <ID PROJECT>
+et rid projects template devops all. Les aides du contexte template, du
+sélecteur devops et de la commande terminale SHALL fonctionner avec help et ?,
+avant tout chargement de configuration et sans génération. Les arguments
+surnuméraires, les chemins, les sélecteurs inconnus et les anciens contextes
+par projet sans sélecteur SHALL être rejetés avec une aide contextuelle.
+L'aide create SHALL préciser la génération finale de DEVOPS.md.
 
 #### Scenario: Aide intermédiaire ou terminale
 
-- **WHEN** help ou ? suit projects template, projects template application ou projects template application devops
-- **THEN** l'aide présente la syntaxe avec l'identifiant de projet sans écriture
+- **WHEN** help ou ? suit projects template, projects template devops ou projects template devops application
+- **THEN** l'aide présente la nouvelle syntaxe avec l'identifiant de projet sans écriture
 
 #### Scenario: Aide inconnue sous template
 
-- **WHEN** une opération inconnue ou des arguments supplémentaires sont suivis de help
-- **THEN** l'aide rend un code d'erreur et suggère le contexte template du projet
+- **WHEN** un sélecteur inconnu, une ancienne syntaxe ou des arguments supplémentaires sont suivis de help
+- **THEN** l'aide rend un code d'erreur et suggère le contexte template ou devops
 
 #### Scenario: Aide de création
 
@@ -225,13 +226,13 @@ contextuelle. L'aide create SHALL préciser la génération finale de DEVOPS.md.
 
 #### Scenario: Aide du traitement groupé
 
-- **WHEN** help ou ? suit projects template all ou projects template all devops
+- **WHEN** help ou ? suit projects template devops all
 - **THEN** l'aide présente la génération pour tous les projets configurés avec les cinq variables requises
 - **AND THEN** aucune configuration n'est chargée et aucun document n'est généré
 
 #### Scenario: Découverte du traitement groupé
 
-- **WHEN** l'utilisateur demande projects help ou projects template help
+- **WHEN** l'utilisateur demande projects help, projects template help ou projects template devops help
 - **THEN** l'aide présente les commandes individuelle et all
 
 ### Requirement: Aide du template OpenSpec
@@ -243,10 +244,11 @@ Les aides `projects template openspec` et `projects template openspec <ID PROJEC
 SHALL fonctionner avec help et ? avant tout chargement de configuration et
 sans mutation. L'aide spécifique SHALL expliquer init avec le profil custom,
 le choix OPENCODE et update pour un dossier OpenSpec existant. L'aide create
-SHALL préciser OpenSpec avant DevOps. Les aides DevOps et all devops SHALL
-être préservées ; openspec all SHALL décrire seulement le projet nommé all.
-Les arguments surnuméraires ou invalides et l'ancienne syntaxe terminale
-SHALL être rejetés avec une aide contextuelle.
+SHALL préciser OpenSpec avant DevOps. Les aides DevOps individuelles et groupées
+SHALL suivre `projects template devops <ID PROJECT>` et `projects template devops all` ;
+openspec all SHALL décrire seulement le projet nommé all. Les arguments
+surnuméraires ou invalides et l'ancienne syntaxe terminale qui ne correspond
+pas déjà à une commande valide SHALL être rejetés avec une aide contextuelle.
 
 #### Scenario: Découverte et aide terminale
 
