@@ -59,7 +59,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    ```bash
    openspec instructions <first-artifact-id> --change "<name>"
    ```
-   This outputs the diu and context for creating the first artifact.
+   This outputs the template and context for creating the first artifact.
 
 6. **STOP and wait for user direction**
 
@@ -69,12 +69,12 @@ After completing the steps, summarize:
 - Change name and location
 - Schema/workflow being used and its artifact sequence
 - Current status (0/N artifacts complete)
-- The diu for the first artifact
+- The template for the first artifact
 - Prompt: "Ready to create the first artifact? Run `/opsx-continue` or just describe what this change is about and I'll draft it."
 
 **Guardrails**
 - Do NOT create any artifacts yet - just show the instructions
-- Do NOT advance beyond showing the first artifact diu
+- Do NOT advance beyond showing the first artifact template
 - If the name is invalid (not kebab-case), ask for a valid name
 - If a change with that name already exists, suggest using `/opsx-continue` instead
 - Pass --schema if using a non-default workflow

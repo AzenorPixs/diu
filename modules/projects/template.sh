@@ -388,7 +388,24 @@ projects_template_devops_render() {
     printf '\n\n' || return 1
     binary="${devops_home}/python/current/bin/pip3"
     version="$(projects_template_devops_version python "${devops_home}" "${binary}" --version)" || return 1
-    projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}"
+    projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}" || return 1
+
+    printf '# Tests navigateurs extérieurs en mode headless\n\nLa détection ne vérifie pas le fonctionnement du mode headless.\n\n' || return 1
+    for name in Chromium Firefox; do
+        case "${name}" in
+            Chromium)
+                binary="$(projects_template_devops_host_binary chromium)" ||
+                    binary="$(projects_template_devops_host_binary chromium-browser)" || binary=''
+                ;;
+            Firefox)
+                binary="$(projects_template_devops_host_binary firefox)" ||
+                    binary="$(projects_template_devops_host_binary firefox-esr)" || binary=''
+                ;;
+        esac
+        version="$(projects_template_devops_version host "${devops_home}" "${binary}" --version)" || return 1
+        printf '## %s\n\n  * %s\n  * %s\n  * Mode headless : --headless\n\n\n' \
+            "${name}" "${version}" "${binary:-binaire introuvable}" || return 1
+    done
 }
 
 projects_template_devops() {

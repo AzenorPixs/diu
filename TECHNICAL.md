@@ -271,6 +271,19 @@ Un échec OpenSpec empêche la génération DevOps et le message de succès, en
 conservant le projet préparé. La capacité de référence est
 `openspec/specs/projects-template-openspec/spec.md`.
 
+### Navigateurs hôte dans le document DevOps
+
+La génération DevOps termine `DEVOPS.md` par « Tests navigateurs extérieurs
+en mode headless », avec Chromium puis Firefox : version, chemin hôte et
+option `--headless`. La détection utilise le PATH système fixe du générateur,
+recherche `chromium` puis `chromium-browser`, et `firefox` puis `firefox-esr`.
+Les sondes `--version` sont limitées à 15 secondes. Un navigateur absent ou
+une version non vérifiable est indiqué explicitement, sans empêcher la
+génération. Aucune installation ni test de navigation n'est réalisé ; une
+version détectée ne prouve pas le fonctionnement du mode headless.
+Cette section est aussi produite par les appels groupés et en fin de création.
+La référence est `openspec/specs/projects-template-devops/spec.md`.
+
 ### Tous les modèles pour tous les projets
 
 `rid projects template all all` appelle `projects_template_all_all`. Le premier
