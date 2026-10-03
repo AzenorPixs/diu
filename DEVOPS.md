@@ -92,3 +92,21 @@ Version : 0.2
 
   * 26.2.1
   * /home/devops/python/current/bin/pip3
+
+
+# Tests navigateurs extérieurs en mode headless
+
+La détection ne vérifie pas le fonctionnement du mode headless.
+
+## Chromium
+
+  * 154.0.8037.92
+  * /usr/bin/chromium
+  * Mode headless : --headless
+
+
+## Firefox
+
+  * 153.4.0esr
+  * /usr/bin/firefox
+  * Mode headless : --headless

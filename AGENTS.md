@@ -658,6 +658,8 @@ En TypeScript, l'utilisation de `any` ou d'une suppression de diagnostic DOIT ê
 
 Les vérifications minimales comprennent les tests et la construction applicables définis dans `package.json`.
 
+Lorsqu'une application web nécessite des tests unitaires pour sa partie frontend, ces tests DOIVENT être exécutés dans les navigateurs web déclarés dans `DEVOPS.md`, en mode headless.
+
 Pour le frontend Pixs actuel :
 
 ```bash

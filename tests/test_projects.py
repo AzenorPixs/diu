@@ -385,113 +385,67 @@ clone_project source destination
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
             template_path = temporary_path / 'datas' / 'template'
-            broker_source_path = temporary_path / 'cab' / 'src'
             project_path = temporary_path / 'projects' / 'projet-test'
 
-            (template_path / '.opencode' / 'commands').mkdir(parents=True)
-            (template_path / '.opencode' / 'config').mkdir()
-            (template_path / '.opencode' / 'skills').mkdir()
-            (template_path / 'PROMPTS').mkdir()
+            (template_path / 'PROMPTS' / 'nested').mkdir(parents=True)
             project_path.mkdir(parents=True)
-            (broker_source_path / 'nested').mkdir(parents=True)
-            (broker_source_path / '__pycache__').mkdir()
-
             (template_path / 'AGENTS.md').write_text('Template template\n', encoding='utf-8')
             (template_path / 'DEVOPS.md').write_text('Template\n', encoding='utf-8')
             (template_path / '.gitignore').write_text('template\n', encoding='utf-8')
-            (template_path / '.opencode' / 'commands' / 'command.md').write_text(
+            (template_path / 'PROMPTS' / 'nested' / 'INDEX.md').write_text(
                 'Template template\n', encoding='utf-8'
-            )
-            (template_path / '.opencode' / 'config' / 'config.txt').write_text(
-                'source\n', encoding='utf-8'
-            )
-            (template_path / '.opencode' / 'skills' / 'SKILL.md').write_text(
-                'Template template\n', encoding='utf-8'
-            )
-            (template_path / 'PROMPTS' / 'INDEX.md').write_text(
-                'Template template\n', encoding='utf-8'
-            )
-            (broker_source_path / 'nested' / 'broker.py').write_text(
-                'source CAB\n', encoding='utf-8'
-            )
-            (broker_source_path / 'README.md').write_text(
-                'Template template\n', encoding='utf-8'
-            )
-            (broker_source_path / '__pycache__' / 'broker.pyc').write_text(
-                'cache source\n', encoding='utf-8'
             )
             (project_path / 'project.env').write_text(
-                'PROJECT_ID=projet-test\nPROJECT_NAME="Projet Test"\n',
-                encoding='utf-8',
+                'PROJECT_ID=projet-test\nPROJECT_NAME="Projet Test"\n', encoding='utf-8'
             )
             (project_path / 'README.md').write_text('Template template\n', encoding='utf-8')
             (project_path / 'AGENTS.md').write_text('ancienne version\n', encoding='utf-8')
-            (project_path / '.opencode' / 'broker' / 'nested').mkdir(parents=True)
-            (project_path / '.opencode' / 'broker' / '__pycache__').mkdir()
-            (project_path / '.opencode' / 'broker' / 'nested' / 'broker.py').write_text(
-                'ancienne version CAB\n', encoding='utf-8'
+            (project_path / 'PROMPTS' / 'nested').mkdir(parents=True)
+            (project_path / 'PROMPTS' / 'nested' / 'INDEX.md').write_text(
+                'ancienne version\n', encoding='utf-8'
             )
-            (project_path / '.opencode' / 'broker' / '__pycache__' / 'stale.pyc').write_text(
-                'cache destination\n', encoding='utf-8'
+            (project_path / 'PROMPTS' / 'local.md').write_text(
+                'Template template local\n', encoding='utf-8'
             )
 
-            devops_user = f'../tmp/{temporary_path.name}'
             script = r'''
+set -euo pipefail
 source "$1/modules/projects/projects.sh"
-print_error() { printf 'ERREUR:%s\n' "$*"; }
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 chown() { :; }
-BROKER_SOURCE_PATH="$4"
-sync_project_broker_source_path() { printf '%s\n' "${BROKER_SOURCE_PATH}"; }
 DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 DEVOPS_PROJECTS_ROOT="$3"
 sync_project projet-test
 '''
             result = subprocess.run(
-                [
-                    'bash',
-                    '-c',
-                    script,
-                    'bash',
-                    str(ROOT),
-                    devops_user,
-                    str(project_path.parent),
-                    str(broker_source_path),
-                ],
-                text=True,
-                capture_output=True,
-                check=False,
+                ['bash', '-c', script, 'bash', str(ROOT),
+                 f'../tmp/{temporary_path.name}', str(project_path.parent)],
+                text=True, capture_output=True, check=False,
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stderr, '')
             self.assertFalse((project_path / 'DEVOPS.md').exists())
+            self.assertFalse((project_path / '.opencode').exists())
             self.assertEqual(
                 (project_path / 'AGENTS.md').read_text(encoding='utf-8'),
                 'Projet Test projet-test\n',
             )
             self.assertEqual(
-                (project_path / '.opencode' / 'commands' / 'command.md').read_text(encoding='utf-8'),
+                (project_path / '.gitignore').read_text(encoding='utf-8'), 'template\n'
+            )
+            self.assertEqual(
+                (project_path / 'PROMPTS' / 'nested' / 'INDEX.md').read_text(encoding='utf-8'),
                 'Projet Test projet-test\n',
             )
             self.assertEqual(
-                (project_path / 'PROMPTS' / 'INDEX.md').read_text(encoding='utf-8'),
-                'Projet Test projet-test\n',
+                (project_path / 'PROMPTS' / 'local.md').read_text(encoding='utf-8'),
+                'Template template local\n',
             )
             self.assertEqual(
                 (project_path / 'README.md').read_text(encoding='utf-8'),
-                'Template template\n',
-            )
-            self.assertEqual(
-                (project_path / '.opencode' / 'broker' / 'nested' / 'broker.py').read_text(
-                    encoding='utf-8'
-                ),
-                'source CAB\n',
-            )
-            self.assertFalse((project_path / '.opencode' / 'broker' / '__pycache__').exists())
-            self.assertEqual(
-                (project_path / '.opencode' / 'broker' / 'README.md').read_text(encoding='utf-8'),
                 'Template template\n',
             )
 
@@ -536,9 +490,7 @@ sync_project projet-test
             projects_root = temporary_path / 'datas'
             template_path = projects_root / 'template'
 
-            for directory in ('commands', 'config', 'skills'):
-                (template_path / '.opencode' / directory).mkdir(parents=True, exist_ok=True)
-            (template_path / 'PROMPTS').mkdir()
+            (template_path / 'PROMPTS').mkdir(parents=True)
             for filename in ('AGENTS.md', '.gitignore'):
                 (template_path / filename).write_text('source\n', encoding='utf-8')
 
@@ -562,7 +514,6 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_info() { :; }
 sync_project() { printf '%s\n' "$1"; }
-sync_project_all_broker() { :; }
 DEVOPS_USER="$2"
 DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"
 sync_project_all
@@ -588,11 +539,7 @@ sync_project_all
                             projects_root = temporary_path / 'datas'
                             template_path = projects_root / 'template'
                             project_path = projects_root / 'projet-test'
-                            broker_path = temporary_path / 'cab'
-                            for directory in ('commands', 'config', 'skills'):
-                                (template_path / '.opencode' / directory).mkdir(
-                                    parents=True, exist_ok=True)
-                            (template_path / 'PROMPTS').mkdir()
+                            (template_path / 'PROMPTS').mkdir(parents=True)
                             for filename in ('AGENTS.md', '.gitignore'):
                                 (template_path / filename).write_text('Template template\n',
                                                                       encoding='utf-8')
@@ -600,7 +547,6 @@ sync_project_all
                                 (template_path / 'DEVOPS.md').write_text('modèle\n',
                                                                         encoding='utf-8')
                             project_path.mkdir()
-                            broker_path.mkdir()
                             (project_path / 'project.env').write_text(
                                 'PROJECT_ID=projet-test\nPROJECT_NAME="Projet Test"\n',
                                 encoding='utf-8')
@@ -618,24 +564,21 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 print_info() { :; }
 chown() { printf '%s\n' "$@"; }
-BROKER_SOURCE_PATH="$4"
-sync_project_broker_source_path() { printf '%s\n' "${BROKER_SOURCE_PATH}"; }
-sync_project_all_broker() { :; }
 DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 DEVOPS_PROJECTS_ROOT="$3"
-if [[ "$5" == all ]]; then
+if [[ "$4" == all ]]; then
     sync_project_all
     sync_project_all
 else
-    sync_project "$5"
-    sync_project "$5"
+    sync_project "$4"
+    sync_project "$4"
 fi
 '''
                             result = subprocess.run(
                                 ['bash', '-c', script, 'bash', str(ROOT),
                                  f'../tmp/{temporary_path.name}', str(projects_root),
-                                 str(broker_path), operation],
+                                 operation],
                                 text=True, capture_output=True, check=False)
                             self.assertEqual(result.returncode, 0, result.stderr)
                             self.assertEqual(result.stderr, '')
@@ -672,7 +615,6 @@ print_error() { :; }
 print_info() { :; }
 sync_project_template_is_valid() { return 0; }
 sync_project() { printf '%s\n' "$1"; [[ "$1" != first ]]; }
-sync_project_all_broker() { :; }
 DEVOPS_USER="$2"
 sync_project_all
 '''
@@ -686,71 +628,135 @@ sync_project_all
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertEqual(result.stdout, 'first\nsecond\n')
 
-    def test_sync_project_all_copies_global_broker_resources(self):
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            temporary_path = Path(temporary_directory)
-            projects_root = temporary_path / 'datas'
-            broker_source_path = temporary_path / 'cab' / 'src'
-            broker_destination_path = temporary_path / '.opencode' / 'broker'
+    def test_sync_preserves_or_does_not_create_excluded_opencode_and_broker_resources(self):
+        def snapshot(path):
+            if not path.exists():
+                return None
+            state = {}
+            for item in [path, *sorted(path.rglob('*'))]:
+                content = item.read_bytes() if item.is_file() else None
+                metadata = item.stat()
+                state[str(item.relative_to(path))] = (
+                    content, metadata.st_mode, metadata.st_uid, metadata.st_gid,
+                    metadata.st_ino, metadata.st_mtime_ns,
+                )
+            return state
 
-            projects_root.mkdir()
-            (broker_source_path / 'nested').mkdir(parents=True)
-            (broker_source_path / '__pycache__').mkdir()
-            (broker_destination_path / 'nested').mkdir(parents=True)
-            (broker_destination_path / '__pycache__').mkdir()
-
-            (broker_source_path / 'nested' / 'broker.py').write_text(
-                'source CAB\n', encoding='utf-8'
-            )
-            (broker_source_path / '__pycache__' / 'broker.pyc').write_text(
-                'cache source\n', encoding='utf-8'
-            )
-            (broker_destination_path / 'nested' / 'broker.py').write_text(
-                'ancienne version CAB\n', encoding='utf-8'
-            )
-            (broker_destination_path / 'stale.txt').write_text(
-                'ressource conservée\n', encoding='utf-8'
-            )
-            (broker_destination_path / '__pycache__' / 'stale.pyc').write_text(
-                'cache destination\n', encoding='utf-8'
-            )
-
-            devops_user = f'../tmp/{temporary_path.name}'
-            script = r'''
+        for operation in ('projet-test', 'all'):
+            for source_present in (False, True):
+                for destination_present in (False, True):
+                    with self.subTest(operation=operation, source_present=source_present,
+                                      destination_present=destination_present):
+                        with tempfile.TemporaryDirectory() as temporary_directory:
+                            temporary_path = Path(temporary_directory)
+                            projects_root = temporary_path / 'datas'
+                            template_path = projects_root / 'template'
+                            project_path = projects_root / 'projet-test'
+                            (template_path / 'PROMPTS').mkdir(parents=True)
+                            for filename in ('AGENTS.md', '.gitignore'):
+                                (template_path / filename).write_text(
+                                    'Template template\n', encoding='utf-8')
+                            project_path.mkdir()
+                            (project_path / 'project.env').write_text(
+                                'PROJECT_ID=projet-test\nPROJECT_NAME="Projet Test"\n',
+                                encoding='utf-8')
+                            excluded_paths = [
+                                project_path / '.opencode' / name
+                                for name in ('commands', 'config', 'skills', 'broker')
+                            ] + [temporary_path / '.opencode' / 'broker']
+                            if source_present:
+                                source_paths = [
+                                    template_path / '.opencode' / name
+                                    for name in ('commands', 'config', 'skills')
+                                ] + [temporary_path / 'cab' / 'src']
+                                for path in source_paths:
+                                    path.mkdir(parents=True)
+                                    (path / 'resource.md').write_text(
+                                        'Template template source\n', encoding='utf-8')
+                            if destination_present:
+                                for path in excluded_paths:
+                                    (path / '__pycache__').mkdir(parents=True)
+                                    (path / 'resource.md').write_text(
+                                        'Template template local\n', encoding='utf-8')
+                                    (path / '__pycache__' / 'old.pyc').write_bytes(b'local cache')
+                                    (path / 'resource.md').chmod(0o640)
+                                    path.chmod(0o750)
+                            before = [snapshot(path) for path in excluded_paths]
+                            script = r'''
+set -euo pipefail
 source "$1/modules/projects/projects.sh"
-print_error() { printf 'ERREUR:%s\n' "$*"; }
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_success() { :; }
 print_info() { :; }
-sync_project_template_is_valid() { return 0; }
-BROKER_SOURCE_PATH="$3"
-sync_project_broker_source_path() { printf '%s\n' "${BROKER_SOURCE_PATH}"; }
+chown() { printf '%s\n' "$@"; }
+DEVOPS_USER="$2"
+DEVOPS_GROUP=devops
+DEVOPS_PROJECTS_ROOT="$3"
+if [[ "$4" == all ]]; then
+    sync_project_all
+    sync_project_all
+else
+    sync_project "$4"
+    sync_project "$4"
+fi
+'''
+                            result = subprocess.run(
+                                ['bash', '-c', script, 'bash', str(ROOT),
+                                 f'../tmp/{temporary_path.name}', str(projects_root), operation],
+                                text=True, capture_output=True, check=False)
+                            self.assertEqual(result.returncode, 0, result.stderr)
+                            self.assertEqual(result.stderr, '')
+                            self.assertEqual(
+                                (project_path / 'AGENTS.md').read_text(encoding='utf-8'),
+                                'Projet Test projet-test\n')
+                            self.assertEqual(
+                                [snapshot(path) for path in excluded_paths], before)
+                            chown_arguments = result.stdout.splitlines()
+                            for path in excluded_paths:
+                                self.assertNotIn(str(path), chown_arguments)
+                            if not destination_present:
+                                self.assertFalse((project_path / '.opencode').exists())
+                                self.assertFalse((temporary_path / '.opencode').exists())
+
+    def test_sync_all_without_valid_projects_leaves_global_broker_intact_or_absent(self):
+        for destination_present in (False, True):
+            with self.subTest(destination_present=destination_present):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    temporary_path = Path(temporary_directory)
+                    template_path = temporary_path / 'datas' / 'template'
+                    (template_path / 'PROMPTS').mkdir(parents=True)
+                    for filename in ('AGENTS.md', '.gitignore'):
+                        (template_path / filename).write_text('source\n', encoding='utf-8')
+                    broker_path = temporary_path / '.opencode' / 'broker'
+                    if destination_present:
+                        (broker_path / '__pycache__').mkdir(parents=True)
+                        (broker_path / 'local.md').write_text('local\n', encoding='utf-8')
+                        (broker_path / '__pycache__' / 'old.pyc').write_bytes(b'local cache')
+                        before = broker_path.stat()
+                    script = r'''
+set -euo pipefail
+source "$1/modules/projects/projects.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_info() { printf '%s\n' "$*"; }
 DEVOPS_USER="$2"
 sync_project_all
 '''
-            result = subprocess.run(
-                [
-                    'bash',
-                    '-c',
-                    script,
-                    'bash',
-                    str(ROOT),
-                    devops_user,
-                    str(broker_source_path),
-                ],
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(
-                (broker_destination_path / 'nested' / 'broker.py').read_text(encoding='utf-8'),
-                'source CAB\n',
-            )
-            self.assertEqual(
-                (broker_destination_path / 'stale.txt').read_text(encoding='utf-8'),
-                'ressource conservée\n',
-            )
-            self.assertFalse((broker_destination_path / '__pycache__').exists())
+                    result = subprocess.run(
+                        ['bash', '-c', script, 'bash', str(ROOT),
+                         f'../tmp/{temporary_path.name}'],
+                        text=True, capture_output=True, check=False)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stderr, '')
+                    self.assertIn('Aucun projet valide à synchroniser', result.stdout)
+                    if destination_present:
+                        self.assertEqual((broker_path / 'local.md').read_text(), 'local\n')
+                        self.assertEqual(
+                            (broker_path / '__pycache__' / 'old.pyc').read_bytes(), b'local cache')
+                        after = broker_path.stat()
+                        for attribute in ('st_mode', 'st_uid', 'st_gid', 'st_ino', 'st_mtime_ns'):
+                            self.assertEqual(getattr(after, attribute), getattr(before, attribute))
+                    else:
+                        self.assertFalse((temporary_path / '.opencode').exists())
 
     def test_create_project_leaves_no_directory_when_template_is_missing(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

@@ -1,20 +1,22 @@
 ## Why
 
-Les projets gérés doivent disposer des ressources du broker CAB nécessaires à
-l'intégration OpenCode–Codex. La synchronisation actuelle ne copie que le
-modèle de projet et ne peut donc pas fournir ces ressources.
+La synchronisation des projets écrase actuellement les commandes, la
+configuration et les skills OpenCode, ainsi que les ressources CAB locales
+et globales. Ces ressources doivent désormais rester indépendantes de
+`rid projects sync`. Le change actif est réorienté dans le périmètre validé
+par le développeur, sans création d'un second change.
 
 ## What Changes
 
-- Ajouter à `sync_project` la synchronisation de
-  `/home/devops/datas/cab/src` vers `.opencode/broker` du projet.
-- Exclure les répertoires `__pycache__` de la source et retirer le cache
-  Python direct déjà présent dans la destination.
-- Rendre les fichiers CAB source autoritaires en cas de conflit de chemin,
-  sans convertir la copie en miroir destructif.
-- Ajouter à `sync_project_all` la synchronisation globale de
-  `/home/devops/datas/cab/src` vers `/home/devops/.opencode/broker`.
-- Couvrir ces comportements par les tests ciblés existants.
+- Limiter les sources requises et les copies à `AGENTS.md`, `.gitignore`
+  et `PROMPTS/` pour la synchronisation unitaire et groupée.
+- Retirer les copies de `.opencode/commands`, `.opencode/config`,
+  `.opencode/skills` et `.opencode/broker` dans les projets.
+- Retirer la copie CAB globale vers `/home/${DEVOPS_USER}/.opencode/broker`.
+- Préserver le contenu, les droits et le propriétaire des ressources exclues,
+  y compris leurs caches, sans création ni suppression de ces ressources.
+- Conserver la personnalisation Markdown, la sélection des projets, la
+  poursuite après échec, les codes de retour et la préservation de `DEVOPS.md`.
 
 ## Capabilities
 
@@ -24,11 +26,17 @@ modèle de projet et ne peut donc pas fournir ces ressources.
 
 ### Modified Capabilities
 
-- `projects-sync` : la synchronisation d'un projet inclut les ressources CAB
-  contrôlées.
+- `projects-sync` : copie limitée aux ressources communes conservées et
+  préservation des ressources OpenCode et CAB locales et globales.
 
 ## Impact
 
-Sont concernés `modules/projects/projects.sh`, les tests ciblés
-`tests/test_projects.py` et la spécification `projects-sync`. Aucun routage,
-aucune dépendance, aucune interface publique ni configuration Git ne change.
+Sont concernés `modules/projects/projects.sh`, `tests/test_projects.py` et
+la spécification `projects-sync`. Les ressources exclues déjà présentes ne
+sont plus actualisées ni nettoyées par sync ; aucune migration ni suppression
+physique n'est prévue. Les copies conservées peuvent toujours écraser leur
+destination sans sauvegarde ni retour arrière automatique.
+
+Le routage, la création de projets, les commandes de templates, les
+dépendances et les configurations Git restent inchangés. Aucun déploiement,
+aucune opération Git ni inspection de l'état Git n'appartient au périmètre.
