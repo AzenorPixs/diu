@@ -1,5 +1,54 @@
 #!/usr/bin/env bash
 
+projects_template_openspec() {
+    local project_id="${1:-}"
+    local projects_root="${DEVOPS_PROJECTS_ROOT:-/home/${ENV_DEVOPS_USER:-}/datas}"
+    local project_path="${projects_root}/${project_id}"
+    local openspec_command="" command=""
+
+    if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
+        -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
+        "${project_id}" == .. || "${project_id}" =~ [[:cntrl:]] ]]; then
+        print_error 'Usage : rid projects template openspec <ID PROJECT> (identifiant sans chemin et utilisateur DevOps valide).'
+        return 1
+    fi
+    if [[ -L "${project_path}" || ! -d "${project_path}" ]]; then
+        print_error "Le dossier du projet est absent ou symbolique : ${project_path}"
+        return 1
+    fi
+    if [[ -L "${project_path}/openspec" ||
+        ( -e "${project_path}/openspec" && ! -d "${project_path}/openspec" ) ]]; then
+        print_error 'La cible openspec doit être un répertoire ordinaire.'
+        return 1
+    fi
+    if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
+        print_error "Utilisateur DevOps introuvable : ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+
+    if [[ -d "${project_path}/openspec" ]]; then
+        openspec_command='openspec update'
+    else
+        case "${OPENCODE:-}" in
+            1) openspec_command='openspec init --tools opencode --profile custom' ;;
+            0) openspec_command='openspec init --profile custom' ;;
+            *) print_error 'OPENCODE doit valoir 0 ou 1 pour initialiser OpenSpec.'; return 1 ;;
+        esac
+    fi
+
+    # Un chemin absolu et des apostrophes échappées préservent le chemin dans le shell de connexion.
+    if ! project_path="$(cd -- "${project_path}" && pwd -P)"; then
+        print_error 'Impossible de résoudre le répertoire du projet.'
+        return 1
+    fi
+    command="cd '${project_path//\'/\'\\\'\'}' && ${openspec_command}"
+    if ! su - "${ENV_DEVOPS_USER}" -c "${command}"; then
+        print_error "Initialisation ou mise à jour OpenSpec échouée : ${project_path}"
+        return 1
+    fi
+    print_success "OpenSpec préparé : ${project_path}"
+}
+
 # Les outils hôte ne doivent pas être résolus dans le PATH DevOps.
 projects_template_devops_host_binary() {
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin type -P -- "$1"
@@ -339,7 +388,24 @@ projects_template_devops_render() {
     printf '\n\n' || return 1
     binary="${devops_home}/python/current/bin/pip3"
     version="$(projects_template_devops_version python "${devops_home}" "${binary}" --version)" || return 1
-    projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}"
+    projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}" || return 1
+
+    printf '# Tests navigateurs extérieurs en mode headless\n\nLa détection ne vérifie pas le fonctionnement du mode headless.\n\n' || return 1
+    for name in Chromium Firefox; do
+        case "${name}" in
+            Chromium)
+                binary="$(projects_template_devops_host_binary chromium)" ||
+                    binary="$(projects_template_devops_host_binary chromium-browser)" || binary=''
+                ;;
+            Firefox)
+                binary="$(projects_template_devops_host_binary firefox)" ||
+                    binary="$(projects_template_devops_host_binary firefox-esr)" || binary=''
+                ;;
+        esac
+        version="$(projects_template_devops_version host "${devops_home}" "${binary}" --version)" || return 1
+        printf '## %s\n\n  * %s\n  * %s\n  * Mode headless : --headless\n\n\n' \
+            "${name}" "${version}" "${binary:-binaire introuvable}" || return 1
+    done
 }
 
 projects_template_devops() {
@@ -353,7 +419,7 @@ projects_template_devops() {
     if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
         -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
         "${project_id}" == .. || "${project_id}" =~ [[:cntrl:]] ]]; then
-        print_error 'Usage : rid projects template <ID PROJECT> devops (identifiant sans chemin et utilisateur DevOps valide).'
+        print_error 'Usage : rid projects template devops <ID PROJECT> (identifiant sans chemin et utilisateur DevOps valide).'
         return 1
     fi
     if [[ -L "${template_path}" ]]; then
@@ -453,6 +519,142 @@ sys.exit(0 if valid and values['PROJECT_ID'] == sys.argv[2] else 1)
 PY
 }
 
+projects_template_all_all() {
+    local devops_home="/home/${ENV_DEVOPS_USER:-}"
+    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local project_path="" project_id=""
+    local selected=0 succeeded=0 ignored=0 failed=0
+
+    if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
+        print_error 'Usage : rid projects template all all (utilisateur DevOps valide).'
+        return 1
+    fi
+    if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
+        print_error "Utilisateur DevOps introuvable : ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+    if [[ "${EUID}" -ne 0 && "$(id -un)" != "${ENV_DEVOPS_USER}" ]]; then
+        print_error "Exécuter cette préparation en root ou sous ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+    if [[ ! -d "${projects_root}" ]]; then
+        print_error "Répertoire des projets introuvable : ${projects_root}"
+        return 1
+    fi
+    if [[ ! -x /usr/bin/python3 ]]; then
+        print_error 'Impossible de sélectionner les projets : Python système absent.'
+        return 1
+    fi
+
+    # Même sélection que les modèles groupés, sans modifier les options du shell.
+    for project_path in "${projects_root}"/* "${projects_root}"/.[!.]* "${projects_root}"/..?*; do
+        if [[ ! -d "${project_path}" && ! -L "${project_path}" ]]; then
+            continue
+        fi
+        project_id="${project_path##*/}"
+        if [[ "${project_id}" =~ [[:cntrl:]] ]]; then
+            ignored=$((ignored + 1))
+            print_info 'Projet ignoré : identifiant invalide.'
+            continue
+        fi
+        if [[ -L "${project_path}" || -L "${project_path}/project.env" ||
+            ! -f "${project_path}/project.env" ]] ||
+            ! projects_template_devops_project_is_configured "${project_path}/project.env" "${project_id}"; then
+            ignored=$((ignored + 1))
+            print_info "Projet ignoré : ${project_id} (chemin symbolique ou configuration absente, incomplète, illisible ou invalide)."
+            continue
+        fi
+
+        selected=$((selected + 1))
+        if ! projects_template_openspec "${project_id}"; then
+            failed=$((failed + 1))
+            print_error "OpenSpec échoué pour le projet : ${project_id}. DevOps non exécuté pour ce projet."
+            continue
+        fi
+        # DevOps dépend des autres modèles et reste toujours l'étape finale du projet.
+        if projects_template_devops "${project_id}"; then
+            succeeded=$((succeeded + 1))
+        else
+            failed=$((failed + 1))
+            print_error "Génération DevOps échouée pour le projet : ${project_id}."
+        fi
+    done
+
+    if [[ "${selected}" -eq 0 ]]; then
+        print_info "Aucun projet éligible au traitement de tous les modèles dans ${projects_root}."
+    fi
+    print_info "Bilan modèles : ${selected} sélectionné(s), ${succeeded} réussi(s), ${ignored} ignoré(s), ${failed} échoué(s)."
+    if [[ "${failed}" -gt 0 ]]; then
+        return 1
+    fi
+    return 0
+}
+
+projects_template_openspec_all() {
+    local devops_home="/home/${ENV_DEVOPS_USER:-}"
+    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local project_path="" project_id=""
+    local selected=0 succeeded=0 ignored=0 failed=0
+
+    if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
+        print_error 'Usage : rid projects template openspec all (utilisateur DevOps valide).'
+        return 1
+    fi
+    if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
+        print_error "Utilisateur DevOps introuvable : ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+    if [[ "${EUID}" -ne 0 && "$(id -un)" != "${ENV_DEVOPS_USER}" ]]; then
+        print_error "Exécuter cette préparation en root ou sous ${ENV_DEVOPS_USER}."
+        return 1
+    fi
+    if [[ ! -d "${projects_root}" ]]; then
+        print_error "Répertoire des projets introuvable : ${projects_root}"
+        return 1
+    fi
+    if [[ ! -x /usr/bin/python3 ]]; then
+        print_error 'Impossible de sélectionner les projets : Python système absent.'
+        return 1
+    fi
+
+    # Les mêmes motifs que DevOps incluent les dossiers cachés sans modifier le shell appelant.
+    for project_path in "${projects_root}"/* "${projects_root}"/.[!.]* "${projects_root}"/..?*; do
+        if [[ ! -d "${project_path}" && ! -L "${project_path}" ]]; then
+            continue
+        fi
+        project_id="${project_path##*/}"
+        if [[ "${project_id}" =~ [[:cntrl:]] ]]; then
+            ignored=$((ignored + 1))
+            print_info 'Projet ignoré : identifiant invalide.'
+            continue
+        fi
+        if [[ -L "${project_path}" || -L "${project_path}/project.env" ||
+            ! -f "${project_path}/project.env" ]] ||
+            ! projects_template_devops_project_is_configured "${project_path}/project.env" "${project_id}"; then
+            ignored=$((ignored + 1))
+            print_info "Projet ignoré : ${project_id} (chemin symbolique ou configuration absente, incomplète, illisible ou invalide)."
+            continue
+        fi
+
+        selected=$((selected + 1))
+        if projects_template_openspec "${project_id}"; then
+            succeeded=$((succeeded + 1))
+        else
+            failed=$((failed + 1))
+            print_error "Initialisation ou mise à jour OpenSpec échouée pour le projet : ${project_id}."
+        fi
+    done
+
+    if [[ "${selected}" -eq 0 ]]; then
+        print_info "Aucun projet éligible à la préparation OpenSpec dans ${projects_root}."
+    fi
+    print_info "Bilan OpenSpec : ${selected} sélectionné(s), ${succeeded} réussi(s), ${ignored} ignoré(s), ${failed} échoué(s)."
+    if [[ "${failed}" -gt 0 ]]; then
+        return 1
+    fi
+    return 0
+}
+
 projects_template_devops_all() {
     local devops_home="/home/${ENV_DEVOPS_USER:-}"
     local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
@@ -460,7 +662,7 @@ projects_template_devops_all() {
     local selected=0 succeeded=0 ignored=0 failed=0
 
     if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
-        print_error 'Usage : rid projects template all devops (utilisateur DevOps valide).'
+        print_error 'Usage : rid projects template devops all (utilisateur DevOps valide).'
         return 1
     fi
     if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then

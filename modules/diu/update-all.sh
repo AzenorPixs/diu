@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 
 update_all() {
+    local projects_status=0 softwares_status=0
+
     system_update
     diu_update
     environments_update
     ia_update
-    projects_update
-    softwares_update
+    projects_update || projects_status=$?
+    softwares_update || softwares_status=$?
+
+    if [[ "${projects_status}" -ne 0 ]]; then
+        return "${projects_status}"
+    fi
+    return "${softwares_status}"
 }
 
 manage_update_action() {

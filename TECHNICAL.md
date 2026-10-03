@@ -207,6 +207,124 @@ module de mise à jour. L'architecture cible décrite dans
 `PROJECT.md` ne doit pas être interprétée comme l'existence d'implémentations
 déjà séparées.
 
+### Commandes OpenSpec du domicile DevOps
+
+À la fin du bloc `OPENSPEC=1`, après la vérification du binaire, le monolithe
+prépare OpenSpec dans `/home/${ENV_DEVOPS_USER}` via
+`su - "$ENV_DEVOPS_USER" -c`. Le shell de connexion rejoint ce domicile et
+ajoute les chemins Node et npm DevOps à PATH. Si le dossier `openspec/` existe,
+il exécute `openspec update`, indépendamment de `OPENCODE`. Sinon, il exécute
+`openspec init --tools opencode --profile custom` pour `OPENCODE=1` ou
+`openspec init --profile custom` pour `OPENCODE=0`.
+
+Une valeur OpenCode absente ou invalide empêche l'initialisation. Un échec de
+changement de répertoire, de su ou d'OpenSpec provoque un diagnostic et un
+arrêt non nul avant la suite du DIU, sans message de réussite de cette étape
+ni suppression des écritures partielles. Un bloc désactivé ne prépare pas
+le domicile. Ce traitement est indépendant des templates de projets.
+La spécification de référence est
+`openspec/specs/devops-home-openspec/spec.md`.
+
+### Template OpenSpec des projets
+
+`rid projects template openspec <ID PROJECT>` prépare OpenSpec dans
+`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
+`/home/${ENV_DEVOPS_USER}/datas/<ID PROJECT>`). La fonction
+`projects_template_openspec`, dans `modules/projects/template.sh`, utilise
+`su - "$ENV_DEVOPS_USER" -c` et le shell de connexion pour exécuter :
+
+- `openspec init --tools opencode --profile custom` si le dossier `openspec/`
+  est absent et `OPENCODE=1` ;
+- `openspec init --profile custom` si ce dossier est absent et `OPENCODE=0` ;
+- `openspec update` si ce dossier existe, y compris après copie du modèle.
+
+`rid projects template openspec all` appelle `projects_template_openspec_all`
+pour tous les projets configurés, avec la même sélection que DevOps all :
+dossiers directs et cachés dont `project.env` ordinaire contient les cinq
+affectations littérales non vides `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`,
+`PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE`, avec un identifiant conforme au
+nom du dossier. La sélection réutilise le contrôle DevOps sans exécuter le
+fichier ni afficher ses valeurs ; les chemins symboliques et configurations
+invalides sont ignorés. La fonction traite chaque projet via la fonction
+individuelle, poursuit après échec et affiche les nombres sélectionnés,
+réussis, ignorés et échoués. Elle rend un code non nul si une opération échoue,
+et un succès avec bilan si aucun projet n'est éligible. `all` est désormais
+réservé à ce traitement dans la CLI ; un dossier nommé `all` reste éligible
+et est traité directement par la boucle, sans récursion.
+
+L'ancienne syntaxe `rid projects template <ID PROJECT> openspec` est rejetée
+lorsqu'elle ne correspond pas déjà à une commande valide avec sélecteur
+`openspec` ou `devops`.
+Le sélecteur `openspec` après `template` est prioritaire :
+`rid projects template openspec devops` vise OpenSpec pour le projet `devops`.
+La génération DevOps utilise `rid projects template devops <ID PROJECT>` ou
+`rid projects template devops all` pour tous les projets configurés. Les anciens
+ordres sont rejetés lorsqu'ils ne correspondent pas déjà à une commande valide.
+Les chemins invalides, les dossiers symboliques, les utilisateurs absents et les valeurs
+OPENCODE autres que 0 ou 1 lors d'une initialisation provoquent un échec.
+La fonction individuelle ne lit pas `project.env`. Un outil absent ou en échec est signalé
+avec un code non nul ; ses éventuelles écritures partielles sont conservées.
+
+`rid projects create <ID PROJECT>` appelle cette préparation après la copie,
+la personnalisation et l'attribution des droits, puis génère `DEVOPS.md`.
+Un échec OpenSpec empêche la génération DevOps et le message de succès, en
+conservant le projet préparé. La capacité de référence est
+`openspec/specs/projects-template-openspec/spec.md`.
+
+### Navigateurs hôte dans le document DevOps
+
+La génération DevOps termine `DEVOPS.md` par « Tests navigateurs extérieurs
+en mode headless », avec Chromium puis Firefox : version, chemin hôte et
+option `--headless`. La détection utilise le PATH système fixe du générateur,
+recherche `chromium` puis `chromium-browser`, et `firefox` puis `firefox-esr`.
+Les sondes `--version` sont limitées à 15 secondes. Un navigateur absent ou
+une version non vérifiable est indiqué explicitement, sans empêcher la
+génération. Aucune installation ni test de navigation n'est réalisé ; une
+version détectée ne prouve pas le fonctionnement du mode headless.
+Cette section est aussi produite par les appels groupés et en fin de création.
+La référence est `openspec/specs/projects-template-devops/spec.md`.
+
+### Tous les modèles pour tous les projets
+
+`rid projects template all all` appelle `projects_template_all_all`. Le premier
+`all` désigne tous les modèles disponibles, actuellement OpenSpec et DevOps ;
+le second désigne les projets configurés selon la même sélection `project.env`
+que `openspec all` et `devops all` : cinq variables littérales non vides et
+`PROJECT_ID` correspondant au dossier, sans exécuter la configuration.
+
+Le traitement est réalisé par projet : OpenSpec puis DevOps, avant de passer
+au suivant. DevOps reste toujours l'étape finale car il dépend des autres
+modèles. Un échec OpenSpec empêche DevOps pour ce projet ; un échec DevOps
+signale également ce projet comme échoué. Dans les deux cas, les autres projets
+sont traités et les fichiers existants ou partiellement écrits sont conservés.
+Le bilan compte les projets sélectionnés, réussis, ignorés et échoués ; un
+projet n'est réussi que si tous ses modèles réussissent. Un échec produit un
+code non nul ; aucun projet éligible produit un bilan et un succès.
+
+La nouvelle commande exige exactement `all all`, sans cible individuelle après
+le premier `all`. Les aides `projects template all help` et
+`projects template all all help`, ainsi que leurs variantes `?`, expliquent
+la sélection et l'ordre sans charger de configuration ni lancer de modèle.
+La capacité de référence est `openspec/specs/projects-template-all/spec.md`.
+Les commandes existantes et le parcours de création sont conservés.
+
+### Mise à jour générale des projets
+
+`rid projects update` sans identifiant appelle `projects_update`, qui délègue
+une seule fois à `projects_template_all_all`. La sélection selon `project.env`,
+OpenSpec puis DevOps en dernier pour chaque projet, la poursuite après échec,
+la conservation des écritures et le bilan sont ceux de
+`rid projects template all all`. Le code de retour est transmis à l'appelant.
+Aucune synchronisation du modèle local ni configuration Git ou fournisseur
+n'est ajoutée à cette mise à jour.
+
+`rid projects update <ID PROJECT>` conserve son rôle de mise à jour interactive
+des variables générales via `update_projects`. Dans cet usage, `all` reste
+le nom d'un projet ciblé. Un identifiant explicitement vide ou des arguments
+supplémentaires provoquent une erreur avant traitement. Les aides `help` et
+`?` distinguent les deux usages avant tout chargement de configuration.
+La capacité de référence est `openspec/specs/projects-general-update/spec.md`.
+
 ### Ordre de chargement actuel
 
 Après l'aide précoce et le nettoyage de la configuration historique, le point
@@ -708,6 +826,17 @@ identifiants Forgejo/Git.
 `rid update` est routé par `manage_update_action` vers `update_all` lorsqu'il
 n'a pas d'argument. `rid update diu` reste limité à la mise à jour du DIUE.
 Une commande avec moteur explicite reste limitée à ce moteur.
+
+Le parcours actuel dans `modules/diu/update-all.sh` appelle successivement
+`system_update`, `diu_update`, `environments_update`, `ia_update`,
+`projects_update` puis `softwares_update`. La mise à jour des projets décrite
+ci-dessus est donc incluse une seule fois. Son échec est mémorisé : le module
+softwares est encore appelé, puis le code non nul projects est rendu. Lorsque
+projects réussit, le code final softwares est conservé.
+
+La description enrichie ci-dessous dépasse ce parcours simple actuel,
+notamment pour l'isolation et le bilan global. Cet écart préexistant est
+signalé ; l'intégration de projects ne réalise pas cette refonte générale.
 
 L'orchestrateur global traite les participants explicitement déclarés :
 
