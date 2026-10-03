@@ -12,13 +12,16 @@ serveur PostgreSQL configuré, avec un manifeste minimal conditionnel pour Pytho
 ### Requirement: Commande de génération du modèle DevOps
 
 DIU SHALL fournir `projects_template_devops`, appelée par la commande
-`rid projects template <ID PROJECT> devops`, avec un identifiant obligatoire. La fonction SHALL
-générer ou actualiser `${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`.
-La racine SHALL utiliser DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon
-/home/${ENV_DEVOPS_USER}/datas. La fonction SHALL valider le nom d'utilisateur
-et l'identifiant de projet, SHALL refuser les chemins, les identifiants . et ..
-et les liens symboliques du dossier cible, et SHALL NOT créer le dossier du projet.
-L'ancienne syntaxe sans identifiant SHALL être rejetée avec la nouvelle utilisation.
+`rid projects template devops <ID PROJECT>`, avec un identifiant obligatoire.
+La CLI SHALL exiger le sélecteur devops avant l'identifiant et SHALL rejeter
+les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide.
+La fonction SHALL générer ou actualiser
+`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`. La racine SHALL utiliser
+DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon /home/${ENV_DEVOPS_USER}/datas.
+La fonction SHALL valider le nom d'utilisateur et l'identifiant de projet,
+SHALL refuser les chemins, les identifiants . et .. et les liens symboliques
+du dossier cible, et SHALL NOT créer le dossier du projet. L'ancienne syntaxe
+sans identifiant SHALL être rejetée avec la nouvelle utilisation.
 
 #### Scenario: Dossier absent
 
@@ -33,14 +36,19 @@ L'ancienne syntaxe sans identifiant SHALL être rejetée avec la nouvelle utilis
 
 #### Scenario: Projet sélectionné
 
-- **WHEN** l'utilisateur exécute rid projects template application devops
+- **WHEN** l'utilisateur exécute rid projects template devops application
 - **THEN** seul le DEVOPS.md du projet application est généré ou actualisé
 - **AND THEN** project.env et pyproject.toml sont ceux de ce projet
 
 #### Scenario: Ancienne syntaxe ou identifiant invalide
 
-- **WHEN** l'identifiant manque ou contient un chemin
+- **WHEN** l'identifiant manque, contient un chemin ou la commande utilise template application devops
 - **THEN** la commande échoue avant toute écriture avec la nouvelle utilisation
+
+#### Scenario: Projets nommés comme les sélecteurs
+
+- **WHEN** la commande utilise template devops devops ou template devops openspec
+- **THEN** seule la génération DevOps du projet désigné est appelée
 
 ### Requirement: Structure et version documentaire
 
@@ -48,8 +56,10 @@ Le document SHALL conserver un titre `DEVOPS.md — <ID PROJECT>` adapté à l'i
 documentaire `0.2`, et les rubriques Système d'exploitation, Docker,
 Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL
 Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source
-de vérité `pyproject.toml`, Python - Gestionnaire de paquets, dans cet ordre. Pour l'identifiant template, le titre SHALL rester
-`DEVOPS.md — Template`.
+de vérité `pyproject.toml`, Python - Gestionnaire de paquets, dans cet ordre.
+La rubrique Tests navigateurs extérieurs en mode headless SHALL suivre ces
+rubriques et terminer le document, avec les sous-rubriques Chromium puis Firefox.
+Pour l'identifiant template, le titre SHALL rester `DEVOPS.md — Template`.
 Chaque rubrique logicielle SHALL placer le chemin du binaire après sa version.
 Le serveur PostgreSQL SHALL indiquer son adresse après sa version.
 
@@ -57,7 +67,8 @@ Le serveur PostgreSQL SHALL indiquer son adresse après sa version.
 
 - **WHEN** DEVOPS.md existe avec des versions anciennes
 - **THEN** toutes les versions logicielles sont sondées de nouveau et les valeurs anciennes sont remplacées
-- **AND THEN** la version documentaire reste 0.2 et la structure reste celle du modèle
+- **AND THEN** la version documentaire reste 0.2 et les rubriques existantes conservent leur ordre
+- **AND THEN** une seule section Tests navigateurs extérieurs en mode headless termine le document
 
 ### Requirement: Distinction entre hôte et environnement DevOps
 
@@ -204,23 +215,30 @@ Si l'écriture documentaire échoue ensuite, le manifeste créé SHALL être con
 ### Requirement: Génération finale lors de la création
 
 Après la préparation, la personnalisation et l'attribution des droits du
-projet, create_project SHALL appeler projects_template_devops avec
-l'identifiant du nouveau projet avant son message final de succès. La copie
-SHALL exclure le pyproject.toml racine du modèle si PROJECT_TYPE est différent
-de PYTHON ou absent ; un projet Python MAY conserver le manifeste copié.
-Si la génération échoue, create_project SHALL rendre un code non nul,
-signaler cet échec et conserver le projet déjà préparé.
+projet, create_project SHALL appeler projects_template_openspec puis
+projects_template_devops avec l'identifiant du nouveau projet avant son message
+final de succès. La copie SHALL exclure le pyproject.toml racine du modèle si
+PROJECT_TYPE est différent de PYTHON ou absent ; un projet Python MAY conserver
+le manifeste copié. Si une opération finale échoue, create_project SHALL rendre
+un code non nul, signaler cet échec et conserver le projet déjà préparé. Un
+échec OpenSpec SHALL empêcher l'appel DevOps et le message final de succès.
 
 #### Scenario: Création réussie
 
-- **WHEN** la préparation du nouveau projet et la génération réussissent
-- **THEN** la génération est appelée une seule fois avec le bon identifiant après l'attribution des droits
+- **WHEN** la préparation et les deux opérations finales réussissent
+- **THEN** OpenSpec puis DevOps sont appelés une seule fois avec le bon identifiant après l'attribution des droits
 - **AND THEN** DEVOPS.md est actualisé avant le message de succès
 
 #### Scenario: Création non Python depuis un modèle Python
 
 - **WHEN** le modèle contient pyproject.toml et le nouveau projet est non Python
 - **THEN** ce fichier racine n'est pas copié ni généré
+
+#### Scenario: Échec OpenSpec final
+
+- **WHEN** projects_template_openspec échoue
+- **THEN** DevOps n'est pas appelé et la création signale l'échec sans message final de succès
+- **AND THEN** le dossier préparé est conservé
 
 #### Scenario: Échec de génération finale
 
@@ -230,7 +248,7 @@ signaler cet échec et conserver le projet déjà préparé.
 
 ### Requirement: Génération DevOps de tous les projets configurés
 
-DIU SHALL exposer rid projects template all devops et projects_template_devops_all.
+DIU SHALL exposer rid projects template devops all et projects_template_devops_all.
 La fonction SHALL utiliser DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
 et parcourir uniquement ses dossiers directs, y compris les dossiers cachés.
 Elle SHALL sélectionner les project.env ordinaires dont les affectations
@@ -263,6 +281,16 @@ illisibles ou invalides SHALL être signalés puis ignorés.
 - **WHEN** le dossier all remplit les critères
 - **THEN** la boucle appelle directement projects_template_devops avec all sans relancer le traitement groupé
 
+#### Scenario: Nouvelle syntaxe groupée
+
+- **WHEN** l'utilisateur exécute rid projects template devops all
+- **THEN** la fonction groupée est appelée une seule fois
+
+#### Scenario: Ancienne syntaxe groupée
+
+- **WHEN** l'utilisateur exécute rid projects template all devops
+- **THEN** la CLI rend un code non nul sans génération
+
 ### Requirement: Bilan et poursuite du traitement groupé
 
 La fonction SHALL conserver le comportement de génération individuelle et
@@ -289,3 +317,59 @@ supplémentaires et les opérations inconnues.
 
 - **WHEN** la racine configurée n'existe pas
 - **THEN** la commande échoue sans créer de dossier ou de document
+
+### Requirement: Navigateurs externes hôte pour le mode headless
+
+DIU SHALL détecter Chromium et Firefox sur l'hôte de génération à partir du
+PATH système fixe utilisé par projects_template_devops_host_binary, sans utiliser
+le PATH DevOps ni des caches de frameworks de test. La recherche SHALL retenir
+le premier exécutable disponible parmi chromium puis chromium-browser pour
+Chromium, et firefox puis firefox-esr pour Firefox.
+
+Chaque sous-rubrique SHALL indiquer la version relevée avec --version, puis
+le chemin de l'exécutable détecté et la ligne « Mode headless : --headless ».
+La section SHALL préciser que la détection de version ne vérifie pas le
+fonctionnement du mode headless. Les sondes SHALL être limitées à 15 secondes
+et SHALL conserver les arguments et les chemins contenant des espaces.
+
+Un navigateur absent SHALL être indiqué par « indisponible (binaire absent) »
+et « binaire introuvable ». Une sonde échouée ou sans version reconnue SHALL
+être indiquée explicitement avec le chemin détecté, sans afficher les erreurs
+brutes ni conserver une ancienne version. DIU SHALL NOT sélectionner une
+autre variante après l'échec de la sonde du premier exécutable détecté.
+Ces indisponibilités SHALL NOT empêcher la génération du document.
+La détection SHALL NOT installer de logiciel ni démarrer un test de navigation.
+
+#### Scenario: Navigateurs hôte disponibles
+
+- **WHEN** chromium et firefox sont présents sur le PATH système hôte et leurs sondes réussissent
+- **THEN** la section finale indique leurs versions, leurs chemins et l'option --headless
+- **AND THEN** elle précise que le fonctionnement headless n'est pas vérifié
+
+#### Scenario: Variantes de noms
+
+- **WHEN** seuls chromium-browser et firefox-esr sont présents
+- **THEN** leurs versions et chemins sont affichés sous Chromium et Firefox
+
+#### Scenario: Plusieurs variantes disponibles
+
+- **WHEN** les noms canoniques et les variantes sont tous présents
+- **THEN** chromium et firefox sont retenus avant chromium-browser et firefox-esr
+
+#### Scenario: Navigateurs absents
+
+- **WHEN** aucun exécutable d'une famille n'est trouvé sur le PATH système hôte
+- **THEN** sa sous-rubrique indique la version indisponible et le binaire introuvable
+- **AND THEN** la génération peut réussir sans installation
+
+#### Scenario: Sonde défaillante ou version non reconnue
+
+- **WHEN** un exécutable détecté échoue, dépasse le délai ou ne produit pas de version reconnue
+- **THEN** sa sous-rubrique indique explicitement la sonde échouée ou la version non reconnue et conserve son chemin
+- **AND THEN** aucune variante alternative ni ancienne version ne remplace ce résultat
+
+#### Scenario: Réexécution et appels existants
+
+- **WHEN** une génération individuelle, groupée ou finale de création appelle projects_template_devops
+- **THEN** le document produit inclut la même section finale actualisée sans doublon
+- **AND THEN** les garanties existantes d'idempotence, de droits et de préservation du document en cas d'échec d'écriture restent applicables

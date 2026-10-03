@@ -1387,14 +1387,24 @@ manage_project_action() {
     case "$action" in
 
         template)
-            if [[ "$#" -ne 3 || "${3:-}" != devops || -z "${project_id}" ||
+            project_id="${3:-}"
+            if [[ "$#" -ne 3 || ( "${2:-}" != openspec && "${2:-}" != devops && "${2:-}" != all ) ||
+                ( "${2:-}" == all && "${project_id}" != all ) || -z "${project_id}" ||
                 "${project_id}" == */* || "${project_id}" == . || "${project_id}" == .. ||
                 "${project_id}" =~ [[:cntrl:]] ]]; then
-                echo '❌ Usage : rid projects template <ID PROJECT> devops'
+                echo '❌ Usage : rid projects template openspec <ID PROJECT>, rid projects template devops <ID PROJECT> ou rid projects template all all'
                 rid_display_command_error projects template
                 return 2
             fi
-            if [[ "${project_id}" == all ]]; then
+            if [[ "${2}" == all ]]; then
+                projects_template_all_all
+            elif [[ "${2}" == openspec ]]; then
+                if [[ "${project_id}" == all ]]; then
+                    projects_template_openspec_all
+                else
+                    projects_template_openspec "${project_id}"
+                fi
+            elif [[ "${project_id}" == all ]]; then
                 projects_template_devops_all
             else
                 projects_template_devops "${project_id}"
@@ -1469,8 +1479,15 @@ manage_project_action() {
             ;;
 
         update)
-            update_projects \
-                "$project_id"
+            if [[ "$#" -eq 1 ]]; then
+                projects_update
+            elif [[ "$#" -eq 2 && -n "${project_id}" ]]; then
+                update_projects "${project_id}"
+            else
+                echo '❌ Usage : rid projects update ou rid projects update <ID PROJECT>'
+                rid_display_command_error projects update
+                return 2
+            fi
             ;;
 
         sync)
@@ -4406,10 +4423,10 @@ EOF
   then
 
       OPENSPEC_PACKAGE="@fission-ai/openspec"
-      OPENSPEC_BIN="/home/$DEVOPS_USER/.local/npm/bin/openspec"
+      OPENSPEC_BIN="/home/$ENV_DEVOPS_USER/.local/npm/bin/openspec"
 
       # Vérification de npm
-      NPM_BIN="/home/$DEVOPS_USER/node/current/bin/npm"
+      NPM_BIN="/home/$ENV_DEVOPS_USER/node/current/bin/npm"
 
       if [ -z "$NPM_BIN" ] || [ ! -x "$NPM_BIN" ]
       then
@@ -4421,8 +4438,8 @@ EOF
 
       # Recherche de la dernière version disponible d'OpenSpec
       OPENSPEC_LATEST="$(
-          su - "$DEVOPS_USER" -c \
-          "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+          su - "$ENV_DEVOPS_USER" -c \
+          "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
           \"$NPM_BIN\" view '$OPENSPEC_PACKAGE' version" 2>/dev/null
       )"
 
@@ -4439,7 +4456,7 @@ EOF
       then
 
         OPENSPEC_CURRENT="$(
-            PATH="/home/$DEVOPS_USER/node/current/bin:$PATH" \
+            PATH="/home/$ENV_DEVOPS_USER/node/current/bin:$PATH" \
             "$OPENSPEC_BIN" --version 2>/dev/null |
             grep -oE '[0-9]+\.[0-9]+\.[0-9]+' |
             head -n 1
@@ -4457,8 +4474,8 @@ EOF
 
         echo "🔧 INSTALL/UPDATE OPENSPEC ($OPENSPEC_CURRENT → $OPENSPEC_LATEST)"
 
-        if ! su - "$DEVOPS_USER" -c \
-            "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+        if ! su - "$ENV_DEVOPS_USER" -c \
+            "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
             \"$NPM_BIN\" install -g '$OPENSPEC_PACKAGE@$OPENSPEC_LATEST' \
             --allow-scripts='$OPENSPEC_PACKAGE' \
             --no-fund \
@@ -4475,10 +4492,10 @@ EOF
       then
 
           # Création de la configuration OpenSpec
-          su - "$DEVOPS_USER" -c \
-              "mkdir -p /home/$DEVOPS_USER/.config/openspec"
+          su - "$ENV_DEVOPS_USER" -c \
+              "mkdir -p /home/$ENV_DEVOPS_USER/.config/openspec"
 
-          cat > "/home/$DEVOPS_USER/.config/openspec/config.json" <<'EOF'
+          cat > "/home/$ENV_DEVOPS_USER/.config/openspec/config.json" <<'EOF'
 {
   "featureFlags": {},
   "profile": "custom",
@@ -4501,14 +4518,14 @@ EOF
 }
 EOF
 
-          chown "$DEVOPS_USER:$DEVOPS_GROUP" \
-              "/home/$DEVOPS_USER/.config/openspec/config.json"
+          chown "$ENV_DEVOPS_USER:$DEVOPS_GROUP" \
+              "/home/$ENV_DEVOPS_USER/.config/openspec/config.json"
 
           chmod 660 \
-              "/home/$DEVOPS_USER/.config/openspec/config.json"
+              "/home/$ENV_DEVOPS_USER/.config/openspec/config.json"
 
           OPENSPEC_VERSION="$(
-              PATH="/home/$DEVOPS_USER/node/current/bin:$PATH" \
+              PATH="/home/$ENV_DEVOPS_USER/node/current/bin:$PATH" \
               "$OPENSPEC_BIN" --version
           )"
 
@@ -4520,6 +4537,29 @@ EOF
           exit 1
 
       fi
+
+      # Initialisation ou mise à jour des commandes OpenSpec du domicile DevOps
+      OPENSPEC_HOME="/home/$ENV_DEVOPS_USER"
+      OPENSPEC_OPENCODE="${OPENCODE:-}"
+
+      if ! su - "$ENV_DEVOPS_USER" -c "
+          cd '${OPENSPEC_HOME//\'/\'\\\'\'}' || exit 1
+          export PATH='${OPENSPEC_HOME//\'/\'\\\'\'}/node/current/bin:${OPENSPEC_HOME//\'/\'\\\'\'}/.local/npm/bin':\"\$PATH\"
+          if [ -d openspec ]; then
+              openspec update
+          else
+              case '${OPENSPEC_OPENCODE//\'/\'\\\'\'}' in
+                  1) openspec init --tools opencode --profile custom ;;
+                  0) openspec init --profile custom ;;
+                  *) echo '❌ ERREUR : OPENCODE doit valoir 0 ou 1 pour initialiser OpenSpec.' >&2; exit 1 ;;
+              esac
+          fi"
+      then
+          echo "❌ ERREUR : préparation OpenSpec échouée dans $OPENSPEC_HOME" >&2
+          exit 1
+      fi
+
+      echo "Commandes OpenSpec préparées ✅ ($OPENSPEC_HOME)"
 
   fi
 

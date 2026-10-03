@@ -40,6 +40,12 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
         self.executable(self.host_bin / 'docker-compose', "printf 'Docker Compose version v5.2.3\\n'")
         self.executable(self.host_bin / 'git', "printf 'git version 2.47.9\\n'")
         self.executable(self.host_bin / 'openssl', "printf 'OpenSSL 3.5.3 1 Jan 2026\\n'")
+        self.executable(self.host_bin / 'chromium',
+                        '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
+                        "printf 'Chromium 134.0.6998.88\\n'")
+        self.executable(self.host_bin / 'firefox',
+                        '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
+                        "printf 'Mozilla Firefox 140.0.4esr\\n'")
         self.executable(self.home / 'go/current/bin/go', "printf 'go version go1.25.3 linux/amd64\\n'")
         self.executable(self.home / '.opencode/bin/opencode', "printf '1.2.8\\n'")
         self.executable(self.home / 'node/current/bin/node', r'''
@@ -100,8 +106,8 @@ printf '16.4\n'
         # code exécuté en mémoire : aucun accès à un véritable modèle utilisateur.
         source = MODULE.read_text(encoding='utf-8')
         home_assignment = 'local devops_home="/home/${ENV_DEVOPS_USER:-}"'
-        self.assertEqual(source.count(home_assignment), 2,
-                         'Le test doit isoler les deux domiciles, sans toucher aux projets réels')
+        self.assertEqual(source.count(home_assignment), 4,
+                         'Le test doit isoler les quatre domiciles, sans toucher aux projets réels')
         source = source.replace(home_assignment, 'local devops_home="$TEST_DEVOPS_HOME"')
         script = source + r'''
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
@@ -139,7 +145,15 @@ ENV_DEVOPS_USER="$1"
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
             'Python', 'Python - Dépendances du projet - Source de vérité `pyproject.toml`',
             'Python - Gestionnaire de paquets',
+            'Tests navigateurs extérieurs en mode headless',
         ])
+        self.assertEqual(re.findall(r'^## (.+)$', content, re.M), ['Chromium', 'Firefox'])
+        for title, version, binary in (('Chromium', '134.0.6998.88', 'chromium'),
+                                       ('Firefox', '140.0.4esr', 'firefox')):
+            self.assertIn(f'## {title}\n\n  * {version}\n  * {self.host_bin / binary}\n'
+                          '  * Mode headless : --headless\n', content)
+        self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
+        self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
         self.assertIn('Version : 0.2', content)
         for title, version, path in (
             ('Docker', '29.1.2', self.host_bin / 'docker'),
@@ -180,6 +194,78 @@ ENV_DEVOPS_USER="$1"
         self.assertEqual(after.st_mode & 0o777, 0o640)
         self.assertEqual((before.st_uid, before.st_gid), (after.st_uid, after.st_gid))
         self.assertEqual(list(self.template.glob('.DEVOPS.md.*')), [])
+
+    def test_headless_browser_name_variants_are_detected(self):
+        for canonical, variant, output in (
+                ('chromium', 'chromium-browser', 'Chromium 133.0.6943.16'),
+                ('firefox', 'firefox-esr', 'Mozilla Firefox 128.7.0esr')):
+            (self.host_bin / canonical).unlink()
+            self.executable(self.host_bin / variant, f"printf '{output}\\n'")
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'## Chromium\n\n  * 133.0.6943.16\n  * {self.host_bin / "chromium-browser"}', content)
+        self.assertIn(f'## Firefox\n\n  * 128.7.0esr\n  * {self.host_bin / "firefox-esr"}', content)
+
+    def test_headless_browser_canonical_names_take_priority(self):
+        for variant in ('chromium-browser', 'firefox-esr'):
+            self.executable(self.host_bin / variant, "printf '99.99.99\\n'")
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'## Chromium\n\n  * 134.0.6998.88\n  * {self.host_bin / "chromium"}', content)
+        self.assertIn(f'## Firefox\n\n  * 140.0.4esr\n  * {self.host_bin / "firefox"}', content)
+        self.assertNotIn('99.99.99', content)
+        self.assertNotIn(str(self.host_bin / 'chromium-browser'), content)
+        self.assertNotIn(str(self.host_bin / 'firefox-esr'), content)
+
+    def test_missing_headless_browsers_are_explicit_and_ignore_user_path(self):
+        for binary in ('chromium', 'firefox'):
+            (self.host_bin / binary).unlink()
+            self.executable(self.home / 'bin' / binary, "printf '99.99.99\\n'")
+        self.environment['PATH'] = str(self.home / 'bin') + ':' + os.environ['PATH']
+        content = self.successful_document(self.run_generation())
+        for title in ('Chromium', 'Firefox'):
+            self.assertIn(f'## {title}\n\n  * indisponible (binaire absent)\n'
+                          '  * binaire introuvable\n  * Mode headless : --headless\n', content)
+        self.assertNotIn('99.99.99', content)
+
+    def test_failed_browser_probes_keep_detected_paths_without_fallback_or_raw_errors(self):
+        self.executable(self.host_bin / 'chromium', "printf 'browser-error-marker\\n' >&2\nexit 7")
+        self.executable(self.host_bin / 'firefox', "printf 'unrecognized-browser-version\\n'")
+        for variant in ('chromium-browser', 'firefox-esr'):
+            self.executable(self.host_bin / variant, "printf '99.99.99\\n'")
+        result = self.run_generation()
+        content = self.successful_document(result)
+        self.assertIn(f'## Chromium\n\n  * indisponible (sonde échouée)\n  * {self.host_bin / "chromium"}', content)
+        self.assertIn(f'## Firefox\n\n  * indisponible (version non reconnue)\n  * {self.host_bin / "firefox"}', content)
+        self.assertNotIn('99.99.99', content)
+        self.assertNotIn('browser-error-marker', content + result.stdout + result.stderr)
+        self.assertNotIn('unrecognized-browser-version', content)
+
+    def test_headless_browser_paths_with_spaces_are_preserved(self):
+        host_bin = self.fixture / 'host bin with spaces'
+        self.environment['TEST_HOST_BIN'] = str(host_bin)
+        self.executable(host_bin / 'chromium',
+                        '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
+                        "printf 'Chromium 134.0.6998.88\\n'")
+        self.executable(host_bin / 'firefox',
+                        '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
+                        "printf 'Mozilla Firefox 140.0.4esr\\n'")
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'## Chromium\n\n  * 134.0.6998.88\n  * {host_bin / "chromium"}', content)
+        self.assertIn(f'## Firefox\n\n  * 140.0.4esr\n  * {host_bin / "firefox"}', content)
+
+    def test_headless_browser_update_refreshes_versions_without_duplicates(self):
+        previous = self.successful_document(self.run_generation())
+        self.executable(self.host_bin / 'chromium', "printf 'Chromium 135.0.7049.41\\n'")
+        (self.host_bin / 'firefox').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertNotEqual(content, previous)
+        self.assertNotIn('134.0.6998.88', content)
+        self.assertNotIn('140.0.4esr', content)
+        self.assertIn(f'## Chromium\n\n  * 135.0.7049.41\n  * {self.host_bin / "chromium"}', content)
+        self.assertIn('## Firefox\n\n  * indisponible (binaire absent)', content)
+        self.assertEqual(content.count('# Tests navigateurs extérieurs en mode headless\n'), 1)
+        self.assertEqual(content.count('## Chromium\n'), 1)
+        self.assertEqual(content.count('## Firefox\n'), 1)
+        self.assertEqual(content, self.successful_document(self.run_generation()))
 
     def test_missing_directory_returns_without_probing_or_creating_it(self):
         self.template.rename(self.home / 'existing-fixture')
@@ -442,7 +528,7 @@ ENV_DEVOPS_USER="$1"
             with self.subTest(project=project):
                 result = self.run_generation(project=project)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn('Usage : rid projects template <ID PROJECT> devops', result.stderr)
+                self.assertIn('Usage : rid projects template devops <ID PROJECT>', result.stderr)
         for arguments in ((), ('template', 'extra')):
             self.assertNotEqual(self.run_generation(arguments=arguments).returncode, 0)
         link = self.home / 'datas/link'
@@ -475,6 +561,10 @@ chown() { printf 'rights\n' >> "$TEST_DEVOPS_HOME/order"; }
 update_projects() {
     printf 'PROJECT_ID=%s\nPROJECT_NAME="Application"\nPROJECT_TYPE=%s\n' "$1" "$TEST_PROJECT_TYPE" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
+projects_template_openspec() {
+    printf 'openspec:%s\n' "$1" >> "$TEST_DEVOPS_HOME/order"
+    if [[ "${TEST_CREATE_OPENSPEC_FAILURE:-0}" == 1 ]]; then return 8; fi
+}
 eval "$(declare -f projects_template_devops | sed '1s/projects_template_devops/original_template_devops/')"
 projects_template_devops() {
     printf 'generation:%s\n' "$1" >> "$TEST_DEVOPS_HOME/order"
@@ -490,27 +580,39 @@ exit $?
         for project, project_type, failure in (
                 ('node-app', 'NODE', '0'), ('python-app', 'PYTHON', '0'),
                 ('python-minimal', 'PYTHON', '0'),
-                ('failed-app', 'PYTHON', '1')):
+                ('failed-app', 'PYTHON', '1'), ('failed-openspec', 'PYTHON', '0')):
             with self.subTest(project=project):
                 if project == 'python-minimal':
                     (self.template / 'pyproject.toml').unlink()
                 self.environment.update(TEST_CREATED_PROJECT=project, TEST_PROJECT_TYPE=project_type,
-                                        TEST_CREATE_FAILURE=failure)
+                                        TEST_CREATE_FAILURE=failure,
+                                        TEST_CREATE_OPENSPEC_FAILURE=str(int(project == 'failed-openspec')))
                 order = self.home / 'order'
                 if order.exists():
                     order.unlink()
                 result = self.run_generation(extra)
                 target = self.home / 'datas' / project
                 self.assertTrue(target.is_dir())
-                self.assertEqual(order.read_text().splitlines(), ['rights', f'generation:{project}'] +
-                                 ([] if failure == '1' else ['rights']))
-                if failure == '1':
+                expected_order = ['rights', f'openspec:{project}']
+                if project != 'failed-openspec':
+                    expected_order += [f'generation:{project}'] + ([] if failure == '1' else ['rights'])
+                self.assertEqual(order.read_text().splitlines(), expected_order)
+                if project == 'failed-openspec':
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('OpenSpec échouée', result.stderr)
+                    self.assertNotIn('créé avec succès', result.stdout)
+                    self.assertFalse((target / 'DEVOPS.md').exists())
+                elif failure == '1':
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn('génération de DEVOPS.md échouée', result.stderr)
                     self.assertNotIn('créé avec succès', result.stdout)
                 else:
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertIn(f'# DEVOPS.md — {project}', (target / 'DEVOPS.md').read_text())
+                    content = (target / 'DEVOPS.md').read_text()
+                    self.assertIn(f'# DEVOPS.md — {project}', content)
+                    self.assertIn('# Tests navigateurs extérieurs en mode headless\n', content)
+                    self.assertIn('## Chromium\n\n  * 134.0.6998.88', content)
+                    self.assertIn('## Firefox\n\n  * 140.0.4esr', content)
                     self.assertEqual((target / 'pyproject.toml').exists(), project_type == 'PYTHON')
                     if project == 'python-minimal':
                         self.assertEqual(tomllib.loads((target / 'pyproject.toml').read_text())['project'],
@@ -523,13 +625,44 @@ exit $?
         script = function + r'''
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
 projects_template_devops_all() { printf 'batch\n'; }
+projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
+projects_template_openspec_all() { printf 'openspec-batch\n'; }
+projects_template_all_all() { printf 'all-models-batch\n'; }
 rid_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
         for arguments, status, expected in (
-            (('template', 'application', 'devops'), 0, 'generation:application\n'),
-            (('template', 'template', 'devops'), 0, 'generation:template\n'),
-            (('template', 'all', 'devops'), 0, 'batch\n'),
+            (('template', 'devops', 'application'), 0, 'generation:application\n'),
+            (('template', 'all', 'all'), 0, 'all-models-batch\n'),
+            (('template', 'all', 'all', 'extra'), 2, 'help:projects template'),
+            (('template', 'all', 'application'), 2, 'help:projects template'),
+            (('template', 'all'), 2, 'help:projects template'),
+            (('template', 'devops', 'template'), 0, 'generation:template\n'),
+            (('template', 'devops', 'all'), 0, 'batch\n'),
+            (('template', 'devops', 'devops'), 0, 'generation:devops\n'),
+            (('template', 'devops', 'openspec'), 0, 'generation:openspec\n'),
+            (('template', 'application', 'devops'), 2, 'help:projects template'),
+            (('template', 'all', 'devops'), 2, 'help:projects template'),
+            (('template', 'devops', ''), 2, 'help:projects template'),
+            (('template', 'devops', 'application', 'extra'), 2, 'help:projects template'),
+            (('template', 'devops', 'all', 'extra'), 2, 'help:projects template'),
+            (('template', 'devops', '../elsewhere'), 2, 'help:projects template'),
+            (('template', 'devops', '.'), 2, 'help:projects template'),
+            (('template', 'devops', 'line\nbreak'), 2, 'help:projects template'),
+            (('template', 'openspec', 'application'), 0, 'openspec:application\n'),
+            (('template', 'openspec', 'all'), 0, 'openspec-batch\n'),
+            (('template', 'openspec', 'all', 'extra'), 2, 'help:projects template'),
+            (('template', 'openspec', 'devops'), 0, 'openspec:devops\n'),
+            (('template', 'openspec', 'openspec'), 0, 'openspec:openspec\n'),
+            (('template', 'openspec'), 2, 'help:projects template'),
+            (('template', 'openspec', ''), 2, 'help:projects template'),
+            (('template', 'openspec', 'application', 'extra'), 2, 'help:projects template'),
+            (('template', 'openspec', '../elsewhere'), 2, 'help:projects template'),
+            (('template', 'openspec', '.'), 2, 'help:projects template'),
+            (('template', 'openspec', 'line\nbreak'), 2, 'help:projects template'),
+            (('template', 'application', 'openspec'), 2, 'help:projects template'),
+            (('template', 'all', 'openspec'), 2, 'help:projects template'),
+            (('template', 'application', 'openspec', 'extra'), 2, 'help:projects template'),
             (('template', 'unknown'), 2, 'help:projects template'),
             (('template',), 2, 'help:projects template'),
             (('template', 'devops'), 2, 'help:projects template'),
@@ -546,6 +679,7 @@ manage_project_action "$@"
                 if status:
                     self.assertNotIn('generation', result.stdout)
                     self.assertNotIn('batch', result.stdout)
+                    self.assertNotIn('openspec:', result.stdout)
 
     def configured_project(self, root, project, updates=None):
         path = root / project
@@ -666,6 +800,9 @@ projects_template_devops() {
                 content = (path / 'DEVOPS.md').read_bytes()
                 self.assertIn(b'16.4', content)
                 self.assertIn(b'PG_HOST PG_PORT PG_DATABASE PG_USERNAME PG_PASSWORD', content)
+                self.assertIn('# Tests navigateurs extérieurs en mode headless\n'.encode(), content)
+                self.assertIn(b'## Chromium\n\n  * 134.0.6998.88', content)
+                self.assertIn(b'## Firefox\n\n  * 140.0.4esr', content)
                 if iteration:
                     self.assertEqual(content, before[project])
                 before[project] = content

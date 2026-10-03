@@ -3,7 +3,11 @@
 # Gestions des projets géré par le DIU
 
 projects_update() {
-    return 0
+    if [[ "$#" -ne 0 ]]; then
+        print_error 'Usage : rid projects update (sans identifiant pour tous les modèles).'
+        return 1
+    fi
+    projects_template_all_all
 }
 
 sync_project_template_is_valid() {
@@ -16,7 +20,7 @@ sync_project_template_is_valid() {
         return 1
     fi
 
-    for template_file in AGENTS.md DEVOPS.md .gitignore; do
+    for template_file in AGENTS.md .gitignore; do
         if [[ ! -f "${template_path}/${template_file}" ]]; then
             print_error "Le fichier modèle est introuvable : ${template_path}/${template_file}"
             return 1
@@ -156,7 +160,7 @@ sync_project() {
         return 1
     }
 
-    for template_file in AGENTS.md DEVOPS.md .gitignore; do
+    for template_file in AGENTS.md .gitignore; do
         if ! cp -a -- "${template_path}/${template_file}" "${staging_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de préparer le fichier modèle : ${template_file}"
@@ -230,7 +234,7 @@ sync_project() {
         -path "${staging_path}/.opencode/broker" -prune -o \
         -type f -name '*.md' -print0)
 
-    for template_file in AGENTS.md DEVOPS.md .gitignore; do
+    for template_file in AGENTS.md .gitignore; do
         if ! cp -a -- "${staging_path}/${template_file}" "${project_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de synchroniser le fichier : ${template_file}"
@@ -279,7 +283,6 @@ sync_project() {
 
     if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_path}/AGENTS.md" \
-        "${project_path}/DEVOPS.md" \
         "${project_path}/.gitignore" ||
         ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_path}/.opencode/commands" \
@@ -707,6 +710,11 @@ create_project() {
 
     if ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_path}"; then
         print_error "Impossible de définir le propriétaire du projet : ${project_path}"
+        return 1
+    fi
+
+    if ! projects_template_openspec "${project_id}"; then
+        print_error "Projet préparé mais initialisation ou mise à jour OpenSpec échouée : ${project_path}"
         return 1
     fi
 

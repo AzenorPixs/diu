@@ -466,6 +466,7 @@ sync_project projet-test
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stderr, '')
+            self.assertFalse((project_path / 'DEVOPS.md').exists())
             self.assertEqual(
                 (project_path / 'AGENTS.md').read_text(encoding='utf-8'),
                 'Projet Test projet-test\n',
@@ -538,7 +539,7 @@ sync_project projet-test
             for directory in ('commands', 'config', 'skills'):
                 (template_path / '.opencode' / directory).mkdir(parents=True, exist_ok=True)
             (template_path / 'PROMPTS').mkdir()
-            for filename in ('AGENTS.md', 'DEVOPS.md', '.gitignore'):
+            for filename in ('AGENTS.md', '.gitignore'):
                 (template_path / filename).write_text('source\n', encoding='utf-8')
 
             for project_id in ('first', 'second'):
@@ -575,6 +576,81 @@ sync_project_all
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, 'first\nsecond\n')
+
+    def test_sync_preserves_devops_or_leaves_it_absent_with_or_without_template_document(self):
+        for operation in ('projet-test', 'all'):
+            for source_present in (False, True):
+                for destination_present in (False, True):
+                    with self.subTest(operation=operation, source_present=source_present,
+                                      destination_present=destination_present):
+                        with tempfile.TemporaryDirectory() as temporary_directory:
+                            temporary_path = Path(temporary_directory)
+                            projects_root = temporary_path / 'datas'
+                            template_path = projects_root / 'template'
+                            project_path = projects_root / 'projet-test'
+                            broker_path = temporary_path / 'cab'
+                            for directory in ('commands', 'config', 'skills'):
+                                (template_path / '.opencode' / directory).mkdir(
+                                    parents=True, exist_ok=True)
+                            (template_path / 'PROMPTS').mkdir()
+                            for filename in ('AGENTS.md', '.gitignore'):
+                                (template_path / filename).write_text('Template template\n',
+                                                                      encoding='utf-8')
+                            if source_present:
+                                (template_path / 'DEVOPS.md').write_text('modèle\n',
+                                                                        encoding='utf-8')
+                            project_path.mkdir()
+                            broker_path.mkdir()
+                            (project_path / 'project.env').write_text(
+                                'PROJECT_ID=projet-test\nPROJECT_NAME="Projet Test"\n',
+                                encoding='utf-8')
+                            document = project_path / 'DEVOPS.md'
+                            content = b'Template template - inventaire local\n'
+                            if destination_present:
+                                document.write_bytes(content)
+                                document.chmod(0o640)
+                                before = document.stat()
+
+                            script = r'''
+set -euo pipefail
+source "$1/modules/projects/projects.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_success() { :; }
+print_info() { :; }
+chown() { printf '%s\n' "$@"; }
+BROKER_SOURCE_PATH="$4"
+sync_project_broker_source_path() { printf '%s\n' "${BROKER_SOURCE_PATH}"; }
+sync_project_all_broker() { :; }
+DEVOPS_USER="$2"
+DEVOPS_GROUP=devops
+DEVOPS_PROJECTS_ROOT="$3"
+if [[ "$5" == all ]]; then
+    sync_project_all
+    sync_project_all
+else
+    sync_project "$5"
+    sync_project "$5"
+fi
+'''
+                            result = subprocess.run(
+                                ['bash', '-c', script, 'bash', str(ROOT),
+                                 f'../tmp/{temporary_path.name}', str(projects_root),
+                                 str(broker_path), operation],
+                                text=True, capture_output=True, check=False)
+                            self.assertEqual(result.returncode, 0, result.stderr)
+                            self.assertEqual(result.stderr, '')
+                            self.assertNotIn(str(document), result.stdout.splitlines())
+                            self.assertEqual((project_path / 'AGENTS.md').read_text(),
+                                             'Projet Test projet-test\n')
+                            if destination_present:
+                                self.assertEqual(document.read_bytes(), content)
+                                after = document.stat()
+                                for attribute in ('st_mode', 'st_uid', 'st_gid',
+                                                  'st_ino', 'st_mtime_ns'):
+                                    self.assertEqual(getattr(after, attribute),
+                                                     getattr(before, attribute))
+                            else:
+                                self.assertFalse(document.exists())
 
     def test_sync_project_all_continues_after_a_project_failure(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -734,6 +810,7 @@ chown() { :; }
 update_projects() {
     printf 'PROJECT_ID=%q\nPROJECT_NAME=%q\n' "$1" 'Projet & modèle' > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
+projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
 DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
@@ -749,7 +826,7 @@ create_project projet-test
 
             project_path = projects_root / 'projet-test'
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(result.stdout, 'generation:projet-test\n')
+            self.assertEqual(result.stdout, 'openspec:projet-test\ngeneration:projet-test\n')
             self.assertEqual(
                 (project_path / 'README.md').read_text(encoding='utf-8'),
                 '# Projet & modèle\nprojet-test\n',
