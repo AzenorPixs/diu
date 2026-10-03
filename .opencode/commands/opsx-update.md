@@ -64,7 +64,7 @@ This workflow revises artifacts that already exist; `/opsx-continue` is what cre
    - Note everything that is now inconsistent, missing, or contradictory.
    - Propose revisions to files that already exist (`existingOutputPaths`). If an artifact has no existing output files and status `ready` or `blocked`, note it and point the user to `/opsx-continue` to create them. Leave `skipped` artifacts untouched; do not treat them as missing or defer them to the continue workflow.
    - A glob artifact (e.g. `specs/**/*.md`) is marked `done` after at least one file matches, and the continue workflow only handles `ready` artifacts. When reconciliation identifies a missing file for a glob artifact whose `existingOutputPaths` is non-empty:
-     1. Run `openspec instructions "<artifact-id>" --change "<name>" --json` and use its `instruction` and `diu`. Treat `context` and `rules` as constraints; do not copy them into the file. If instructions report `skipped: true`, do not create the file. Read current dependency files from disk; if a required non-skipped dependency is missing, stop and ask the user to restore it first.
+     1. Run `openspec instructions "<artifact-id>" --change "<name>" --json` and use its `instruction` and `template`. Treat `context` and `rules` as constraints; do not copy them into the file. If instructions report `skipped: true`, do not create the file. Read current dependency files from disk; if a required non-skipped dependency is missing, stop and ask the user to restore it first.
      2. Choose a concrete path inside `changeRoot` that matches `artifactPaths.<id>.outputPath` and does not already exist. Verify it remains inside `changeRoot` after resolving any symlinked parent directories. The glob `resolvedOutputPath` is not a valid target.
      3. Include the new file in step 5's proposed revisions and create it only after the user confirms.
      4. After confirmation, immediately before creation, refresh status and instructions. Verify the artifact is still in scope, not skipped, and partially populated; repeat the concrete-path checks above.
@@ -75,7 +75,7 @@ This workflow revises artifacts that already exist; `/opsx-continue` is what cre
    - This step performs every artifact write in this workflow; no earlier step edits an artifact.
    - Show each proposed revision and why - including the requested edit drafted in step 4. Write only after the user confirms.
    - If the user rejects a revision, do not write it - leave that artifact unchanged.
-   - When a substantial rewrite is needed, get that artifact's rules and diu first:
+   - When a substantial rewrite is needed, get that artifact's rules and template first:
      ```bash
      openspec instructions "<artifact-id>" --change "<name>" --json
      ```

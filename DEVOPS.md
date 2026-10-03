@@ -16,7 +16,7 @@ Version : 0.2
 
 # Docker-Compose
 
-  * 5.4.0
+  * 5.6.0
   * /usr/local/bin/docker-compose
 
 
