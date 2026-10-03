@@ -2,68 +2,61 @@
 
 ## Purpose
 
-Définir l'installation, la mise à jour idempotente et le contrôle de Psycopg 3
-dans le Python DevOps préparé par le monolithe DIU.
+Définir la préparation Python DevOps et le lancement OpenCode sans gestion
+automatique de Psycopg, dont les dépendances relèvent des projets concernés.
 
 ## Requirements
 
-### Requirement: Installation dans le Python DevOps
+### Requirement: Préparation Python sans gestion Psycopg
 
 Lorsque le bloc Python du monolithe est activé par `ENV_DEVOPS=1` et
-`PYTHON=1`, DIU SHALL installer `psycopg[binary]>=3.2,<4` au moyen de
-`/home/${ENV_DEVOPS_USER}/python/current/bin/python3 -m pip install --upgrade --no-user`,
-après la préparation des liens Python/pip. DIU SHALL utiliser ce préfixe
-DevOps et SHALL NOT installer cette dépendance dans le Python système ou le
-site utilisateur de root. DIU SHALL préserver la préparation existante de
-Python et la gestion des droits du domicile DevOps.
+`PYTHON=1`, DIU SHALL préserver la préparation de Python, pip, leurs liens,
+le profil Python et la gestion des droits du domicile DevOps. DIU SHALL NOT
+installer, mettre à jour, réinstaller ou désinstaller Psycopg ou son
+implémentation binaire dans ce bloc. Les projets sont responsables de leurs
+dépendances Psycopg. Le code de gestion Psycopg désactivé SHALL être conservé
+en commentaires, avec la raison de sa désactivation.
 
-#### Scenario: Première installation de Psycopg
+#### Scenario: Python déjà à jour sans Psycopg
 
-- **WHEN** le bloc est activé et Psycopg n'est pas installé dans le Python DevOps
-- **THEN** pip installe Psycopg et l'extra binaire compatibles avec la contrainte
-- **AND** DIU vérifie l'import et affiche la version avant de poursuivre
+- **WHEN** le bloc Python est activé, Python est déjà à jour et Psycopg est absent
+- **THEN** DIU prépare les liens et le profil Python sans installer Psycopg
+- **AND** aucun contrôle de métadonnées ou d'import ni message de succès Psycopg n'est exécuté
+
+#### Scenario: Psycopg déjà installé
+
+- **WHEN** le bloc est exécuté deux fois sans remplacement du préfixe Python
+- **THEN** DIU n'effectue aucune opération spécifique à Psycopg ou son extra binaire
+- **AND** les paquets existants restent inchangés même si une version plus récente est disponible
 
 #### Scenario: Bloc désactivé
 
 - **WHEN** ENV_DEVOPS ou PYTHON ne vaut pas 1
-- **THEN** cette installation et son contrôle d'import ne sont pas exécutés
+- **THEN** le bloc ne prépare pas le profil Python et n'effectue aucune opération Psycopg
 
-### Requirement: Mise à jour idempotente à chaque passage
+### Requirement: Aucun contrôle Psycopg dans le bloc Python
 
-DIU SHALL exécuter la recherche de mise à jour pip à chaque passage activé,
-y compris lorsque Python est déjà à jour. Pip SHALL sélectionner la version
-la plus récente compatible avec Python, la contrainte et l'index configuré.
-Lorsque les versions installées satisfont déjà cet état, DIU SHALL NOT forcer
-leur réinstallation. DIU SHALL NOT utiliser `--force-reinstall`.
+DIU SHALL NOT lire la version installée de Psycopg, vérifier son import,
+afficher un succès Psycopg ou bloquer le profil Python sur l'échec d'un tel
+contrôle. La préparation Python SHALL se poursuivre lorsque Psycopg est
+absent ou inutilisable, sous réserve des erreurs propres à Python.
 
-#### Scenario: Versions déjà à jour
+#### Scenario: Contrôles Psycopg indisponibles
 
-- **WHEN** le bloc est exécuté deux fois avec un index inchangé et des versions à jour
-- **THEN** pip est appelé à chaque passage avec --upgrade
-- **AND** les versions et fichiers des paquets restent inchangés au second passage
+- **WHEN** les opérations pip, métadonnées ou import Psycopg échoueraient
+- **THEN** DIU ne les appelle pas
+- **AND** la préparation du profil Python se termine si ses propres étapes réussissent
 
-#### Scenario: Version plus récente compatible
+### Requirement: Lancement OpenCode sans installation Psycopg
 
-- **WHEN** l'index fournit une version plus récente compatible de Psycopg
-- **THEN** le passage suivant met à jour Psycopg et son implémentation binaire
-- **AND** cette mise à jour est exécutée même si Python n'est pas recompilé
+`launch_ocrw` SHALL NOT installer Psycopg dans le conteneur OpenCode.
+L'ancienne commande pip SHALL être conservée en commentaire Bash hors de la
+chaîne exécutée. Les autres outils installés par apk, le lancement par
+`setpriv`, les arguments OpenCode, les montages et les protections du
+conteneur SHALL être préservés.
 
-### Requirement: Échecs explicites et version vérifiée
+#### Scenario: Lancement du conteneur en écriture
 
-DIU SHALL vérifier `import psycopg` avec le même Python DevOps après la réussite
-de pip, et SHALL afficher `psycopg.__version__` seulement après réussite du
-contrôle. Un échec de pip ou de l'import SHALL produire un diagnostic explicite
-et un code de sortie non nul, sans continuer la préparation du profil Python.
-Ce contrôle SHALL NOT déclencher de connexion PostgreSQL.
-
-#### Scenario: Échec de pip
-
-- **WHEN** pip échoue, notamment pour un index inaccessible ou un paquet indisponible
-- **THEN** DIU signale l'échec de l'installation ou mise à jour de Psycopg
-- **AND** le bloc s'arrête sans contrôle d'import ni succès annoncé
-
-#### Scenario: Échec de l'import
-
-- **WHEN** pip réussit mais l'import de psycopg échoue
-- **THEN** DIU signale l'échec du contrôle de Psycopg et s'arrête
-- **AND** aucune version validée ni succès n'est annoncé
+- **WHEN** `launch_ocrw` prépare la commande de lancement d'un projet valide
+- **THEN** la chaîne interne prépare les outils apk puis lance OpenCode par setpriv
+- **AND** aucune commande pip ou Psycopg ne figure dans la chaîne exécutée

@@ -186,6 +186,7 @@ projects_template_openspec() {
         for opencode, expected in (('0', 'init --profile custom'),
                                   ('1', 'init --tools opencode --profile custom')):
             project = self.configured_project(f'app-{opencode}')
+            (project / '.opencode').mkdir()
             self.environment['OPENCODE'] = opencode
             extra = r'''
 su() {
