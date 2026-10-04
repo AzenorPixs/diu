@@ -13,7 +13,6 @@ projects_update() {
 sync_project_template_is_valid() {
     local template_path="${1:-}"
     local template_file=""
-    local template_directory=""
 
     if [[ ! -d "${template_path}" ]]; then
         print_error "Le modèle de projet est introuvable : ${template_path}"
@@ -27,73 +26,10 @@ sync_project_template_is_valid() {
         fi
     done
 
-    for template_directory in \
-        .opencode/commands \
-        .opencode/config \
-        .opencode/skills \
-        PROMPTS; do
-
-        if [[ ! -d "${template_path}/${template_directory}" ]]; then
-            print_error "Le répertoire modèle est introuvable : ${template_path}/${template_directory}"
-            return 1
-        fi
-    done
-}
-
-sync_project_broker_source_path() {
-    printf '%s\n' '/home/devops/datas/cab/src'
-}
-
-sync_project_all_broker() {
-    local broker_source_path=""
-    local broker_destination_path="/home/${DEVOPS_USER}/.opencode/broker"
-    local staging_path=""
-    local broker_item=""
-    local broker_relative_path=""
-    local staging_destination_path=""
-
-    if ! broker_source_path="$(sync_project_broker_source_path)" ||
-        [[ ! -d "${broker_source_path}" ]]; then
-
-        print_error "Le répertoire source CAB est introuvable : ${broker_source_path}"
+    if [[ ! -d "${template_path}/PROMPTS" ]]; then
+        print_error "Le répertoire modèle est introuvable : ${template_path}/PROMPTS"
         return 1
     fi
-
-    staging_path="$(mktemp -d)" || {
-        print_error "Impossible de préparer la synchronisation globale des ressources CAB."
-        return 1
-    }
-
-    while IFS= read -r -d '' broker_item; do
-        broker_relative_path="${broker_item#"${broker_source_path}/"}"
-        staging_destination_path="${staging_path}/${broker_relative_path}"
-
-        if [[ -d "${broker_item}" ]]; then
-            if ! mkdir -p -- "${staging_destination_path}"; then
-                rm -rf -- "${staging_path}"
-                print_error "Impossible de préparer le répertoire CAB : ${broker_relative_path}"
-                return 1
-            fi
-        elif ! mkdir -p -- "$(dirname "${staging_destination_path}")" ||
-            ! cp -a -- "${broker_item}" "${staging_destination_path}"; then
-
-            rm -rf -- "${staging_path}"
-            print_error "Impossible de préparer la ressource CAB : ${broker_relative_path}"
-            return 1
-        fi
-    done < <(find "${broker_source_path}" -mindepth 1 \
-        -type d -name '__pycache__' -prune -o -print0)
-
-    if ! mkdir -p -- "${broker_destination_path}" ||
-        ! rm -rf -- "${broker_destination_path}/__pycache__" ||
-        ! cp -a -- "${staging_path}/." "${broker_destination_path}/"; then
-
-        rm -rf -- "${staging_path}"
-        print_error "Impossible de synchroniser les ressources CAB globales."
-        return 1
-    fi
-
-    rm -rf -- "${staging_path}"
 }
 
 sync_project() {
@@ -101,16 +37,11 @@ sync_project() {
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local template_path="/home/${DEVOPS_USER}/datas/template"
-    local broker_source_path=""
     local staging_path=""
-    local broker_item=""
-    local broker_relative_path=""
-    local broker_destination_path=""
     local project_name_sed=""
     local project_id_sed=""
     local markdown_file=""
     local template_file=""
-    local template_directory=""
 
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : sync_project <project_id>"
@@ -148,13 +79,6 @@ sync_project() {
         return 1
     fi
 
-    if ! broker_source_path="$(sync_project_broker_source_path)" ||
-        [[ ! -d "${broker_source_path}" ]]; then
-
-        print_error "Le répertoire source CAB est introuvable : ${broker_source_path}"
-        return 1
-    fi
-
     staging_path="$(mktemp -d)" || {
         print_error "Impossible de préparer la synchronisation du projet."
         return 1
@@ -168,54 +92,11 @@ sync_project() {
         fi
     done
 
-    if ! mkdir -p "${staging_path}/.opencode"; then
-        rm -rf -- "${staging_path}"
-        print_error "Impossible de préparer les ressources OpenCode."
-        return 1
-    fi
-
-    for template_directory in commands config skills; do
-        if ! cp -a -- \
-            "${template_path}/.opencode/${template_directory}" \
-            "${staging_path}/.opencode/"; then
-
-            rm -rf -- "${staging_path}"
-            print_error "Impossible de préparer le répertoire modèle : .opencode/${template_directory}"
-            return 1
-        fi
-    done
-
     if ! cp -a -- "${template_path}/PROMPTS" "${staging_path}/"; then
         rm -rf -- "${staging_path}"
         print_error "Impossible de préparer le répertoire modèle : PROMPTS"
         return 1
     fi
-
-    if ! mkdir -p "${staging_path}/.opencode/broker"; then
-        rm -rf -- "${staging_path}"
-        print_error "Impossible de préparer les ressources CAB."
-        return 1
-    fi
-
-    while IFS= read -r -d '' broker_item; do
-        broker_relative_path="${broker_item#"${broker_source_path}/"}"
-        broker_destination_path="${staging_path}/.opencode/broker/${broker_relative_path}"
-
-        if [[ -d "${broker_item}" ]]; then
-            if ! mkdir -p -- "${broker_destination_path}"; then
-                rm -rf -- "${staging_path}"
-                print_error "Impossible de préparer le répertoire CAB : ${broker_relative_path}"
-                return 1
-            fi
-        elif ! mkdir -p -- "$(dirname "${broker_destination_path}")" ||
-            ! cp -a -- "${broker_item}" "${broker_destination_path}"; then
-
-            rm -rf -- "${staging_path}"
-            print_error "Impossible de préparer la ressource CAB : ${broker_relative_path}"
-            return 1
-        fi
-    done < <(find "${broker_source_path}" -mindepth 1 \
-        -type d -name '__pycache__' -prune -o -print0)
 
     project_name_sed="$(printf '%s' "${PROJECT_NAME}" | sed 's/[&|\\]/\\&/g')"
     project_id_sed="$(printf '%s' "${PROJECT_ID}" | sed 's/[&|\\]/\\&/g')"
@@ -230,9 +111,7 @@ sync_project() {
             print_error "Impossible de personnaliser le fichier Markdown : ${markdown_file}"
             return 1
         fi
-    done < <(find "${staging_path}" \
-        -path "${staging_path}/.opencode/broker" -prune -o \
-        -type f -name '*.md' -print0)
+    done < <(find "${staging_path}" -type f -name '*.md' -print0)
 
     for template_file in AGENTS.md .gitignore; do
         if ! cp -a -- "${staging_path}/${template_file}" "${project_path}/"; then
@@ -242,28 +121,11 @@ sync_project() {
         fi
     done
 
-    if ! mkdir -p "${project_path}/.opencode" \
-        "${project_path}/.opencode/commands" \
-        "${project_path}/.opencode/config" \
-        "${project_path}/.opencode/skills" \
-        "${project_path}/.opencode/broker" \
-        "${project_path}/PROMPTS"; then
-
+    if ! mkdir -p "${project_path}/PROMPTS"; then
         rm -rf -- "${staging_path}"
         print_error "Impossible de préparer la destination de synchronisation."
         return 1
     fi
-
-    for template_directory in commands config skills; do
-        if ! cp -a -- \
-            "${staging_path}/.opencode/${template_directory}/." \
-            "${project_path}/.opencode/${template_directory}/"; then
-
-            rm -rf -- "${staging_path}"
-            print_error "Impossible de synchroniser le répertoire : .opencode/${template_directory}"
-            return 1
-        fi
-    done
 
     if ! cp -a -- "${staging_path}/PROMPTS/." "${project_path}/PROMPTS/"; then
         rm -rf -- "${staging_path}"
@@ -271,24 +133,10 @@ sync_project() {
         return 1
     fi
 
-    if ! rm -rf -- "${project_path}/.opencode/broker/__pycache__" ||
-        ! cp -a -- \
-            "${staging_path}/.opencode/broker/." \
-            "${project_path}/.opencode/broker/"; then
-
-        rm -rf -- "${staging_path}"
-        print_error "Impossible de synchroniser les ressources CAB."
-        return 1
-    fi
-
     if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_path}/AGENTS.md" \
         "${project_path}/.gitignore" ||
         ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" \
-        "${project_path}/.opencode/commands" \
-        "${project_path}/.opencode/config" \
-        "${project_path}/.opencode/skills" \
-        "${project_path}/.opencode/broker" \
         "${project_path}/PROMPTS"; then
 
         rm -rf -- "${staging_path}"
@@ -314,10 +162,6 @@ sync_project_all() {
 
     if [[ ! -d "${projects_root}" ]]; then
         print_error "Le répertoire des projets est introuvable : ${projects_root}"
-        return 1
-    fi
-
-    if ! sync_project_all_broker; then
         return 1
     fi
 

@@ -1,78 +1,94 @@
+## MODIFIED Requirements
+
+### Requirement: Source de synchronisation contrôlée
+
+Avant toute copie, DIU MUST vérifier l'existence du répertoire modèle
+`/home/${DEVOPS_USER}/datas/template`, des fichiers `AGENTS.md` et
+`.gitignore` et du répertoire `PROMPTS`. Une source conservée indisponible
+ou de type incorrect MUST faire échouer la commande avec un code non nul
+avant toute copie. Pour la synchronisation unitaire ou groupée, DIU MUST NOT
+exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
+`/home/devops/datas/cab/src`.
+
+#### Scenario: Répertoire modèle indisponible
+
+- **WHEN** le répertoire modèle n'est pas disponible
+- **THEN** DIU échoue avec un code non nul avant toute copie
+
+#### Scenario: Élément géré manquant du modèle
+
+- **WHEN** AGENTS.md, .gitignore ou PROMPTS est absent ou de type incorrect
+- **THEN** DIU échoue avec un code non nul avant toute copie
+
+#### Scenario: Modèle sans document d'environnement
+
+- **WHEN** le modèle possède les éléments conservés mais aucun DEVOPS.md
+- **THEN** la synchronisation unitaire ou groupée accepte ce modèle
+
+#### Scenario: Sources OpenCode et CAB absentes
+
+- **WHEN** les éléments conservés existent, les sources OpenCode du modèle
+  sont absentes et la source CAB est indisponible
+- **THEN** la synchronisation unitaire ou groupée peut réussir
+
+### Requirement: Copie ciblée et autoritaire du modèle
+
+Une synchronisation réussie MUST copier uniquement `AGENTS.md`,
+`.gitignore` et le contenu récursif de `PROMPTS`. Pour chaque élément
+copié dont une destination existe déjà, le contenu du modèle MUST l'écraser.
+Les éléments destination hors de cette sélection MUST être préservés.
+Pour la synchronisation unitaire ou groupée, DIU MUST NOT copier, créer,
+personnaliser, supprimer ou changer les droits ou le propriétaire du fichier
+`DEVOPS.md` à la racine du projet destination.
+
+#### Scenario: Écrasement d'un élément géré
+
+- **WHEN** un fichier géré existe déjà dans le projet destination
+- **THEN** sa version issue du modèle devient la version présente après
+  synchronisation, avec la personnalisation Markdown spécifiée
+
+#### Scenario: Préservation d'un élément non géré
+
+- **WHEN** le projet contient un élément hors de la sélection conservée
+- **THEN** cet élément reste intact après la synchronisation
+
+#### Scenario: Préservation du document d'environnement existant
+
+- **WHEN** le projet destination possède un DEVOPS.md
+- **THEN** son contenu, ses droits et son propriétaire restent inchangés
+
+#### Scenario: Absence de création du document d'environnement
+
+- **WHEN** le projet destination ne possède aucun DEVOPS.md
+- **THEN** la synchronisation n'en crée pas, même si le modèle en contient un
+
 ## ADDED Requirements
 
-### Requirement: Synchronisation contrôlée des ressources CAB
+### Requirement: Préservation des ressources OpenCode et CAB exclues
 
-Avant la copie CAB, DIU MUST vérifier que le répertoire
-`/home/devops/datas/cab/src` existe et est un répertoire. Pour une
-synchronisation valide, DIU MUST créer si nécessaire
-`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/.opencode/broker`, puis y copier
-récursivement le contenu de la source CAB. Lorsqu'un fichier de même chemin
-existe déjà dans la destination, la version source MUST l'écraser. Les
-ressources destination absentes de la source MUST être préservées. Les
-fichiers CAB, y compris les Markdown, MUST être copiés sans personnalisation.
+Pour la synchronisation unitaire et groupée, DIU MUST NOT consulter les
+sources OpenCode ou CAB exclues, ni copier, créer, personnaliser, supprimer
+ou changer les droits ou le propriétaire des répertoires projet
+`.opencode/commands`, `.opencode/config`, `.opencode/skills` et
+`.opencode/broker`, de leur contenu ou du broker global
+`/home/${DEVOPS_USER}/.opencode/broker`. Cette préservation MUST inclure
+les caches `__pycache__`. L'absence de ces destinations MUST NOT provoquer
+leur création.
 
-#### Scenario: Copie CAB dans un projet configuré
+#### Scenario: Ressources exclues existantes
 
-- **WHEN** l'utilisateur synchronise un projet valide et que la source CAB
-  contient une ressource
-- **THEN** `.opencode/broker` est créé si nécessaire
-- **AND THEN** la ressource source est présente dans cette destination
+- **WHEN** les ressources OpenCode et CAB exclues existent dans un projet
+  ou dans le broker global, avec des caches
+- **THEN** la synchronisation unitaire ou groupée préserve leur contenu,
+  leurs droits, leur propriétaire et leurs caches
 
-#### Scenario: Écrasement d'une ressource CAB gérée
+#### Scenario: Ressources exclues absentes
 
-- **WHEN** la source CAB et `.opencode/broker` contiennent un fichier au même
-  chemin
-- **THEN** le fichier destination contient la version issue de la source CAB
+- **WHEN** les ressources OpenCode et CAB exclues n'existent pas
+- **THEN** la synchronisation unitaire ou groupée ne les crée pas
 
-### Requirement: Exclusion des caches Python CAB
+#### Scenario: Aucun projet valide pour la synchronisation groupée
 
-DIU MUST exclure de la copie tout répertoire source nommé `__pycache__` et
-son contenu. DIU MUST supprimer
-`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/.opencode/broker/__pycache__` lorsqu'il
-existe après la préparation de la destination.
-
-#### Scenario: Cache Python source exclu et cache destination supprimé
-
-- **WHEN** la source CAB contient un répertoire `__pycache__` et que la
-  destination contient `.opencode/broker/__pycache__`
-- **THEN** aucun fichier issu du cache source n'est présent dans la
-  destination
-- **AND THEN** le cache direct de la destination est absent
-
-### Requirement: Synchronisation globale des ressources CAB
-
-Avant la synchronisation globale, DIU MUST vérifier que le répertoire
-`/home/devops/datas/cab/src` existe et est un répertoire. Pour une commande
-`rid projects sync all` valide, DIU MUST créer si nécessaire
-`/home/devops/.opencode/broker`, puis y copier récursivement le contenu de la
-source CAB. Lorsqu'un fichier de même chemin existe déjà dans la destination,
-la version source MUST l'écraser. Les ressources destination absentes de la
-source MUST être préservées. Les fichiers CAB, y compris les Markdown, MUST
-être copiés sans personnalisation.
-
-#### Scenario: Copie CAB globale
-
-- **WHEN** l'utilisateur exécute `rid projects sync all` et que la source CAB
-  contient une ressource
-- **THEN** `/home/devops/.opencode/broker` est créé si nécessaire
-- **AND THEN** la ressource source est présente dans cette destination
-
-#### Scenario: Écrasement d'une ressource CAB globale gérée
-
-- **WHEN** la source CAB et `/home/devops/.opencode/broker` contiennent un
-  fichier au même chemin
-- **THEN** le fichier destination contient la version issue de la source CAB
-
-### Requirement: Exclusion des caches Python CAB globaux
-
-DIU MUST exclure de la copie globale tout répertoire source nommé
-`__pycache__` et son contenu. DIU MUST supprimer
-`/home/devops/.opencode/broker/__pycache__` lorsqu'il existe après la
-préparation de la destination.
-
-#### Scenario: Cache Python global source exclu et cache destination supprimé
-
-- **WHEN** la source CAB contient un répertoire `__pycache__` et que la
-  destination contient `/home/devops/.opencode/broker/__pycache__`
-- **THEN** aucun fichier issu du cache source n'est présent dans la destination
-- **AND THEN** le cache direct de la destination est absent
+- **WHEN** sync all ne trouve aucun projet valide
+- **THEN** DIU conserve le message informatif et le code de succès existants
+- **AND THEN** le broker global reste intact ou absent

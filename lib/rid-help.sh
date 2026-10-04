@@ -61,7 +61,7 @@ rid_display_help_context() {
             else
                 local openspec_project="${target:-<ID PROJECT>}"
                 rid_help_line "rid projects template openspec ${openspec_project}" "Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet ${openspec_project}"
-                printf '%s\n' 'Initialisation avec profil custom ; opencode si OPENCODE=1 ; projet existant : openspec update.'
+                printf '%s\n' 'Initialisation avec profil custom ; opencode si OPENCODE=1 et dossier .opencode présent ; sans ce dossier : équivalent à OPENCODE=0 ; projet existant : openspec update.'
                 if [[ -z "$target" ]]; then
                     rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés.'
                 fi

@@ -512,6 +512,8 @@ forgejo_api_get /tmp /repos/owner/project
                     self.assertIn(f'rid projects template openspec {project}', result.stdout)
                     self.assertIn('profil custom', result.stdout)
                     self.assertIn('OPENCODE=1', result.stdout)
+                    self.assertIn('dossier .opencode présent', result.stdout)
+                    self.assertIn('équivalent à OPENCODE=0', result.stdout)
                     self.assertIn('openspec update', result.stdout)
                     self.assertNotIn('variables.sh', result.stdout + result.stderr)
                     self.assertNotIn('tous les projets', result.stdout)

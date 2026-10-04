@@ -19,6 +19,7 @@ class ProjectsTemplateOpenspecTests(unittest.TestCase):
         self.projects = self.fixture / 'projects'
         self.project = self.projects / 'application'
         self.project.mkdir(parents=True)
+        (self.project / '.opencode').mkdir()
         self.binary_directory = self.fixture / 'bin'
         self.binary_directory.mkdir()
         self.su_log = self.fixture / 'su-calls'
@@ -37,7 +38,7 @@ if [ "$1" = init ]; then mkdir openspec; fi
                                 TEST_SU_LOG=str(self.su_log), TEST_TOOL_LOG=str(self.tool_log),
                                 TEST_SU_FAILURE='0', TEST_TOOL_FAILURE='0', TEST_ID_FAILURE='0')
 
-    def run_template(self, *arguments, extra='', shell='bash', batch=False):
+    def run_template(self, *arguments, extra='', shell='bash', batch=False, after=''):
         script = r'''
 source "$1/modules/projects/template.sh"
 shift
@@ -64,16 +65,18 @@ su() {
         environment = dict(self.environment, TEST_LOGIN_SHELL=shell)
         function = 'projects_template_openspec_all' if batch else 'projects_template_openspec'
         return subprocess.run(['bash', '-Eeuo', 'pipefail', '-c',
-                               script + extra + f'\n{function} "$@"',
+                               script + extra + f'\n{function} "$@"' + after,
                                'bash', str(ROOT), *arguments],
                               env=environment, text=True, capture_output=True, check=False)
 
     def calls(self):
         return self.tool_log.read_text().splitlines() if self.tool_log.exists() else []
 
-    def configured_project(self, name):
+    def configured_project(self, name, opencode=True):
         project = self.projects / name
         project.mkdir(exist_ok=True)
+        if opencode:
+            (project / '.opencode').mkdir(exist_ok=True)
         (project / 'project.env').write_text(
             f'PROJECT_ID={shlex.quote(name)}\nPROJECT_NAME=Example\nPROJECT_TYPE=NODE\n'
             'PROJECT_DOCKERED=0\nPROJECT_DEBIAN_PACKAGE=No\n', encoding='utf-8')
@@ -85,6 +88,7 @@ su() {
             with self.subTest(opencode=opencode):
                 project = self.projects / f'app-{opencode}'
                 project.mkdir()
+                (project / '.opencode').mkdir()
                 self.environment['OPENCODE'] = opencode
                 result = self.run_template(project.name)
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -96,17 +100,49 @@ su() {
                 self.assertEqual(self.calls()[-1], f'{project}|update')
         self.assertEqual(len(self.calls()), 4)
 
-    def test_existing_openspec_updates_independently_of_opencode(self):
-        (self.project / 'openspec').mkdir()
-        for value in ('0', '1', 'invalid', None):
+    def test_missing_opencode_directory_disables_integration_locally(self):
+        for index, value in enumerate(('0', '1', 'invalid', '', None)):
             with self.subTest(value=value):
+                project = self.projects / f'without-opencode-{index}'
+                project.mkdir()
                 if value is None:
                     self.environment.pop('OPENCODE', None)
                 else:
                     self.environment['OPENCODE'] = value
-                result = self.run_template('application')
+                result = self.run_template(project.name, after=r'''
+printf 'OPENCODE-after:%s\n' "${OPENCODE-unset}"
+''')
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(self.calls()[-1], f'{self.project}|update')
+                self.assertEqual(self.calls()[-1], f'{project}|init --profile custom')
+                self.assertIn(f'OPENCODE-after:{value if value is not None else "unset"}\n',
+                              result.stdout)
+                self.assertFalse((project / '.opencode').exists())
+
+    def test_opencode_file_is_not_a_directory(self):
+        project = self.projects / 'opencode-file'
+        project.mkdir()
+        (project / '.opencode').write_text('ordinary file\n', encoding='utf-8')
+        result = self.run_template(project.name)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [f'{project}|init --profile custom'])
+        self.assertEqual((project / '.opencode').read_text(), 'ordinary file\n')
+
+    def test_existing_openspec_updates_independently_of_opencode(self):
+        for has_opencode in (False, True):
+            project = self.projects / f'existing-{has_opencode}'
+            project.mkdir()
+            (project / 'openspec').mkdir()
+            if has_opencode:
+                (project / '.opencode').mkdir()
+            for value in ('0', '1', 'invalid', '', None):
+                with self.subTest(has_opencode=has_opencode, value=value):
+                    if value is None:
+                        self.environment.pop('OPENCODE', None)
+                    else:
+                        self.environment['OPENCODE'] = value
+                    result = self.run_template(project.name)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(self.calls()[-1], f'{project}|update')
 
     def test_special_characters_remain_literal_in_login_shell(self):
         project = self.projects / "projet d'essai $(touch injected) `touch injected` & $PATH"
@@ -175,6 +211,7 @@ su() {
     def test_all_is_a_single_project_and_configuration_is_not_sourced(self):
         project = self.projects / 'all'
         project.mkdir()
+        (project / '.opencode').mkdir()
         (project / 'project.env').write_text('exit 99\n', encoding='utf-8')
         result = self.run_template('all')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -256,12 +293,25 @@ su() {
         self.assertEqual(document.read_text(), 'preserved\n')
         self.assertTrue((self.projects / 'z-success' / 'openspec').is_dir())
 
+    def test_batch_mixed_opencode_directories_preserves_configured_value(self):
+        without_opencode = self.configured_project('a-without-opencode', opencode=False)
+        with_opencode = self.configured_project('z-with-opencode')
+        result = self.run_template(batch=True, after=r'''
+[[ "$OPENCODE" == 1 ]]
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [f'{without_opencode}|init --profile custom',
+                                       f'{with_opencode}|init --tools opencode --profile custom'])
+        self.assertFalse((without_opencode / '.opencode').exists())
+        self.assertIn('2 sélectionné(s), 2 réussi(s), 1 ignoré(s), 0 échoué(s)', result.stdout)
+
     def test_batch_no_eligible_projects_returns_success_without_su(self):
         result = self.run_template(batch=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Aucun projet éligible', result.stdout)
         self.assertIn('0 sélectionné(s), 0 réussi(s), 1 ignoré(s), 0 échoué(s)', result.stdout)
         self.assertFalse(self.su_log.exists())
+        (self.project / '.opencode').rmdir()
         self.project.rmdir()
         result = self.run_template(batch=True)
         self.assertEqual(result.returncode, 0, result.stderr)

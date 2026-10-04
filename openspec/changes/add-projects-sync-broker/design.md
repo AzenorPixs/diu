@@ -1,40 +1,43 @@
 ## Contexte
 
-`sync_project` prépare déjà une zone temporaire pour les ressources du modèle
-puis les copie dans le projet. Les ressources CAB ont une source distincte et
-doivent être ajoutées sans modifier la sélection existante.
+`sync_project` prépare une zone temporaire, personnalise les Markdown puis
+copie les ressources dans le projet. Le développeur a validé le retrait des
+ressources OpenCode et CAB de ce flux, y compris le broker global.
 
 ## Décision
 
-Une fonction interne fournit le chemin fixe `/home/devops/datas/cab/src`.
-Cette petite indirection permet aux tests ciblés d'utiliser une source
-temporaire sans rendre ce chemin configurable pour les utilisateurs.
+Le contrôle du modèle ne requiert plus que `AGENTS.md`, `.gitignore` et
+`PROMPTS`. La préparation, la copie et l'attribution des droits sont limitées
+à ces éléments. Les fonctions internes propres au broker et leur appel
+global sont retirés ; la source CAB n'est plus consultée.
 
-La source CAB est vérifiée avant toute synchronisation. Son contenu est
-préparé dans une zone temporaire en parcourant les entrées hors des répertoires
-`__pycache__`, puis copié dans `.opencode/broker`. Les fichiers de même chemin
-sont ainsi écrasés par la source, tandis que les entrées destination sans
-homologue source sont préservées. Le répertoire destination direct
-`__pycache__` est supprimé conformément à la demande.
+Les ressources exclues ne sont pas parcourues et ne reçoivent aucun
+changement de contenu, droits ou propriétaire. Leurs caches restent intacts.
+L'absence du modèle OpenCode, de la source CAB ou des destinations broker
+n'empêche plus la synchronisation et n'entraîne aucune création.
 
-La personnalisation Markdown appliquée aux ressources du modèle exclut la zone
-CAB préparée : le contenu CAB reste identique à sa source.
-
-`sync_project_all` prépare séparément le même contenu CAB pour le synchroniser
-dans `/home/${DEVOPS_USER}/.opencode/broker`. Cette copie exclut et nettoie le
-répertoire direct `__pycache__`, écrase les chemins gérés par la source et
-préserve les ressources destination sans homologue source.
+Le staging, la personnalisation `Template`/`template`, la sélection groupée,
+les diagnostics et les codes de retour existants sont conservés. La création
+de projets et les commandes de templates restent hors périmètre.
 
 ## Alternatives écartées
 
-- `rsync --exclude` : introduirait une dépendance supplémentaire non requise.
-- une copie directe avec `cp -a` : ne permet pas d'exclure correctement les
-  répertoires `__pycache__`.
-- une synchronisation miroir : supprimerait des ressources destination non
-  visées.
+- Supprimer les anciennes destinations : le retrait concerne les opérations
+  de synchronisation, pas les ressources déjà installées.
+- Conserver les contrôles de sources exclues : cela empêcherait une
+  synchronisation valide lorsque ces sources n'existent pas.
+- Modifier la sélection ou la création des projets : comportements indépendants
+  de l'objectif validé.
 
 ## Validation
 
-Les tests utilisent une source CAB temporaire et vérifient la création de la
-destination, l'écrasement, l'exclusion et le nettoyage. La syntaxe Bash,
-ShellCheck, les tests ciblés et la validation OpenSpec sont exécutés.
+Les tests utilisent des données temporaires contrôlées dans `/tmp`, sans
+configuration privée ni source CAB réelle. Ils vérifient les copies et la
+personnalisation conservées, l'absence de création des ressources exclues,
+leur préservation lorsqu'elles existent (contenu, mode, propriétaire et
+horodatage), et l'absence de ces chemins dans les appels chown simulés.
+Les variantes unitaire et groupée, les réexécutions, l'absence de projet
+valide et la poursuite après échec sont couvertes.
+
+La syntaxe Bash, ShellCheck, la compilation Python, les tests projets et
+d'aide CLI et la validation OpenSpec stricte précèdent l'archivage ciblé.

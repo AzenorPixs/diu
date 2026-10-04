@@ -5,6 +5,7 @@ projects_template_openspec() {
     local projects_root="${DEVOPS_PROJECTS_ROOT:-/home/${ENV_DEVOPS_USER:-}/datas}"
     local project_path="${projects_root}/${project_id}"
     local openspec_command="" command=""
+    local opencode="${OPENCODE:-}"
 
     if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
         -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
@@ -29,7 +30,10 @@ projects_template_openspec() {
     if [[ -d "${project_path}/openspec" ]]; then
         openspec_command='openspec update'
     else
-        case "${OPENCODE:-}" in
+        if [[ ! -d "${project_path}/.opencode" ]]; then
+            opencode=0
+        fi
+        case "${opencode}" in
             1) openspec_command='openspec init --tools opencode --profile custom' ;;
             0) openspec_command='openspec init --profile custom' ;;
             *) print_error 'OPENCODE doit valoir 0 ou 1 pour initialiser OpenSpec.'; return 1 ;;
