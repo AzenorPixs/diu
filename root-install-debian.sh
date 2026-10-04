@@ -967,6 +967,8 @@ launch_ocrw() {
         "${ENV_DOCKER_IMAGE_OPENCODE}" \
         "${ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY}" || return 1
 
+    # Psycopg est géré par les projets ; installation conteneur désactivée.
+    # /usr/bin/python3 -m pip install --break-system-packages "psycopg>=3.2,<4"
     su - "${ENV_DEVOPS_USER}" -c "docker run --rm -it \
       --hostname ${project_id}-opencode \
       --name ${project_id}-opencode \
@@ -1005,7 +1007,6 @@ launch_ocrw() {
       --entrypoint /bin/sh \
       ghcr.io/anomalyco/opencode \
       -c 'apk add --no-cache bash build-base ca-certificates curl docker docker-cli-compose git go libffi-dev libpq nodejs npm openssl openssl-dev postgresql17-client python3 py3-pip py3-virtualenv py3-pytest ripgrep shellcheck util-linux && \
-          /usr/bin/python3 -m pip install --break-system-packages \"psycopg>=3.2,<4\" && \
           exec setpriv \
             --reuid=\"\$OPENCODE_UID\" \
             --regid=\"\$OPENCODE_GID\" \
@@ -4637,40 +4638,41 @@ EOF
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/python${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/python3"
 		ln -sf "${INSTALL_PYTHON_ROOT}/current/bin/pip${PY_SHORT}" "${INSTALL_PYTHON_ROOT}/current/bin/pip3"
 
-		if ! PYTHON_PSYCOPG_PREVIOUS_VERSION="$(
-			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" -I -B -c '
-from importlib.metadata import PackageNotFoundError, version
-try:
-    print(version("psycopg"))
-except PackageNotFoundError:
-    print("")
-'
-		)"; then
-			echo "❌ Échec de la lecture de la version installée de Psycopg dans le Python DevOps" >&2
-			exit 1
-		fi
-
-		if ! "/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
-			-m pip install --upgrade --no-user --quiet "psycopg[binary]>=3.2,<4"; then
-			echo "❌ Échec de l'installation ou mise à jour de Psycopg dans le Python DevOps" >&2
-			exit 1
-		fi
-
-		if ! PYTHON_PSYCOPG_VERSION="$(
-			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
-				-I -B -c 'import psycopg; print(psycopg.__version__)'
-		)"; then
-			echo "❌ Échec du contrôle de Psycopg dans le Python DevOps" >&2
-			exit 1
-		fi
-		if [ "$PYTHON_PSYCOPG_PREVIOUS_VERSION" != "$PYTHON_PSYCOPG_VERSION" ]; then
-			if [ -n "$PYTHON_PSYCOPG_PREVIOUS_VERSION" ]; then
-				echo "🔧 UPDATE PSYCOPG DEVOPS ($PYTHON_PSYCOPG_PREVIOUS_VERSION → $PYTHON_PSYCOPG_VERSION)"
-			else
-				echo "🔧 INSTALL PSYCOPG DEVOPS ($PYTHON_PSYCOPG_VERSION)"
-			fi
-		fi
-		echo "PSYCOPG DEVOPS OK ✅ ($PYTHON_PSYCOPG_VERSION)"
+		# Psycopg est géré par les projets ; gestion DIU temporairement désactivée.
+# 		if ! PYTHON_PSYCOPG_PREVIOUS_VERSION="$(
+# 			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" -I -B -c '
+# from importlib.metadata import PackageNotFoundError, version
+# try:
+#     print(version("psycopg"))
+# except PackageNotFoundError:
+#     print("")
+# '
+# 		)"; then
+# 			echo "❌ Échec de la lecture de la version installée de Psycopg dans le Python DevOps" >&2
+# 			exit 1
+# 		fi
+#
+# 		if ! "/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
+# 			-m pip install --upgrade --no-user --quiet "psycopg[binary]>=3.2,<4"; then
+# 			echo "❌ Échec de l'installation ou mise à jour de Psycopg dans le Python DevOps" >&2
+# 			exit 1
+# 		fi
+#
+# 		if ! PYTHON_PSYCOPG_VERSION="$(
+# 			"/home/$ENV_DEVOPS_USER/python/current/bin/python3" \
+# 				-I -B -c 'import psycopg; print(psycopg.__version__)'
+# 		)"; then
+# 			echo "❌ Échec du contrôle de Psycopg dans le Python DevOps" >&2
+# 			exit 1
+# 		fi
+# 		if [ "$PYTHON_PSYCOPG_PREVIOUS_VERSION" != "$PYTHON_PSYCOPG_VERSION" ]; then
+# 			if [ -n "$PYTHON_PSYCOPG_PREVIOUS_VERSION" ]; then
+# 				echo "🔧 UPDATE PSYCOPG DEVOPS ($PYTHON_PSYCOPG_PREVIOUS_VERSION → $PYTHON_PSYCOPG_VERSION)"
+# 			else
+# 				echo "🔧 INSTALL PSYCOPG DEVOPS ($PYTHON_PSYCOPG_VERSION)"
+# 			fi
+# 		fi
+# 		echo "PSYCOPG DEVOPS OK ✅ ($PYTHON_PSYCOPG_VERSION)"
 
     cat > /etc/profile.d/python-dev.sh <<EOF
 # Python Dev environment (managed by DIU)

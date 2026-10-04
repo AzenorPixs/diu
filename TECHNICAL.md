@@ -163,20 +163,21 @@ ou `Sudoers Docker : aucun compte humain retenu.` en cas de sélection vide.
 
 ### Dépendance Python DevOps
 
-Dans le monolithe, le bloc `ENV_DEVOPS=1` et `PYTHON=1` installe ou met à jour
-`psycopg[binary]>=3.2,<4` après la préparation des liens Python/pip. Il utilise
-`/home/${ENV_DEVOPS_USER}/python/current/bin/python3 -m pip install --upgrade --no-user`
-à chaque passage, même lorsque Python est déjà à jour. Pip conserve les
-paquets déjà à jour sans réinstallation forcée et sélectionne une version
-plus récente compatible lorsqu'elle est disponible sur l'index configuré.
+Psycopg relève des dépendances des projets, déclarées notamment dans leur
+`pyproject.toml`. Sa gestion par le DIU est temporairement désactivée : le
+bloc `ENV_DEVOPS=1` et `PYTHON=1` conserve en commentaires l'installation,
+la mise à jour, la lecture de version, le contrôle d'import et les messages
+Psycopg. La préparation de Python, pip, leurs liens, le profil Python et la
+gestion des droits DevOps restent inchangés. L'absence de Psycopg ou un import
+inutilisable ne bloque plus ce bloc.
 
-L'appel utilise les droits root du DIU, nécessaires pour un préfixe fraîchement
-compilé ; la gestion existante des droits du domicile DevOps s'applique ensuite.
-Le contrôle d'import isolé affiche la version après réussite. Un échec de pip
-ou de l'import provoque un diagnostic et un arrêt non nul avant la génération
-du profil Python. Aucun retour automatique à une ancienne version n'est prévu.
-Cette dépendance de l'environnement est distincte des dépendances de chaque
-projet déclarées dans son `pyproject.toml`. La spécification de référence est
+Le lancement OpenCode en écriture (`launch_ocrw`) conserve aussi l'ancienne
+commande d'installation Psycopg en commentaire, hors de la chaîne exécutée.
+Les autres outils du conteneur, les montages et le lancement par `setpriv`
+restent inchangés. Chaque projet doit fournir Psycopg lorsqu'il en a besoin.
+Le DIU ne désinstalle aucun paquet Psycopg déjà présent ; il n'effectue plus
+de mise à jour spécifique à ce paquet. Le mécanisme existant de remplacement
+du préfixe Python reste applicable. La spécification de référence est
 `openspec/specs/devops-python/spec.md`.
 
 ## Architecture du code
@@ -234,9 +235,14 @@ La spécification de référence est
 `su - "$ENV_DEVOPS_USER" -c` et le shell de connexion pour exécuter :
 
 - `openspec init --tools opencode --profile custom` si le dossier `openspec/`
-  est absent et `OPENCODE=1` ;
-- `openspec init --profile custom` si ce dossier est absent et `OPENCODE=0` ;
-- `openspec update` si ce dossier existe, y compris après copie du modèle.
+  est absent, le dossier `.opencode/` est présent et `OPENCODE=1` ;
+- `openspec init --profile custom` si `openspec/` est absent et `OPENCODE=0`,
+  ou si le dossier `.opencode/` est absent, quelle que soit `OPENCODE` ;
+- `openspec update` si le dossier `openspec/` existe, y compris après copie du modèle.
+
+La valeur OpenCode effective est locale au projet : sans dossier `.opencode/`,
+elle vaut 0 sans modifier la variable configurée pour les projets suivants.
+Un fichier ordinaire nommé `.opencode` ne compte pas comme dossier.
 
 `rid projects template openspec all` appelle `projects_template_openspec_all`
 pour tous les projets configurés, avec la même sélection que DevOps all :
@@ -261,7 +267,8 @@ La génération DevOps utilise `rid projects template devops <ID PROJECT>` ou
 `rid projects template devops all` pour tous les projets configurés. Les anciens
 ordres sont rejetés lorsqu'ils ne correspondent pas déjà à une commande valide.
 Les chemins invalides, les dossiers symboliques, les utilisateurs absents et les valeurs
-OPENCODE autres que 0 ou 1 lors d'une initialisation provoquent un échec.
+OPENCODE autres que 0 ou 1 lors d'une initialisation avec un dossier `.opencode/`
+provoquent un échec.
 La fonction individuelle ne lit pas `project.env`. Un outil absent ou en échec est signalé
 avec un code non nul ; ses éventuelles écritures partielles sont conservées.
 
