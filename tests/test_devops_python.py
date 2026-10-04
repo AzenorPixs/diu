@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import shlex
 from pathlib import Path
 import subprocess
 import tempfile
@@ -20,6 +21,9 @@ class DevopsPythonTests(unittest.TestCase):
         start = source.index('\tif [ "$PYTHON" -eq 1 ]\n\tthen\n')
         end = source.index('\n  chown -R "$ENV_DEVOPS_USER"', start)
         cls.block = source[start:end]
+        start = source.index('launch_ocrw() {')
+        end = source.index('\nmanage_devops_action() {', start)
+        cls.launch = source[start:end]
         parent = source.index('if [ "$ENV_DEVOPS" -eq 1 ]\nthen\n')
         cls.activation = source[parent:parent + len('if [ "$ENV_DEVOPS" -eq 1 ]\nthen\n')]
 
@@ -111,42 +115,45 @@ sys.exit(90)
     def pip_calls(self):
         return [arguments for arguments in self.observed_calls() if arguments[:2] == ['-m', 'pip']]
 
-    def test_first_install_in_existing_python(self):
-        result = self.run_block()
+    def assert_python_prepared_without_psycopg(self, result):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(json.loads(self.state.read_text()),
-                         {'psycopg': '3.3.5', 'psycopg-binary': '3.3.5'})
-        self.assertEqual(len(self.pip_calls()), 1)
-        self.assertIn('PSYCOPG DEVOPS OK ✅ (3.3.5)', result.stdout)
-        self.assertIn('🔧 INSTALL PSYCOPG DEVOPS (3.3.5)', result.stdout)
+        self.assertEqual(self.observed_calls(), [['--version']])
+        self.assertEqual(self.pip_calls(), [])
+        self.assertNotIn('PSYCOPG', result.stdout)
         self.assertIn('PYTHON 3 DEV OK', result.stdout)
         self.assertNotIn('INSTALL/UPDATE PYTHON 3 DEV', result.stdout)
-        self.assertTrue(self.profile.exists())
+        self.assertTrue((self.binary_directory / 'python3').is_symlink())
+        self.assertEqual((self.binary_directory / 'python3').resolve(),
+                         self.binary_directory / 'python3.14')
+        self.assertEqual((self.binary_directory / 'pip3').resolve(),
+                         self.binary_directory / 'pip3.14')
+        self.assertIn(str(self.home / 'python/current'), self.profile.read_text())
+        self.assertEqual(self.profile.stat().st_mode & 0o777, 0o644)
 
-    def test_second_pass_does_not_reinstall_packages(self):
-        first = self.run_block()
-        self.assertEqual(first.returncode, 0, first.stderr)
+    def test_absent_psycopg_is_not_installed(self):
+        self.assert_python_prepared_without_psycopg(self.run_block())
+        self.assertFalse(self.state.exists())
+
+    def test_second_pass_preserves_existing_packages(self):
+        self.state.write_text(json.dumps({'psycopg': '3.3.5', 'psycopg-binary': '3.3.5'}))
         digest = hashlib.sha256(self.state.read_bytes()).digest()
         modified = self.state.stat().st_mtime_ns
-        second = self.run_block()
-        self.assertEqual(second.returncode, 0, second.stderr)
-        self.assertEqual(len(self.pip_calls()), 2)
-        self.assertEqual(hashlib.sha256(self.state.read_bytes()).digest(), digest)
-        self.assertEqual(self.state.stat().st_mtime_ns, modified)
-        self.assertEqual([line for line in second.stdout.splitlines() if 'PSYCOPG' in line],
-                         ['PSYCOPG DEVOPS OK ✅ (3.3.5)'])
+        for _ in range(2):
+            result = self.run_block()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn('PSYCOPG', result.stdout)
+            self.assertTrue(self.profile.exists())
+            self.assertEqual(hashlib.sha256(self.state.read_bytes()).digest(), digest)
+            self.assertEqual(self.state.stat().st_mtime_ns, modified)
+        self.assertEqual(self.observed_calls(), [['--version'], ['--version']])
 
-    def test_newer_version_without_python_rebuild(self):
-        first = self.run_block()
-        self.assertEqual(first.returncode, 0, first.stderr)
-        second = self.run_block(TEST_AVAILABLE='3.3.6')
-        self.assertEqual(second.returncode, 0, second.stderr)
-        self.assertEqual(json.loads(self.state.read_text()),
-                         {'psycopg': '3.3.6', 'psycopg-binary': '3.3.6'})
-        self.assertEqual(len(self.pip_calls()), 2)
-        self.assertIn('PSYCOPG DEVOPS OK ✅ (3.3.6)', second.stdout)
-        self.assertIn('🔧 UPDATE PSYCOPG DEVOPS (3.3.5 → 3.3.6)', second.stdout)
-        self.assertNotIn('INSTALL/UPDATE PYTHON 3 DEV', second.stdout)
+    def test_newer_version_does_not_update_packages(self):
+        self.state.write_text(json.dumps({'psycopg': '3.3.5', 'psycopg-binary': '3.3.5'}))
+        before = self.state.read_bytes()
+        modified = self.state.stat().st_mtime_ns
+        self.assert_python_prepared_without_psycopg(self.run_block(TEST_AVAILABLE='3.3.6'))
+        self.assertEqual(self.state.read_bytes(), before)
+        self.assertEqual(self.state.stat().st_mtime_ns, modified)
 
     def test_disabled_blocks_do_not_install_or_import(self):
         for environment in ({'PYTHON': '0'}, {'ENV_DEVOPS': '0'}):
@@ -157,32 +164,81 @@ sys.exit(90)
                 self.assertFalse(self.state.exists())
                 self.assertFalse(self.profile.exists())
 
-    def test_pip_failure_stops_before_import_and_profile(self):
-        result = self.run_block(TEST_FAULT='pip')
-        self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn("Échec de l'installation ou mise à jour de Psycopg", result.stderr)
-        self.assertEqual(len(self.pip_calls()), 1)
-        self.assertFalse(any('import psycopg; print(psycopg.__version__)' in arguments
-                             for arguments in self.observed_calls()))
-        self.assertNotIn('PSYCOPG DEVOPS OK', result.stdout)
-        self.assertFalse(self.profile.exists())
+    def test_unavailable_pip_does_not_block_profile(self):
+        self.assert_python_prepared_without_psycopg(self.run_block(TEST_FAULT='pip'))
+        self.assertFalse(self.state.exists())
 
-    def test_import_failure_stops_before_success_and_profile(self):
-        result = self.run_block(TEST_FAULT='import')
-        self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn('Échec du contrôle de Psycopg', result.stderr)
-        self.assertTrue(any('import psycopg; print(psycopg.__version__)' in arguments
-                            for arguments in self.observed_calls()))
-        self.assertNotIn('PSYCOPG DEVOPS OK', result.stdout)
-        self.assertFalse(self.profile.exists())
+    def test_failed_import_does_not_block_profile(self):
+        self.assert_python_prepared_without_psycopg(self.run_block(TEST_FAULT='import'))
 
-    def test_metadata_failure_stops_before_pip(self):
-        result = self.run_block(TEST_FAULT='metadata')
-        self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn('Échec de la lecture de la version installée de Psycopg', result.stderr)
-        self.assertEqual(self.pip_calls(), [])
-        self.assertNotIn('PSYCOPG DEVOPS OK', result.stdout)
-        self.assertFalse(self.profile.exists())
+    def test_failed_metadata_does_not_block_profile(self):
+        self.assert_python_prepared_without_psycopg(self.run_block(TEST_FAULT='metadata'))
+
+    def test_opencode_launch_preserves_tools_and_exec_without_psycopg(self):
+        project = self.fixture / 'projects' / 'demo'
+        (project / '.opencode/share').mkdir(parents=True)
+        code = 'set -Eeuo pipefail\n' + self.launch + r'''
+id() { printf '1001\n'; }
+stat() { printf '999\n'; }
+ensure_docker_image() { [[ "$1" == fixture-image && "$2" == never ]]; }
+su() { [[ "$1" == - && "$2" == devops-fixture && "$3" == -c ]]; printf '%s\n' "$4"; }
+launch_ocrw demo
+'''
+        result = subprocess.run(['/bin/bash', '--noprofile', '--norc', '-c', code],
+                                cwd=ROOT, env=dict(self.environment,
+                                DEVOPS_PROJECTS_ROOT=str(project.parent),
+                                ENV_DOCKER_IMAGE_OPENCODE='fixture-image',
+                                ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY='never'),
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = shlex.split(result.stdout)
+        self.assertEqual(arguments[:5], ['docker', 'run', '--rm', '-it', '--hostname'])
+        self.assertEqual(arguments[arguments.index('--security-opt') + 1],
+                         'no-new-privileges:true')
+        self.assertEqual(arguments[arguments.index('--group-add') + 1], '999')
+        mounts = [arguments[i + 1] for i, value in enumerate(arguments) if value == '-v']
+        self.assertEqual(mounts, [
+            '/var/run/docker.sock:/var/run/docker.sock',
+            '/home/devops/datas/demo:/workspace:rw',
+            '/home/devops/datas/demo/.opencode/cache:/home/opencode/.cache/opencode:rw',
+            '/home/devops/datas/demo/.opencode/config:/home/opencode/.config/opencode:rw',
+            '/home/devops/datas/demo/.opencode/share:/home/opencode/.local/share:rw',
+            '/home/devops/datas/demo/.opencode/state:/home/opencode/.local/state/opencode:rw',
+            '/home/devops/datas/demo/.opencode/broker:/opt/tools/cab:ro',
+            '/home/devops/.local/npm:/opt/devops/npm:ro',
+        ])
+        container_code = arguments[-1]
+        self.assertEqual(arguments[-2], '-c')
+        self.assertNotIn('psycopg', container_code.lower())
+        self.assertNotIn('pip install', container_code)
+        # Exécuter la chaîne interne avec des outils factices, sans conteneur.
+        for name in ('apk', 'setpriv', 'opencode'):
+            self.executable(self.tools / name, r'''#!/usr/bin/python3 -B
+import json
+import os
+from pathlib import Path
+import sys
+with Path(os.environ['TEST_CALLS']).open('a', encoding='utf-8') as stream:
+    stream.write(json.dumps([Path(sys.argv[0]).name] + sys.argv[1:]) + '\n')
+if Path(sys.argv[0]).name == 'setpriv':
+    command = sys.argv[sys.argv.index('--') + 1:]
+    os.execvp(command[0], command)
+''')
+        result = subprocess.run(['/bin/sh', '-c', container_code], cwd=ROOT,
+                                env=dict(self.environment, OPENCODE_UID='1001',
+                                         OPENCODE_GID='1001', DOCKER_GID='999'),
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.observed_calls(), [
+            ['apk', 'add', '--no-cache', 'bash', 'build-base', 'ca-certificates',
+             'curl', 'docker', 'docker-cli-compose', 'git', 'go', 'libffi-dev',
+             'libpq', 'nodejs', 'npm', 'openssl', 'openssl-dev', 'postgresql17-client',
+             'python3', 'py3-pip', 'py3-virtualenv', 'py3-pytest', 'ripgrep',
+             'shellcheck', 'util-linux'],
+            ['setpriv', '--reuid=1001', '--regid=1001', '--groups=999', '--',
+             'opencode', '--hostname', '0.0.0.0', '--port', '4096'],
+            ['opencode', '--hostname', '0.0.0.0', '--port', '4096'],
+        ])
 
 
 if __name__ == '__main__':
