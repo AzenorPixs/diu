@@ -313,6 +313,15 @@ archivage OpenSpec reste un mandat distinct et exige une validation explicite
 de CGPT après contrôle des critères, des tests et de la cohérence entre code,
 spécifications et documentation.
 
+#### Statistiques d'archivage
+
+Après chaque archivage OpenSpec autorisé et réussi, produire un rapport par
+archive dans `openspec/changes/archive/<archive>/STATISTIQUES.md`, avec un
+mandat d'édition distinct pour ce seul fichier lorsque le protocole CAB
+s'applique. Vérifier les six sections, UTF-8/LF et les totaux ; afficher `N/A`
+motivé pour les mesures absentes. Ne pas déclarer `TERMINÉ` sans preuve du
+rapport. Si le rapport échoue, reprendre uniquement ce rapport, sans réarchiver.
+
 ## 8. Arborescence et fichiers
 
 L'agent DOIT préserver l'arborescence et les conventions existantes.
