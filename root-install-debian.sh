@@ -4393,6 +4393,10 @@ EOF
 		API="https://api.github.com/repos/anomalyco/opencode/releases/latest"
 		INSTALLER="https://opencode.ai/install"
 
+		if [ -f "${INSTALL_DIR}/opencode" ]; then
+			chmod +x "${INSTALL_DIR}/opencode"
+		fi
+
 		# Version installée
 		if [ -x "${INSTALL_DIR}/opencode" ]; then
 			INSTALLED=$("${INSTALL_DIR}/opencode" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
