@@ -280,7 +280,7 @@ conservant le projet préparé. La capacité de référence est
 
 ### Traçabilité du document DevOps
 
-`projects_template_devops_render` produit la version documentaire `0.3`.
+`projects_template_devops_render` produit la version documentaire `0.4`.
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
 la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
@@ -297,19 +297,54 @@ et `UNSET`. Une variable absente, vide ou inconnue est rendue comme `UNSET`
 sans reproduire sa valeur. La génération réutilise la classification de DIU
 sans relancer son détecteur ni interpréter `PROJECT_DOCKERED`.
 
-La légende distingue les sondes système des sondes des outils et dépendances
-du compte DevOps. Les dépendances attendues proviennent de
-`[project].dependencies` dans `pyproject.toml` et les versions installées sont
-relevées avec le Python DevOps indiqué dans le document. L'inventaire ne vaut
-ni qualification fonctionnelle ni preuve de réussite des tests du projet.
+La légende distingue les sondes système, l'outillage du compte DevOps et les
+dépendances du projet. Ces dernières proviennent uniquement de
+`[project].dependencies` dans `pyproject.toml` et sont recherchées d'abord
+dans les venv du projet, puis avec le Python DevOps en repli explicite.
+L'inventaire ne vaut ni qualification fonctionnelle, ni validation d'un
+environnement Python unique, ni preuve de réussite des tests du projet.
 
 Les parcours individuel, groupé et final de création produisent cet en-tête
 une seule fois. Le titre, l'ordre des rubriques, les sondes, les droits et le
 propriétaire sont conservés. À observations identiques, le contenu technique
 reste identique hors horodatage. Les anciens documents prennent le format
-`0.3` lors de leur prochaine génération normale ; aucune migration ni retouche
+`0.4` lors de leur prochaine génération normale ; aucune migration ni retouche
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
+
+### Dépendances Python des environnements du projet
+
+`projects_template_devops_dependencies` recherche les dossiers ordinaires
+portant un `pyvenv.cfg` ordinaire dans le projet. La recherche ignore les
+liens de dossiers, les caches, `.git`, `node_modules`, les sorties, journaux
+et ressources d'outillage, et ne descend pas à l'intérieur d'un venv.
+La priorité est `.venv`, `venv`, `env` à la racine, puis les autres chemins
+relatifs triés, y compris les environnements sous un dossier du projet.
+
+Chaque environnement utilise `bin/python3`, sinon `bin/python`, sous le
+compte DevOps. Le chemin d'entrée du venv est conservé même s'il pointe vers
+un Python de base. La sonde utilise `-I -B -S` et les répertoires
+`site-packages` de ce préfixe explicite : aucun script d'activation, fichier
+`.pth` ou paquet applicatif n'est chargé. Chaque sonde est bornée à 3 secondes,
+dans un budget de recherche/sondes de 12 secondes sous la borne utilisateur
+existante de 15 secondes. Les processus de sonde et leurs descendants sont
+terminés en cas de dépassement.
+
+Pour chaque dépendance, le premier venv fournissant des métadonnées valides
+est retenu. À défaut, le Python DevOps est consulté comme repli explicite.
+La flèche indique l'interpréteur sondé ; les lignes `Environnement` et
+`Installation` donnent la provenance et le chemin d'installation retourné
+par les métadonnées, sans déduire un nom de module depuis la distribution.
+Plusieurs dépendances peuvent provenir d'environnements différents. Les
+versions et contraintes sont rapportées sans résolution ni installation.
+
+Le Python système existant peut lire le manifeste si le Python DevOps est
+absent ; ses paquets ne deviennent pas une source de repli. Une recherche
+incomplète, un venv brisé, une sonde en échec ou des métadonnées contradictoires
+sont signalés sans sortie brute. Une absence non prouvée est indiquée comme
+`non vérifiable`, avec les limites de l'inventaire. Les diagnostics de
+manifeste, références directes et dépendances dynamiques sont conservés.
+La référence reste `openspec/specs/projects-template-devops/spec.md`.
 
 ### Navigateurs hôte dans le document DevOps
 
