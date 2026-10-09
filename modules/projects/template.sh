@@ -318,14 +318,48 @@ except (OSError, ValueError, UnicodeError, tomllib.TOMLDecodeError):
 PY
 }
 
+projects_template_devops_timestamp() {
+    local date_binary="" timestamp="" year month day last_day=31
+    local utc_pattern='^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$'
+
+    if ! date_binary="$(projects_template_devops_host_binary date)" ||
+        ! timestamp="$(/usr/bin/timeout 15s "${date_binary}" -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" ||
+        [[ ! "${timestamp}" =~ ${utc_pattern} ]]; then
+        printf '%s\n' 'Horodatage UTC du relevé indisponible.' >&2
+        return 1
+    fi
+    year=$((10#${timestamp:0:4}))
+    month=$((10#${timestamp:5:2}))
+    day=$((10#${timestamp:8:2}))
+    if (( month == 2 )); then
+        last_day=28
+        if (( year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) )); then
+            last_day=29
+        fi
+    elif (( month == 4 || month == 6 || month == 9 || month == 11 )); then
+        last_day=30
+    fi
+    if (( year == 0 || day > last_day )); then
+        printf '%s\n' 'Horodatage UTC du relevé indisponible.' >&2
+        return 1
+    fi
+    printf '%s\n' "${timestamp}"
+}
+
 projects_template_devops_render() {
     local devops_home="$1" template_path="$2"
     local project_title="${3:-${template_path##*/}}"
     local name="" binary="" version="" context="" operating_system=""
     local psql_binary="" compose_binary="" python_binary="${devops_home}/python/current/bin/python3"
     local venv_status='indisponible'
+    local started_at="" environment_type=UNSET
     local -a version_arguments=()
 
+    started_at="$(projects_template_devops_timestamp)" || return 1
+    case "${SYSTEM_DEBIAN_ENVIRONNEMENT:-UNSET}" in
+        DOCKER|LXC|PHYSICAL|PROXMOX|VM|UNSET)
+            environment_type="${SYSTEM_DEBIAN_ENVIRONNEMENT:-UNSET}" ;;
+    esac
     if [[ -r /etc/os-release ]]; then
         operating_system="$(
             # shellcheck source=/dev/null
@@ -338,7 +372,15 @@ projects_template_devops_render() {
     if [[ "${project_title}" == template ]]; then
         project_title=Template
     fi
-    printf '# DEVOPS.md — %s\n\nVersion : 0.2\n\n\n# Système d\047exploitation\n\n  * %s\n\n\n' "${project_title}" "${operating_system}" || return 1
+    printf '# DEVOPS.md — %s\n\nVersion : 0.3\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
+        "${project_title}" "${started_at}" "${environment_type}" || return 1
+    printf '%s\n' \
+        "Les sondes système concernent le contexte d'exécution DIU." \
+        'Les outils et dépendances Python DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.' \
+        'Les dépendances attendues proviennent de [project].dependencies dans pyproject.toml.' \
+        'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.' \
+        '' || return 1
+    printf '# Système d\047exploitation\n\n  * %s\n\n\n' "${operating_system}" || return 1
 
     for name in Docker Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
         context=host
