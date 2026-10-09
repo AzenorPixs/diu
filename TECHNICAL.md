@@ -278,6 +278,39 @@ Un échec OpenSpec empêche la génération DevOps et le message de succès, en
 conservant le projet préparé. La capacité de référence est
 `openspec/specs/projects-template-openspec/spec.md`.
 
+### Traçabilité du document DevOps
+
+`projects_template_devops_render` produit la version documentaire `0.3`.
+Après le titre et la version, le document identifie DIU comme générateur,
+indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
+la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
+
+La capture utilise une seule fois le binaire `date` hôte, avant les sondes,
+avec `-u` et une borne de 15 secondes. Une commande absente, échouée, expirée
+ou une sortie mal formée bloque la préparation et conserve le document
+existant. Ce début ne certifie ni la synchronisation de l'horloge ni la
+simultanéité des observations. Le comportement du manifeste Python
+conditionnel déjà préparé reste inchangé.
+
+Les classifications admises sont `DOCKER`, `LXC`, `PHYSICAL`, `PROXMOX`, `VM`
+et `UNSET`. Une variable absente, vide ou inconnue est rendue comme `UNSET`
+sans reproduire sa valeur. La génération réutilise la classification de DIU
+sans relancer son détecteur ni interpréter `PROJECT_DOCKERED`.
+
+La légende distingue les sondes système des sondes des outils et dépendances
+du compte DevOps. Les dépendances attendues proviennent de
+`[project].dependencies` dans `pyproject.toml` et les versions installées sont
+relevées avec le Python DevOps indiqué dans le document. L'inventaire ne vaut
+ni qualification fonctionnelle ni preuve de réussite des tests du projet.
+
+Les parcours individuel, groupé et final de création produisent cet en-tête
+une seule fois. Le titre, l'ordre des rubriques, les sondes, les droits et le
+propriétaire sont conservés. À observations identiques, le contenu technique
+reste identique hors horodatage. Les anciens documents prennent le format
+`0.3` lors de leur prochaine génération normale ; aucune migration ni retouche
+manuelle n'est nécessaire. La référence est
+`openspec/specs/projects-template-devops/spec.md`.
+
 ### Navigateurs hôte dans le document DevOps
 
 La génération DevOps termine `DEVOPS.md` par « Tests navigateurs extérieurs
