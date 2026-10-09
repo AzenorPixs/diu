@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Génération du modèle DevOps avec binaires et serveur isolés."""
 import getpass
+import json
 import os
 from pathlib import Path
 import re
 import shutil
+import string
 import subprocess
 import sys
 import tempfile
@@ -30,13 +32,27 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
         self.metadata.mkdir()
         self.document = self.template / 'DEVOPS.md'
         self.query_log = self.fixture / 'queries.txt'
+        self.clock_log = self.fixture / 'clock.txt'
+        self.probe_order_log = self.fixture / 'probe-order.txt'
         self.environment = dict(os.environ, TEST_DEVOPS_HOME=str(self.home),
                                 TEST_HOST_BIN=str(self.host_bin),
                                 TEST_METADATA=str(self.metadata),
                                 TEST_QUERY_LOG=str(self.query_log),
+                                TEST_CLOCK_LOG=str(self.clock_log),
+                                TEST_PROBE_ORDER_LOG=str(self.probe_order_log),
+                                TEST_CLOCK_OUTPUT='2026-10-09T06:30:00Z',
                                 TEST_VENV_STATUS='0', TEST_PG_FAILURE='0')
         self.environment.pop('DEVOPS_PROJECTS_ROOT', None)
-        self.executable(self.host_bin / 'docker', "printf 'Docker version 29.1.2, build fixture\\n'")
+        self.environment.pop('SYSTEM_DEBIAN_ENVIRONNEMENT', None)
+        self.executable(self.host_bin / 'date', r'''
+[ "$#" -eq 2 ] && [ "$1" = -u ] && [ "$2" = +%Y-%m-%dT%H:%M:%SZ ] || exit 9
+printf '%s\n' "$*" >> "$TEST_CLOCK_LOG"
+printf 'clock\n' >> "$TEST_PROBE_ORDER_LOG"
+printf '%s\n' "$TEST_CLOCK_OUTPUT"
+''')
+        self.executable(self.host_bin / 'docker',
+                        'printf "docker\\n" >> "$TEST_PROBE_ORDER_LOG"\n'
+                        "printf 'Docker version 29.1.2, build fixture\\n'")
         self.executable(self.host_bin / 'docker-compose', "printf 'Docker Compose version v5.2.3\\n'")
         self.executable(self.host_bin / 'git', "printf 'git version 2.47.9\\n'")
         self.executable(self.host_bin / 'openssl', "printf 'OpenSSL 3.5.3 1 Jan 2026\\n'")
@@ -68,8 +84,12 @@ elif [ "$3" = -c ]; then
     exit "$TEST_VENV_STATUS"
 elif [ "$3" = "$TEST_DEVOPS_HOME/python/current/bin/pip3" ]; then
     exec /usr/bin/python3 -I -B "$3" "$4"
+elif [ "$3" = -S ]; then
+    shift 4
+    exec /usr/bin/python3 -I -B -S - "$@"
 else
-    exec /usr/bin/python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); exec(sys.stdin.read())' "$TEST_METADATA" "$4" "$5"
+    shift 3
+    exec /usr/bin/python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); exec(sys.stdin.read())' "$TEST_METADATA" "$@"
 fi
 ''')
         self.executable(self.home / 'python/current/bin/pip3', "print('pip 25.3.7 from fixture (python 3.13)')")
@@ -101,7 +121,7 @@ printf '16.4\n'
         path.chmod(0o755)
 
     def run_generation(self, extra='', user=None, project='template', projects_root=None,
-                       arguments=None, batch=False):
+                       arguments=None, batch=False, source_replacements=()):
         # Remplacer uniquement le domicile fixé par le contrat public, dans le
         # code exécuté en mémoire : aucun accès à un véritable modèle utilisateur.
         source = MODULE.read_text(encoding='utf-8')
@@ -109,6 +129,9 @@ printf '16.4\n'
         self.assertEqual(source.count(home_assignment), 4,
                          'Le test doit isoler les quatre domiciles, sans toucher aux projets réels')
         source = source.replace(home_assignment, 'local devops_home="$TEST_DEVOPS_HOME"')
+        for before, after in source_replacements:
+            self.assertEqual(source.count(before), 1)
+            source = source.replace(before, after)
         script = source + r'''
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
@@ -154,7 +177,7 @@ ENV_DEVOPS_USER="$1"
                           '  * Mode headless : --headless\n', content)
         self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
-        self.assertIn('Version : 0.2', content)
+        self.assertIn('Version : 0.5', content)
         for title, version, path in (
             ('Docker', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
@@ -181,6 +204,111 @@ ENV_DEVOPS_USER="$1"
         self.assertNotIn('test-only-private-value', content)
         self.assertNotIn('test-only-user', content)
         self.assertNotIn('test-only-database', content)
+
+    def test_report_provenance_utc_and_capture_before_probes(self):
+        self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.5\n', content)
+        expected = (
+            'Généré automatiquement par Debian Installeur Unifié (DIU).',
+            'Début du relevé (UTC) : 2026-10-09T06:30:00Z',
+            "Environnement d'exécution DIU : DOCKER",
+            "Les sondes système concernent le contexte d'exécution DIU.",
+            'Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.',
+            'Les dépendances Python sont recherchées en priorité dans les venv du projet, puis dans le Python DevOps en repli explicite.',
+            'Dans l’inventaire Python, la flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées.',
+            'Les dépendances Python attendues proviennent de [project].dependencies dans pyproject.toml.',
+            'Un inventaire multi-environnements ne valide pas un environnement Python unique.',
+            'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.',
+        )
+        for line in expected:
+            self.assertEqual(content.count(line), 1)
+            self.assertLess(content.index(line), content.index("# Système d'exploitation"))
+        self.assertEqual(self.clock_log.read_text().splitlines(), ['-u +%Y-%m-%dT%H:%M:%SZ'])
+        self.assertEqual(self.probe_order_log.read_text().splitlines(), ['clock', 'docker'])
+
+    def test_timestamp_refresh_changes_only_report_start_at_identical_observations(self):
+        first = self.successful_document(self.run_generation())
+        self.environment['TEST_CLOCK_OUTPUT'] = '2026-10-09T06:31:00Z'
+        second = self.successful_document(self.run_generation())
+        self.assertNotEqual(first, second)
+        self.assertEqual(first.replace('2026-10-09T06:30:00Z', '<report-start>'),
+                         second.replace('2026-10-09T06:31:00Z', '<report-start>'))
+        self.assertEqual(len(self.clock_log.read_text().splitlines()), 2)
+
+    def test_report_context_whitelist_and_unknown_values_are_not_echoed_or_executed(self):
+        marker = self.fixture / 'context-executed'
+        for value in ('DOCKER', 'LXC', 'PHYSICAL', 'PROXMOX', 'VM', 'UNSET',
+                      None, '', 'No', f'$(touch "{marker}")', 'context-marker\n# injected'):
+            with self.subTest(value=value):
+                if value is None:
+                    self.environment.pop('SYSTEM_DEBIAN_ENVIRONNEMENT', None)
+                else:
+                    self.environment['SYSTEM_DEBIAN_ENVIRONNEMENT'] = value
+                result = self.run_generation()
+                content = self.successful_document(result)
+                expected = value if value in ('DOCKER', 'LXC', 'PHYSICAL', 'PROXMOX', 'VM', 'UNSET') else 'UNSET'
+                self.assertIn(f"Environnement d'exécution DIU : {expected}\n", content)
+                self.assertNotIn('context-marker', content + result.stdout + result.stderr)
+                self.assertNotIn(str(marker), content + result.stdout + result.stderr)
+                self.assertFalse(marker.exists())
+
+    def test_timestamp_absent_failed_or_malformed_preserves_document_without_probes(self):
+        date_binary = self.host_bin / 'date'
+        cases = (
+            ('absent', None), ('failed', None), ('malformed', 'clock-error-marker'),
+            ('malformed', ''), ('malformed', '2026-13-09T06:30:00Z'),
+            ('malformed', '2026-02-29T06:30:00Z'), ('malformed', '2026-04-31T06:30:00Z'),
+            ('malformed', '2026-10-09T24:00:00Z'), ('malformed', '2026-10-09T06:30:60Z'),
+            ('malformed', '2026-10-09T06:30:00+02:00'), ('malformed', '0000-10-09T06:30:00Z'),
+        )
+        for kind, value in cases:
+            with self.subTest(kind=kind, value=value):
+                self.document.write_bytes(b'existing report\n')
+                self.document.chmod(0o640)
+                before = self.document.stat()
+                if date_binary.exists():
+                    date_binary.unlink()
+                if kind == 'failed':
+                    self.executable(date_binary, "printf 'clock-error-marker\\n' >&2\nexit 7")
+                elif kind == 'malformed':
+                    self.environment['TEST_CLOCK_OUTPUT'] = value
+                    self.executable(date_binary, 'printf "%s\\n" "$TEST_CLOCK_OUTPUT"')
+                result = self.run_generation()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Horodatage UTC du relevé indisponible.', result.stderr)
+                self.assertNotIn('clock-error-marker', result.stdout + result.stderr)
+                self.assertEqual(self.document.read_bytes(), b'existing report\n')
+                after = self.document.stat()
+                self.assertEqual((before.st_mode, before.st_uid, before.st_gid),
+                                 (after.st_mode, after.st_uid, after.st_gid))
+                self.assertFalse(self.query_log.exists())
+                self.assertFalse(self.probe_order_log.exists())
+                self.assertEqual(list(self.template.glob('.DEVOPS.md.*')), [])
+
+    def test_timestamp_valid_leap_day_is_accepted(self):
+        self.environment['TEST_CLOCK_OUTPUT'] = '2024-02-29T23:59:59Z'
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Début du relevé (UTC) : 2024-02-29T23:59:59Z\n', content)
+
+    def test_timestamp_timeout_preserves_document_without_probes(self):
+        self.document.write_bytes(b'existing report\n')
+        self.document.chmod(0o640)
+        before = self.document.stat()
+        self.executable(self.host_bin / 'date', '/usr/bin/sleep 30')
+        started = time.monotonic()
+        result = self.run_generation()
+        elapsed = time.monotonic() - started
+        self.assertNotEqual(result.returncode, 0)
+        self.assertLess(elapsed, 20)
+        self.assertIn('Horodatage UTC du relevé indisponible.', result.stderr)
+        self.assertEqual(self.document.read_bytes(), b'existing report\n')
+        after = self.document.stat()
+        self.assertEqual((before.st_mode, before.st_uid, before.st_gid),
+                         (after.st_mode, after.st_uid, after.st_gid))
+        self.assertFalse(self.query_log.exists())
+        self.assertFalse(self.probe_order_log.exists())
+        self.assertEqual(list(self.template.glob('.DEVOPS.md.*')), [])
 
     def test_update_refreshes_versions_preserves_mode_and_is_idempotent(self):
         self.document.write_text('Version : 0.2\nancienne version 99.0.0\n', encoding='utf-8')
@@ -248,6 +376,7 @@ ENV_DEVOPS_USER="$1"
         self.executable(host_bin / 'firefox',
                         '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
                         "printf 'Mozilla Firefox 140.0.4esr\\n'")
+        shutil.copy2(self.host_bin / 'date', host_bin / 'date')
         content = self.successful_document(self.run_generation())
         self.assertIn(f'## Chromium\n\n  * 134.0.6998.88\n  * {host_bin / "chromium"}', content)
         self.assertIn(f'## Firefox\n\n  * 140.0.4esr\n  * {host_bin / "firefox"}', content)
@@ -318,6 +447,665 @@ ENV_DEVOPS_USER="$1"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotEqual(result.stdout.strip(), str(self.host_bin / 'git'))
         self.assertTrue(result.stdout.strip().startswith(('/usr/bin/', '/usr/local/bin/', '/bin/')))
+
+    @staticmethod
+    def add_distribution(directory, name, version, folder=None):
+        directory.mkdir(parents=True, exist_ok=True)
+        normalized = re.sub(r"[-_.]+", "_", name)
+        distribution = directory / (folder or f"{normalized}-{version}.dist-info")
+        distribution.mkdir()
+        (distribution / "METADATA").write_text(
+            f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n", encoding="utf-8")
+        return distribution
+
+    def project_venv(self, relative, packages):
+        environment = self.template / relative
+        result = subprocess.run(
+            [sys.executable, "-I", "-B", "-m", "venv", "--without-pip", str(environment)],
+            text=True, capture_output=True, timeout=15, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        interpreter = environment / "bin/python3"
+        paths = subprocess.run(
+            [str(interpreter), "-I", "-B", "-S", "-c",
+             "import json,site,sys; print(json.dumps(site.getsitepackages([sys.argv[1]])))",
+             str(environment)], text=True, capture_output=True, timeout=5, check=False)
+        self.assertEqual(paths.returncode, 0, paths.stderr)
+        site_packages = next(Path(p) for p in json.loads(paths.stdout) if Path(p).is_dir())
+        for name, version in packages.items():
+            self.add_distribution(site_packages, name, version)
+        return environment, interpreter, site_packages
+
+    def dependency_manifest(self, dependencies):
+        (self.template / "pyproject.toml").write_text(
+            "[project]\ndependencies = " + json.dumps(dependencies) + "\n", encoding="utf-8")
+
+    def test_project_venv_matches_pixs_dependencies_and_effective_paths(self):
+        packages = {"Django": "6.1.1", "psycopg": "3.3.6",
+                    "asgiref": "3.12.1", "sqlparse": "0.6.0"}
+        self.dependency_manifest(["Django==6.1.1", "psycopg[binary]==3.3.6",
+                                  "asgiref==3.12.1", "sqlparse==0.6.0"])
+        environment, interpreter, site_packages = self.project_venv(".venv", packages)
+        for name in packages:
+            self.add_distribution(self.metadata, name, "0.1")
+        content = self.successful_document(self.run_generation())
+        self.assertTrue(interpreter.is_symlink())
+        for name, version in packages.items():
+            constraint = "[binary]==3.3.6" if name == "psycopg" else f"=={version}"
+            self.assertIn(f"{name} {constraint} : {version} --> {interpreter}", content)
+        self.assertEqual(content.count(f"    * Environnement : {environment}\n"), 4)
+        self.assertEqual(content.count(f"    * Installation : {site_packages.resolve()}\n"), 4)
+        self.assertNotIn("Python DevOps (repli)", content)
+        self.assertNotIn("non installé", content)
+
+    def test_project_venv_priority_is_deterministic_and_nested_supported(self):
+        self.dependency_manifest(["priority-fixture>=1"])
+        paths = ("z-other", "backend/runtime", ".venv-backend-foundation",
+                 "env", "venv", ".venv")
+        fixtures = {name: self.project_venv(name, {"priority-fixture": str(index + 1) + ".0"})
+                    for index, name in enumerate(paths)}
+        for name in (".venv", "venv", "env", ".venv-backend-foundation",
+                     "backend/runtime", "z-other"):
+            with self.subTest(environment=name):
+                environment, interpreter, site_packages = fixtures[name]
+                content = self.successful_document(self.run_generation())
+                self.assertIn(f"--> {interpreter}\n", content)
+                self.assertIn(f"    * Environnement : {environment}\n", content)
+                for distribution in site_packages.glob("*.dist-info"):
+                    shutil.rmtree(distribution)
+
+    def test_dependency_provenance_can_mix_venvs_and_explicit_global_fallback(self):
+        self.dependency_manifest(["local-alpha", "local-beta", "global-gamma"])
+        first, python_first, site_first = self.project_venv(".venv", {"local-alpha": "1.1"})
+        second, python_second, site_second = self.project_venv("venv", {"local-beta": "2.2"})
+        self.add_distribution(self.metadata, "global-gamma", "3.3")
+        content = self.successful_document(self.run_generation())
+        for name, version, interpreter, environment, location in (
+                ("local-alpha", "1.1", python_first, first, site_first),
+                ("local-beta", "2.2", python_second, second, site_second),
+                ("global-gamma", "3.3", self.home / "python/current/bin/python3",
+                 "Python DevOps (repli)", self.metadata)):
+            self.assertIn(f"  * {name} : {version} --> {interpreter}\n"
+                          f"    * Environnement : {environment}\n"
+                          f"    * Installation : {location.resolve() if isinstance(location, Path) else location}\n",
+                          content)
+        self.assertIn("Un inventaire multi-environnements ne valide pas un environnement Python unique.", content)
+
+    def test_project_venv_works_without_devops_python_or_system_package_fallback(self):
+        self.dependency_manifest(["local-fixture", "unavailable-fallback"])
+        environment, interpreter, site_packages = self.project_venv(".venv", {"local-fixture": "1.2"})
+        self.add_distribution(self.metadata, "unavailable-fallback", "9.9")
+        (self.home / "python/current/bin/python3").unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f"local-fixture : 1.2 --> {interpreter}", content)
+        self.assertIn(f"    * Environnement : {environment}\n", content)
+        self.assertIn(f"    * Installation : {site_packages.resolve()}\n", content)
+        self.assertIn("unavailable-fallback : non vérifiable (Python DevOps absent)", content)
+        self.assertNotIn("unavailable-fallback : 9.9", content)
+
+    def test_project_venv_probe_does_not_import_packages_or_pth(self):
+        self.dependency_manifest(["side-effect-fixture"])
+        _environment, interpreter, site_packages = self.project_venv(
+            ".venv", {"side-effect-fixture": "1.0"})
+        pth_marker = self.fixture / "pth-executed"
+        import_marker = self.fixture / "package-imported"
+        (site_packages / "side_effect_fixture.py").write_text(
+            f"from pathlib import Path\nPath({str(import_marker)!r}).touch()\n", encoding="utf-8")
+        (site_packages / "side_effect_fixture.pth").write_text(
+            f"import pathlib; pathlib.Path({str(pth_marker)!r}).touch()\n", encoding="utf-8")
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f"side-effect-fixture : 1.0 --> {interpreter}", content)
+        self.assertFalse(pth_marker.exists())
+        self.assertFalse(import_marker.exists())
+
+    def test_project_venv_caches_and_directory_links_are_not_followed(self):
+        self.dependency_manifest(["ignored-fixture"])
+        marker = self.fixture / "ignored-interpreter-executed"
+        for relative in ("node_modules/hidden", ".cache/hidden", "output/hidden", ".git/hidden"):
+            path = self.template / relative
+            (path / "bin").mkdir(parents=True)
+            (path / "pyvenv.cfg").write_text("home = ignored\n")
+            self.executable(path / "bin/python3", f"touch '{marker}'\nexit 9")
+        external = self.fixture / "external-environment"
+        (external / "bin").mkdir(parents=True)
+        (external / "pyvenv.cfg").write_text("home = ignored\n")
+        self.executable(external / "bin/python3", f"touch '{marker}'\nexit 9")
+        (self.template / ".venv").symlink_to(external, target_is_directory=True)
+        content = self.successful_document(self.run_generation())
+        self.assertIn("ignored-fixture : non installé", content)
+        self.assertFalse(marker.exists())
+
+    def test_project_venv_ambiguous_metadata_does_not_become_absence(self):
+        self.dependency_manifest(["duplicate-fixture"])
+        _environment, _interpreter, site_packages = self.project_venv(
+            ".venv", {"duplicate-fixture": "1.0"})
+        self.add_distribution(site_packages, "duplicate-fixture", "2.0")
+        content = self.successful_document(self.run_generation())
+        self.assertIn("duplicate-fixture : non vérifiable", content)
+        self.assertNotIn("duplicate-fixture : non installé", content)
+        self.assertIn("inventaire partiel", content)
+
+    def test_project_venv_failed_or_malformed_probe_preserves_unknown_absence(self):
+        self.dependency_manifest(["missing-fixture", "global-fixture"])
+        self.add_distribution(self.metadata, "global-fixture", "3.0")
+        environment = self.template / ".venv"
+        (environment / "bin").mkdir(parents=True)
+        (environment / "pyvenv.cfg").write_text("home = fixture\n")
+        for body in (None, "printf 'private-probe-marker\\n' >&2\nexit 7",
+                     "printf 'malformed-probe-marker\\n'"):
+            with self.subTest(body=body):
+                if body is not None:
+                    self.executable(environment / "bin/python3", body)
+                result = self.run_generation()
+                content = self.successful_document(result)
+                self.assertIn("missing-fixture : non vérifiable", content)
+                self.assertNotIn("missing-fixture : non installé", content)
+                self.assertIn(f"global-fixture : 3.0 --> {self.home}/python/current/bin/python3", content)
+                self.assertNotIn("private-probe-marker", content + result.stdout + result.stderr)
+                self.assertNotIn("malformed-probe-marker", content + result.stdout + result.stderr)
+
+    def test_project_venv_search_budget_exhaustion_is_not_absence(self):
+        self.dependency_manifest(["budget-fixture"])
+        interpreter = self.home / "python/current/bin/python3"
+        source = interpreter.read_text(encoding="utf-8")
+        old = "import sys; sys.path.insert(0, sys.argv.pop(1)); exec(sys.stdin.read())"
+        new = ("import sys,time; sys.path.insert(0, sys.argv.pop(1)); "
+               "moments=iter((0.0,13.0)); time.monotonic=lambda:next(moments); exec(sys.stdin.read())")
+        self.assertEqual(source.count(old), 1)
+        interpreter.write_text(source.replace(old, new, 1), encoding="utf-8")
+        content = self.successful_document(self.run_generation())
+        self.assertIn("budget-fixture : non vérifiable", content)
+        self.assertNotIn("budget-fixture : non installé", content)
+        self.assertIn("inventaire partiel", content)
+
+    def test_project_venv_probe_timeout_terminates_descendants(self):
+        self.dependency_manifest(["timed-out-fixture"])
+        environment = self.template / ".venv"
+        (environment / "bin").mkdir(parents=True)
+        (environment / "pyvenv.cfg").write_text("home = fixture\n")
+        pid_file = self.fixture / "child.pid"
+        self.executable(environment / "bin/python3",
+                        f"/usr/bin/sleep 10 &\nprintf '%s\\n' \"$!\" > '{pid_file}'\nwait")
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation())
+        self.assertLess(time.monotonic() - started, 8)
+        self.assertIn("timed-out-fixture : non vérifiable", content)
+        pid = int(pid_file.read_text())
+        status = Path(f"/proc/{pid}/stat")
+        self.assertTrue(not status.exists() or status.read_text().split()[2] == "Z")
+
+    def test_project_venv_python_alias_and_spaces_preserve_context(self):
+        self.dependency_manifest(["space-fixture"])
+        environment, interpreter, site_packages = self.project_venv(
+            "backend/venv with spaces", {"space-fixture": "1.0"})
+        base_interpreter = interpreter.resolve()
+        interpreter.unlink()
+        (environment / "bin/python").unlink()
+        (environment / "bin/python").symlink_to(base_interpreter)
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f"space-fixture : 1.0 --> {environment}/bin/python\n", content)
+        self.assertIn(f"    * Installation : {site_packages.resolve()}\n", content)
+
+    def test_project_venv_empty_metadata_proves_absence_in_inspected_environments(self):
+        self.dependency_manifest(["absent-fixture"])
+        self.project_venv(".venv", {})
+        content = self.successful_document(self.run_generation())
+        self.assertIn("absent-fixture : non installé", content)
+        self.assertIn("Python DevOps (repli)", content)
+        self.assertIn("Installation : non observée", content)
+        self.assertNotIn("inventaire partiel", content)
+
+    def test_project_venv_missing_site_packages_is_not_verified_absence(self):
+        self.dependency_manifest(["broken-site-fixture"])
+        _environment, _interpreter, site_packages = self.project_venv(".venv", {})
+        shutil.rmtree(site_packages)
+        content = self.successful_document(self.run_generation())
+        self.assertIn("broken-site-fixture : non vérifiable", content)
+        self.assertNotIn("broken-site-fixture : non installé", content)
+
+    def test_project_venv_unreadable_subtree_does_not_prove_absence(self):
+        if os.geteuid() == 0:
+            self.skipTest("La vérification des droits nécessite un utilisateur non root")
+        self.dependency_manifest(["unreadable-fixture"])
+        denied = self.template / "denied"
+        denied.mkdir()
+        denied.chmod(0)
+        try:
+            content = self.successful_document(self.run_generation())
+        finally:
+            denied.chmod(0o700)
+        self.assertIn("unreadable-fixture : non vérifiable", content)
+        self.assertNotIn("unreadable-fixture : non installé", content)
+
+    def javascript_manifest(self, relative, **data):
+        path = self.template / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return path
+
+    def javascript_document(self, result):
+        # Comparer les valeurs littérales après décodage des échappements CommonMark.
+        content = self.successful_document(result)
+        return re.sub(r"\\([" + re.escape(string.punctuation) + r"])", r"\1", content)
+
+    def javascript_package(self, folder, name, version, actual_name=None):
+        directory = self.template / folder / "node_modules" / name
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "package.json").write_text(
+            json.dumps({"name": actual_name or name, "version": version,
+                        "main": "index.js"}), encoding="utf-8")
+        return directory
+
+    def javascript_lock(self, folder, declarations, versions, filename="package-lock.json",
+                        lock_version=3, extra_packages=None):
+        packages = {"": declarations}
+        packages.update({"node_modules/" + name: {"version": version}
+                         for name, version in versions.items()})
+        packages.update(extra_packages or {})
+        path = self.template / folder / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"lockfileVersion": lock_version, "packages": packages}),
+                        encoding="utf-8")
+        return path
+
+    def test_javascript_pixs_frontend_and_opencode_are_separate_with_effective_paths(self):
+        frontend = {"dependencies": {"@tanstack/react-router": "1.170.41",
+                                     "react": "19.3.0", "react-dom": "19.3.0"},
+                    "devDependencies": {"vite": "8.3.1"}}
+        tooling = {"dependencies": {"@opencode-ai/plugin": "1.18.34"}}
+        manifests = []
+        for folder, data in (("frontend", frontend), (".opencode", tooling)):
+            manifests.append(self.javascript_manifest(folder + "/package.json", **data))
+            versions = {name: version for group in data.values() for name, version in group.items()}
+            manifests.append(self.javascript_lock(folder, data, versions))
+            for name, version in versions.items():
+                package = self.javascript_package(folder, name, version)
+                manifests.append(package / "package.json")
+        before = {p: p.read_bytes() for p in manifests}
+        content = self.javascript_document(self.run_generation())
+        self.assertFalse((self.template / "package.json").exists())
+        self.assertEqual(content.count("## Dépendances JavaScript du projet\n"), 1)
+        self.assertEqual(content.count("## Dépendances OpenCode du projet\n"), 1)
+        self.assertLess(content.index("# NPM\n"), content.index("### frontend/package.json\n"))
+        self.assertLess(content.index("### frontend/package.json\n"), content.index("# OpenCode\n"))
+        self.assertLess(content.index("# OpenCode\n"), content.index("### .opencode/package.json\n"))
+        self.assertLess(content.index("### .opencode/package.json\n"), content.index("# OpenSpec\n"))
+        for name, version in {**frontend["dependencies"], **frontend["devDependencies"],
+                              **tooling["dependencies"]}.items():
+            self.assertIn(f"{name} : déclarée {version} ; verrouillée (npm) {version} ; observée {version}", content)
+        self.assertIn("#### dependencies\n", content)
+        self.assertIn("#### devDependencies\n", content)
+        self.assertIn(f"Installation : {self.template / 'frontend/node_modules/react'}\n", content)
+        self.assertEqual(before, {p: p.read_bytes() for p in manifests})
+        self.assertNotIn("Gestionnaire déclaré", content)
+
+    def test_javascript_categories_and_declared_engines_are_preserved(self):
+        self.javascript_manifest("package.json", dependencies={"shared": "^1.0.0"},
+                                 devDependencies={"shared": "~1.1.0"},
+                                 peerDependencies={"peer": ">=2"},
+                                 optionalDependencies={"optional": "3.0.0"},
+                                 engines={"node": ">=24", "npm": "^11"},
+                                 packageManager="pnpm@10.0.0")
+        content = self.javascript_document(self.run_generation())
+        for group in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+            self.assertIn("#### " + group + "\n", content)
+        self.assertIn("shared : déclarée ^1.0.0", content)
+        self.assertIn("shared : déclarée ~1.1.0", content)
+        self.assertIn("Gestionnaire déclaré : pnpm@10.0.0", content)
+        self.assertIn("engines.node : &gt;=24", content)
+        self.assertIn("observée non observée localement", content)
+        self.assertNotIn("incompatible", content)
+
+    def test_javascript_empty_root_workspace_and_unrelated_manifest_selection(self):
+        self.javascript_manifest("package.json", workspaces=["packages/*", "nested/**/member"])
+        self.javascript_manifest("packages/empty/package.json", name="empty", version="1.0.0")
+        self.javascript_manifest("nested/a/b/member/package.json", name="member", version="1.0.0")
+        self.javascript_manifest("unrelated/package.json", name="unused")
+        content = self.javascript_document(self.run_generation())
+        for path in ("package.json", "packages/empty/package.json", "nested/a/b/member/package.json"):
+            self.assertIn("### " + path + "\n", content)
+        self.assertNotIn("### unrelated/package.json", content)
+        self.assertIn("Manifestes sans dépendance non retenus : 1", content)
+        self.assertIn("Aucune dépendance directement déclarée", content)
+
+    def test_javascript_shared_workspace_lock_and_root_installation(self):
+        self.javascript_manifest("package.json", workspaces=["packages/*"])
+        declarations = {"dependencies": {"shared": "^2.0.0"}}
+        self.javascript_manifest("packages/ui/package.json", **declarations)
+        lock = self.javascript_lock(".", {}, {"shared": "2.1.0"},
+                                    extra_packages={"packages/ui": declarations})
+        package = self.javascript_package(".", "shared", "2.1.0")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("shared : déclarée ^2.0.0 ; verrouillée (npm) 2.1.0 ; observée 2.1.0", content)
+        self.assertIn(f"Verrou npm retenu : {lock}\n", content)
+        self.assertIn(f"Installation : {package.resolve()}\n", content)
+        self.assertNotIn("déclarations différentes ou absentes", content)
+
+    def test_javascript_local_lock_and_nearest_installation_take_priority(self):
+        self.javascript_manifest("package.json", workspaces=["packages/*"])
+        data = {"dependencies": {"shared": "*"}}
+        self.javascript_manifest("packages/ui/package.json", **data)
+        self.javascript_lock(".", {}, {"shared": "9.0.0"},
+                             extra_packages={"packages/ui": data})
+        local = self.javascript_lock("packages/ui", data, {"shared": "2.0.0"})
+        self.javascript_package(".", "shared", "9.0.0")
+        package = self.javascript_package("packages/ui", "shared", "2.0.0")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("shared : déclarée * ; verrouillée (npm) 2.0.0 ; observée 2.0.0", content)
+        self.assertIn(f"Verrou npm retenu : {local}\n", content)
+        self.assertIn(f"Installation : {package}\n", content)
+        self.assertNotIn("observée 9.0.0", content)
+
+    def test_javascript_invalid_nearest_metadata_does_not_use_parent(self):
+        self.javascript_manifest("frontend/package.json", dependencies={"shared": "*"})
+        self.javascript_package(".", "shared", "9.0.0")
+        nearest = self.javascript_package("frontend", "shared", "1.0.0")
+        (nearest / "package.json").write_text("{invalid", encoding="utf-8")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("observée non vérifiable", content)
+        self.assertNotIn("observée 9.0.0", content)
+        (nearest / "package.json").write_text(json.dumps({"name": "other", "version": "1.0.0"}),
+                                             encoding="utf-8")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("métadonnées incohérentes", content)
+
+    def test_javascript_workspace_and_pnpm_links_keep_real_installation_paths(self):
+        data = {"dependencies": {"local": "workspace:*", "nested": "1.0.0"}}
+        self.javascript_manifest("package.json", workspaces=["packages/*"], **data)
+        target = self.javascript_manifest("packages/local/package.json", name="local", version="3.0.0")
+        self.javascript_lock(".", data, {}, extra_packages={
+            "node_modules/local": {"link": True, "resolved": "packages/local"},
+            "packages/local": {"name": "local", "version": "3.0.0"},
+            "node_modules/nested": {"version": "1.0.0"},
+        })
+        modules = self.template / "node_modules"
+        modules.mkdir()
+        (modules / "local").symlink_to(target.parent, target_is_directory=True)
+        pnpm = modules / ".pnpm/nested@1.0.0/node_modules/nested"
+        pnpm.mkdir(parents=True)
+        (pnpm / "package.json").write_text(json.dumps({"name": "nested", "version": "1.0.0"}),
+                                           encoding="utf-8")
+        (modules / "nested").symlink_to(pnpm, target_is_directory=True)
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("local : déclarée workspace:* ; verrouillée (npm) 3.0.0 ; observée 3.0.0", content)
+        self.assertIn(f"Installation : {target.parent.resolve()}\n", content)
+        self.assertIn(f"Installation : {pnpm.resolve()}\n", content)
+        self.assertNotIn("### node\\_modules", content)
+
+    def test_javascript_external_and_protected_installation_links_are_not_read(self):
+        self.javascript_manifest("frontend/package.json", dependencies={"outside": "*", "protected": "*"})
+        outside = self.fixture / "outside-package"
+        outside.mkdir()
+        (outside / "package.json").write_text(json.dumps({"name": "outside", "version": "9.9.9"}),
+                                               encoding="utf-8")
+        protected = self.template / ".opencode/config/protected"
+        protected.mkdir(parents=True)
+        (protected / "package.json").write_text(json.dumps({"name": "protected", "version": "8.8.8"}),
+                                                 encoding="utf-8")
+        modules = self.template / "frontend/node_modules"
+        modules.mkdir()
+        (modules / "outside").symlink_to(outside, target_is_directory=True)
+        (modules / "protected").symlink_to(protected, target_is_directory=True)
+        content = self.javascript_document(self.run_generation())
+        self.assertEqual(content.count("observée non vérifiable (cible hors périmètre)"), 2)
+        self.assertNotIn("9.9.9", content)
+        self.assertNotIn("8.8.8", content)
+
+    def test_javascript_symbolic_manifests_metadata_and_locks_are_nonverifiable(self):
+        target = self.fixture / "metadata.json"
+        target.write_text(json.dumps({"name": "fixture", "version": "9.9.9",
+                                     "dependencies": {"should-not-appear": "1.0.0"}}), encoding="utf-8")
+        (self.template / "package.json").symlink_to(target)
+        self.javascript_manifest("frontend/package.json", dependencies={"fixture": "*"})
+        package = self.javascript_package("frontend", "fixture", "1.0.0")
+        (package / "package.json").unlink()
+        (package / "package.json").symlink_to(target)
+        (self.template / "frontend/package-lock.json").symlink_to(target)
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("manifeste non vérifiable", content)
+        self.assertIn("verrou non vérifiable", content)
+        self.assertIn("observée non vérifiable", content)
+        self.assertNotIn("should-not-appear", content)
+        self.assertNotIn("9.9.9", content)
+
+    def test_javascript_npm_lock_formats_and_shrinkwrap_precedence(self):
+        data = {"dependencies": {"fixture": "*"}}
+        self.javascript_manifest("frontend/package.json", **data)
+        for version in (2, 3):
+            with self.subTest(version=version):
+                self.javascript_lock("frontend", data, {"fixture": "1.0.0"}, lock_version=version)
+                content = self.javascript_document(self.run_generation())
+                self.assertIn("verrouillée (npm) 1.0.0 ; observée non observée localement", content)
+        shrinkwrap = self.javascript_lock("frontend", data, {"fixture": "2.0.0"},
+                                          filename="npm-shrinkwrap.json")
+        (self.template / "frontend/pnpm-lock.yaml").write_text("unsupported-test-only\n", encoding="utf-8")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn(f"Verrou npm retenu : {shrinkwrap}\n", content)
+        self.assertIn("verrouillée (npm) 2.0.0", content)
+        self.assertNotIn("verrouillée (npm) 1.0.0", content)
+        self.assertIn("Autres verrous non analysés", content)
+
+    def test_javascript_unsupported_or_invalid_locks_do_not_become_installations(self):
+        data = {"dependencies": {"fixture": "1.0.0"}}
+        self.javascript_manifest("frontend/package.json", **data)
+        self.javascript_package("frontend", "fixture", "1.0.0")
+        for filename, contents in (
+                ("package-lock.json", '{"lockfileVersion":1,"dependencies":{"fixture":{"version":"9.9.9"}}}'),
+                ("package-lock.json", "{broken-private-canary"),
+                ("yarn.lock", "private-canary 9.9.9"),
+                ("pnpm-lock.yaml", "private-canary: 9.9.9"),
+                ("bun.lock", '{"private-canary":"9.9.9"}'),
+                ("bun.lockb", "private-canary")):
+            with self.subTest(filename=filename, contents=contents[:12]):
+                path = self.template / "frontend" / filename
+                path.write_text(contents, encoding="utf-8")
+                content = self.javascript_document(self.run_generation())
+                self.assertIn("verrouillée (npm) non vérifiable", content)
+                self.assertIn("observée 1.0.0", content)
+                self.assertNotIn("9.9.9", content)
+                self.assertNotIn("private-canary", content)
+                path.unlink()
+
+    def test_javascript_lock_desynchronization_missing_entry_and_observed_difference(self):
+        data = {"dependencies": {"fixture": "1.0.0", "missing": "1.0.0"}}
+        self.javascript_manifest("frontend/package.json", **data)
+        self.javascript_lock("frontend", {"dependencies": {"fixture": "0.1.0"}}, {"fixture": "1.0.0"})
+        self.javascript_package("frontend", "fixture", "2.0.0")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("déclarations différentes ou absentes dans le verrou", content)
+        self.assertIn("Écart entre version verrouillée et version observée", content)
+        self.assertIn("missing : déclarée 1.0.0 ; verrouillée (npm) non renseignée dans le verrou", content)
+        self.assertNotIn("compatible", content)
+
+    def test_javascript_aliases_validate_the_real_package_identity(self):
+        self.javascript_manifest("package.json", dependencies={"alias": "npm:@scope/real@^2.0.0",
+                                                                "unversioned": "npm:@scope/real"})
+        self.javascript_package(".", "alias", "2.1.0", actual_name="@scope/real")
+        self.javascript_package(".", "unversioned", "2.1.0", actual_name="@scope/real")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("alias : déclarée alias npm @scope/real ^2.0.0", content)
+        self.assertIn("unversioned : déclarée alias npm @scope/real *", content)
+        self.assertEqual(content.count("observée 2.1.0"), 2)
+
+    def test_javascript_private_references_invalid_fields_and_code_are_not_published_or_executed(self):
+        marker = self.fixture / "javascript-executed"
+        data = {"dependencies": {"url": "https://test-user:private-canary@example.invalid/archive.tgz",
+                                  "local": "file:../private-canary",
+                                  "git": "git+https://private-canary@example.invalid/repo",
+                                  "invalid\n# injected-private-canary": "1.0.0",
+                                  "bad-type": ["private-canary"]},
+                "devDependencies": "private-canary",
+                "engines": {"node": "https://private-canary"},
+                "packageManager": "private-canary",
+                "scripts": {"install": f"touch {marker}"}}
+        self.javascript_manifest("package.json", **data)
+        for name in ("url", "local", "git"):
+            package = self.javascript_package(".", name, "1.0.0")
+            (package / "index.js").write_text(
+                f"require('fs').writeFileSync({json.dumps(str(marker))}, 'executed');\n", encoding="utf-8")
+        self.javascript_package(".", "bad-type", "3.0.0", actual_name="other")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("référence externe ou locale masquée", content)
+        self.assertIn("devDependencies non vérifiables", content)
+        self.assertIn("packageManager non vérifiable", content)
+        self.assertNotIn("private-canary", content)
+        self.assertNotIn("# injected", content)
+        self.assertIn("métadonnées incohérentes", content)
+        self.assertFalse(marker.exists())
+
+    def test_javascript_discovery_excludes_generated_venvs_and_directory_links(self):
+        self.javascript_manifest("frontend/package.json", dependencies={"retained": "1.0.0"})
+        self.javascript_manifest(".opencode/package.json", dependencies={"tooling": "1.0.0"})
+        for folder in ("node_modules/third-party", ".git/fixture", ".cache", "dist", "build",
+                       "output", "reports", "logs", "tmp", "PROMPTS", "openspec", ".agents",
+                       ".opencode/config", ".opencode/state", ".opencode/commands"):
+            self.javascript_manifest(folder + "/package.json", dependencies={"ignored-canary": "9.9.9"})
+        self.javascript_manifest("custom-runtime/package.json", dependencies={"ignored-canary": "9.9.9"})
+        (self.template / "custom-runtime/pyvenv.cfg").write_text("synthetic = yes\n", encoding="utf-8")
+        outside = self.fixture / "outside-source"
+        outside.mkdir()
+        (outside / "package.json").write_text(json.dumps({"dependencies": {"ignored-canary": "9.9.9"}}),
+                                               encoding="utf-8")
+        (self.template / "linked-source").symlink_to(outside, target_is_directory=True)
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("retained : déclarée 1.0.0", content)
+        self.assertIn("tooling : déclarée 1.0.0", content)
+        self.assertNotIn("ignored-canary", content)
+        self.assertNotIn("9.9.9", content)
+
+    def test_javascript_fallback_analyzer_works_without_node_or_devops_python(self):
+        self.javascript_manifest("frontend/package.json", dependencies={"fixture": "1.0.0"})
+        self.javascript_package("frontend", "fixture", "1.0.0")
+        (self.home / "node/current/bin/node").unlink()
+        (self.home / "python/current/bin/python3").unlink()
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("observée 1.0.0", content)
+        self.assertIn("Node DevOps absent", content)
+
+    def test_javascript_global_cache_is_not_a_project_installation(self):
+        self.javascript_manifest(".opencode/package.json", dependencies={"fixture": "*"})
+        global_package = self.home / ".cache/opencode/node_modules/fixture"
+        global_package.mkdir(parents=True)
+        (global_package / "package.json").write_text(json.dumps({"name": "fixture", "version": "9.9.9"}),
+                                                      encoding="utf-8")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("observée non observée localement", content)
+        self.assertNotIn("9.9.9", content)
+
+    def test_javascript_invalid_and_duplicate_json_and_group_types_are_explicit(self):
+        path = self.template / "package.json"
+        for text in ('{"dependencies":{"fixture":"1.0.0"},"dependencies":{}}',
+                     '["private-canary"]', '{"dependencies":false}', '{"workspaces":["../private-canary"]}'):
+            with self.subTest(text=text):
+                path.write_text(text, encoding="utf-8")
+                content = self.javascript_document(self.run_generation())
+                self.assertIn("non vérifiable", content)
+                self.assertNotIn("private-canary", content)
+
+    def test_javascript_limits_are_explicit_instead_of_verified_absence(self):
+        self.javascript_manifest("package.json", dependencies={"first": "1.0.0", "second": "1.0.0"})
+        for number in range(4):
+            self.javascript_manifest(f"components/{number}/package.json",
+                                     dependencies={"nested": "1.0.0"})
+        for before, after in (
+                ("JS_SEARCH_BUDGET = 12.0", "JS_SEARCH_BUDGET = 0.0"),
+                ("MAX_ENTRIES = 10000", "MAX_ENTRIES = 2"),
+                ("MAX_MANIFESTS = 128", "MAX_MANIFESTS = 2"),
+                ("MAX_DEPENDENCIES = 1024", "MAX_DEPENDENCIES = 1"),
+                ("TOTAL_LIMIT = 32 * 1024 * 1024", "TOTAL_LIMIT = 40")):
+            with self.subTest(limit=before):
+                content = self.javascript_document(self.run_generation(source_replacements=((before, after),)))
+                self.assertIn("Inventaire incomplet", content)
+
+    def test_javascript_oversized_manifest_lock_and_metadata_are_nonverifiable(self):
+        self.javascript_manifest("frontend/package.json", dependencies={"fixture": "1.0.0"})
+        package = self.javascript_package("frontend", "fixture", "1.0.0")
+        (package / "package.json").write_text(" " * (1024 * 1024 + 1), encoding="utf-8")
+        self.javascript_manifest("oversized/package.json", padding="x" * (1024 * 1024))
+        lock = self.template / "frontend/package-lock.json"
+        lock.write_text(" " * (8 * 1024 * 1024 + 1), encoding="utf-8")
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("fichier JSON trop volumineux", content)
+        self.assertIn("observée non vérifiable", content)
+        self.assertIn("Inventaire incomplet", content)
+
+    def test_javascript_spaces_markdown_and_control_paths_preserve_document_structure(self):
+        path = self.javascript_manifest("client [test]/package.json", dependencies={"fixture": "1.0.0"})
+        self.javascript_package("client [test]", "fixture", "1.0.0")
+        self.javascript_manifest("bad\n# injected/package.json", dependencies={"hidden-canary": "1.0.0"})
+        content = self.successful_document(self.run_generation())
+        self.assertIn("### client \\[test\\]/package.json\n", content)
+        self.assertIn("observée 1.0.0", content)
+        self.assertIn("chemin de découverte non restituable", content)
+        self.assertNotIn("\n# injected", content)
+        self.assertNotIn("hidden-canary", content)
+        self.assertNotIn(chr(28), content)
+        self.assertTrue(path.is_file())
+        self.assertTrue(content.endswith("  * Mode headless : --headless\n"))
+
+    def test_javascript_collector_failure_discards_raw_output_and_preserves_other_sections(self):
+        for body in ("printf 'private-canary'; return 7",
+                     "printf 'private-canary'; return 0"):
+            with self.subTest(body=body):
+                content = self.javascript_document(self.run_generation(
+                    "projects_template_devops_javascript() { " + body + "; }\n"))
+                self.assertIn("Inventaire non vérifiable : analyse échouée", content)
+                self.assertNotIn("private-canary", content)
+                self.assertIn("# OpenCode\n", content)
+                self.assertIn("# PostgreSQL Serveur\n", content)
+
+    def test_javascript_collector_runs_once_and_repeated_inventory_is_stable(self):
+        self.javascript_manifest("frontend/package.json", dependencies={"fixture": "1.0.0"})
+        self.javascript_manifest(".opencode/package.json", dependencies={"tooling": "1.0.0"})
+        log = self.fixture / "javascript-collects"
+        self.environment["TEST_JAVASCRIPT_COLLECTS"] = str(log)
+        wrapper = r'''
+eval "$(declare -f projects_template_devops_javascript | sed '1s/projects_template_devops_javascript/saved_javascript_collector/')"
+projects_template_devops_javascript() {
+    printf 'collect\n' >> "$TEST_JAVASCRIPT_COLLECTS"
+    saved_javascript_collector "$@"
+}
+'''
+        first = self.successful_document(self.run_generation(wrapper))
+        second = self.successful_document(self.run_generation(wrapper))
+        self.assertEqual(first, second)
+        self.assertEqual(log.read_text().splitlines(), ["collect", "collect"])
+        self.assertEqual(first.count("## Dépendances JavaScript du projet\n"), 1)
+        self.assertEqual(first.count("## Dépendances OpenCode du projet\n"), 1)
+
+    def test_javascript_unreadable_sources_and_subtrees_remain_unknown(self):
+        if os.geteuid() == 0:
+            return
+        manifest = self.javascript_manifest("frontend/package.json", dependencies={"fixture": "1.0.0"})
+        manifest.chmod(0)
+        self.addCleanup(manifest.chmod, 0o600)
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("manifeste non vérifiable", content)
+        manifest.chmod(0o600)
+        package = self.javascript_package("frontend", "fixture", "1.0.0")
+        metadata = package / "package.json"
+        metadata.chmod(0)
+        self.addCleanup(metadata.chmod, 0o600)
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("observée non vérifiable", content)
+        hidden = self.template / "inaccessible"
+        hidden.mkdir()
+        hidden.chmod(0)
+        self.addCleanup(hidden.chmod, 0o700)
+        content = self.javascript_document(self.run_generation())
+        self.assertIn("Inventaire incomplet", content)
+
+    def test_javascript_non_regular_sources_do_not_block_json_reads(self):
+        self.javascript_manifest("frontend/package.json", dependencies={"fixture": "1.0.0"})
+        package = self.javascript_package("frontend", "fixture", "1.0.0")
+        metadata = package / "package.json"
+        metadata.unlink()
+        os.mkfifo(metadata)
+        os.mkfifo(self.template / "package.json")
+        started = time.monotonic()
+        content = self.javascript_document(self.run_generation())
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertIn("fichier non ordinaire", content)
+        self.assertIn("observée non vérifiable", content)
 
     def test_dependencies_follow_manifest_and_installed_metadata(self):
         (self.template / 'pyproject.toml').write_text(
@@ -552,6 +1340,7 @@ ENV_DEVOPS_USER="$1"
             'local template_path="/home/${DEVOPS_USER}/datas/template"',
             'local template_path="$TEST_DEVOPS_HOME/datas/template"')
         (self.template / 'README.md').write_text('# Template\n')
+        self.javascript_manifest('frontend/package.json', dependencies={'creation-fixture': '1.0.0'})
         # Un modèle Python ne doit pas transmettre son manifeste à un projet Node.
         (self.template / 'pyproject.toml').write_text('[project]\nname="existing"\ndependencies=[]\n')
         extra = projects_source + r'''
@@ -610,6 +1399,11 @@ exit $?
                     self.assertEqual(result.returncode, 0, result.stderr)
                     content = (target / 'DEVOPS.md').read_text()
                     self.assertIn(f'# DEVOPS.md — {project}', content)
+                    self.assertEqual(content.count('## Dépendances JavaScript du projet\n'), 1)
+                    self.assertIn('creation-fixture : déclarée 1.0.0', content)
+                    self.assertIn('Version : 0.5\n', content)
+                    self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n', content)
+                    self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'), 1)
                     self.assertIn('# Tests navigateurs extérieurs en mode headless\n', content)
                     self.assertIn('## Chromium\n\n  * 134.0.6998.88', content)
                     self.assertIn('## Firefox\n\n  * 140.0.4esr', content)
@@ -789,6 +1583,9 @@ projects_template_devops() {
         before = {}
         for project, project_type in (('template', 'NODE'), ('all', 'NODE'), ('python-app', 'PYTHON')):
             path = self.configured_project(root, project, {'PROJECT_TYPE': project_type})
+            (path / 'frontend').mkdir()
+            (path / 'frontend/package.json').write_text(
+                json.dumps({'dependencies': {'batch-fixture': '1.0.0'}}), encoding='utf-8')
             with (path / 'project.env').open('a') as stream:
                 stream.write((self.template / 'project.env').read_text())
         for iteration in range(2):
@@ -798,6 +1595,11 @@ projects_template_devops() {
             for project in ('template', 'all', 'python-app'):
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
+                self.assertIn(b'Version : 0.5\n', content)
+                self.assertEqual(content.count('## Dépendances JavaScript du projet\n'.encode()), 1)
+                self.assertIn(b'batch-fixture : d\xc3\xa9clar\xc3\xa9e 1.0.0', content)
+                self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n'.encode(), content)
+                self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'.encode()), 1)
                 self.assertIn(b'16.4', content)
                 self.assertIn(b'PG_HOST PG_PORT PG_DATABASE PG_USERNAME PG_PASSWORD', content)
                 self.assertIn('# Tests navigateurs extérieurs en mode headless\n'.encode(), content)
