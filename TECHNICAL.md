@@ -278,6 +278,128 @@ Un échec OpenSpec empêche la génération DevOps et le message de succès, en
 conservant le projet préparé. La capacité de référence est
 `openspec/specs/projects-template-openspec/spec.md`.
 
+### Traçabilité du document DevOps
+
+`projects_template_devops_render` produit la version documentaire `0.5`.
+Après le titre et la version, le document identifie DIU comme générateur,
+indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
+la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
+
+La capture utilise une seule fois le binaire `date` hôte, avant les sondes,
+avec `-u` et une borne de 15 secondes. Une commande absente, échouée, expirée
+ou une sortie mal formée bloque la préparation et conserve le document
+existant. Ce début ne certifie ni la synchronisation de l'horloge ni la
+simultanéité des observations. Le comportement du manifeste Python
+conditionnel déjà préparé reste inchangé.
+
+Les classifications admises sont `DOCKER`, `LXC`, `PHYSICAL`, `PROXMOX`, `VM`
+et `UNSET`. Une variable absente, vide ou inconnue est rendue comme `UNSET`
+sans reproduire sa valeur. La génération réutilise la classification de DIU
+sans relancer son détecteur ni interpréter `PROJECT_DOCKERED`.
+
+La légende distingue les sondes système, l'outillage du compte DevOps et les
+déclarations et observations des dépendances Python et JavaScript. Les
+dépendances Python proviennent uniquement de
+`[project].dependencies` dans `pyproject.toml` et sont recherchées d'abord
+dans les venv du projet, puis avec le Python DevOps en repli explicite.
+L'inventaire ne vaut ni qualification fonctionnelle, ni validation d'un
+environnement Python unique, ni preuve de réussite des tests du projet.
+
+Les parcours individuel, groupé et final de création produisent cet en-tête
+une seule fois. Le titre, l'ordre des rubriques, les sondes, les droits et le
+propriétaire sont conservés. À observations identiques, le contenu technique
+reste identique hors horodatage. Les anciens documents prennent le format
+`0.5` lors de leur prochaine génération normale ; aucune migration ni retouche
+manuelle n'est nécessaire. La référence est
+`openspec/specs/projects-template-devops/spec.md`.
+
+### Dépendances Python des environnements du projet
+
+`projects_template_devops_dependencies` recherche les dossiers ordinaires
+portant un `pyvenv.cfg` ordinaire dans le projet. La recherche ignore les
+liens de dossiers, les caches, `.git`, `node_modules`, les sorties, journaux
+et ressources d'outillage, et ne descend pas à l'intérieur d'un venv.
+La priorité est `.venv`, `venv`, `env` à la racine, puis les autres chemins
+relatifs triés, y compris les environnements sous un dossier du projet.
+
+Chaque environnement utilise `bin/python3`, sinon `bin/python`, sous le
+compte DevOps. Le chemin d'entrée du venv est conservé même s'il pointe vers
+un Python de base. La sonde utilise `-I -B -S` et les répertoires
+`site-packages` de ce préfixe explicite : aucun script d'activation, fichier
+`.pth` ou paquet applicatif n'est chargé. Chaque sonde est bornée à 3 secondes,
+dans un budget de recherche/sondes de 12 secondes sous la borne utilisateur
+existante de 15 secondes. Les processus de sonde et leurs descendants sont
+terminés en cas de dépassement.
+
+Pour chaque dépendance, le premier venv fournissant des métadonnées valides
+est retenu. À défaut, le Python DevOps est consulté comme repli explicite.
+La flèche indique l'interpréteur sondé ; les lignes `Environnement` et
+`Installation` donnent la provenance et le chemin d'installation retourné
+par les métadonnées, sans déduire un nom de module depuis la distribution.
+Plusieurs dépendances peuvent provenir d'environnements différents. Les
+versions et contraintes sont rapportées sans résolution ni installation.
+
+Le Python système existant peut lire le manifeste si le Python DevOps est
+absent ; ses paquets ne deviennent pas une source de repli. Une recherche
+incomplète, un venv brisé, une sonde en échec ou des métadonnées contradictoires
+sont signalés sans sortie brute. Une absence non prouvée est indiquée comme
+`non vérifiable`, avec les limites de l'inventaire. Les diagnostics de
+manifeste, références directes et dépendances dynamiques sont conservés.
+La référence reste `openspec/specs/projects-template-devops/spec.md`.
+
+### Dépendances JavaScript et OpenCode du projet
+
+`projects_template_devops_javascript` collecte une seule fois les métadonnées
+JavaScript par rendu. La sous-section « Dépendances JavaScript du projet »
+figure sous NPM ; « Dépendances OpenCode du projet » figure sous OpenCode pour
+`.opencode/package.json`. Elles sont omises lorsqu'aucun manifeste ni diagnostic
+ne les concerne. Les versions des binaires restent distinctes des paquets.
+
+La découverte parcourt les dossiers ordinaires du projet sans suivre les liens,
+en excluant les paquets tiers `node_modules`, venv, caches, Git, sorties,
+journaux, `PROMPTS`, `openspec` et ressources d'outillage. L'exception OpenCode
+se limite à son manifeste et ses verrous racine ; ses configurations et états
+ne sont pas parcourus. Les manifestes racine, OpenCode, déclarant des dépendances
+ou organisant/appartenant à des workspaces sont retenus et triés par chemin.
+Les autres manifestes vides sont comptés comme non retenus. Les motifs de
+workspaces restent relatifs au projet ; les formes impossibles sont signalées.
+
+Chaque manifeste conserve séparément `dependencies`, `devDependencies`,
+`peerDependencies` et `optionalDependencies`, ainsi que les déclarations
+`engines` et `packageManager` renseignées. Une référence privée URL/Git/locale
+est catégorisée sans publication de sa valeur. Les alias npm sûrs et références
+workspace sont identifiés sans résolution de contraintes ni exécution.
+
+Le verrou npm local prime ; `npm-shrinkwrap.json` prime sur `package-lock.json`.
+Seuls les formats 2 et 3 sont analysés. Un workspace déclaré sans verrou local
+peut utiliser celui de son organisateur, avec les entrées `packages` pertinentes
+et les liens internes au verrou. Les autres formats et sources concurrentes
+sont explicites sans déduction du gestionnaire réellement utilisé. Un verrou
+absent, invalide, incomplet ou désynchronisé ne fournit aucune preuve d'installation.
+
+Pour chaque dépendance directe, les métadonnées sont recherchées dans
+`node_modules` au plus près du manifeste puis dans ses parents jusqu'à la
+racine. La première installation présente prime ; une métadonnée invalide
+reste non vérifiable sans être masquée par une installation supérieure. Les
+liens d'installation internes au projet, notamment workspaces et pnpm, sont
+admis avec chemin réel ; les fichiers symboliques et cibles extérieures ou
+protégées sont refusés. Les JSON sont ouverts depuis un descripteur racine,
+sans suivre les liens intermédiaires. Aucun paquet global ou cache extérieur
+OpenCode ne devient un repli. L'absence locale est libellée « non observée
+localement » ; les échecs restent « non vérifiable ». Un écart entre verrou et
+version observée est signalé sans conclusion SemVer ni preuve de plugin chargé.
+
+L'analyseur est le Python DevOps existant, sinon `/usr/bin/python3`, avec
+`-I -B -S` et uniquement la bibliothèque standard. Il ne lance ni npm, Bun,
+OpenCode, script ou import applicatif, ni installation ou requête réseau, et
+ne lit aucun `.npmrc`, fichier env ou secret. La collecte est bornée à
+12 secondes sous la borne utilisateur de 15 secondes, 10 000 entrées de
+découverte, 128 manifestes et 1 024 dépendances restituées. Les lectures sont
+limitées à 1 Mio par manifeste/métadonnée, 8 Mio par verrou et 32 Mio au total.
+Les limites et les diagnostics fixes rendent les données inconnues explicites ;
+les sorties brutes ne sont pas publiées. La référence reste
+`openspec/specs/projects-template-devops/spec.md`.
+
 ### Navigateurs hôte dans le document DevOps
 
 La génération DevOps termine `DEVOPS.md` par « Tests navigateurs extérieurs
