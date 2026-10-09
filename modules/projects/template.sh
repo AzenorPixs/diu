@@ -269,52 +269,256 @@ PY
 
 projects_template_devops_dependencies() {
     local devops_home="$1" template_path="$2" python_binary="$3"
-    if [[ ! -f "${template_path}/pyproject.toml" ]]; then
+    local analyzer="${python_binary}" analysis_is_devops=1
+    local manifest="${template_path}/pyproject.toml"
+    if [[ ! -f "${manifest}" ]]; then
         printf '  * pyproject.toml absent : dépendances non déclarées dans le projet\n'
         return 0
     fi
-    if [[ ! -x "${python_binary}" ]]; then
-        printf '  * Versions non vérifiables : Python DevOps absent\n'
+    if [[ "${manifest}" != /* ]]; then
+        manifest="${PWD}/${manifest}"
+    fi
+    if [[ ! -x "${analyzer}" ]]; then
+        analyzer=/usr/bin/python3
+        analysis_is_devops=0
+    fi
+    if [[ ! -x "${analyzer}" ]]; then
+        printf "  * Dépendances non vérifiables : Python d'analyse absent\n"
         return 0
     fi
 
-    projects_template_devops_user_run "${devops_home}" "${python_binary}" -I -B - \
-        "${template_path}/pyproject.toml" "${python_binary}" <<'PY'
+    projects_template_devops_user_run "${devops_home}" "${analyzer}" -I -B - \
+        "${manifest}" "${python_binary}" "${analysis_is_devops}" <<'PY'
 from importlib import metadata
 from pathlib import Path
+import json
+import os
 import re
+import signal
+import subprocess
+import sys
+import time
+
+SEARCH_BUDGET = 12.0
+PROBE_TIMEOUT = 3.0
+IGNORED_DIRECTORIES = {
+    ".git", ".hg", ".svn", ".cache", ".pytest_cache", ".mypy_cache",
+    ".ruff_cache", ".npm", ".idea", ".vscode", ".stfolder", "node_modules",
+    "__pycache__", "logs", "tmp", "output", "reports", "dist", "build",
+    "PROMPTS", ".opencode", ".agents", "openspec", ".generated", ".history",
+    ".output", ".tmp", "secrets", "credentials",
+}
+PROBE_PROGRAM = r'''
+from importlib import metadata
+from pathlib import Path
+import json
+import re
+import site
 import sys
 
+root = Path(sys.argv[1])
+wanted = set(json.loads(sys.argv[2]))
+paths = sorted({str(Path(p).resolve()) for p in site.getsitepackages([str(root)])
+                if Path(p).is_dir()})
+if not paths:
+    sys.exit(3)
+found = {}
 try:
-    import tomllib
-except ImportError:
-    print('  * Lecture non disponible : module tomllib absent du Python DevOps')
-    sys.exit(0)
-try:
-    project = tomllib.loads(Path(sys.argv[1]).read_text(encoding='utf-8')).get('project', {})
-    dependencies = project.get('dependencies', [])
-    if not isinstance(dependencies, list) or not all(isinstance(item, str) for item in dependencies):
-        raise ValueError('dépendances invalides')
-    if 'dependencies' in project.get('dynamic', []):
-        print('  * Dépendances dynamiques : versions non vérifiables depuis pyproject.toml')
-    elif not dependencies:
-        print('  * Aucune dépendance déclarée dans [project].dependencies')
-    for dependency in dependencies:
-        match = re.match(r'^([A-Za-z0-9][A-Za-z0-9._-]*)', dependency)
-        if not match or '\n' in dependency or '\r' in dependency:
-            raise ValueError('dépendance invalide')
-        # Les références directes peuvent contenir des identifiants : ne pas
-        # les publier, seules les contraintes de version ordinaires sont rendues.
-        constraint = dependency[match.end():].strip()
-        if '@' in constraint:
-            constraint = '(référence directe déclarée dans pyproject.toml)'
+    for distribution in metadata.distributions(path=paths):
+        name = re.sub(r"[-_.]+", "-", distribution.metadata.get("Name", "")).lower()
+        if name in wanted:
+            if name in found:
+                found[name] = None
+            else:
+                found[name] = {
+                    "version": distribution.version,
+                    "location": str(Path(distribution.locate_file("")).resolve()),
+                }
+except (OSError, UnicodeError, ValueError):
+    sys.exit(3)
+print(json.dumps(found, sort_keys=True))
+'''
+
+
+def safe_text(value):
+    return (isinstance(value, str) and 0 < len(value) <= 4096
+            and not any(ord(char) < 32 or ord(char) == 127 for char in value))
+
+
+def valid_observation(value):
+    return (isinstance(value, dict) and set(value) == {"version", "location"}
+            and isinstance(value["version"], str)
+            and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.!+_-]{0,199}", value["version"]) is not None
+            and safe_text(value["location"]) and Path(value["location"]).is_absolute())
+
+
+def discover_environments(project_root, deadline):
+    environments = []
+    incomplete = False
+
+    def on_error(_error):
+        nonlocal incomplete
+        incomplete = True
+
+    for directory, directories, files in os.walk(project_root, followlinks=False, onerror=on_error):
+        if time.monotonic() >= deadline:
+            incomplete = True
+            break
+        path = Path(directory)
+        if any(not safe_text(name) for name in directories):
+            incomplete = True
+        directories[:] = sorted(name for name in directories
+                                if name not in IGNORED_DIRECTORIES
+                                and safe_text(name) and not (path / name).is_symlink())
+        if "pyvenv.cfg" in files:
+            directories[:] = []
+            marker = path / "pyvenv.cfg"
+            if marker.is_file() and not marker.is_symlink():
+                if safe_text(str(path)):
+                    environments.append(path)
+                else:
+                    incomplete = True
+            else:
+                incomplete = True
+
+    priority = {".venv": 0, "venv": 1, "env": 2}
+    environments.sort(key=lambda p: (priority.get(str(p.relative_to(project_root)), 3),
+                                     str(p.relative_to(project_root))))
+    return environments, incomplete
+
+
+def probe_environment(environment, names, deadline):
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        return None
+    interpreter = next((environment / "bin" / name for name in ("python3", "python")
+                        if (environment / "bin" / name).is_file()
+                        and os.access(environment / "bin" / name, os.X_OK)), None)
+    if interpreter is None:
+        return None
+    try:
+        with subprocess.Popen(
+                [str(interpreter), "-I", "-B", "-S", "-", str(environment), json.dumps(sorted(names))],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, start_new_session=True) as process:
+            try:
+                output, _errors = process.communicate(PROBE_PROGRAM, timeout=min(PROBE_TIMEOUT, remaining))
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.communicate()
+                return None
+        if process.returncode != 0 or len(output) > 65536:
+            return None
+        result = json.loads(output)
+        if not isinstance(result, dict) or not set(result).issubset(names):
+            return None
+        if any(value is not None and not valid_observation(value) for value in result.values()):
+            return None
+    except (OSError, UnicodeError, ValueError, subprocess.TimeoutExpired):
+        return None
+    return interpreter, result
+
+
+def emit(label, version, interpreter, environment, location):
+    print(f"  * {label} : {version} --> {interpreter}")
+    print(f"    * Environnement : {environment}")
+    print(f"    * Installation : {location}")
+
+
+def main():
+    try:
+        import tomllib
+    except ImportError:
+        print("  * Lecture non disponible : module tomllib absent du Python d'analyse")
+        return
+    try:
+        manifest = Path(sys.argv[1])
+        project_root = manifest.parent.resolve()
+        project = tomllib.loads(manifest.read_text(encoding="utf-8")).get("project", {})
+        if not isinstance(project, dict):
+            raise ValueError("projet invalide")
+        dependencies = project.get("dependencies", [])
+        dynamic = project.get("dynamic", [])
+        if (not isinstance(dependencies, list) or not all(isinstance(item, str) for item in dependencies)
+                or not isinstance(dynamic, list) or not all(isinstance(item, str) for item in dynamic)):
+            raise ValueError("dependances invalides")
+        declarations = []
+        for dependency in dependencies:
+            match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)", dependency)
+            if not match or not safe_text(dependency):
+                raise ValueError("dependance invalide")
+            constraint = dependency[match.end():].strip()
+            if "@" in constraint:
+                constraint = "(référence directe déclarée dans pyproject.toml)"
+            name = match[1]
+            declarations.append((re.sub(r"[-_.]+", "-", name).lower(),
+                                 (name + " " + constraint).strip()))
+    except (OSError, ValueError, UnicodeError):
+        print("  * pyproject.toml illisible ou invalide : dépendances non vérifiables")
+        return
+
+    if "dependencies" in dynamic:
+        print("  * Dépendances dynamiques : versions non vérifiables depuis pyproject.toml")
+    elif not declarations:
+        print("  * Aucune dépendance déclarée dans [project].dependencies")
+    if not declarations:
+        return
+
+    wanted = {name for name, _label in declarations}
+    selected = {}
+    uncertain = set()
+    deadline = time.monotonic() + SEARCH_BUDGET
+    environments, incomplete = discover_environments(project_root, deadline)
+    for environment in environments:
+        missing = wanted - selected.keys()
+        if not missing:
+            break
+        if time.monotonic() >= deadline:
+            incomplete = True
+            break
+        observation = probe_environment(environment, missing, deadline)
+        if observation is None:
+            uncertain.update(missing)
+            continue
+        interpreter, values = observation
+        for name, value in values.items():
+            if value is None:
+                uncertain.add(name)
+            else:
+                selected[name] = (str(interpreter), str(environment), value)
+
+    if incomplete or uncertain:
+        print("  * Recherche ou sonde des venv du projet non vérifiable : inventaire partiel.")
+    global_binary = sys.argv[2]
+    global_available = sys.argv[3] == "1"
+    for name, label in declarations:
+        if name in selected:
+            interpreter, environment, value = selected[name]
+            emit(label, value["version"], interpreter, environment, value["location"])
+            continue
+        if not global_available:
+            emit(label, "non vérifiable (Python DevOps absent)", "indisponible",
+                 "repli Python DevOps indisponible", "non observée")
+            continue
         try:
-            version = metadata.version(match[1])
+            distribution = metadata.distribution(name)
+            value = {"version": distribution.version,
+                     "location": str(Path(distribution.locate_file("")).resolve())}
+            if not valid_observation(value):
+                raise ValueError("metadonnee invalide")
         except metadata.PackageNotFoundError:
-            version = 'non installé'
-        print(f'  * {match[1]} {constraint} : {version} --> {sys.argv[2]}'.replace('  :', ' :'))
-except (OSError, ValueError, UnicodeError, tomllib.TOMLDecodeError):
-    print('  * pyproject.toml illisible ou invalide : dépendances non vérifiables')
+            version = "non vérifiable" if incomplete or name in uncertain else "non installé"
+            emit(label, version, global_binary, "Python DevOps (repli)", "non observée")
+        except (OSError, UnicodeError, ValueError):
+            emit(label, "non vérifiable", global_binary, "Python DevOps (repli)", "non observée")
+        else:
+            emit(label, value["version"], global_binary, "Python DevOps (repli)", value["location"])
+
+
+main()
 PY
 }
 
@@ -372,12 +576,15 @@ projects_template_devops_render() {
     if [[ "${project_title}" == template ]]; then
         project_title=Template
     fi
-    printf '# DEVOPS.md — %s\n\nVersion : 0.3\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
+    printf '# DEVOPS.md — %s\n\nVersion : 0.4\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
         "${project_title}" "${started_at}" "${environment_type}" || return 1
     printf '%s\n' \
         "Les sondes système concernent le contexte d'exécution DIU." \
-        'Les outils et dépendances Python DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.' \
+        'Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.' \
+        'Les dépendances sont recherchées en priorité dans les venv du projet, puis dans le Python DevOps en repli explicite.' \
+        'La flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées.' \
         'Les dépendances attendues proviennent de [project].dependencies dans pyproject.toml.' \
+        'Un inventaire multi-environnements ne valide pas un environnement Python unique.' \
         'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.' \
         '' || return 1
     printf '# Système d\047exploitation\n\n  * %s\n\n\n' "${operating_system}" || return 1

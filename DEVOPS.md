@@ -1,7 +1,15 @@
 # DEVOPS.md — diu
 
-Version : 0.2
+Version : 0.3
 
+Généré automatiquement par Debian Installeur Unifié (DIU).
+Début du relevé (UTC) : 2026-10-09T07:07:43Z
+Environnement d'exécution DIU : PHYSICAL
+
+Les sondes système concernent le contexte d'exécution DIU.
+Les outils et dépendances Python DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
+Les dépendances attendues proviennent de [project].dependencies dans pyproject.toml.
+Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.
 
 # Système d'exploitation
 

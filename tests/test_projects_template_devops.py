@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Génération du modèle DevOps avec binaires et serveur isolés."""
 import getpass
+import json
 import os
 from pathlib import Path
 import re
@@ -83,7 +84,8 @@ elif [ "$3" = -c ]; then
 elif [ "$3" = "$TEST_DEVOPS_HOME/python/current/bin/pip3" ]; then
     exec /usr/bin/python3 -I -B "$3" "$4"
 else
-    exec /usr/bin/python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); exec(sys.stdin.read())' "$TEST_METADATA" "$4" "$5"
+    shift 3
+    exec /usr/bin/python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); exec(sys.stdin.read())' "$TEST_METADATA" "$@"
 fi
 ''')
         self.executable(self.home / 'python/current/bin/pip3', "print('pip 25.3.7 from fixture (python 3.13)')")
@@ -168,7 +170,7 @@ ENV_DEVOPS_USER="$1"
                           '  * Mode headless : --headless\n', content)
         self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
-        self.assertIn('Version : 0.3', content)
+        self.assertIn('Version : 0.4', content)
         for title, version, path in (
             ('Docker', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
@@ -199,14 +201,17 @@ ENV_DEVOPS_USER="$1"
     def test_report_provenance_utc_and_capture_before_probes(self):
         self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
         content = self.successful_document(self.run_generation())
-        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.3\n', content)
+        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.4\n', content)
         expected = (
             'Généré automatiquement par Debian Installeur Unifié (DIU).',
             'Début du relevé (UTC) : 2026-10-09T06:30:00Z',
             "Environnement d'exécution DIU : DOCKER",
             "Les sondes système concernent le contexte d'exécution DIU.",
-            'Les outils et dépendances Python DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.',
+            'Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.',
+            'Les dépendances sont recherchées en priorité dans les venv du projet, puis dans le Python DevOps en repli explicite.',
+            'La flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées.',
             'Les dépendances attendues proviennent de [project].dependencies dans pyproject.toml.',
+            'Un inventaire multi-environnements ne valide pas un environnement Python unique.',
             'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.',
         )
         for line in expected:
@@ -435,6 +440,234 @@ ENV_DEVOPS_USER="$1"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotEqual(result.stdout.strip(), str(self.host_bin / 'git'))
         self.assertTrue(result.stdout.strip().startswith(('/usr/bin/', '/usr/local/bin/', '/bin/')))
+
+    @staticmethod
+    def add_distribution(directory, name, version, folder=None):
+        directory.mkdir(parents=True, exist_ok=True)
+        normalized = re.sub(r"[-_.]+", "_", name)
+        distribution = directory / (folder or f"{normalized}-{version}.dist-info")
+        distribution.mkdir()
+        (distribution / "METADATA").write_text(
+            f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n", encoding="utf-8")
+        return distribution
+
+    def project_venv(self, relative, packages):
+        environment = self.template / relative
+        result = subprocess.run(
+            [sys.executable, "-I", "-B", "-m", "venv", "--without-pip", str(environment)],
+            text=True, capture_output=True, timeout=15, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        interpreter = environment / "bin/python3"
+        paths = subprocess.run(
+            [str(interpreter), "-I", "-B", "-S", "-c",
+             "import json,site,sys; print(json.dumps(site.getsitepackages([sys.argv[1]])))",
+             str(environment)], text=True, capture_output=True, timeout=5, check=False)
+        self.assertEqual(paths.returncode, 0, paths.stderr)
+        site_packages = next(Path(p) for p in json.loads(paths.stdout) if Path(p).is_dir())
+        for name, version in packages.items():
+            self.add_distribution(site_packages, name, version)
+        return environment, interpreter, site_packages
+
+    def dependency_manifest(self, dependencies):
+        (self.template / "pyproject.toml").write_text(
+            "[project]\ndependencies = " + json.dumps(dependencies) + "\n", encoding="utf-8")
+
+    def test_project_venv_matches_pixs_dependencies_and_effective_paths(self):
+        packages = {"Django": "6.1.1", "psycopg": "3.3.6",
+                    "asgiref": "3.12.1", "sqlparse": "0.6.0"}
+        self.dependency_manifest(["Django==6.1.1", "psycopg[binary]==3.3.6",
+                                  "asgiref==3.12.1", "sqlparse==0.6.0"])
+        environment, interpreter, site_packages = self.project_venv(".venv", packages)
+        for name in packages:
+            self.add_distribution(self.metadata, name, "0.1")
+        content = self.successful_document(self.run_generation())
+        self.assertTrue(interpreter.is_symlink())
+        for name, version in packages.items():
+            constraint = "[binary]==3.3.6" if name == "psycopg" else f"=={version}"
+            self.assertIn(f"{name} {constraint} : {version} --> {interpreter}", content)
+        self.assertEqual(content.count(f"    * Environnement : {environment}\n"), 4)
+        self.assertEqual(content.count(f"    * Installation : {site_packages.resolve()}\n"), 4)
+        self.assertNotIn("Python DevOps (repli)", content)
+        self.assertNotIn("non installé", content)
+
+    def test_project_venv_priority_is_deterministic_and_nested_supported(self):
+        self.dependency_manifest(["priority-fixture>=1"])
+        paths = ("z-other", "backend/runtime", ".venv-backend-foundation",
+                 "env", "venv", ".venv")
+        fixtures = {name: self.project_venv(name, {"priority-fixture": str(index + 1) + ".0"})
+                    for index, name in enumerate(paths)}
+        for name in (".venv", "venv", "env", ".venv-backend-foundation",
+                     "backend/runtime", "z-other"):
+            with self.subTest(environment=name):
+                environment, interpreter, site_packages = fixtures[name]
+                content = self.successful_document(self.run_generation())
+                self.assertIn(f"--> {interpreter}\n", content)
+                self.assertIn(f"    * Environnement : {environment}\n", content)
+                for distribution in site_packages.glob("*.dist-info"):
+                    shutil.rmtree(distribution)
+
+    def test_dependency_provenance_can_mix_venvs_and_explicit_global_fallback(self):
+        self.dependency_manifest(["local-alpha", "local-beta", "global-gamma"])
+        first, python_first, site_first = self.project_venv(".venv", {"local-alpha": "1.1"})
+        second, python_second, site_second = self.project_venv("venv", {"local-beta": "2.2"})
+        self.add_distribution(self.metadata, "global-gamma", "3.3")
+        content = self.successful_document(self.run_generation())
+        for name, version, interpreter, environment, location in (
+                ("local-alpha", "1.1", python_first, first, site_first),
+                ("local-beta", "2.2", python_second, second, site_second),
+                ("global-gamma", "3.3", self.home / "python/current/bin/python3",
+                 "Python DevOps (repli)", self.metadata)):
+            self.assertIn(f"  * {name} : {version} --> {interpreter}\n"
+                          f"    * Environnement : {environment}\n"
+                          f"    * Installation : {location.resolve() if isinstance(location, Path) else location}\n",
+                          content)
+        self.assertIn("Un inventaire multi-environnements ne valide pas un environnement Python unique.", content)
+
+    def test_project_venv_works_without_devops_python_or_system_package_fallback(self):
+        self.dependency_manifest(["local-fixture", "unavailable-fallback"])
+        environment, interpreter, site_packages = self.project_venv(".venv", {"local-fixture": "1.2"})
+        self.add_distribution(self.metadata, "unavailable-fallback", "9.9")
+        (self.home / "python/current/bin/python3").unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f"local-fixture : 1.2 --> {interpreter}", content)
+        self.assertIn(f"    * Environnement : {environment}\n", content)
+        self.assertIn(f"    * Installation : {site_packages.resolve()}\n", content)
+        self.assertIn("unavailable-fallback : non vérifiable (Python DevOps absent)", content)
+        self.assertNotIn("unavailable-fallback : 9.9", content)
+
+    def test_project_venv_probe_does_not_import_packages_or_pth(self):
+        self.dependency_manifest(["side-effect-fixture"])
+        _environment, interpreter, site_packages = self.project_venv(
+            ".venv", {"side-effect-fixture": "1.0"})
+        pth_marker = self.fixture / "pth-executed"
+        import_marker = self.fixture / "package-imported"
+        (site_packages / "side_effect_fixture.py").write_text(
+            f"from pathlib import Path\nPath({str(import_marker)!r}).touch()\n", encoding="utf-8")
+        (site_packages / "side_effect_fixture.pth").write_text(
+            f"import pathlib; pathlib.Path({str(pth_marker)!r}).touch()\n", encoding="utf-8")
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f"side-effect-fixture : 1.0 --> {interpreter}", content)
+        self.assertFalse(pth_marker.exists())
+        self.assertFalse(import_marker.exists())
+
+    def test_project_venv_caches_and_directory_links_are_not_followed(self):
+        self.dependency_manifest(["ignored-fixture"])
+        marker = self.fixture / "ignored-interpreter-executed"
+        for relative in ("node_modules/hidden", ".cache/hidden", "output/hidden", ".git/hidden"):
+            path = self.template / relative
+            (path / "bin").mkdir(parents=True)
+            (path / "pyvenv.cfg").write_text("home = ignored\n")
+            self.executable(path / "bin/python3", f"touch '{marker}'\nexit 9")
+        external = self.fixture / "external-environment"
+        (external / "bin").mkdir(parents=True)
+        (external / "pyvenv.cfg").write_text("home = ignored\n")
+        self.executable(external / "bin/python3", f"touch '{marker}'\nexit 9")
+        (self.template / ".venv").symlink_to(external, target_is_directory=True)
+        content = self.successful_document(self.run_generation())
+        self.assertIn("ignored-fixture : non installé", content)
+        self.assertFalse(marker.exists())
+
+    def test_project_venv_ambiguous_metadata_does_not_become_absence(self):
+        self.dependency_manifest(["duplicate-fixture"])
+        _environment, _interpreter, site_packages = self.project_venv(
+            ".venv", {"duplicate-fixture": "1.0"})
+        self.add_distribution(site_packages, "duplicate-fixture", "2.0")
+        content = self.successful_document(self.run_generation())
+        self.assertIn("duplicate-fixture : non vérifiable", content)
+        self.assertNotIn("duplicate-fixture : non installé", content)
+        self.assertIn("inventaire partiel", content)
+
+    def test_project_venv_failed_or_malformed_probe_preserves_unknown_absence(self):
+        self.dependency_manifest(["missing-fixture", "global-fixture"])
+        self.add_distribution(self.metadata, "global-fixture", "3.0")
+        environment = self.template / ".venv"
+        (environment / "bin").mkdir(parents=True)
+        (environment / "pyvenv.cfg").write_text("home = fixture\n")
+        for body in (None, "printf 'private-probe-marker\\n' >&2\nexit 7",
+                     "printf 'malformed-probe-marker\\n'"):
+            with self.subTest(body=body):
+                if body is not None:
+                    self.executable(environment / "bin/python3", body)
+                result = self.run_generation()
+                content = self.successful_document(result)
+                self.assertIn("missing-fixture : non vérifiable", content)
+                self.assertNotIn("missing-fixture : non installé", content)
+                self.assertIn(f"global-fixture : 3.0 --> {self.home}/python/current/bin/python3", content)
+                self.assertNotIn("private-probe-marker", content + result.stdout + result.stderr)
+                self.assertNotIn("malformed-probe-marker", content + result.stdout + result.stderr)
+
+    def test_project_venv_search_budget_exhaustion_is_not_absence(self):
+        self.dependency_manifest(["budget-fixture"])
+        interpreter = self.home / "python/current/bin/python3"
+        source = interpreter.read_text(encoding="utf-8")
+        old = "import sys; sys.path.insert(0, sys.argv.pop(1)); exec(sys.stdin.read())"
+        new = ("import sys,time; sys.path.insert(0, sys.argv.pop(1)); "
+               "moments=iter((0.0,13.0)); time.monotonic=lambda:next(moments); exec(sys.stdin.read())")
+        self.assertEqual(source.count(old), 1)
+        interpreter.write_text(source.replace(old, new, 1), encoding="utf-8")
+        content = self.successful_document(self.run_generation())
+        self.assertIn("budget-fixture : non vérifiable", content)
+        self.assertNotIn("budget-fixture : non installé", content)
+        self.assertIn("inventaire partiel", content)
+
+    def test_project_venv_probe_timeout_terminates_descendants(self):
+        self.dependency_manifest(["timed-out-fixture"])
+        environment = self.template / ".venv"
+        (environment / "bin").mkdir(parents=True)
+        (environment / "pyvenv.cfg").write_text("home = fixture\n")
+        pid_file = self.fixture / "child.pid"
+        self.executable(environment / "bin/python3",
+                        f"/usr/bin/sleep 10 &\nprintf '%s\\n' \"$!\" > '{pid_file}'\nwait")
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation())
+        self.assertLess(time.monotonic() - started, 8)
+        self.assertIn("timed-out-fixture : non vérifiable", content)
+        pid = int(pid_file.read_text())
+        status = Path(f"/proc/{pid}/stat")
+        self.assertTrue(not status.exists() or status.read_text().split()[2] == "Z")
+
+    def test_project_venv_python_alias_and_spaces_preserve_context(self):
+        self.dependency_manifest(["space-fixture"])
+        environment, interpreter, site_packages = self.project_venv(
+            "backend/venv with spaces", {"space-fixture": "1.0"})
+        base_interpreter = interpreter.resolve()
+        interpreter.unlink()
+        (environment / "bin/python").unlink()
+        (environment / "bin/python").symlink_to(base_interpreter)
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f"space-fixture : 1.0 --> {environment}/bin/python\n", content)
+        self.assertIn(f"    * Installation : {site_packages.resolve()}\n", content)
+
+    def test_project_venv_empty_metadata_proves_absence_in_inspected_environments(self):
+        self.dependency_manifest(["absent-fixture"])
+        self.project_venv(".venv", {})
+        content = self.successful_document(self.run_generation())
+        self.assertIn("absent-fixture : non installé", content)
+        self.assertIn("Python DevOps (repli)", content)
+        self.assertIn("Installation : non observée", content)
+        self.assertNotIn("inventaire partiel", content)
+
+    def test_project_venv_missing_site_packages_is_not_verified_absence(self):
+        self.dependency_manifest(["broken-site-fixture"])
+        _environment, _interpreter, site_packages = self.project_venv(".venv", {})
+        shutil.rmtree(site_packages)
+        content = self.successful_document(self.run_generation())
+        self.assertIn("broken-site-fixture : non vérifiable", content)
+        self.assertNotIn("broken-site-fixture : non installé", content)
+
+    def test_project_venv_unreadable_subtree_does_not_prove_absence(self):
+        if os.geteuid() == 0:
+            self.skipTest("La vérification des droits nécessite un utilisateur non root")
+        self.dependency_manifest(["unreadable-fixture"])
+        denied = self.template / "denied"
+        denied.mkdir()
+        denied.chmod(0)
+        try:
+            content = self.successful_document(self.run_generation())
+        finally:
+            denied.chmod(0o700)
+        self.assertIn("unreadable-fixture : non vérifiable", content)
+        self.assertNotIn("unreadable-fixture : non installé", content)
 
     def test_dependencies_follow_manifest_and_installed_metadata(self):
         (self.template / 'pyproject.toml').write_text(
@@ -727,7 +960,7 @@ exit $?
                     self.assertEqual(result.returncode, 0, result.stderr)
                     content = (target / 'DEVOPS.md').read_text()
                     self.assertIn(f'# DEVOPS.md — {project}', content)
-                    self.assertIn('Version : 0.3\n', content)
+                    self.assertIn('Version : 0.4\n', content)
                     self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n', content)
                     self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'), 1)
                     self.assertIn('# Tests navigateurs extérieurs en mode headless\n', content)
@@ -918,7 +1151,7 @@ projects_template_devops() {
             for project in ('template', 'all', 'python-app'):
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
-                self.assertIn(b'Version : 0.3\n', content)
+                self.assertIn(b'Version : 0.4\n', content)
                 self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n'.encode(), content)
                 self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'.encode()), 1)
                 self.assertIn(b'16.4', content)
