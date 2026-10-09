@@ -30,13 +30,27 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
         self.metadata.mkdir()
         self.document = self.template / 'DEVOPS.md'
         self.query_log = self.fixture / 'queries.txt'
+        self.clock_log = self.fixture / 'clock.txt'
+        self.probe_order_log = self.fixture / 'probe-order.txt'
         self.environment = dict(os.environ, TEST_DEVOPS_HOME=str(self.home),
                                 TEST_HOST_BIN=str(self.host_bin),
                                 TEST_METADATA=str(self.metadata),
                                 TEST_QUERY_LOG=str(self.query_log),
+                                TEST_CLOCK_LOG=str(self.clock_log),
+                                TEST_PROBE_ORDER_LOG=str(self.probe_order_log),
+                                TEST_CLOCK_OUTPUT='2026-10-09T06:30:00Z',
                                 TEST_VENV_STATUS='0', TEST_PG_FAILURE='0')
         self.environment.pop('DEVOPS_PROJECTS_ROOT', None)
-        self.executable(self.host_bin / 'docker', "printf 'Docker version 29.1.2, build fixture\\n'")
+        self.environment.pop('SYSTEM_DEBIAN_ENVIRONNEMENT', None)
+        self.executable(self.host_bin / 'date', r'''
+[ "$#" -eq 2 ] && [ "$1" = -u ] && [ "$2" = +%Y-%m-%dT%H:%M:%SZ ] || exit 9
+printf '%s\n' "$*" >> "$TEST_CLOCK_LOG"
+printf 'clock\n' >> "$TEST_PROBE_ORDER_LOG"
+printf '%s\n' "$TEST_CLOCK_OUTPUT"
+''')
+        self.executable(self.host_bin / 'docker',
+                        'printf "docker\\n" >> "$TEST_PROBE_ORDER_LOG"\n'
+                        "printf 'Docker version 29.1.2, build fixture\\n'")
         self.executable(self.host_bin / 'docker-compose', "printf 'Docker Compose version v5.2.3\\n'")
         self.executable(self.host_bin / 'git', "printf 'git version 2.47.9\\n'")
         self.executable(self.host_bin / 'openssl', "printf 'OpenSSL 3.5.3 1 Jan 2026\\n'")
@@ -154,7 +168,7 @@ ENV_DEVOPS_USER="$1"
                           '  * Mode headless : --headless\n', content)
         self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
-        self.assertIn('Version : 0.2', content)
+        self.assertIn('Version : 0.3', content)
         for title, version, path in (
             ('Docker', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
@@ -181,6 +195,108 @@ ENV_DEVOPS_USER="$1"
         self.assertNotIn('test-only-private-value', content)
         self.assertNotIn('test-only-user', content)
         self.assertNotIn('test-only-database', content)
+
+    def test_report_provenance_utc_and_capture_before_probes(self):
+        self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.3\n', content)
+        expected = (
+            'Généré automatiquement par Debian Installeur Unifié (DIU).',
+            'Début du relevé (UTC) : 2026-10-09T06:30:00Z',
+            "Environnement d'exécution DIU : DOCKER",
+            "Les sondes système concernent le contexte d'exécution DIU.",
+            'Les outils et dépendances Python DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.',
+            'Les dépendances attendues proviennent de [project].dependencies dans pyproject.toml.',
+            'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.',
+        )
+        for line in expected:
+            self.assertEqual(content.count(line), 1)
+            self.assertLess(content.index(line), content.index("# Système d'exploitation"))
+        self.assertEqual(self.clock_log.read_text().splitlines(), ['-u +%Y-%m-%dT%H:%M:%SZ'])
+        self.assertEqual(self.probe_order_log.read_text().splitlines(), ['clock', 'docker'])
+
+    def test_timestamp_refresh_changes_only_report_start_at_identical_observations(self):
+        first = self.successful_document(self.run_generation())
+        self.environment['TEST_CLOCK_OUTPUT'] = '2026-10-09T06:31:00Z'
+        second = self.successful_document(self.run_generation())
+        self.assertNotEqual(first, second)
+        self.assertEqual(first.replace('2026-10-09T06:30:00Z', '<report-start>'),
+                         second.replace('2026-10-09T06:31:00Z', '<report-start>'))
+        self.assertEqual(len(self.clock_log.read_text().splitlines()), 2)
+
+    def test_report_context_whitelist_and_unknown_values_are_not_echoed_or_executed(self):
+        marker = self.fixture / 'context-executed'
+        for value in ('DOCKER', 'LXC', 'PHYSICAL', 'PROXMOX', 'VM', 'UNSET',
+                      None, '', 'No', f'$(touch "{marker}")', 'context-marker\n# injected'):
+            with self.subTest(value=value):
+                if value is None:
+                    self.environment.pop('SYSTEM_DEBIAN_ENVIRONNEMENT', None)
+                else:
+                    self.environment['SYSTEM_DEBIAN_ENVIRONNEMENT'] = value
+                result = self.run_generation()
+                content = self.successful_document(result)
+                expected = value if value in ('DOCKER', 'LXC', 'PHYSICAL', 'PROXMOX', 'VM', 'UNSET') else 'UNSET'
+                self.assertIn(f"Environnement d'exécution DIU : {expected}\n", content)
+                self.assertNotIn('context-marker', content + result.stdout + result.stderr)
+                self.assertNotIn(str(marker), content + result.stdout + result.stderr)
+                self.assertFalse(marker.exists())
+
+    def test_timestamp_absent_failed_or_malformed_preserves_document_without_probes(self):
+        date_binary = self.host_bin / 'date'
+        cases = (
+            ('absent', None), ('failed', None), ('malformed', 'clock-error-marker'),
+            ('malformed', ''), ('malformed', '2026-13-09T06:30:00Z'),
+            ('malformed', '2026-02-29T06:30:00Z'), ('malformed', '2026-04-31T06:30:00Z'),
+            ('malformed', '2026-10-09T24:00:00Z'), ('malformed', '2026-10-09T06:30:60Z'),
+            ('malformed', '2026-10-09T06:30:00+02:00'), ('malformed', '0000-10-09T06:30:00Z'),
+        )
+        for kind, value in cases:
+            with self.subTest(kind=kind, value=value):
+                self.document.write_bytes(b'existing report\n')
+                self.document.chmod(0o640)
+                before = self.document.stat()
+                if date_binary.exists():
+                    date_binary.unlink()
+                if kind == 'failed':
+                    self.executable(date_binary, "printf 'clock-error-marker\\n' >&2\nexit 7")
+                elif kind == 'malformed':
+                    self.environment['TEST_CLOCK_OUTPUT'] = value
+                    self.executable(date_binary, 'printf "%s\\n" "$TEST_CLOCK_OUTPUT"')
+                result = self.run_generation()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Horodatage UTC du relevé indisponible.', result.stderr)
+                self.assertNotIn('clock-error-marker', result.stdout + result.stderr)
+                self.assertEqual(self.document.read_bytes(), b'existing report\n')
+                after = self.document.stat()
+                self.assertEqual((before.st_mode, before.st_uid, before.st_gid),
+                                 (after.st_mode, after.st_uid, after.st_gid))
+                self.assertFalse(self.query_log.exists())
+                self.assertFalse(self.probe_order_log.exists())
+                self.assertEqual(list(self.template.glob('.DEVOPS.md.*')), [])
+
+    def test_timestamp_valid_leap_day_is_accepted(self):
+        self.environment['TEST_CLOCK_OUTPUT'] = '2024-02-29T23:59:59Z'
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Début du relevé (UTC) : 2024-02-29T23:59:59Z\n', content)
+
+    def test_timestamp_timeout_preserves_document_without_probes(self):
+        self.document.write_bytes(b'existing report\n')
+        self.document.chmod(0o640)
+        before = self.document.stat()
+        self.executable(self.host_bin / 'date', '/usr/bin/sleep 30')
+        started = time.monotonic()
+        result = self.run_generation()
+        elapsed = time.monotonic() - started
+        self.assertNotEqual(result.returncode, 0)
+        self.assertLess(elapsed, 20)
+        self.assertIn('Horodatage UTC du relevé indisponible.', result.stderr)
+        self.assertEqual(self.document.read_bytes(), b'existing report\n')
+        after = self.document.stat()
+        self.assertEqual((before.st_mode, before.st_uid, before.st_gid),
+                         (after.st_mode, after.st_uid, after.st_gid))
+        self.assertFalse(self.query_log.exists())
+        self.assertFalse(self.probe_order_log.exists())
+        self.assertEqual(list(self.template.glob('.DEVOPS.md.*')), [])
 
     def test_update_refreshes_versions_preserves_mode_and_is_idempotent(self):
         self.document.write_text('Version : 0.2\nancienne version 99.0.0\n', encoding='utf-8')
@@ -248,6 +364,7 @@ ENV_DEVOPS_USER="$1"
         self.executable(host_bin / 'firefox',
                         '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
                         "printf 'Mozilla Firefox 140.0.4esr\\n'")
+        shutil.copy2(self.host_bin / 'date', host_bin / 'date')
         content = self.successful_document(self.run_generation())
         self.assertIn(f'## Chromium\n\n  * 134.0.6998.88\n  * {host_bin / "chromium"}', content)
         self.assertIn(f'## Firefox\n\n  * 140.0.4esr\n  * {host_bin / "firefox"}', content)
@@ -610,6 +727,9 @@ exit $?
                     self.assertEqual(result.returncode, 0, result.stderr)
                     content = (target / 'DEVOPS.md').read_text()
                     self.assertIn(f'# DEVOPS.md — {project}', content)
+                    self.assertIn('Version : 0.3\n', content)
+                    self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n', content)
+                    self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'), 1)
                     self.assertIn('# Tests navigateurs extérieurs en mode headless\n', content)
                     self.assertIn('## Chromium\n\n  * 134.0.6998.88', content)
                     self.assertIn('## Firefox\n\n  * 140.0.4esr', content)
@@ -798,6 +918,9 @@ projects_template_devops() {
             for project in ('template', 'all', 'python-app'):
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
+                self.assertIn(b'Version : 0.3\n', content)
+                self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n'.encode(), content)
+                self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'.encode()), 1)
                 self.assertIn(b'16.4', content)
                 self.assertIn(b'PG_HOST PG_PORT PG_DATABASE PG_USERNAME PG_PASSWORD', content)
                 self.assertIn('# Tests navigateurs extérieurs en mode headless\n'.encode(), content)

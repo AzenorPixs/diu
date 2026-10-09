@@ -10,7 +10,7 @@ Version : 0.2
 
 # Docker
 
-  * 29.8.2
+  * 29.9.0
   * /usr/bin/docker
 
 
@@ -28,7 +28,7 @@ Version : 0.2
 
 # Go
 
-  * 1.27.1
+  * 1.27.2
   * /home/devops/go/current/bin/go
 
 
@@ -46,13 +46,13 @@ Version : 0.2
 
 # OpenCode
 
-  * 1.18.34
+  * 1.18.35
   * /home/devops/.opencode/bin/opencode
 
 
 # OpenSpec
 
-  * 1.14.0
+  * 1.14.1
   * /home/devops/.local/npm/bin/openspec
 
 

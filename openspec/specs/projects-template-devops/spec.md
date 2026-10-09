@@ -52,23 +52,20 @@ sans identifiant SHALL être rejetée avec la nouvelle utilisation.
 
 ### Requirement: Structure et version documentaire
 
-Le document SHALL conserver un titre `DEVOPS.md — <ID PROJECT>` adapté à l'identifiant, la version
-documentaire `0.2`, et les rubriques Système d'exploitation, Docker,
-Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL
-Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source
-de vérité `pyproject.toml`, Python - Gestionnaire de paquets, dans cet ordre.
-La rubrique Tests navigateurs extérieurs en mode headless SHALL suivre ces
-rubriques et terminer le document, avec les sous-rubriques Chromium puis Firefox.
-Pour l'identifiant template, le titre SHALL rester `DEVOPS.md — Template`.
-Chaque rubrique logicielle SHALL placer le chemin du binaire après sa version.
-Le serveur PostgreSQL SHALL indiquer son adresse après sa version.
+Le document SHALL conserver le titre `DEVOPS.md — <ID PROJECT>`, la version `0.3` et l'ordre des rubriques du scénario « Rubriques documentaires conservées ». Pour template, le titre SHALL être `DEVOPS.md — Template`. Chaque rubrique logicielle SHALL placer le chemin après la version ; PostgreSQL Serveur SHALL placer l'adresse après la version. Tests navigateurs extérieurs en mode headless SHALL terminer le document, avec Chromium puis Firefox.
 
 #### Scenario: Actualisation d'un document ancien
 
 - **WHEN** DEVOPS.md existe avec des versions anciennes
 - **THEN** toutes les versions logicielles sont sondées de nouveau et les valeurs anciennes sont remplacées
-- **AND THEN** la version documentaire reste 0.2 et les rubriques existantes conservent leur ordre
+- **AND THEN** la version documentaire devient 0.3 et les rubriques existantes conservent leur ordre
 - **AND THEN** une seule section Tests navigateurs extérieurs en mode headless termine le document
+
+#### Scenario: Rubriques documentaires conservées
+
+- **WHEN** un document DevOps est généré
+- **THEN** les rubriques restent dans l'ordre : Système d'exploitation, Docker, Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source de vérité `pyproject.toml`, Python - Gestionnaire de paquets, Tests navigateurs extérieurs en mode headless
+- **AND THEN** seules les métadonnées de traçabilité et la légende précèdent la première rubrique, après la version documentaire
 
 ### Requirement: Distinction entre hôte et environnement DevOps
 
@@ -164,13 +161,7 @@ en utilisant uniquement des libellés fixes et les noms de variables reconnus.
 
 ### Requirement: Écriture limitée et robuste
 
-DIU SHALL modifier uniquement DEVOPS.md dans le projet ciblé, ses artefacts
-temporaires régénérables et le pyproject.toml conditionnel décrit ci-dessous. Le document SHALL être UTF-8 avec fins de ligne LF.
-Tout échec de préparation ou d'écriture SHALL rendre un code non nul et
-préserver le document existant. Une actualisation SHALL conserver ses droits
-et sa propriété. La synchronisation des projets SHALL conserver son comportement. La création
-SHALL conserver son comportement de préparation, puis effectuer la génération
-DevOps finale décrite ci-dessous.
+DIU SHALL écrire seulement DEVOPS.md, ses temporaires régénérables et le manifeste Python conditionnel dans le projet ciblé, en UTF-8/LF. Tout échec de préparation ou d'écriture SHALL retourner un code non nul et préserver l'existant. L'actualisation SHALL conserver droits et propriétaire ; la synchronisation et la préparation des créations SHALL rester inchangées. Les créations SHALL finir par la génération DevOps. À observations identiques, le contenu SHALL être identique hors horodatage.
 
 #### Scenario: Échec de remplacement
 
@@ -180,7 +171,8 @@ DevOps finale décrite ci-dessous.
 #### Scenario: Réexécution stable
 
 - **WHEN** deux exécutions observent le même environnement
-- **THEN** le contenu documentaire produit est identique
+- **THEN** le contenu documentaire produit est identique hors horodatage du début du relevé
+- **AND THEN** chaque document indique le début de son propre relevé
 
 ### Requirement: Manifeste Python conditionnel
 
@@ -373,3 +365,43 @@ La détection SHALL NOT installer de logiciel ni démarrer un test de navigation
 - **WHEN** une génération individuelle, groupée ou finale de création appelle projects_template_devops
 - **THEN** le document produit inclut la même section finale actualisée sans doublon
 - **AND THEN** les garanties existantes d'idempotence, de droits et de préservation du document en cas d'échec d'écriture restent applicables
+
+### Requirement: Horodatage UTC du début du relevé
+
+Chaque rendu SHALL capturer une seule fois, avant les sondes, le début du relevé avec date -u au format YYYY-MM-DDTHH:MM:SSZ. Cette collecte SHALL être bornée à 15 secondes. Une commande absente, échouée, expirée ou une sortie mal formée SHALL faire échouer la préparation, sans publier de sortie brute ni remplacer DEVOPS.md. L'horodatage SHALL NOT prétendre certifier la synchronisation de l'horloge ni une observation simultanée.
+
+#### Scenario: Horloge contrôlée
+
+- **WHEN** la collecte UTC retourne un instant valide
+- **THEN** le document indique cet instant comme début du relevé, avant ses rubriques
+- **AND THEN** une seule capture est effectuée avant les autres sondes
+
+#### Scenario: Horodatage indisponible
+
+- **WHEN** la commande manque, échoue, dépasse la borne ou retourne une sortie mal formée
+- **THEN** la génération échoue avec un diagnostic fixe sans exposer la sortie brute
+- **AND THEN** le document existant, ses droits et son propriétaire restent inchangés
+
+### Requirement: Contexte d'exécution fourni par DIU
+
+Le document SHALL indiquer la classification actuelle SYSTEM_DEBIAN_ENVIRONNEMENT parmi DOCKER, LXC, PHYSICAL, PROXMOX, VM ou UNSET. Une valeur absente, vide ou hors de ce vocabulaire SHALL être rendue comme UNSET, sans exposer la valeur brute ni exécuter son contenu. Cette génération SHALL NOT relancer la détection, déduire un contexte de PROJECT_DOCKERED, créer une configuration ou supposer un environnement physique.
+
+#### Scenario: Classification reconnue
+
+- **WHEN** SYSTEM_DEBIAN_ENVIRONNEMENT porte une classification reconnue
+- **THEN** le document indique exactement cette classification fournie par DIU
+
+#### Scenario: Classification inconnue
+
+- **WHEN** la variable est absente, vide ou contient une valeur non reconnue
+- **THEN** le document indique UNSET sans reproduire ni exécuter cette valeur
+
+### Requirement: Provenance et portée informative du relevé
+
+Avant la première rubrique, le document SHALL identifier DIU comme générateur et distinguer les sondes système de celles des outils et dépendances du compte DevOps. La légende SHALL préciser que les dépendances attendues viennent de [project].dependencies dans pyproject.toml et que l'inventaire ne vaut ni qualification fonctionnelle ni preuve de réussite des tests. Les parcours individuel, groupé et de création SHALL produire cette même présentation sans doublon.
+
+#### Scenario: Parcours de génération existants
+
+- **WHEN** une génération individuelle, groupée ou finale de création réussit
+- **THEN** le document contient une seule provenance DIU, un début du relevé UTC, une classification et la légende
+- **AND THEN** aucun résultat de test ou de qualification n'est inventé
