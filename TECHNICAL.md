@@ -838,6 +838,32 @@ l'identité Git. `git_update` est responsable exclusivement de
 générale du projet relève de `update_projects` ; les parcours de clonage
 utilisent leur configuration interne dédiée.
 
+`PROJECT_ORCHESTRATED_CODING` déclare le mode de développement : `No` pour
+un agent de codage autonome, `Yes` pour un agent piloté par un orchestrateur.
+La variable est facultative pour les projets existants ; son absence ou une
+valeur littérale vide vaut `No`. `rid projects create <ID PROJECT>` et
+`rid projects update <ID PROJECT>` la demandent avec la valeur enregistrée,
+sinon `No`. Une entrée vide conserve le défaut, une autre réponse que `Yes`
+ou `No` est redemandée ; une fin d'entrée empêche l'enregistrement.
+
+`project_orchestrated_coding_get <fichier>` fournit cette valeur aux fonctions
+qui en ont besoin, indépendamment des variables du shell et des projets
+précédents. Il lit l'affectation littérale sans exécuter le fichier ; les
+guillemets simples/doubles et le préfixe `export` sont acceptés. Une valeur
+non vide invalide ou un fichier présent illisible ou non ordinaire provoque
+un diagnostic sans contenu de configuration et un retour non nul. Un fichier
+absent renvoie `No` sans écriture. `project_orchestrated_coding_prompt`
+partage le questionnaire entre `update_projects` et `git_update_legacy`.
+Le parcours historique conserve le mode dans son résumé et sa réécriture ;
+la configuration Git locale et le clonage local le préservent.
+
+Cette métadonnée ne lance aucun agent ni service. La mise à jour générale
+sans identifiant et les critères de sélection des projets restent inchangés.
+Aucune migration globale n'est réalisée ; les fichiers reçoivent la variable
+lors de leur prochaine configuration interactive. Les références sont
+`openspec/specs/implement-projects-update/spec.md` et
+`openspec/specs/projects-general-update/spec.md`.
+
 Les configurations de fournisseurs sont différentielles. Chaque fonction
 `<provider>_update` valide d'abord les variables générales, puis ne modifie que
 son propre bloc dans `project.env`. L'écriture passe par un fichier temporaire

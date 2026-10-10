@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Ajout de `PROJECT_ORCHESTRATED_CODING=Yes|No` dans les variables des projets :
+  question à la création et à la mise à jour, conservation de la valeur
+  existante et défaut `No` en son absence. `Yes` déclare un codage piloté par
+  un orchestrateur ; `No` un codage autonome. Lecture isolée et conservation
+  dans la configuration historique du clonage, sans migration globale ni
+  lancement automatique d'agent ou de service.
+
 - Génération de `DEVOPS.md` au format `0.5` : inventaire JavaScript par
   manifeste et catégorie sous NPM, dépendances `.opencode/package.json`
   sous OpenCode, workspaces et verrous npm 2/3. Déclarations, versions
