@@ -42,6 +42,9 @@ sync_project() {
     local project_id_sed=""
     local markdown_file=""
     local template_file=""
+    local project_orchestrated_coding=""
+    local -a template_files=(AGENTS.md .gitignore)
+    local -a synchronized_files=()
 
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : sync_project <project_id>"
@@ -55,6 +58,10 @@ sync_project() {
 
     if [[ ! -f "${project_env}" ]]; then
         print_error "Le fichier project.env est introuvable : ${project_env}"
+        return 1
+    fi
+
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_get "${project_env}")"; then
         return 1
     fi
 
@@ -79,12 +86,20 @@ sync_project() {
         return 1
     fi
 
+    if [[ "${project_orchestrated_coding}" == Yes ]]; then
+        if [[ ! -f "${template_path}/ORCHESTRATED_CODING.md" ]]; then
+            print_error 'Le fichier modèle ORCHESTRATED_CODING.md est introuvable ou non régulier.'
+            return 1
+        fi
+        template_files+=(ORCHESTRATED_CODING.md)
+    fi
+
     staging_path="$(mktemp -d)" || {
         print_error "Impossible de préparer la synchronisation du projet."
         return 1
     }
 
-    for template_file in AGENTS.md .gitignore; do
+    for template_file in "${template_files[@]}"; do
         if ! cp -a -- "${template_path}/${template_file}" "${staging_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de préparer le fichier modèle : ${template_file}"
@@ -113,12 +128,13 @@ sync_project() {
         fi
     done < <(find "${staging_path}" -type f -name '*.md' -print0)
 
-    for template_file in AGENTS.md .gitignore; do
+    for template_file in "${template_files[@]}"; do
         if ! cp -a -- "${staging_path}/${template_file}" "${project_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de synchroniser le fichier : ${template_file}"
             return 1
         fi
+        synchronized_files+=("${project_path}/${template_file}")
     done
 
     if ! mkdir -p "${project_path}/PROMPTS"; then
@@ -134,8 +150,7 @@ sync_project() {
     fi
 
     if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" \
-        "${project_path}/AGENTS.md" \
-        "${project_path}/.gitignore" ||
+        "${synchronized_files[@]}" ||
         ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_path}/PROMPTS"; then
 
@@ -537,6 +552,7 @@ create_project() {
     local project_name_sed=""
     local project_id_sed=""
     local markdown_file=""
+    local project_orchestrated_coding=""
     local -a template_exclusions=()
 
     if [[ -z "${project_id}" ]]; then
@@ -579,6 +595,18 @@ create_project() {
         return 1
     fi
 
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_get "${project_env}")"; then
+        return 1
+    fi
+    if [[ "${project_orchestrated_coding}" == Yes ]]; then
+        if [[ ! -f "${template_path}/ORCHESTRATED_CODING.md" ]]; then
+            print_error 'Le fichier modèle ORCHESTRATED_CODING.md est introuvable ou non régulier.'
+            return 1
+        fi
+    else
+        template_exclusions+=(! -name ORCHESTRATED_CODING.md)
+    fi
+
     unset PROJECT_ID PROJECT_NAME PROJECT_TYPE
 
     # shellcheck disable=SC1090
@@ -599,7 +627,7 @@ create_project() {
     project_id_sed="$(printf '%s' "${project_id}" | sed 's/[&|\\]/\\&/g')"
 
     if [[ "${PROJECT_TYPE:-}" != PYTHON ]]; then
-        template_exclusions=(! -name pyproject.toml)
+        template_exclusions+=(! -name pyproject.toml)
     fi
     if ! find "${template_path}" -mindepth 1 -maxdepth 1 ! -name project.env \
         "${template_exclusions[@]}" \
