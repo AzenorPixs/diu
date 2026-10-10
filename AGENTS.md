@@ -1,6 +1,6 @@
 # AGENTS.md — Debian Installeur Unifié
 
-Version : 0.3
+Version : 0.4
 
 ## 1. Contexte
 
@@ -11,6 +11,8 @@ Version : 0.3
 * Cadrage technique : `TECHNICAL.md` ;
 * Cadrage de déploiement : `BUILD.md` ;
 * Envrionnement de développement : `DEVOPS.md` ;
+* Protocole des sessions de codage pilotées : `ORCHESTRATED_CODING.md`
+  (facultatif, uniquement si le projet nécessite ce pilotage) ;
 
 L'agent NE DOIT PAS créer, modifier ou supprimer de fichier hors de la racine
 applicable à son environnement sans validation explicite du développeur.
@@ -175,145 +177,27 @@ Les éléments suivants sont générés par OpenSpec/OpenCode et NE DOIVENT PAS 
 
 Toute modification de la configuration OpenCode nécessite une validation explicite concernant OpenCode ou son intégration avec OpenSpec.
 
-### Protocole de communication OpenCode ↔ CGPT via CAB
+### Sessions de codage pilotées par un agent orchestrateur
 
-Ce protocole s'applique à tout agent de codage OpenCode piloté par CGPT pendant
-une session de codage. Il complète les règles OpenSpec et ne les remplace pas.
+`ORCHESTRATED_CODING.md` est un fichier facultatif. Il est uniquement présent
+pour les projets qui nécessitent un pilotage par agent orchestrateur vers un
+agent de codage. Son absence est normale pour les autres projets et ne bloque
+pas une session de codage directe.
 
-#### Rôles
+Lorsqu'une session pilotée est nécessaire, les deux agents DOIVENT lire intégralement
+[ORCHESTRATED_CODING.md](ORCHESTRATED_CODING.md) à la racine de ce projet,
+avant toute opération de pilotage. Ce fichier dédié définit le protocole,
+les rôles, les échanges, les mandats, les preuves et les détails techniques
+de la session pilotée.
 
-CGPT fixe le périmètre, valide les choix fonctionnels et techniques, décide
-des mandats CAB et reçoit les comptes rendus. Le broker CAB ne décide jamais :
-il transporte et corrèle les demandes. Une décision est limitée à un
-`requestId` unique et à une seule opération.
+Cette référence complète les règles générales d'AGENTS.md et les
+spécifications OpenSpec validées, sans étendre les autorisations du développeur.
+Si un pilotage devient nécessaire et que le fichier est absent ou incohérent,
+l'agent DOIT signaler ce besoin et faire valider sa création ou sa correction
+avant de poursuivre ce pilotage. Une session directe SCM ne déclenche pas ce protocole,
+les services CAB ou les sondes statistiques de pilotage.
 
-L'agent de codage NE DOIT PAS étendre le périmètre, inventer une réponse CGPT
-ou CAB, exécuter une opération refusée, ni déclarer exécuté un outil, une
-commande ou un test sans preuve observée dans la session. Il NE DOIT PAS lire,
-afficher ou transmettre de secret.
-
-#### Initialisation de session
-
-Avant tout accès au projet, l'agent DOIT :
-
-1. confirmer le répertoire, le change OpenSpec et le périmètre reçus ;
-2. appeler réellement l'outil MCP `broker_readiness` exposé dans la session ;
-3. exiger le statut `READY` et l'absence d'approbation parasite ;
-4. rapporter à CGPT l'identifiant de session, le répertoire, le change et
-   l'état CAB.
-
-Une réponse textuelle sans appel d'outil observé ne constitue jamais une
-preuve. Si l'outil MCP n'est pas exposé, échoue, répond `BLOCKED` ou
-`HUMAN_REQUIRED`, l'agent DOIT envoyer `CAB_BLOCKED` à CGPT et s'arrêter.
-
-#### États de session
-
-L'agent suit exclusivement la séquence suivante :
-
-```text
-INIT → ANALYSE → WAIT_CGPT → WAIT_CAB → EXECUTION → REPORT
-                                      ↑                 │
-                                      └─────────────────┘
-```
-
-* `ANALYSE` : lecture et compréhension dans le seul périmètre validé ;
-* `WAIT_CGPT` : une décision fonctionnelle, technique ou de périmètre est
-  attendue ;
-* `WAIT_CAB` : une autorisation technique unitaire est attendue ;
-* `EXECUTION` : une seule opération autorisée est réalisée ;
-* `REPORT` : preuve et résultat sont transmis ;
-* `DONE` : la session ne peut être clôturée que par CGPT ou après exécution de
-  tous les mandats validés.
-
-Un changement d'état ne peut jamais être déduit d'un texte produit par
-l'agent lui-même.
-
-#### Messages à destination de CGPT
-
-Lorsqu'une décision est nécessaire, l'agent envoie l'un des messages suivants,
-puis passe à `WAIT_CGPT` sans poursuivre.
-
-```text
-NDOC
-change_id: <change>
-objet: <question précise>
-contexte: <faits observés>
-impact du blocage: <ce qui ne peut pas continuer>
-attente: réponse CGPT
-```
-
-```text
-NFDOC
-change_id: <change>
-objectif: <objectif validé>
-fichiers:
-  - <chemin> : <modification minimale>
-critères: <critères observables>
-validations: <vérifications prévues>
-limites: <éléments exclus>
-attente: validation explicite CGPT
-```
-
-```text
-NQCMOC
-change_id: <change>
-question: <choix à arbitrer>
-A: <option et impact>
-B: <option et impact>
-recommandation: <option et justification>
-attente: choix CGPT
-```
-
-Seule une réponse reçue dans la même session OpenCode est exploitable. Sans
-réponse explicite de CGPT, l'agent reste à `WAIT_CGPT`.
-
-#### Mandats CAB
-
-Avant toute écriture, commande Bash ou système nécessitant une permission,
-commande OpenSpec mutante, test à effet de bord, opération Docker, correction
-ou archivage, l'agent soumet un mandat CAB unitaire. Il contient un
-`requestId` inédit, un `approval_id`, un `change_id`, l'identifiant de session,
-le répertoire et un résumé lisible.
-
-Le mandat désigne exactement l'une des cibles suivantes :
-
-```text
-Édition :   files: ["chemin/relatif"] ; commands: []
-Commande :  files: [] ; commands: ["commande complète exacte"]
-```
-
-Les mandats à plusieurs fichiers, plusieurs commandes, glob, préfixe ou
-commande implicite sont interdits. Un `requestId` ne peut jamais être réutilisé.
-
-Après soumission :
-
-* `APPROVED` : exécuter une seule fois l'opération strictement identique ;
-* `REJECTED` : ne rien exécuter, rapporter le refus et passer à `WAIT_CGPT` ;
-* `needs_clarification` : ne rien exécuter et envoyer un `NDOC` ;
-* réponse absente, non corrélée, `BLOCKED` ou `HUMAN_REQUIRED` : envoyer
-  `CAB_BLOCKED` et s'arrêter.
-
-Une décision CAB ne couvre jamais une autre commande, même identique.
-
-#### Exécution, preuves et clôture
-
-Les lectures natives ne nécessitant pas de permission peuvent être effectuées
-pendant `ANALYSE`, dans le périmètre autorisé. L'agent distingue toujours les
-faits observés, les déductions, les éléments non vérifiés, les refus et les
-erreurs.
-
-Après chaque mandat, l'agent envoie un `RAPPORT_OC` contenant le `requestId`,
-l'opération, le résultat, les preuves réellement observées, les fichiers
-modifiés, les validations exécutées, les écarts et la prochaine étape. Toute
-correction, validation à effet de bord, modification OpenSpec ou archivage est
-un nouveau mandat CAB.
-
-L'agent ne coche une tâche OpenSpec qu'après preuve de son achèvement. Un
-archivage OpenSpec reste un mandat distinct et exige une validation explicite
-de CGPT après contrôle des critères, des tests et de la cohérence entre code,
-spécifications et documentation.
-
-#### Statistiques d'archivage
+### Statistiques d'archivage
 
 Après chaque archivage OpenSpec autorisé et réussi, produire un rapport par
 archive dans `openspec/changes/archive/<archive>/STATISTIQUES.md`, avec un
@@ -344,6 +228,7 @@ Les éléments versionnés ou protégés suivants NE DOIVENT PAS être supprimé
 
 * `.gitignore`
 * `AGENTS.md`
+* `ORCHESTRATED_CODING.md`
 * `BUILD.md`
 * `CHANGELOG.md`
 * `DEVOPS.md`
@@ -434,6 +319,7 @@ Les inclusions suivantes prévalent sur les exclusions générales et PEUVENT ê
 ```text id="3ewy6y"
 .gitignore
 AGENTS.md
+ORCHESTRATED_CODING.md
 BUILD.md
 CHANGELOG.md
 DEVOPS.md
