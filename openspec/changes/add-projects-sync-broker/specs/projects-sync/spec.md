@@ -33,13 +33,12 @@ exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
 
 ### Requirement: Copie ciblée et autoritaire du modèle
 
-Une synchronisation réussie MUST copier uniquement `AGENTS.md`,
-`.gitignore` et le contenu récursif de `PROMPTS`. Pour chaque élément
-copié dont une destination existe déjà, le contenu du modèle MUST l'écraser.
-Les éléments destination hors de cette sélection MUST être préservés.
-Pour la synchronisation unitaire ou groupée, DIU MUST NOT copier, créer,
-personnaliser, supprimer ou changer les droits ou le propriétaire du fichier
-`DEVOPS.md` à la racine du projet destination.
+DIU MUST copier uniquement AGENTS.md, .gitignore et PROMPTS récursivement,
+et ORCHESTRATED_CODING.md seulement pour Yes lu selon
+implement-projects-update. Le modèle MUST écraser les éléments copiés.
+DIU MUST préserver les autres destinations et MUST NOT copier, créer,
+personnaliser, supprimer ou modifier les droits ou le propriétaire de
+DEVOPS.md à la racine, en mode unitaire ou groupé.
 
 #### Scenario: Écrasement d'un élément géré
 

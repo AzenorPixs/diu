@@ -857,6 +857,18 @@ partage le questionnaire entre `update_projects` et `git_update_legacy`.
 Le parcours historique conserve le mode dans son résumé et sa réécriture ;
 la configuration Git locale et le clonage local le préservent.
 
+La création depuis le modèle et `rid projects sync <ID PROJECT>` utilisent
+ce lecteur sur la configuration destination avant la copie. Le document
+racine `ORCHESTRATED_CODING.md` est copié, personnalisé et reçoit le
+propriétaire prévu seulement pour `Yes`. Pour `No`, absence ou valeur vide,
+la source n'est pas requise et une destination existante reste intacte,
+y compris ses attributs. Pour `Yes`, une source absente ou non régulière
+provoque un échec avant toute copie du modèle. À la création, le répertoire
+et la configuration déjà préparés sont conservés en cas d'échec. `sync all`
+décide séparément pour chaque projet et poursuit après échec avec un résultat
+global non nul. Les commandes `template openspec`, `template devops` et
+`template all` restent indépendantes de cette copie documentaire.
+
 Cette métadonnée ne lance aucun agent ni service. La mise à jour générale
 sans identifiant et les critères de sélection des projets restent inchangés.
 Aucune migration globale n'est réalisée ; les fichiers reçoivent la variable
