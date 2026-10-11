@@ -42,6 +42,9 @@ sync_project() {
     local project_id_sed=""
     local markdown_file=""
     local template_file=""
+    local project_orchestrated_coding=""
+    local -a template_files=(AGENTS.md .gitignore)
+    local -a synchronized_files=()
 
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : sync_project <project_id>"
@@ -55,6 +58,10 @@ sync_project() {
 
     if [[ ! -f "${project_env}" ]]; then
         print_error "Le fichier project.env est introuvable : ${project_env}"
+        return 1
+    fi
+
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_get "${project_env}")"; then
         return 1
     fi
 
@@ -79,12 +86,20 @@ sync_project() {
         return 1
     fi
 
+    if [[ "${project_orchestrated_coding}" == Yes ]]; then
+        if [[ ! -f "${template_path}/ORCHESTRATED_CODING.md" ]]; then
+            print_error 'Le fichier modèle ORCHESTRATED_CODING.md est introuvable ou non régulier.'
+            return 1
+        fi
+        template_files+=(ORCHESTRATED_CODING.md)
+    fi
+
     staging_path="$(mktemp -d)" || {
         print_error "Impossible de préparer la synchronisation du projet."
         return 1
     }
 
-    for template_file in AGENTS.md .gitignore; do
+    for template_file in "${template_files[@]}"; do
         if ! cp -a -- "${template_path}/${template_file}" "${staging_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de préparer le fichier modèle : ${template_file}"
@@ -113,12 +128,13 @@ sync_project() {
         fi
     done < <(find "${staging_path}" -type f -name '*.md' -print0)
 
-    for template_file in AGENTS.md .gitignore; do
+    for template_file in "${template_files[@]}"; do
         if ! cp -a -- "${staging_path}/${template_file}" "${project_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de synchroniser le fichier : ${template_file}"
             return 1
         fi
+        synchronized_files+=("${project_path}/${template_file}")
     done
 
     if ! mkdir -p "${project_path}/PROMPTS"; then
@@ -134,8 +150,7 @@ sync_project() {
     fi
 
     if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" \
-        "${project_path}/AGENTS.md" \
-        "${project_path}/.gitignore" ||
+        "${synchronized_files[@]}" ||
         ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_path}/PROMPTS"; then
 
@@ -219,7 +234,7 @@ project_env_set_variables() {
     while [[ "$#" -gt 0 ]]; do
         key="$1"
         value="$2"
-        keys[${index}]="${key}"
+        keys[index]="${key}"
         replacements["${key}"]="$(printf '%q' "${value}")"
         index=$((index + 1))
         shift 2
@@ -364,6 +379,64 @@ clone_project() {
     return 0
 }
 
+project_orchestrated_coding_get() {
+    local project_env="${1:-}"
+    local line="" value="No"
+    local assignment_pattern='^[[:space:]]*(export[[:space:]]+)?PROJECT_ORCHESTRATED_CODING[[:space:]]*=(.*)$'
+    local literal_pattern="^[[:space:]]*(Yes|No|\"Yes\"|\"No\"|'Yes'|'No'|\"\"|''|)([[:space:]]+#.*)?[[:space:]]*$"
+
+    if [[ -z "${project_env}" ]]; then
+        print_error 'Usage : project_orchestrated_coding_get <fichier>' >&2
+        return 1
+    fi
+    if [[ ! -e "${project_env}" && ! -L "${project_env}" ]]; then
+        printf 'No\n'
+        return 0
+    fi
+    if [[ ! -f "${project_env}" || ! -r "${project_env}" ]]; then
+        print_error 'Impossible de lire le mode de développement du projet.' >&2
+        return 1
+    fi
+
+    # Ne charger aucune autre variable et ne pas exécuter la configuration.
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        if [[ "${line}" =~ ${assignment_pattern} ]]; then
+            if [[ ! "${BASH_REMATCH[2]}" =~ ${literal_pattern} ]]; then
+                print_error 'PROJECT_ORCHESTRATED_CODING doit valoir Yes ou No.' >&2
+                return 1
+            fi
+            case "${BASH_REMATCH[1]}" in
+                Yes|'"Yes"'|"'Yes'") value="Yes" ;;
+                *) value="No" ;;
+            esac
+        fi
+    done < "${project_env}"
+    printf '%s\n' "${value}"
+}
+
+project_orchestrated_coding_prompt() {
+    local default_value="${1:-No}" value=""
+
+    case "${default_value}" in
+        Yes|No) ;;
+        *)
+            print_error 'PROJECT_ORCHESTRATED_CODING doit valoir Yes ou No.' >&2
+            return 1
+            ;;
+    esac
+    while true; do
+        if ! read -r -p "PROJECT_ORCHESTRATED_CODING [${default_value}] (Yes/No) : " value; then
+            print_error 'Saisie interrompue pour PROJECT_ORCHESTRATED_CODING.' >&2
+            return 1
+        fi
+        value="${value:-${default_value}}"
+        case "${value}" in
+            Yes|No) printf '%s\n' "${value}"; return 0 ;;
+            *) print_error 'PROJECT_ORCHESTRATED_CODING doit valoir Yes ou No.' >&2 ;;
+        esac
+    done
+}
+
 # Génération ou mise à jour des variables générales du <PROJECT_ID>.
 update_projects() {
     local project_id="${1:-}"
@@ -374,6 +447,7 @@ update_projects() {
     local project_type="BASH"
     local project_dockered="No"
     local project_debian_package="No"
+    local project_orchestrated_coding="No"
     local value=""
 
     if [[ -z "${project_id}" ]]; then
@@ -383,6 +457,10 @@ update_projects() {
 
     if [[ ! -d "${project_path}" ]]; then
         print_error "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_get "${project_env}")"; then
         return 1
     fi
 
@@ -440,13 +518,18 @@ update_projects() {
         project_debian_package="${value}"
     fi
 
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_prompt "${project_orchestrated_coding}")"; then
+        return 1
+    fi
+
     if ! project_env_set_variables \
         "${project_env}" \
         PROJECT_ID "${project_id}" \
         PROJECT_NAME "${project_name}" \
         PROJECT_TYPE "${project_type}" \
         PROJECT_DOCKERED "${project_dockered}" \
-        PROJECT_DEBIAN_PACKAGE "${project_debian_package}"; then
+        PROJECT_DEBIAN_PACKAGE "${project_debian_package}" \
+        PROJECT_ORCHESTRATED_CODING "${project_orchestrated_coding}"; then
         return 1
     fi
 
@@ -469,6 +552,7 @@ create_project() {
     local project_name_sed=""
     local project_id_sed=""
     local markdown_file=""
+    local project_orchestrated_coding=""
     local -a template_exclusions=()
 
     if [[ -z "${project_id}" ]]; then
@@ -511,6 +595,18 @@ create_project() {
         return 1
     fi
 
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_get "${project_env}")"; then
+        return 1
+    fi
+    if [[ "${project_orchestrated_coding}" == Yes ]]; then
+        if [[ ! -f "${template_path}/ORCHESTRATED_CODING.md" ]]; then
+            print_error 'Le fichier modèle ORCHESTRATED_CODING.md est introuvable ou non régulier.'
+            return 1
+        fi
+    else
+        template_exclusions+=(! -name ORCHESTRATED_CODING.md)
+    fi
+
     unset PROJECT_ID PROJECT_NAME PROJECT_TYPE
 
     # shellcheck disable=SC1090
@@ -531,7 +627,7 @@ create_project() {
     project_id_sed="$(printf '%s' "${project_id}" | sed 's/[&|\\]/\\&/g')"
 
     if [[ "${PROJECT_TYPE:-}" != PYTHON ]]; then
-        template_exclusions=(! -name pyproject.toml)
+        template_exclusions+=(! -name pyproject.toml)
     fi
     if ! find "${template_path}" -mindepth 1 -maxdepth 1 ! -name project.env \
         "${template_exclusions[@]}" \

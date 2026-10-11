@@ -4,6 +4,20 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
+La création avec `rid projects create <ID PROJECT>` et la mise à jour des
+variables avec `rid projects update <ID PROJECT>` demandent
+`PROJECT_ORCHESTRATED_CODING` : `No` pour un agent de codage autonome, `Yes`
+pour un agent piloté par un orchestrateur. La valeur existante est proposée,
+sinon `No` ; une entrée vide conserve ce défaut. Une variable absente dans
+`project.env` vaut `No`, sans migration globale ni activation automatique.
+
+Lors de la création depuis le modèle et de `rid projects sync <ID PROJECT>`
+(y compris `sync all`), `ORCHESTRATED_CODING.md` est copié et personnalisé
+uniquement si le mode du projet destination vaut `Yes`. Pour `No` ou une
+variable absente ou vide, il n'est pas copié et une version destination
+existante reste intacte. Pour `Yes`, son absence dans le modèle provoque une
+erreur avant la copie des ressources du modèle.
+
 Pour publier les artefacts activés d’un projet :
 
 ```bash
