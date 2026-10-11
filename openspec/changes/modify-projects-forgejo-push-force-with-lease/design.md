@@ -6,8 +6,12 @@ fournisseur Forgejo explicite, ce parcours appelle
 distante configurée, puis publie séparément le tag éventuel.
 
 `--force-with-lease` s'appuie sur la référence locale de suivi du remote. Un
-fetch authentifié du remote nommé est donc nécessaire avant le push afin de
-permettre un premier push vers une branche distante existante.
+fetch authentifié du remote nommé est donc nécessaire avant le push vers un
+dépôt existant. Pour un dépôt absent, le change
+`restore-forgejo-push-to-create` prévoit un premier push sans fetch ni
+création API. Les deux deltas de publication Forgejo conservent le même
+contrat cumulatif afin que leur ordre de synchronisation ne retire aucune
+de ces garanties.
 
 ## Goals / Non-Goals
 
@@ -15,16 +19,19 @@ permettre un premier push vers une branche distante existante.
 
 - Protéger la mise à jour de la branche distante Forgejo avec
   `--force-with-lease`.
-- Synchroniser les références du remote Forgejo avant de vérifier le suivi et
-  de publier la branche.
-- Supprimer la confirmation interactive propre au push Forgejo.
+- Synchroniser les références du remote Forgejo existant avant de vérifier le
+  suivi et de publier la branche ; omettre le fetch pour un dépôt absent.
+- Supprimer la confirmation interactive du push Forgejo, GitLab et GitHub,
+  conformément à la proposition et aux deltas associés.
+- Préserver les protections GitHub déjà spécifiées : fetch authentifié,
+  arrêt sur échec et `--force-with-lease` sur la branche.
 - Conserver l'authentification, le suivi de branche et la destination
   explicite existants.
 
 **Non-Goals:**
 
 - Forcer ou modifier la publication des tags.
-- Modifier les parcours GitLab ou GitHub.
+- Modifier les autres comportements des parcours GitLab ou GitHub.
 - Ajouter une configuration ou une interaction utilisateur.
 
 ## Decisions
@@ -35,8 +42,11 @@ permettre un premier push vers une branche distante existante.
   l'authentification HTTPS temporaire existante.
 - Ajouter `forgejo_git_fetch_named()` et conserver `forgejo_git_fetch()` comme
   compatibilité pour le remote historique `origin`.
-- Conditionner la confirmation existante aux fournisseurs non Forgejo afin de
-  préserver les parcours GitLab et GitHub.
+- Retirer la confirmation supplémentaire du push pour les trois fournisseurs,
+  en conservant les contrôles de configuration et d'identifiants existants.
+- Vérifier l'existence du dépôt avant le fetch Forgejo et conserver le premier
+  push sans fetch pour un dépôt absent, selon
+  `restore-forgejo-push-to-create`.
 
 ## Risks / Trade-offs
 
@@ -50,5 +60,7 @@ permettre un premier push vers une branche distante existante.
 
 ## Migration Plan
 
-La modification est rétrocompatible et ne nécessite aucune migration. Son
-annulation consiste à retirer l'option du seul push de branche Forgejo.
+La modification ne nécessite aucune migration de configuration. Un éventuel
+retour arrière doit distinguer la protection de branche Forgejo, les
+confirmations de push et la création par premier push. Il doit préserver les
+protections GitHub préexistantes et fait l'objet d'une validation distincte.

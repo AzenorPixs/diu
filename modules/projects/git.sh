@@ -6094,6 +6094,7 @@ git_update_legacy() {
     local project_type="BASH"
     local project_dockered="No"
     local project_debian_package="No"
+    local project_orchestrated_coding="No"
 
     local local_default_branch="main"
     local git_user_name=""
@@ -6160,6 +6161,10 @@ git_update_legacy() {
     if [[ ! -d "${project_path}" ]]; then
         print_error \
             "Le répertoire du projet n'existe pas : ${project_path}"
+        return 1
+    fi
+
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_get "${project_env}")"; then
         return 1
     fi
 
@@ -6337,6 +6342,10 @@ git_update_legacy() {
 
     if [[ -n "${value}" ]]; then
         project_dockered="${value}"
+    fi
+
+    if ! project_orchestrated_coding="$(project_orchestrated_coding_prompt "${project_orchestrated_coding}")"; then
+        return 1
     fi
 
     # LOCAL_DEFAULT_BRANCH
@@ -6607,6 +6616,8 @@ git_update_legacy() {
     printf '%-30s : %s\n' "PROJECT_DOCKERED" "${project_dockered}"
     printf '%-30s : %s\n' \
         "PROJECT_DEBIAN_PACKAGE" "${project_debian_package}"
+    printf '%-30s : %s\n' \
+        "PROJECT_ORCHESTRATED_CODING" "${project_orchestrated_coding}"
 
     printf '\n'
 
@@ -6678,6 +6689,8 @@ git_update_legacy() {
         printf 'PROJECT_DOCKERED=%q\n' "${project_dockered}"
         printf 'PROJECT_DEBIAN_PACKAGE=%q\n' \
             "${project_debian_package}"
+        printf 'PROJECT_ORCHESTRATED_CODING=%q\n' \
+            "${project_orchestrated_coding}"
 
         printf '\n'
         printf '# Git local\n'
