@@ -31,6 +31,19 @@ Le helper commun ajoute `/api/v1` entre l'hôte Forgejo et l'endpoint demandé.
 Les appelants conservent des endpoints relatifs à cette API, ce qui évite les
 chemins divergents entre vérification, création et publication.
 
+## Succession du parcours de création
+
+Les objectifs et décisions de création API ci-dessus décrivent l'intention
+initiale de cette correction. Le change actif
+`restore-forgejo-push-to-create` remplace ensuite ce parcours : le provider
+vérifie l'existence du dépôt et délègue la création d'un dépôt absent au
+premier push Git, sans appel API de création ni fetch préalable.
+
+Le code actuel suit ce parcours successeur. La réutilisation de l'identité
+locale et le préfixe `/api/v1` restent pertinents pour le contexte
+authentifié et les appels API conservés. Les mentions de création API dans
+ce design ne prescrivent donc pas sa réintroduction.
+
 ## Risks / Trade-offs
 
 - [Le fichier username ne reflète pas le token] → les contrôles existants de

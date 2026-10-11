@@ -1,16 +1,19 @@
 # DEVOPS.md — diu
 
-Version : 0.4
+Version : 0.5
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-09T08:39:18Z
+Début du relevé (UTC) : 2026-10-11T09:23:59Z
 Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
-Les dépendances sont recherchées en priorité dans les venv du projet, puis dans le Python DevOps en repli explicite.
-La flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées.
-Les dépendances attendues proviennent de [project].dependencies dans pyproject.toml.
+Les dépendances Python sont recherchées en priorité dans les venv du projet, puis dans le Python DevOps en repli explicite.
+Dans l’inventaire Python, la flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées.
+Les dépendances Python attendues proviennent de [project].dependencies dans pyproject.toml.
+Les dépendances JavaScript sont regroupées par manifeste et catégorie sous NPM et OpenCode.
+Leurs déclarations, versions verrouillées npm et métadonnées locales sont distinctes ; un verrou ne prouve pas une installation.
+Les contraintes JavaScript ne sont pas résolues et cet inventaire ne prouve pas le chargement de plugins OpenCode.
 Un inventaire multi-environnements ne valide pas un environnement Python unique.
 Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.
 
@@ -57,7 +60,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 1.18.35
+  * 1.19.0
   * /home/devops/.opencode/bin/opencode
 
 

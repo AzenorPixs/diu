@@ -10,6 +10,9 @@ par le développeur, sans création d'un second change.
 
 - Limiter les sources requises et les copies à `AGENTS.md`, `.gitignore`
   et `PROMPTS/` pour la synchronisation unitaire et groupée.
+- Conserver la copie conditionnelle de `ORCHESTRATED_CODING.md` pour un mode
+  destination `Yes` lu selon `implement-projects-update`. Pour `No`, une valeur
+  absente ou vide, préserver la destination et ne pas exiger la source.
 - Retirer les copies de `.opencode/commands`, `.opencode/config`,
   `.opencode/skills` et `.opencode/broker` dans les projets.
 - Retirer la copie CAB globale vers `/home/${DEVOPS_USER}/.opencode/broker`.

@@ -4,6 +4,24 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Correction ShellCheck `SC2004` dans `project_env_set_variables` : indice de
+  tableau arithmétique simplifié, sans changement des affectations de
+  configuration ni des interfaces.
+
+- Copie de `ORCHESTRATED_CODING.md` depuis le modèle uniquement pour
+  `PROJECT_ORCHESTRATED_CODING=Yes`, à la création et à la synchronisation
+  unitaire ou groupée. Le document est personnalisé ; pour `No` ou une
+  variable absente ou vide, aucune copie ni suppression d'une destination
+  existante. Une source requise absente ou un mode invalide provoque un échec
+  avant la copie du modèle, sans migration ni activation de service.
+
+- Ajout de `PROJECT_ORCHESTRATED_CODING=Yes|No` dans les variables des projets :
+  question à la création et à la mise à jour, conservation de la valeur
+  existante et défaut `No` en son absence. `Yes` déclare un codage piloté par
+  un orchestrateur ; `No` un codage autonome. Lecture isolée et conservation
+  dans la configuration historique du clonage, sans migration globale ni
+  lancement automatique d'agent ou de service.
+
 - Génération de `DEVOPS.md` au format `0.5` : inventaire JavaScript par
   manifeste et catégorie sous NPM, dépendances `.opencode/package.json`
   sous OpenCode, workspaces et verrous npm 2/3. Déclarations, versions
