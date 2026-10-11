@@ -482,8 +482,10 @@ fonctionnelle imprévisible. Les fichiers déclaratifs de variables constituent
 l'exception prévue : leur sourcing initialise immédiatement leur variable.
 
 Le dispatch public est assuré par des fonctions `manage_*_action` et par des
-fonctions de domaine. Les commandes historiques `rid proj ...` restent
-acceptées par compatibilité avec l'aide et les appels existants.
+fonctions de domaine. Le filtre initial du point d'entrée accepte la classe
+`projects` et rejette la classe historique `proj`. Les références OpenSpec à
+`rid proj deb <project_id>` et `rid proj rel <project_id>` restent à réconcilier
+avec ce routage ; cette description ne modifie pas leur contrat.
 
 ## Configuration et variables
 
@@ -750,7 +752,11 @@ persistent les variables du scope `system`, puis régénèrent la configuration.
 
 Le routage logiciel passe par `manage_software_action` pour les commandes
 génériques et par `manage_softwares_action` pour les commandes modulaires.
-Trois moteurs sont reconnus : `deb`, `apt` et `github`.
+Les commandes génériques reconnaissent trois moteurs : `deb`, `apt` et
+`github`. Les commandes modulaires ajoutent le moteur d'applications `flatpak`
+pour l'installation, la suppression et la mise à jour des applications système.
+La préparation du client et du remote Flatpak relève séparément du module
+`system`, selon `software-flatpak` et `system-flatpak`.
 
 Les identifiants logiciels sont validés avant routage. Une recette doit être
 déclarée explicitement par le moteur ; le nom fourni par l'utilisateur ne doit
@@ -887,8 +893,14 @@ et un remplacement atomique ; le fichier final reste propriété de
 | Fournisseur | Variables principales | Défaut notable |
 |---|---|---|
 | Forgejo | `REMOTE_FORGEJO_BASE_URL`, `REMOTE_FORGEJO_OWNER`, `REMOTE_FORGEJO_REPOSITORY`, `REMOTE_FORGEJO_NAME`, `REMOTE_FORGEJO_BRANCH`, `REMOTE_FORGEJO_SSL_VERIFY` | dépôt = identifiant, remote = `origin`, branche = `main`, TLS = `No` |
-| GitLab | `REMOTE_GITLAB_BASE_URL`, `REMOTE_GITLAB_OWNER`, `REMOTE_GITLAB_REPOSITORY`, `REMOTE_GITLAB_NAME`, `REMOTE_GITLAB_BRANCH`, `REMOTE_GITLAB_SSL_VERIFY` | dépôt = identifiant, remote = `origin`, branche = `main`, TLS = `No` |
+| GitLab | `REMOTE_GITLAB_BASE_URL`, `REMOTE_GITLAB_REGISTRY`, `REMOTE_GITLAB_OWNER`, `REMOTE_GITLAB_REPOSITORY`, `REMOTE_GITLAB_NAME`, `REMOTE_GITLAB_BRANCH`, `REMOTE_GITLAB_SSL_VERIFY` | dépôt = identifiant, remote = `origin`, branche = `main`, TLS = `No` |
 | GitHub | `REMOTE_GITHUB_BASE_URL`, `REMOTE_GITHUB_OWNER`, `REMOTE_GITHUB_REPOSITORY`, `REMOTE_GITHUB_NAME`, `REMOTE_GITHUB_BRANCH` | dépôt = identifiant, remote = `origin`, branche = `main` |
+
+Le code actuel utilise `REMOTE_GITLAB_REGISTRY` comme autorité Docker sans
+protocole ni chemin, avec un port explicite éventuel. La release Docker
+reconfigure une valeur absente ou invalide avant publication. Ce comportement
+est décrit par le change actif `configure-gitlab-container-registry`, dont la
+synchronisation et l'archivage restent distincts de ce cadrage.
 
 Les URL configurées ne contiennent pas d'identifiants. Elles servent à
 construire un remote HTTPS de la forme :
@@ -1001,32 +1013,17 @@ ci-dessus est donc incluse une seule fois. Son échec est mémorisé : le module
 softwares est encore appelé, puis le code non nul projects est rendu. Lorsque
 projects réussit, le code final softwares est conservé.
 
-La description enrichie ci-dessous dépasse ce parcours simple actuel,
-notamment pour l'isolation et le bilan global. Cet écart préexistant est
-signalé ; l'intégration de projects ne réalise pas cette refonte générale.
+Chaque fonction appelée définit ses propres prérequis et traitements.
+`environments_update` retourne actuellement un succès sans opération.
+`softwares_update` délègue aux moteurs APT, GitHub et Flatpak du module.
+`update_all` n'implémente pas d'isolation généralisée des participants, de
+signalement uniforme des modules non applicables ou de bilan global enrichi.
+La spécification de référence est `openspec/specs/universal-update/spec.md`.
 
-L'orchestrateur global traite les participants explicitement déclarés :
-
-```text
-softwares/apt
-softwares/github
-ia/hermes si configuré et installé
-modules sans sous-fonction applicable
-diu
-```
-
-Les modules sans opération disponible sont signalés comme non applicables ;
-ils ne sont pas présentés comme mis à jour. Une opération commune ne doit pas
-être exécutée deux fois dans le même parcours.
-
-Chaque participant est isolé dans un sous-shell strict lorsque cela est
-nécessaire. Le résultat global est non nul dès qu'une opération requise échoue
-ou reste bloquée. Le bilan final ne doit pas annoncer un succès global dans ce
-cas.
-
-La mise à jour du DIUE peut remplacer son processus par `dpkg --install`.
-L'appel est confiné au sous-processus utilisé par `update_all` afin que
-l'orchestrateur conserve la capacité de produire le bilan global.
+La fonction `diu_update` exécute `update_diu` dans un sous-shell. L'installation
+par `exec dpkg --install` remplace ainsi ce sous-processus et permet le retour
+au parcours appelant ; cette isolation propre au DIU ne décrit pas le
+traitement de tous les participants.
 
 ## Journalisation et diagnostics
 
@@ -1142,9 +1139,9 @@ installé ; une version indisponible produit un diagnostic et un statut non nul.
 
 `modules/system/infos.sh` contient :
 
-- `system_info_network`, appelée par `rid system info network`, conserve
+- `system_info_network`, appelée par `rid system infos network`, conserve
   l'affichage des interfaces Ethernet 1 et 2 UP de l'ancienne `display_infos` ;
-- `system_info_debian`, appelée par `rid system info debian`, affiche les blocs
+- `system_info_debian`, appelée par `rid system infos debian`, affiche les blocs
   SYSTEM DEBIAN, SYSTEM APT OFFICIAL, SYSTEM APT UNOFFICIAL et SYSTEM FLATPAK ;
 - `system_info_drivers`, appelée par `rid system infos drivers`, affiche
   `SYSTEM_DRIVERS_DISPLAY_LINK`, puis la version du paquet `displaylink-driver`

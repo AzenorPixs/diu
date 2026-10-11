@@ -234,7 +234,7 @@ project_env_set_variables() {
     while [[ "$#" -gt 0 ]]; do
         key="$1"
         value="$2"
-        keys[${index}]="${key}"
+        keys[index]="${key}"
         replacements["${key}"]="$(printf '%q' "${value}")"
         index=$((index + 1))
         shift 2

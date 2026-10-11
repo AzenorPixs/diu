@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Correction ShellCheck `SC2004` dans `project_env_set_variables` : indice de
+  tableau arithmétique simplifié, sans changement des affectations de
+  configuration ni des interfaces.
+
 - Copie de `ORCHESTRATED_CODING.md` depuis le modèle uniquement pour
   `PROJECT_ORCHESTRATED_CODING=Yes`, à la création et à la synchronisation
   unitaire ou groupée. Le document est personnalisé ; pour `No` ou une

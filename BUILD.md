@@ -8,7 +8,7 @@ l'application Debian Installer Unifié (DIU).
 Il formalise le chemin technique allant de la commande :
 
 ```bash
-ridt proj cicddiu
+ridt projects cicddiu
 ```
 
 à la production de l'artefact :
@@ -49,11 +49,11 @@ Pour le flux `cicddiu`, `DEVOPS_PROJECTS_ROOT` doit valoir
 
 ## Point d'entrée et chaîne d'appel
 
-La commande `ridt proj cicddiu` utilise le script DIU de l'environnement de
+La commande `ridt projects cicddiu` utilise le script DIU de l'environnement de
 développement. Le chemin d'exécution est le suivant :
 
 ```text
-ridt proj cicddiu
+ridt projects cicddiu
         │
         ▼
 root-install-debian.sh
@@ -87,8 +87,13 @@ modules/projects/diu-packaging.sh
 Elle peut également être déclenchée directement avec :
 
 ```bash
-rid proj deb
+rid projects deb
 ```
+
+Cette commande construit actuellement le projet `diu`. Le routeur ne transmet
+pas d'identifiant à `build_deb_diu`, même si l'aide présente un paramètre de
+projet. La syntaxe et la cible prévues par OpenSpec restent à réconcilier,
+comme indiqué dans les écarts ci-dessous.
 
 ## Version du paquet
 
@@ -314,15 +319,17 @@ spécification OpenSpec `deb-package` :
 - l'implémentation exige la présence de `deb/`, alors que ce répertoire n'est
   ni lu ni copié et ne figure pas parmi les prérequis définis par la
   spécification ;
-- la spécification autorise `config/` lorsqu'il est nécessaire à la
-  production, tandis que l'implémentation actuelle l'exclut systématiquement ;
-- la spécification décrit `rid proj deb <project_id>`, tandis que le dispatch
-  et `build_deb_diu` ciblent actuellement le projet `diu` sans utiliser de
-  paramètre `project_id` ;
+- la spécification décrit `rid proj deb <project_id>`, tandis que le filtre
+  CLI actuel accepte la classe `projects` et rejette `proj`. Le dispatch
+  et `build_deb_diu` ciblent le projet `diu` sans utiliser de paramètre
+  `project_id`, contrairement à la cible paramétrable annoncée par l'aide ;
 - la spécification décrit une version générée au moment du build, tandis que
   l'implémentation préfère un tag pointant sur `HEAD` et utilise l'horodatage
   uniquement en l'absence de tag. Dans le flux `cicddiu`, le tag par défaut est
   lui-même généré à partir de l'horodatage attendu.
+
+La spécification actuelle et l'implémentation excluent toutes deux `config/`
+du paquet ; cet élément ne constitue pas un écart.
 
 Ce document constate ces écarts sans modifier les exigences OpenSpec. Leur
 correction ou leur validation nécessite une évolution explicitement autorisée.
