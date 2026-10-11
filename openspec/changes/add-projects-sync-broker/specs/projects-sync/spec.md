@@ -61,6 +61,16 @@ DEVOPS.md à la racine, en mode unitaire ou groupé.
 - **WHEN** le projet destination ne possède aucun DEVOPS.md
 - **THEN** la synchronisation n'en crée pas, même si le modèle en contient un
 
+#### Scenario: Copie du protocole pour un projet piloté
+
+- **WHEN** le mode destination vaut Yes et le document modèle est disponible
+- **THEN** ORCHESTRATED_CODING.md est copié, personnalisé et reçoit le propriétaire du projet
+
+#### Scenario: Préservation du protocole pour un projet autonome
+
+- **WHEN** le mode destination vaut No ou est absent ou vide
+- **THEN** ORCHESTRATED_CODING.md n'est pas copié et sa destination existante reste intacte
+
 ## ADDED Requirements
 
 ### Requirement: Préservation des ressources OpenCode et CAB exclues

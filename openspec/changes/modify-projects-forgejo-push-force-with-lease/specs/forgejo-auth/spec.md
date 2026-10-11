@@ -10,11 +10,24 @@ exécuter le push HTTPS authentifié.
 WHEN `forgejo_push()` est exécutée sur un remote Forgejo HTTPS
 AND `config/forgejo.token` existe et est valide
 AND `config/forgejo.username` existe et est valide
-THEN les références du remote Forgejo nommé sont récupérées via
-`forgejo-auth`/`git-auth` avant le push
+THEN l'existence du dépôt Forgejo est vérifiée avant toute récupération
+AND pour un dépôt existant, les références du remote Forgejo nommé sont
+récupérées via `forgejo-auth`/`git-auth` avant le push
+AND un échec de récupération empêche le push
+AND pour un dépôt absent, aucun fetch ni appel API de création n'est exécuté
+AND le premier push délègue la création à Forgejo selon
+restore-forgejo-push-to-create
 AND le `git push` est exécuté via `forgejo-auth`/`git-auth`
 AND aucune invite Username/Password n'est affichée
 AND aucun credential n'est stocké de manière persistante
+
+#### Scenario: Dépôt absent avec token valide
+
+WHEN `forgejo_push()` est exécutée avec des identifiants valides
+AND le dépôt Forgejo distant est absent
+THEN aucun `git fetch` ni appel API de création n'est exécuté
+AND le premier `git push` est exécuté via `forgejo-auth`/`git-auth`
+AND la création dépend de la configuration push-to-create du serveur
 
 #### Scenario: Push sans token
 

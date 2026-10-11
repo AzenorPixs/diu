@@ -32,13 +32,11 @@ copie.
 
 ### Requirement: Source de synchronisation contrôlée
 
-Avant toute copie, DIU MUST vérifier l'existence du répertoire modèle
-`/home/${DEVOPS_USER}/datas/template` et de chacun de ses éléments gérés : les
-fichiers `AGENTS.md`, `.gitignore` et les répertoires
-`.opencode/commands`, `.opencode/config`, `.opencode/skills` et `PROMPTS`.
-Une source indisponible ou de type incorrect MUST faire échouer la commande
-avec un code non nul avant toute copie. DIU MUST NOT exiger la présence de
-`DEVOPS.md` dans le modèle, pour la synchronisation unitaire ou groupée.
+Avant copie, DIU MUST vérifier le modèle `/home/${DEVOPS_USER}/datas/template`,
+ses fichiers `AGENTS.md`, `.gitignore` et ses répertoires `.opencode/commands`,
+`.opencode/config`, `.opencode/skills`, `PROMPTS`. Une source indisponible ou de
+type incorrect MUST faire échouer la commande avec un code non nul avant
+toute copie. DIU MUST NOT exiger `DEVOPS.md`, en mode unitaire ou groupé.
 
 #### Scenario: Répertoire modèle indisponible
 

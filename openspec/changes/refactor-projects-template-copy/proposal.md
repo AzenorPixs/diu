@@ -9,8 +9,10 @@ dépôt Git.
 
 - Exclure le répertoire `.git` du modèle local lors de la création d'un projet.
 - Préserver la copie de tous les autres éléments du modèle, sous réserve de
-  l'exclusion existante de `project.env` et de la copie conditionnelle de
-  `ORCHESTRATED_CODING.md` définie par condition-project-orchestrated-coding-copy.
+  l'exclusion existante de `project.env`, de l'exclusion du `pyproject.toml`
+  racine pour un projet non Python selon `projects-template-devops`, et de la
+  copie conditionnelle de `ORCHESTRATED_CODING.md` définie par
+  condition-project-orchestrated-coding-copy.
 - Vérifier par un test ciblé qu'aucun dépôt Git du modèle n'est présent dans
   le projet créé.
 
