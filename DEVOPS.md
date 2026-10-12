@@ -3,8 +3,8 @@
 Version : 0.5
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-11T09:23:59Z
-Environnement d'exécution DIU : PHYSICAL
+Début du relevé (UTC) : 2026-10-12T03:25:17Z
+Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
@@ -60,7 +60,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 1.19.0
+  * indisponible (binaire absent)
   * /home/devops/.opencode/bin/opencode
 
 
