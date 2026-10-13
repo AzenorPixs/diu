@@ -836,7 +836,12 @@ PROJECT_ID
 PROJECT_NAME
 PROJECT_TYPE
 PROJECT_DOCKERED
+PROJECT_DEBIAN_PACKAGE
 ```
+
+`update_projects` renseigne ces cinq variables. Elles sont également requises
+pour la sélection des projets par les modèles groupés et pour la vérification
+de la configuration générale avant une release Forgejo.
 
 La configuration Git locale comprend la branche locale par défaut et
 l'identité Git. `git_update` est responsable exclusivement de
@@ -1062,14 +1067,13 @@ propriétaire et l'environnement du dépôt.
 
 ## Validation technique
 
-Les tests isolés actuellement présents couvrent :
-
-```text
-tests/test_config_cleanup.py
-tests/test_software.py
-tests/test_system_apt.py
-tests/test_system_debian_release.py
-```
+Les tests isolés sont regroupés dans `tests/test_*.py`. Ils couvrent notamment
+la configuration et les variables système, les dépôts APT et les prérequis,
+les moteurs logiciels et Flatpak, DisplayLink, l'aide CLI, les projets et
+leurs modèles OpenSpec et DevOps, ainsi que les préparations DevOps.
+Le répertoire `tests/` fournit l'inventaire des fichiers présents. Cette liste
+de domaines n'est pas exhaustive et ne constitue pas une preuve de réussite
+des tests ni de couverture complète des comportements.
 
 Pour toute modification Bash, exécuter au minimum :
 
