@@ -3,8 +3,8 @@
 Version : 0.5
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-12T05:33:25Z
-Environnement d'exécution DIU : PHYSICAL
+Début du relevé (UTC) : 2026-10-13T04:56:15Z
+Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
@@ -114,7 +114,7 @@ La détection ne vérifie pas le fonctionnement du mode headless.
 
 ## Chromium
 
-  * 154.0.8037.92
+  * 155.0.8059.39
   * /usr/bin/chromium
   * Mode headless : --headless
 
