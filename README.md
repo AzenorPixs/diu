@@ -54,6 +54,18 @@ rid projects forgejo release <ID PROJECT>
 La commande publie l’image Docker et/ou le paquet Debian selon
 `PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` dans `project.env`.
 
+Pour publier une image déjà construite vers GitHub Container Registry :
+
+```bash
+rid projects github release <ID PROJECT>
+```
+
+Le propriétaire et le dépôt sont convertis en minuscules dans les références
+GHCR, y compris dans le résumé CI/CD : `AzenorPixs/PKeycloak` devient
+`ghcr.io/azenorpixs/pkeycloak`. La configuration GitHub conserve sa casse ;
+les tags Docker sont la version issue de l'unique tag Git de `HEAD` et `latest`.
+Cette commande ne construit pas l'image.
+
 Pour générer l'inventaire DevOps d'un projet :
 
 ```bash
