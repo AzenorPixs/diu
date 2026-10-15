@@ -10,8 +10,9 @@ secret ni modifier la configuration Git persistante.
 
 ### Requirement: Fonction d'exécution Git authentifiée
 
-Le module `lib/git-auth.sh` SHALL exposer une fonction permettant d'exécuter
-une commande Git arbitraire avec authentification HTTPS par token.
+La fonction `git_with_token`, définie dans `modules/projects/git.sh`, SHALL
+permettre d'exécuter une commande Git arbitraire avec authentification HTTPS
+par token.
 
 La fonction SHALL accepter en paramètres :
 
@@ -166,10 +167,10 @@ AND aucune tentative de saisie interactive n'est déclenchée
 
 ### Requirement: Extensibilité multi-fournisseur
 
-Le module `lib/git-auth.sh` SHALL rester entièrement agnostique du
-fournisseur de forge.
+La fonction `git_with_token`, définie dans `modules/projects/git.sh`, SHALL
+rester entièrement agnostique du fournisseur de forge.
 
-Le module ne SHALL contenir aucune logique spécifique à Forgejo, GitHub
+La fonction ne SHALL contenir aucune logique spécifique à Forgejo, GitHub
 ou GitLab.
 
 Toute la logique spécifique à un fournisseur SHALL être encapsulée dans
@@ -177,6 +178,6 @@ le module provider correspondant (`lib/forgejo-auth.sh`, etc.).
 
 #### Scenario: Indépendance du cœur
 
-WHEN le module `lib/git-auth.sh` est lu
-THEN il ne contient aucune référence à un fournisseur spécifique
-AND il ne contient aucune dépendance vers `lib/forgejo-auth.sh`
+WHEN la fonction `git_with_token` de `modules/projects/git.sh` est lue
+THEN elle ne contient aucune référence à un fournisseur spécifique
+AND elle ne contient aucune dépendance vers `lib/forgejo-auth.sh`

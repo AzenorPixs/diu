@@ -836,7 +836,12 @@ PROJECT_ID
 PROJECT_NAME
 PROJECT_TYPE
 PROJECT_DOCKERED
+PROJECT_DEBIAN_PACKAGE
 ```
+
+`update_projects` renseigne ces cinq variables. Elles sont également requises
+pour la sélection des projets par les modèles groupés et pour la vérification
+de la configuration générale avant une release Forgejo.
 
 La configuration Git locale comprend la branche locale par défaut et
 l'identité Git. `git_update` est responsable exclusivement de
@@ -874,6 +879,14 @@ et la configuration déjà préparés sont conservés en cas d'échec. `sync all
 décide séparément pour chaque projet et poursuit après échec avec un résultat
 global non nul. Les commandes `template openspec`, `template devops` et
 `template all` restent indépendantes de cette copie documentaire.
+
+À la création, `create_project` exclut également l'entrée `.git` à la racine
+du modèle dans sa sélection `find`, avant la copie récursive par `cp -a`.
+Les autres fichiers cachés, dont `.gitignore`, sont conservés ; les exclusions
+existantes de `project.env` et des documents conditionnels restent applicables.
+Aucune opération Git n'est lancée par cette copie. L'exclusion ne concerne
+pas les `.git` imbriqués et ne modifie aucun projet existant. La référence est
+`openspec/specs/projects-template-creation/spec.md`.
 
 Cette métadonnée ne lance aucun agent ni service. La mise à jour générale
 sans identifiant et les critères de sélection des projets restent inchangés.
@@ -1062,14 +1075,13 @@ propriétaire et l'environnement du dépôt.
 
 ## Validation technique
 
-Les tests isolés actuellement présents couvrent :
-
-```text
-tests/test_config_cleanup.py
-tests/test_software.py
-tests/test_system_apt.py
-tests/test_system_debian_release.py
-```
+Les tests isolés sont regroupés dans `tests/test_*.py`. Ils couvrent notamment
+la configuration et les variables système, les dépôts APT et les prérequis,
+les moteurs logiciels et Flatpak, DisplayLink, l'aide CLI, les projets et
+leurs modèles OpenSpec et DevOps, ainsi que les préparations DevOps.
+Le répertoire `tests/` fournit l'inventaire des fichiers présents. Cette liste
+de domaines n'est pas exhaustive et ne constitue pas une preuve de réussite
+des tests ni de couverture complète des comportements.
 
 Pour toute modification Bash, exécuter au minimum :
 
