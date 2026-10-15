@@ -78,6 +78,11 @@ Il regroupe les fonctions nécessaires à la création, à l'initialisation et �
 l'administration des projets pris en charge par le DIU, ainsi qu'à la
 publication de leurs images Docker et paquets Debian vers Forgejo.
 
+La construction Docker accepte un fichier public optionnel
+`build/docker-build.args`, propre à chaque projet. Le DIU valide sa syntaxe
+et transmet ses valeurs littéralement ; aucune logique applicative, version
+métier ou dépendance à un outil de projet n'est intégrée au moteur.
+
 ## Principes d'organisation
 
 Le DIU respecte les principes suivants :

@@ -901,6 +901,33 @@ son propre bloc dans `project.env`. L'écriture passe par un fichier temporaire
 et un remplacement atomique ; le fichier final reste propriété de
 `DEVOPS_USER:DEVOPS_GROUP` avec le mode `660`.
 
+### Arguments publics de construction Docker
+
+`projects_docker_build` conserve ses contrôles existants, puis appelle
+`projects_docker_load_build_args` pour lire `build/docker-build.args`.
+Le fichier est optionnel ; son absence ou un contenu vide conserve la commande
+sans argument supplémentaire. Chaque ligne utile suit `NOM=VALEUR` avec nom
+ASCII `[A-Za-z_][A-Za-z0-9_]*`, unique et sans indentation. Une valeur vide,
+les espaces, quotes, dollars, antislashs, Unicode, # et = restent littéraux.
+Les blancs et commentaires # après indentation sont ignorés ; la dernière
+ligne sans LF reste acceptée. CR et NUL sont refusés.
+
+Fichier régulier et lisible, fichier et répertoire build non symboliques,
+limite 65 536 octets. La lecture est également bornée si la ressource évolue
+après stat, puis le descripteur est fermé. La validation complète précède
+l'affectation du tableau de paires `--build-arg`, `NOM=VALEUR`. Aucun source,
+eval, chargement d'environnement ou exécution de helper n'est ajouté.
+Un refus bloque Docker avec catégorie et éventuellement numéro de ligne,
+sans valeurs ; l'échec Docker reste non nul selon le comportement existant.
+
+Le contenu est public et non sensible. Son accord avec une référence
+applicative relève du projet consommateur. Le moteur ne peut pas déterminer
+la sensibilité d'une valeur arbitraire et ne garantit pas de masquer les
+arguments dans les sorties natives de Docker. Le module reste agnostique.
+La référence est `openspec/specs/modify-projects-docker-build/spec.md`.
+Les tests `tests/test_projects_docker_build_args.py` utilisent uniquement
+fixtures, runuser/Docker simulés et actions CI/CD simulées.
+
 ### Variables des fournisseurs distants
 
 | Fournisseur | Variables principales | Défaut notable |

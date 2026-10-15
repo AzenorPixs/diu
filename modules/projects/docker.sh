@@ -2,6 +2,64 @@
 
 # Gestion des commandes docker au sein d'un projet
 
+# Lire exclusivement les arguments publics, sans interprétation shell.
+projects_docker_load_build_args() {
+    local project_dir="$1"
+    local -n result="$2"
+    local args_file="${project_dir}/build/docker-build.args"
+    local LC_ALL=C
+    local size args_fd content read_status=0 line key line_number=0
+    local -a parsed=()
+    local -A seen=()
+
+    result=()
+    if [[ ! -e "${args_file}" && ! -L "${args_file}" ]]; then
+        return 0
+    fi
+    if [[ -L "${project_dir}/build" || -L "${args_file}" || ! -f "${args_file}" || ! -r "${args_file}" ]]; then
+        echo "❌ Fichier d'arguments Docker non régulier, symbolique ou illisible." >&2
+        return 1
+    fi
+    if ! size=$(stat -c '%s' -- "${args_file}" 2>/dev/null) || [[ ! ${size} =~ ^[0-9]+$ ]] || (( size > 65536 )); then
+        echo "❌ Fichier d'arguments Docker inaccessible ou supérieur à 64 Kio." >&2
+        return 1
+    fi
+    if ! { exec {args_fd}< "${args_file}"; } 2>/dev/null; then
+        echo "❌ Ouverture du fichier d'arguments Docker impossible." >&2
+        return 1
+    fi
+    # read jusqu'à NUL : 1 signifie EOF normal, 0 détecte un octet interdit.
+    IFS= read -r -d '' -n 65537 content <&"${args_fd}" || read_status=$?
+    if ! exec {args_fd}<&-; then
+        echo "❌ Fermeture du fichier d'arguments Docker impossible." >&2
+        return 1
+    fi
+    if (( read_status != 1 )) || [[ ${content} == *$'\r'* ]]; then
+        echo "❌ Fichier d'arguments Docker invalide : lecture, NUL ou CR." >&2
+        return 1
+    fi
+    while IFS= read -r line || [[ -n ${line} ]]; do
+        line_number=$((line_number + 1))
+        if [[ ${line} =~ ^[[:blank:]]*(#.*)?$ ]]; then
+            continue
+        fi
+        key=${line%%=*}
+        if [[ ${line} != *=* || ! ${key} =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            echo "❌ Arguments Docker invalides (ligne ${line_number}) : NOM=VALEUR attendu." >&2
+            return 1
+        fi
+        if [[ ${seen[${key}]+present} ]]; then
+            echo "❌ Arguments Docker invalides (ligne ${line_number}) : doublon." >&2
+            return 1
+        fi
+        seen[${key}]=1
+        parsed+=(--build-arg "${line}")
+    done <<< "${content}"
+    # Le tableau appartient à l'appelant et est affecté via la nameref.
+    # shellcheck disable=SC2034
+    result=("${parsed[@]}")
+}
+
 # ============================================================
 # Construction de l'image Docker d'un projet
 # ============================================================
@@ -14,6 +72,7 @@ projects_docker_build() {
     local project_dir
     local project_env
     local image_name
+    local -a docker_build_args=()
 
     # --------------------------------------------------------
     # Vérification des arguments
@@ -89,6 +148,10 @@ projects_docker_build() {
 
     image_name="${PROJECT_ID:-${project_id}}"
 
+    if ! projects_docker_load_build_args "${project_dir}" docker_build_args; then
+        return 1
+    fi
+
     # --------------------------------------------------------
     # Construction
     # --------------------------------------------------------
@@ -108,6 +171,7 @@ projects_docker_build() {
         docker build \
             --file "${project_dir}/${dockerfile}" \
             --tag "${image_name}:latest" \
+            "${docker_build_args[@]}" \
             "${project_dir}"
     then
         echo

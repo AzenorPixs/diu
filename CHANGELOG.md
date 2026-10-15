@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Arguments Docker publics optionnels par projet via `build/docker-build.args` :
+  valeurs littérales transmises en tableau après validation complète, sans
+  interprétation shell ni dépendance applicative. Refus des doublons, noms
+  invalides, CR/NUL, chemins symboliques et fichiers hors limite ; diagnostics
+  sans valeurs. Les projets sans fichier conservent leur comportement.
+
 - Exclusion du `.git` racine du modèle lors de `rid projects create` pour
   éviter le transfert de son dépôt Git. Les autres fichiers cachés, dont
   `.gitignore`, et les règles de copie existantes sont conservés. Les `.git`

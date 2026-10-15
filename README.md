@@ -23,6 +23,28 @@ transféré au nouveau projet. Les autres fichiers cachés, dont `.gitignore`,
 restent copiés selon les règles existantes. Cette exclusion ne concerne pas
 les `.git` imbriqués et ne modifie aucun projet existant.
 
+Pour construire une image avec `rid projects docker build <ID PROJECT>`, le
+projet peut fournir le fichier public optionnel `build/docker-build.args` :
+
+```text
+# Paramètres publics propres à ce projet
+APP_VERSION=1.2.3
+BUILD_MODE=release
+```
+
+DIU transmet ces lignes comme arguments Docker, sans interprétation shell.
+Les quotes restent dans la valeur, les dollars ne sont pas développés et une
+valeur vide reste vide. Les commentaires/blancs sont ignorés. Noms invalides,
+doublons, CR/NUL, liens symboliques, fichiers non réguliers/illisibles ou
+supérieurs à 64 Kio bloquent la construction. La dernière ligne sans LF est
+acceptée. Le fichier ne doit contenir aucun secret ; les paramètres et leur
+cohérence applicative restent dans chaque projet. Sans fichier, le parcours
+existant est conservé. Aucun helper applicatif n'est exécuté.
+
+Le [dossier de validation](openspec/changes/archive/2026-10-15-support-project-docker-build-args/review.md)
+et son [rapport d'archive](openspec/changes/archive/2026-10-15-support-project-docker-build-args/STATISTIQUES.md)
+conservent les preuves et limites de cette évolution.
+
 Pour publier les artefacts activés d’un projet :
 
 ```bash

@@ -3,7 +3,7 @@
 Version : 0.5
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-15T05:53:42Z
+Début du relevé (UTC) : 2026-10-15T11:34:48Z
 Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -48,13 +48,13 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Node
 
-  * 24.21.0
+  * 24.22.0
   * /home/devops/node/current/bin/node
 
 
 # NPM
 
-  * 11.19.0
+  * 11.19.1
   * /home/devops/node/current/bin/npm
 
 
