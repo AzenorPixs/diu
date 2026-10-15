@@ -548,7 +548,7 @@ cicd_project() {
             print_error "Échec de la release GitHub."
             return 1
         fi
-        github_release_status="ghcr.io/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}:${docker_version} et latest"
+        github_release_status="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:${docker_version} et latest"
     fi
 
     cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
@@ -4859,8 +4859,8 @@ projects_github_release() {
     fi
 
     local_image="${PROJECT_ID}:latest"
-    remote_image_version="ghcr.io/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}:${docker_version}"
-    remote_image_latest="ghcr.io/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}:latest"
+    remote_image_version="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:${docker_version}"
+    remote_image_latest="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:latest"
 
     if ! runuser -u "${DEVOPS_USER}" -- \
         docker image inspect "${local_image}" >/dev/null 2>&1; then
