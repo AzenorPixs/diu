@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Correction des références Docker GHCR : propriétaire et dépôt GitHub
+  convertis en minuscules pour la release et son résumé CI/CD. Les valeurs de
+  `project.env`, l'identité GitHub, l'image locale et la casse du tag de version
+  sont conservées.
+
 - Arguments Docker publics optionnels par projet via `build/docker-build.args` :
   valeurs littérales transmises en tableau après validation complète, sans
   interprétation shell ni dépendance applicative. Refus des doublons, noms

@@ -958,6 +958,14 @@ Le remote configuré pour GitLab ou GitHub peut donc être différent de
 `origin`. Un push fournisseur ne doit pas modifier le remote d'un autre
 fournisseur.
 
+La publication `rid projects github release <ID PROJECT>` construit ses
+références GHCR avec `REMOTE_GITHUB_OWNER` et `REMOTE_GITHUB_REPOSITORY`
+convertis en minuscules uniquement dans le chemin Docker. Le résumé CI/CD
+affiche la même cible normalisée. Les variables chargées, `project.env`,
+l'identité d'authentification et l'image locale restent inchangés ; la casse
+du tag de version dérivé de Git est conservée. La référence est
+`openspec/specs/implement-projects-github-release/spec.md`.
+
 ### TLS fournisseur
 
 `REMOTE_FORGEJO_SSL_VERIFY` et `REMOTE_GITLAB_SSL_VERIFY` acceptent `Yes` ou
