@@ -231,7 +231,7 @@ AND le token n'est pas affiché
 
 Le provider `lib/forgejo-auth.sh` SHALL dépendre uniquement de :
 
-- `lib/git-auth.sh` (cœur générique) ;
+- la fonction `git_with_token` de `modules/projects/git.sh` (cœur générique) ;
 - `lib/logging.sh` (affichage) ;
 - outils système : `git`, `stat`, `cat`.
 

@@ -18,6 +18,11 @@ variable absente ou vide, il n'est pas copié et une version destination
 existante reste intacte. Pour `Yes`, son absence dans le modèle provoque une
 erreur avant la copie des ressources du modèle.
 
+La création exclut le `.git` à la racine du modèle : son dépôt Git n'est pas
+transféré au nouveau projet. Les autres fichiers cachés, dont `.gitignore`,
+restent copiés selon les règles existantes. Cette exclusion ne concerne pas
+les `.git` imbriqués et ne modifie aucun projet existant.
+
 Pour publier les artefacts activés d’un projet :
 
 ```bash
