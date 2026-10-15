@@ -3,8 +3,8 @@
 Version : 0.5
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-13T04:56:15Z
-Environnement d'exécution DIU : PROXMOX
+Début du relevé (UTC) : 2026-10-15T05:53:42Z
+Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
@@ -24,7 +24,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Docker
 
-  * 29.9.0
+  * 29.9.1
   * /usr/bin/docker
 
 
@@ -66,7 +66,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenSpec
 
-  * 1.14.1
+  * 1.14.2
   * /home/devops/.local/npm/bin/openspec
 
 
@@ -121,6 +121,6 @@ La détection ne vérifie pas le fonctionnement du mode headless.
 
 ## Firefox
 
-  * 153.4.0esr
+  * 153.5.0esr
   * /usr/bin/firefox
   * Mode headless : --headless

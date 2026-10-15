@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Exclusion du `.git` racine du modèle lors de `rid projects create` pour
+  éviter le transfert de son dépôt Git. Les autres fichiers cachés, dont
+  `.gitignore`, et les règles de copie existantes sont conservés. Les `.git`
+  imbriqués et les projets déjà créés ne sont pas concernés.
+
 - Correction ShellCheck `SC2004` dans `project_env_set_variables` : indice de
   tableau arithmétique simplifié, sans changement des affectations de
   configuration ni des interfaces.

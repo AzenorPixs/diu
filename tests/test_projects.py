@@ -790,6 +790,13 @@ create_project projet-test
             template_path = temporary_path / 'datas' / 'template'
             projects_root = temporary_path / 'projects'
             template_path.mkdir(parents=True)
+            (template_path / '.git').mkdir()
+            (template_path / '.git' / 'template-marker').write_text(
+                'template repository\n', encoding='utf-8'
+            )
+            (template_path / '.gitignore').write_text(
+                'ignored-file\n', encoding='utf-8'
+            )
             (template_path / 'README.md').write_text(
                 '# Template\ntemplate\n', encoding='utf-8'
             )
@@ -818,6 +825,7 @@ update_projects() {
 }
 projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
+git() { printf 'unexpected-git-call\n'; return 99; }
 DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 DEVOPS_PROJECTS_ROOT="$3"
@@ -833,6 +841,15 @@ create_project projet-test
             project_path = projects_root / 'projet-test'
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, 'openspec:projet-test\ngeneration:projet-test\n')
+            self.assertFalse((project_path / '.git').exists())
+            self.assertEqual(
+                (template_path / '.git' / 'template-marker').read_text(encoding='utf-8'),
+                'template repository\n',
+            )
+            self.assertEqual(
+                (project_path / '.gitignore').read_text(encoding='utf-8'),
+                'ignored-file\n',
+            )
             self.assertEqual(
                 (project_path / 'README.md').read_text(encoding='utf-8'),
                 '# Projet & modèle\nprojet-test\n',

@@ -629,7 +629,7 @@ create_project() {
     if [[ "${PROJECT_TYPE:-}" != PYTHON ]]; then
         template_exclusions+=(! -name pyproject.toml)
     fi
-    if ! find "${template_path}" -mindepth 1 -maxdepth 1 ! -name project.env \
+    if ! find "${template_path}" -mindepth 1 -maxdepth 1 ! -name project.env ! -name .git \
         "${template_exclusions[@]}" \
         -exec cp -a -- {} "${project_path}/" \;; then
 
