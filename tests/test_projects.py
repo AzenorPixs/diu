@@ -790,6 +790,13 @@ create_project projet-test
             template_path = temporary_path / 'datas' / 'template'
             projects_root = temporary_path / 'projects'
             template_path.mkdir(parents=True)
+            (template_path / '.git').mkdir()
+            (template_path / '.git' / 'template-marker').write_text(
+                'template repository\n', encoding='utf-8'
+            )
+            (template_path / '.gitignore').write_text(
+                'ignored-file\n', encoding='utf-8'
+            )
             (template_path / 'README.md').write_text(
                 '# Template\ntemplate\n', encoding='utf-8'
             )
@@ -818,6 +825,7 @@ update_projects() {
 }
 projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
+git() { printf 'unexpected-git-call\n'; return 99; }
 DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 DEVOPS_PROJECTS_ROOT="$3"
@@ -833,6 +841,15 @@ create_project projet-test
             project_path = projects_root / 'projet-test'
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, 'openspec:projet-test\ngeneration:projet-test\n')
+            self.assertFalse((project_path / '.git').exists())
+            self.assertEqual(
+                (template_path / '.git' / 'template-marker').read_text(encoding='utf-8'),
+                'template repository\n',
+            )
+            self.assertEqual(
+                (project_path / '.gitignore').read_text(encoding='utf-8'),
+                'ignored-file\n',
+            )
             self.assertEqual(
                 (project_path / 'README.md').read_text(encoding='utf-8'),
                 '# Projet & modèle\nprojet-test\n',
@@ -1068,7 +1085,10 @@ cicd_project_print_summary project commit v1.2.3 réussi \
                 'REMOTE_FORGEJO_BRANCH=main\nREMOTE_FORGEJO_SSL_VERIFY=Yes\n'
                 'REMOTE_GITLAB_BASE_URL=https://gitlab.example.test\nREMOTE_GITLAB_REGISTRY=registry.example.test\n'
                 'REMOTE_GITLAB_OWNER=owner\nREMOTE_GITLAB_REPOSITORY=project\nREMOTE_GITLAB_NAME=gitlab\n'
-                'REMOTE_GITLAB_BRANCH=main\nREMOTE_GITLAB_SSL_VERIFY=Yes\n',
+                'REMOTE_GITLAB_BRANCH=main\nREMOTE_GITLAB_SSL_VERIFY=Yes\n'
+                'REMOTE_GITHUB_BASE_URL=https://github.com\nREMOTE_GITHUB_OWNER=AzenorPixs\n'
+                'REMOTE_GITHUB_REPOSITORY=PKeycloak\nREMOTE_GITHUB_NAME=github\n'
+                'REMOTE_GITHUB_BRANCH=main\n',
                 encoding='utf-8',
             )
             script = r'''
@@ -1080,9 +1100,11 @@ git() { printf 'v2026.09.23.13.17\n'; }
 runuser() { shift 3; "$@"; }
 forgejo_push() { :; }
 gitlab_push() { :; }
+github_push() { :; }
 projects_docker_build() { :; }
 projects_forgejo_release() { :; }
 projects_gitlab_release() { :; }
+projects_github_release() { :; }
 DEVOPS_USER=test
 DEVOPS_PROJECTS_ROOT="$2"
 cicd_project project 2026.09.23.13.38 v2026.09.23.13.38
@@ -1099,6 +1121,7 @@ cicd_project project 2026.09.23.13.38 v2026.09.23.13.38
             self.assertIn('Build   : project:latest (version 2026.09.23.13.17)', result.stdout)
             self.assertIn('Forgejo : forgejo.example.test/owner/project:2026.09.23.13.17 et latest', result.stdout)
             self.assertIn('GitLab  : registry.example.test/owner/project:2026.09.23.13.17 et latest', result.stdout)
+            self.assertIn('GitHub  : ghcr.io/azenorpixs/pkeycloak:2026.09.23.13.17 et latest', result.stdout)
 
     def test_cicd_summary_is_printed_before_a_push_failure(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -1132,6 +1155,17 @@ cicd_project project commit v1.2.3
             self.assertIn('Forgejo : échec', result.stdout)
 
     def test_github_release_publishes_existing_image_without_building(self):
+        cases = (
+            ('owner', 'project', 'v1.2.3'),
+            ('AzenorPixs', 'pkeycloak', 'v1.2.3'),
+            ('owner', 'PKeycloak', 'v1.2.3'),
+            ('AzenorPixs', 'PKeycloak', 'v1.2.3-RC1'),
+        )
+        for owner, repository, git_tag in cases:
+            with self.subTest(owner=owner, repository=repository, git_tag=git_tag):
+                self._check_github_release_image_case(owner, repository, git_tag)
+
+    def _check_github_release_image_case(self, owner, repository, git_tag):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
             projects_root = temporary_path / 'projects'
@@ -1141,12 +1175,15 @@ cicd_project project commit v1.2.3
             binary_path.mkdir()
             (project_path / 'project.env').write_text(
                 'PROJECT_ID=project\nPROJECT_DOCKERED=Yes\n'
-                'REMOTE_GITHUB_BASE_URL=https://github.com\nREMOTE_GITHUB_OWNER=owner\n'
-                'REMOTE_GITHUB_REPOSITORY=project\nREMOTE_GITHUB_NAME=origin\nREMOTE_GITHUB_BRANCH=main\n',
+                'REMOTE_GITHUB_BASE_URL=https://github.com\n'
+                f'REMOTE_GITHUB_OWNER={owner}\nREMOTE_GITHUB_REPOSITORY={repository}\n'
+                'REMOTE_GITHUB_NAME=origin\nREMOTE_GITHUB_BRANCH=main\n',
                 encoding='utf-8',
             )
+            original_configuration = (project_path / 'project.env').read_bytes()
             (binary_path / 'git').write_text(
-                '#!/usr/bin/env bash\ncase "$*" in *"tag --points-at HEAD"*) printf "v1.2.3\\n";; esac\n',
+                '#!/usr/bin/env bash\n'
+                f'case "$*" in *"tag --points-at HEAD"*) printf "%s\\n" "{git_tag}";; esac\n',
                 encoding='utf-8',
             )
             (binary_path / 'docker').write_text(
@@ -1161,29 +1198,33 @@ cicd_project project commit v1.2.3
 source "$1/modules/projects/git.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
-_github_read_username() { github_username=user; }
+_github_read_username() { github_username=GitHubUser; }
 _github_read_token() { github_token=token; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
 DEVOPS_USER="$(id -un)"
 DEVOPS_PROJECTS_ROOT="$2"
 PATH="$3:$PATH"
 export PATH DOCKER_LOG="$4"
-projects_github_release project
+projects_github_release project || exit $?
+[[ "$REMOTE_GITHUB_OWNER" == "$5" && "$REMOTE_GITHUB_REPOSITORY" == "$6" ]] || exit 42
 '''
             result = subprocess.run(
-                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), str(binary_path), str(docker_log)],
+                ['bash', '-c', script, 'bash', str(ROOT), str(projects_root), str(binary_path), str(docker_log), owner, repository],
                 text=True,
                 capture_output=True,
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((project_path / 'project.env').read_bytes(), original_configuration)
+            remote_image = f'ghcr.io/{owner.lower()}/{repository.lower()}'
+            version = git_tag[1:]
             self.assertEqual(docker_log.read_text(encoding='utf-8').splitlines(), [
                 'image inspect project:latest',
-                'tag project:latest ghcr.io/owner/project:1.2.3',
-                'tag project:latest ghcr.io/owner/project:latest',
-                'login ghcr.io --username user --password-stdin',
-                'push ghcr.io/owner/project:1.2.3',
-                'push ghcr.io/owner/project:latest',
+                f'tag project:latest {remote_image}:{version}',
+                f'tag project:latest {remote_image}:latest',
+                'login ghcr.io --username GitHubUser --password-stdin',
+                f'push {remote_image}:{version}',
+                f'push {remote_image}:latest',
             ])
 
     def test_gitlab_docker_push_retries_blob_unknown_to_registry(self):

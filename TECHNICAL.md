@@ -880,6 +880,14 @@ décide séparément pour chaque projet et poursuit après échec avec un résul
 global non nul. Les commandes `template openspec`, `template devops` et
 `template all` restent indépendantes de cette copie documentaire.
 
+À la création, `create_project` exclut également l'entrée `.git` à la racine
+du modèle dans sa sélection `find`, avant la copie récursive par `cp -a`.
+Les autres fichiers cachés, dont `.gitignore`, sont conservés ; les exclusions
+existantes de `project.env` et des documents conditionnels restent applicables.
+Aucune opération Git n'est lancée par cette copie. L'exclusion ne concerne
+pas les `.git` imbriqués et ne modifie aucun projet existant. La référence est
+`openspec/specs/projects-template-creation/spec.md`.
+
 Cette métadonnée ne lance aucun agent ni service. La mise à jour générale
 sans identifiant et les critères de sélection des projets restent inchangés.
 Aucune migration globale n'est réalisée ; les fichiers reçoivent la variable
@@ -892,6 +900,33 @@ Les configurations de fournisseurs sont différentielles. Chaque fonction
 son propre bloc dans `project.env`. L'écriture passe par un fichier temporaire
 et un remplacement atomique ; le fichier final reste propriété de
 `DEVOPS_USER:DEVOPS_GROUP` avec le mode `660`.
+
+### Arguments publics de construction Docker
+
+`projects_docker_build` conserve ses contrôles existants, puis appelle
+`projects_docker_load_build_args` pour lire `build/docker-build.args`.
+Le fichier est optionnel ; son absence ou un contenu vide conserve la commande
+sans argument supplémentaire. Chaque ligne utile suit `NOM=VALEUR` avec nom
+ASCII `[A-Za-z_][A-Za-z0-9_]*`, unique et sans indentation. Une valeur vide,
+les espaces, quotes, dollars, antislashs, Unicode, # et = restent littéraux.
+Les blancs et commentaires # après indentation sont ignorés ; la dernière
+ligne sans LF reste acceptée. CR et NUL sont refusés.
+
+Fichier régulier et lisible, fichier et répertoire build non symboliques,
+limite 65 536 octets. La lecture est également bornée si la ressource évolue
+après stat, puis le descripteur est fermé. La validation complète précède
+l'affectation du tableau de paires `--build-arg`, `NOM=VALEUR`. Aucun source,
+eval, chargement d'environnement ou exécution de helper n'est ajouté.
+Un refus bloque Docker avec catégorie et éventuellement numéro de ligne,
+sans valeurs ; l'échec Docker reste non nul selon le comportement existant.
+
+Le contenu est public et non sensible. Son accord avec une référence
+applicative relève du projet consommateur. Le moteur ne peut pas déterminer
+la sensibilité d'une valeur arbitraire et ne garantit pas de masquer les
+arguments dans les sorties natives de Docker. Le module reste agnostique.
+La référence est `openspec/specs/modify-projects-docker-build/spec.md`.
+Les tests `tests/test_projects_docker_build_args.py` utilisent uniquement
+fixtures, runuser/Docker simulés et actions CI/CD simulées.
 
 ### Variables des fournisseurs distants
 
@@ -922,6 +957,14 @@ ne correspond pas à `project.env` provoque un échec explicite et n'est pas
 Le remote configuré pour GitLab ou GitHub peut donc être différent de
 `origin`. Un push fournisseur ne doit pas modifier le remote d'un autre
 fournisseur.
+
+La publication `rid projects github release <ID PROJECT>` construit ses
+références GHCR avec `REMOTE_GITHUB_OWNER` et `REMOTE_GITHUB_REPOSITORY`
+convertis en minuscules uniquement dans le chemin Docker. Le résumé CI/CD
+affiche la même cible normalisée. Les variables chargées, `project.env`,
+l'identité d'authentification et l'image locale restent inchangés ; la casse
+du tag de version dérivé de Git est conservée. La référence est
+`openspec/specs/implement-projects-github-release/spec.md`.
 
 ### TLS fournisseur
 
