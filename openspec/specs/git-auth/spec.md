@@ -57,18 +57,11 @@ AND les fichiers créés dans le dépôt appartiennent à DEVOPS_USER
 
 ### Requirement: Mécanisme d'authentification éphémère
 
-Le mécanisme d'authentification Git HTTPS SHALL être entièrement éphémère.
-
-Le token SHALL être fourni à Git via un mécanisme temporaire qui :
-
-- ne modifie pas l'URL du remote origin ;
-- n'écrit pas le token dans `.git/config` ;
-- n'écrit pas le token dans la configuration Git globale de l'utilisateur ;
-- n'utilise pas de credential store persistant ;
-- ne transforme pas le remote en `https://user:token@host/...`.
-
-Le mécanisme retenu (credential helper éphémère, `GIT_ASKPASS` temporaire,
-ou configuration temporaire via `-c`) SHALL être justifié dans le design.
+Le mécanisme Git HTTPS SHALL être éphémère et fournir le token temporairement.
+Il SHALL NOT modifier l'URL origin, y introduire un token, écrire celui-ci dans
+`.git/config` ou la configuration Git globale de l'utilisateur, ni utiliser de
+credential store persistant. Le design SHALL justifier le mécanisme retenu
+(credential helper éphémère, `GIT_ASKPASS` temporaire ou configuration via `-c`).
 
 #### Scenario: Remote non modifié
 
@@ -90,16 +83,10 @@ AND `git remote get-url origin` retourne l'URL d'origine inaltérée
 
 ### Requirement: Protection du token contre l'exposition
 
-Le token SHALL être protégé contre l'exposition dans les contextes suivants :
-
-- le token ne SHALL jamais apparaître dans la sortie de `ps` ;
-- le token ne SHALL jamais apparaître dans `/proc/*/cmdline` ;
-- le token ne SHALL jamais être affiché sur la sortie standard ou d'erreur ;
-- le token ne SHALL jamais être inclus dans un message d'erreur.
-
-Le mécanisme retenu SHALL privilégier une approche minimisant l'exposition
-du token dans les arguments de processus (ex: fichier temporaire protégé,
-variable d'environnement, pipe).
+Le token SHALL NOT apparaître dans la sortie de `ps`, `/proc/*/cmdline`, les
+sorties standard ou d'erreur, ni les messages d'erreur. Le mécanisme SHALL
+privilégier une approche minimisant son exposition dans les arguments de
+processus (fichier temporaire protégé, variable d'environnement ou pipe).
 
 #### Scenario: Token absent de ps
 
