@@ -445,11 +445,9 @@ non-zero result when at least one recipe fails.
 
 ### Requirement: Variables Codex CLI
 
-DIU SHALL déclarer `SOFTWARES_APT_CODEX_CLI` avec une valeur initiale `0` et
-`SOFTWARES_APT_CODEX_CLI_HOME` avec une valeur initiale `~/.codex`.
-Lors de l’initialisation, DIU SHALL positionner la première variable à `1`
-lorsqu’un binaire `codex` exécutable est présent, et à `0` sinon. La valeur
-persistée du répertoire HOME SHALL rester cohérente avec la valeur configurée.
+DIU SHALL déclarer `SOFTWARES_APT_CODEX_CLI` avec une valeur initiale `0`.
+Lors de l’initialisation, DIU SHALL positionner cette variable à `1`
+lorsqu’un binaire `codex` exécutable est présent, et à `0` sinon.
 
 #### Scenario: Codex absent
 
@@ -485,7 +483,7 @@ L’opération SHALL vérifier le digest SHA-256 avant toute installation et SHA
 
 `rid softwares remove github codex-cli` SHALL supprimer les binaires, liens et
 releases installées par DIU, mais SHALL préserver le répertoire et les données
-du profil défini par `SOFTWARES_APT_CODEX_CLI_HOME`.
+du profil utilisateur.
 
 #### Scenario: Désinstallation
 
@@ -498,8 +496,7 @@ du profil défini par `SOFTWARES_APT_CODEX_CLI_HOME`.
 
 `rid softwares update github codex-cli` SHALL comparer la version locale de
 Codex CLI avec la dernière release GitHub. Elle SHALL télécharger et installer
-la release uniquement si elle est supérieure. Elle SHALL définir `CODEX_HOME`
-à partir de `SOFTWARES_APT_CODEX_CLI_HOME` lors de l’exécution de Codex CLI.
+la release uniquement si elle est supérieure.
 
 #### Scenario: Nouvelle release
 
@@ -524,10 +521,11 @@ variable d’état indique qu’il est installé. `rid softwares update` et
 
 ### Requirement: Désactivation de la variable HOME Codex CLI
 
-Le fichier déclaratif Codex CLI SHALL être à l'état `DISABLE`. DIU SHALL NOT
-créer, utiliser ou persister `SOFTWARES_APT_CODEX_CLI_HOME`. L'installation
-SHALL exposer directement le binaire extrait par un lien symbolique et SHALL
-NOT générer de wrapper shell.
+DIU SHALL NOT créer, utiliser ou persister `SOFTWARES_APT_CODEX_CLI_HOME`.
+Ce retrait SHALL préserver la déclaration `ENABLE` de la variable d'état
+`SOFTWARES_APT_CODEX_CLI` et ses opérations. L'installation SHALL exposer
+directement le binaire extrait par un lien symbolique et SHALL NOT générer
+de wrapper shell.
 
 #### Scenario: Codex installé
 

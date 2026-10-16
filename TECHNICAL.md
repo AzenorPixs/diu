@@ -880,6 +880,15 @@ décide séparément pour chaque projet et poursuit après échec avec un résul
 global non nul. Les commandes `template openspec`, `template devops` et
 `template all` restent indépendantes de cette copie documentaire.
 
+`rid projects sync` synchronise uniquement `AGENTS.md`, `.gitignore`,
+`PROMPTS/` et le protocole conditionnel décrit ci-dessus. Les ressources
+OpenCode et CAB du projet (`.opencode/{commands,config,skills,broker}`) et le
+broker global `/home/${DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
+droits, propriétaire et caches `__pycache__` compris. Leurs sources ne sont
+pas consultées ni exigées ; leurs destinations absentes ne sont pas créées.
+Le document `DEVOPS.md` reste préservé et n'est pas exigé dans le modèle.
+La référence est `openspec/specs/projects-sync/spec.md`.
+
 À la création, `create_project` exclut également l'entrée `.git` à la racine
 du modèle dans sa sélection `find`, avant la copie récursive par `cp -a`.
 Les autres fichiers cachés, dont `.gitignore`, sont conservés ; les exclusions

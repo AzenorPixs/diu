@@ -51,23 +51,12 @@ AND aucune opération Git n'est tentée
 
 ### Requirement: Distinction entre owner du repository et identité d'authentification
 
-Le provider SHALL distinguer explicitement :
-
-- `forgejo_owner` : le propriétaire du repository (extrait de l'URL du remote) ;
-- `forgejo_repo` : le nom du repository (extrait de l'URL du remote) ;
-- `forgejo_username` : l'identifiant utilisé pour l'authentification Git HTTPS.
-
-`forgejo_username` SHALL être obtenu indépendamment de `forgejo_owner`.
-
-Le owner du repository n'est pas nécessairement l'utilisateur qui possède le
-token (cas d'un dépôt appartenant à une organisation).
-
-La source exacte de `forgejo_username` sera déterminée dans le design (parmi :
-information persistée avec le token, configuration projet, ou autre mécanisme
-déterministe).
-
-La spec exige que les trois valeurs soient résolues avant toute opération
-d'authentification.
+Le provider SHALL distinguer et résoudre avant authentification `forgejo_owner`
+(propriétaire) et `forgejo_repo` (nom), extraits de l'URL du remote, ainsi que
+`forgejo_username` (identité Git HTTPS). Il SHALL obtenir le username
+indépendamment du owner, qui peut différer du détenteur du token. Sa source
+sera déterminée dans le design : information persistée avec le token,
+configuration projet ou autre mécanisme déterministe.
 
 #### Scenario: Owner distinct du username
 
