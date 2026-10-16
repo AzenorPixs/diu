@@ -3,7 +3,7 @@
 Version : 0.5
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-14T05:36:08Z
+Début du relevé (UTC) : 2026-10-15T15:51:52Z
 Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -24,7 +24,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Docker
 
-  * 29.9.0
+  * 29.9.1
   * /usr/bin/docker
 
 
@@ -48,13 +48,13 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Node
 
-  * 24.21.0
+  * 24.22.0
   * /home/devops/node/current/bin/node
 
 
 # NPM
 
-  * 11.19.0
+  * 11.19.1
   * /home/devops/node/current/bin/npm
 
 
@@ -66,7 +66,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenSpec
 
-  * 1.14.1
+  * 1.14.2
   * /home/devops/.local/npm/bin/openspec
 
 
@@ -121,6 +121,6 @@ La détection ne vérifie pas le fonctionnement du mode headless.
 
 ## Firefox
 
-  * 153.4.0esr
+  * 153.5.0esr
   * /usr/bin/firefox
   * Mode headless : --headless
