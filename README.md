@@ -66,6 +66,19 @@ GHCR, y compris dans le résumé CI/CD : `AzenorPixs/PKeycloak` devient
 les tags Docker sont la version issue de l'unique tag Git de `HEAD` et `latest`.
 Cette commande ne construit pas l'image.
 
+Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue
+est signalée comme « serveur indisponible — publication non confirmée ».
+La commande retourne zéro ; elle n'annonce pas la publication comme réussie.
+Le flux `rid projects cicd <ID PROJECT>` poursuit les autres fournisseurs et
+le build local, puis ignore les releases du fournisseur indisponible. Sans
+autre erreur, son résumé indique « terminé avec indisponibilités ».
+`rid projects forgejo push all` poursuit également les autres projets.
+
+Les refus d'authentification, erreurs de certificat, configurations incorrectes
+et rejets Git restent bloquants. Une publication interrompue peut être
+partielle et nécessite une reprise. Les commandes de release lancées
+directement conservent leur gestion d'erreur.
+
 Pour générer l'inventaire DevOps d'un projet :
 
 ```bash
