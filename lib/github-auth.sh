@@ -214,6 +214,12 @@ _github_api_request() {
     local response_file=""
     local http_code=""
     local curl_rc=0
+    local transport=curl
+
+    if [[ -n "${projects_git_unavailable_file:-}" ]] &&
+        declare -F projects_git_curl >/dev/null; then
+        transport=projects_git_curl
+    fi
 
     if [[ -z "${api_base}" || -z "${method}" || -z "${endpoint}" ]]; then
         print_error "_github_api_request : paramètres API manquants."
@@ -260,12 +266,12 @@ _github_api_request() {
     fi
 
     if [[ -n "${payload}" ]]; then
-        http_code="$(curl --config "${curl_config}" --request "${method}" \
+        http_code="$("${transport}" --config "${curl_config}" --request "${method}" \
             --header 'Content-Type: application/json' \
             --data-binary "${payload}" --output "${response_file}" \
             --write-out '%{http_code}' "${api_base}${endpoint}")" || curl_rc=$?
     else
-        http_code="$(curl --config "${curl_config}" --request "${method}" \
+        http_code="$("${transport}" --config "${curl_config}" --request "${method}" \
             --output "${response_file}" --write-out '%{http_code}' \
             "${api_base}${endpoint}")" || curl_rc=$?
     fi
@@ -276,6 +282,12 @@ _github_api_request() {
         rm -f "${response_file}"
         print_error "L'appel API GitHub a échoué (code ${curl_rc})."
         return "${curl_rc}"
+    fi
+
+    if declare -F projects_git_note_unavailable >/dev/null &&
+        projects_git_note_unavailable http "${http_code}"; then
+        rm -f "${response_file}"
+        return 1
     fi
 
     printf '%s\n' "${http_code}"

@@ -7,14 +7,11 @@ Définir l'orchestration CI/CD conditionnelle d'un projet géré par DIU.
 
 ### Requirement: commande CI/CD d'un projet
 
-Le système MUST exposer `rid projects cicd <ID PROJECT>`. La commande MUST
-créer les valeurs de commit et de tag par défaut selon le comportement existant
-puis appeler, dans cet ordre, `git_commit`, les pushes Forgejo, GitLab et
-GitHub éligibles, `projects_docker_build` lorsque Docker est activé, puis les
-releases Forgejo, GitLab et GitHub éligibles. À la terminaison, elle MUST
-afficher un résumé console du commit, des pushes, du build et des releases.
-Lorsqu'une opération appelée échoue, elle MUST afficher le résumé partiel avant
-de retourner un code non nul.
+`rid projects cicd <ID PROJECT>` MUST créer commit/tag, puis appeler dans
+l'ordre `git_commit`, les pushes Forgejo/GitLab/GitHub éligibles, le build
+Docker activé et les releases éligibles. Elle MUST afficher un résumé.
+Un échec hors indisponibilité reconnue MUST arrêter le flux avec résumé et
+code non nul ; une indisponibilité MUST suivre le contrat de poursuite.
 
 #### Scenario: résumé du flux complet
 
@@ -32,19 +29,17 @@ de retourner un code non nul.
 
 #### Scenario: résumé d'un échec
 
-- **WHEN** une opération éligible échoue après le commit
+- **WHEN** une opération éligible échoue après le commit hors indisponibilité reconnue
 - **THEN** la commande retourne un code non nul
 - **AND THEN** elle affiche les opérations déjà réussies et l'opération en échec
 
 ### Requirement: fournisseurs conditionnels et silencieux
 
-Avant chaque push ou release de fournisseur, le système MUST vérifier la
-complétude de sa configuration dans `project.env`. Une configuration absente,
-incomplète ou incohérente MUST ignorer l'opération correspondante sans sortie,
-sans appel de fonction et sans initialisation interactive. Une opération
-effectivement appelée qui échoue MUST interrompre le flux avec un code non nul.
-Le résumé final MUST indiquer qu'une opération a été ignorée, sans modifier son
-caractère silencieux pendant le flux.
+Avant chaque push ou release, le flux MUST vérifier la configuration du
+fournisseur. Une configuration absente, incomplète ou incohérente MUST ignorer
+l'opération sans appel ni initialisation interactive, et l'indiquer au résumé.
+Un échec effectivement appelé MUST interrompre le flux avec code non nul,
+sauf indisponibilité reconnue traitée par le contrat de poursuite.
 
 #### Scenario: fournisseur incomplet
 
@@ -93,3 +88,23 @@ syntaxe sans exécuter le flux.
 - **WHEN** l'utilisateur demande `rid projects cicd help`
 - **THEN** l'aide affiche `rid projects cicd <ID PROJECT>`
 - **AND THEN** aucune opération CI/CD n'est appelée
+
+### Requirement: poursuite avec fournisseurs indisponibles
+
+Après un push indisponible, CI/CD MUST poursuivre les autres fournisseurs et
+le build activé, et MUST ignorer les releases du fournisseur concerné.
+Le résumé MUST distinguer publication non confirmée, publication réussie et
+release ignorée. Sans autre erreur, le flux MUST retourner zéro avec l'état
+« terminé avec indisponibilités ». Les statuts MUST être réinitialisés par appel.
+
+#### Scenario: fournisseur inaccessible parmi trois
+
+- **WHEN** un push est indisponible et les autres opérations éligibles réussissent
+- **THEN** les autres fournisseurs et le build sont traités
+- **AND THEN** les releases du fournisseur indisponible sont ignorées
+- **AND THEN** le résumé indique terminé avec indisponibilités et le code final vaut zéro
+
+#### Scenario: erreur réelle après une indisponibilité
+
+- **WHEN** un fournisseur est indisponible puis une autre opération échoue pour une autre cause
+- **THEN** le flux retourne un code non nul avec le résumé partiel
