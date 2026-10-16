@@ -10,18 +10,12 @@ secret ni modifier la configuration Git persistante.
 
 ### Requirement: Fonction d'exécution Git authentifiée
 
-La fonction `git_with_token`, définie dans `modules/projects/git.sh`, SHALL
-permettre d'exécuter une commande Git arbitraire avec authentification HTTPS
-par token.
-
-La fonction SHALL accepter en paramètres :
-
-- le chemin du dépôt Git ;
-- l'identifiant utilisateur pour l'authentification HTTPS ;
-- le token d'authentification ;
-- la commande Git et ses arguments (ex: `fetch origin`, `push origin main`).
-
-La fonction SHALL retourner le code de sortie de la commande Git exécutée.
+`git_with_token` SHALL exécuter Git sous authentification HTTPS par token,
+avec chemin du dépôt, identifiant, token, commande et arguments en paramètres.
+La fonction SHALL retourner le code Git original. Hors contexte de push
+tolérant, elle SHALL afficher les erreurs sans token. Dans ce contexte, une
+panne reconnue SHALL signaler l'indisponibilité à l'appelant sans diagnostic
+d'erreur ; les autres échecs SHALL rester explicites.
 
 #### Scenario: Exécution réussie de git fetch
 
@@ -37,7 +31,7 @@ AND le code de retour 0 est retourné
 
 #### Scenario: Échec de la commande Git
 
-WHEN la commande Git échoue (réseau, authentification refusée, etc.)
+WHEN la commande Git échoue hors contexte de push tolérant (réseau, authentification refusée, etc.)
 THEN le code de retour non-zéro de Git est propagé
 AND un message d'erreur explicite est affiché
 AND le message ne contient pas le token
@@ -57,18 +51,11 @@ AND les fichiers créés dans le dépôt appartiennent à DEVOPS_USER
 
 ### Requirement: Mécanisme d'authentification éphémère
 
-Le mécanisme d'authentification Git HTTPS SHALL être entièrement éphémère.
-
-Le token SHALL être fourni à Git via un mécanisme temporaire qui :
-
-- ne modifie pas l'URL du remote origin ;
-- n'écrit pas le token dans `.git/config` ;
-- n'écrit pas le token dans la configuration Git globale de l'utilisateur ;
-- n'utilise pas de credential store persistant ;
-- ne transforme pas le remote en `https://user:token@host/...`.
-
-Le mécanisme retenu (credential helper éphémère, `GIT_ASKPASS` temporaire,
-ou configuration temporaire via `-c`) SHALL être justifié dans le design.
+Le mécanisme Git HTTPS SHALL être éphémère et fournir le token temporairement.
+Il SHALL NOT modifier l'URL origin, y introduire un token, écrire celui-ci dans
+`.git/config` ou la configuration Git globale de l'utilisateur, ni utiliser de
+credential store persistant. Le design SHALL justifier le mécanisme retenu
+(credential helper éphémère, `GIT_ASKPASS` temporaire ou configuration via `-c`).
 
 #### Scenario: Remote non modifié
 
@@ -90,16 +77,10 @@ AND `git remote get-url origin` retourne l'URL d'origine inaltérée
 
 ### Requirement: Protection du token contre l'exposition
 
-Le token SHALL être protégé contre l'exposition dans les contextes suivants :
-
-- le token ne SHALL jamais apparaître dans la sortie de `ps` ;
-- le token ne SHALL jamais apparaître dans `/proc/*/cmdline` ;
-- le token ne SHALL jamais être affiché sur la sortie standard ou d'erreur ;
-- le token ne SHALL jamais être inclus dans un message d'erreur.
-
-Le mécanisme retenu SHALL privilégier une approche minimisant l'exposition
-du token dans les arguments de processus (ex: fichier temporaire protégé,
-variable d'environnement, pipe).
+Le token SHALL NOT apparaître dans la sortie de `ps`, `/proc/*/cmdline`, les
+sorties standard ou d'erreur, ni les messages d'erreur. Le mécanisme SHALL
+privilégier une approche minimisant son exposition dans les arguments de
+processus (fichier temporaire protégé, variable d'environnement ou pipe).
 
 #### Scenario: Token absent de ps
 

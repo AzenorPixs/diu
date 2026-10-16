@@ -880,6 +880,15 @@ décide séparément pour chaque projet et poursuit après échec avec un résul
 global non nul. Les commandes `template openspec`, `template devops` et
 `template all` restent indépendantes de cette copie documentaire.
 
+`rid projects sync` synchronise uniquement `AGENTS.md`, `.gitignore`,
+`PROMPTS/` et le protocole conditionnel décrit ci-dessus. Les ressources
+OpenCode et CAB du projet (`.opencode/{commands,config,skills,broker}`) et le
+broker global `/home/${DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
+droits, propriétaire et caches `__pycache__` compris. Leurs sources ne sont
+pas consultées ni exigées ; leurs destinations absentes ne sont pas créées.
+Le document `DEVOPS.md` reste préservé et n'est pas exigé dans le modèle.
+La référence est `openspec/specs/projects-sync/spec.md`.
+
 À la création, `create_project` exclut également l'entrée `.git` à la racine
 du modèle dans sa sélection `find`, avant la copie récursive par `cp -a`.
 Les autres fichiers cachés, dont `.gitignore`, sont conservés ; les exclusions
@@ -995,6 +1004,35 @@ Son mécanisme est le suivant :
 Le token n'est ni placé dans les arguments de Git, ni exposé par une invite
 interactive. Toute erreur d'authentification est bloquante : aucun fallback
 silencieux vers une saisie Username/Password n'est autorisé.
+
+### Indisponibilité pendant une publication Git
+
+Les commandes `rid projects forgejo|gitlab|github push <ID PROJECT>` distinguent
+une indisponibilité reconnue d'un échec de publication. DNS, connexion TCP
+impossible, délai dépassé et HTTP 502/503/504 produisent un message
+« serveur indisponible — publication non confirmée » et un retour zéro.
+Le code Git 128 seul ne suffit pas ; authentification, TLS, configuration et
+rejet Git restent bloquants. Les diagnostics Git sont qualifiés en locale C.
+
+Un contexte temporaire privé et sans secret transmet le signal, y compris
+depuis les substitutions de commandes API. `PROJECTS_GIT_PUSH_STATUS` est un
+statut d'exécution interne, réinitialisé à chaque push ; ce n'est pas une
+variable de configuration. Les invites restent visibles. Les appels curl du
+contexte sont bornés à 10 secondes de connexion et 30 secondes au total ;
+aucune sonde réseau ni reprise automatique n'est ajoutée.
+
+CI/CD poursuit les autres fournisseurs et le build local activé, ignore les
+releases du fournisseur indisponible et termine avec l'état « terminé avec
+indisponibilités » si aucune autre erreur n'est rencontrée. Le parcours
+`forgejo push all` distingue également ce résultat d'un succès complet.
+Une coupure pendant le tag peut laisser la branche publiée : aucune annulation
+automatique n'est effectuée et une reprise reste nécessaire.
+
+`git_with_token` conserve le code Git original. Hors contexte de push, les
+commandes de clonage et de release directe conservent leur gestion d'erreur.
+Les références sont `openspec/specs/git-provider-availability/spec.md` et
+`openspec/specs/projects-cicd/spec.md` ; les tests isolés sont dans
+`tests/test_projects_provider_unavailable.py`.
 
 ### Fichiers d'identifiants
 

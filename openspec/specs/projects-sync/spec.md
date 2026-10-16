@@ -33,10 +33,11 @@ copie.
 ### Requirement: Source de synchronisation contrôlée
 
 Avant copie, DIU MUST vérifier le modèle `/home/${DEVOPS_USER}/datas/template`,
-ses fichiers `AGENTS.md`, `.gitignore` et ses répertoires `.opencode/commands`,
-`.opencode/config`, `.opencode/skills`, `PROMPTS`. Une source indisponible ou de
-type incorrect MUST faire échouer la commande avec un code non nul avant
-toute copie. DIU MUST NOT exiger `DEVOPS.md`, en mode unitaire ou groupé.
+ses fichiers `AGENTS.md`, `.gitignore` et son répertoire `PROMPTS`. Une source
+conservée indisponible ou de type incorrect MUST faire échouer la commande
+avec un code non nul avant copie. En mode unitaire ou groupé, DIU MUST NOT
+exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
+`/home/devops/datas/cab/src`.
 
 #### Scenario: Répertoire modèle indisponible
 
@@ -56,13 +57,18 @@ toute copie. DIU MUST NOT exiger `DEVOPS.md`, en mode unitaire ou groupé.
 - **WHEN** le modèle contient tous ses éléments gérés mais aucun `DEVOPS.md`
 - **THEN** la synchronisation unitaire ou groupée accepte ce modèle
 
+#### Scenario: Sources OpenCode et CAB absentes
+
+- **WHEN** les éléments conservés existent, les sources OpenCode du modèle
+  sont absentes et la source CAB est indisponible
+- **THEN** la synchronisation unitaire ou groupée peut réussir
+
 ### Requirement: Copie ciblée et autoritaire du modèle
 
-DIU MUST copier uniquement AGENTS.md, .gitignore,
-.opencode/{commands,config,skills} et PROMPTS, et ORCHESTRATED_CODING.md
-seulement pour Yes lu selon implement-projects-update, récursivement pour les
-répertoires. Le modèle MUST écraser
-les éléments copiés. DIU MUST préserver les autres destinations et MUST NOT
+DIU MUST copier uniquement AGENTS.md, .gitignore et PROMPTS récursivement,
+et ORCHESTRATED_CODING.md seulement pour Yes lu selon implement-projects-update.
+Le modèle MUST écraser les éléments copiés.
+DIU MUST préserver les autres destinations et MUST NOT
 copier, créer, personnaliser, supprimer ou modifier les droits ou le
 propriétaire de DEVOPS.md à la racine, en mode unitaire ou groupé.
 
@@ -116,3 +122,30 @@ ne proviennent pas de la synchronisation.
 - **WHEN** un fichier Markdown existant du projet n'appartient pas aux
   éléments synchronisés
 - **THEN** son contenu n'est pas transformé par la commande
+
+### Requirement: Préservation des ressources OpenCode et CAB exclues
+
+En mode unitaire ou groupé, DIU MUST NOT consulter les sources OpenCode/CAB
+exclues, ni copier, créer, personnaliser, supprimer ou changer le contenu,
+les droits ou le propriétaire des ressources projet
+`.opencode/{commands,config,skills,broker}` ou du broker global
+`/home/${DEVOPS_USER}/.opencode/broker`, caches `__pycache__` inclus.
+Une destination absente MUST rester absente.
+
+#### Scenario: Ressources exclues existantes
+
+- **WHEN** les ressources OpenCode et CAB exclues existent dans un projet
+  ou dans le broker global, avec des caches
+- **THEN** la synchronisation unitaire ou groupée préserve leur contenu,
+  leurs droits, leur propriétaire et leurs caches
+
+#### Scenario: Ressources exclues absentes
+
+- **WHEN** les ressources OpenCode et CAB exclues n'existent pas
+- **THEN** la synchronisation unitaire ou groupée ne les crée pas
+
+#### Scenario: Aucun projet valide pour la synchronisation groupée
+
+- **WHEN** sync all ne trouve aucun projet valide
+- **THEN** DIU conserve le message informatif et le code de succès existants
+- **AND THEN** le broker global reste intact ou absent
