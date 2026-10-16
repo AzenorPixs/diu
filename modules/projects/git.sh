@@ -473,35 +473,53 @@ cicd_project() {
 
     if projects_cicd_provider_is_complete "${project_id}" forgejo; then
         forgejo_push_status="échec"
+        PROJECTS_GIT_PUSH_STATUS=""
         if ! forgejo_push "${project_id}"; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
             print_error "Échec du push Forgejo."
             return 1
         fi
-        forgejo_push_status="publié vers ${REMOTE_FORGEJO_NAME}/${REMOTE_FORGEJO_BRANCH}"
+        if [[ "${PROJECTS_GIT_PUSH_STATUS:-}" == "indisponible" ]]; then
+            forgejo_push_status="indisponible — publication non confirmée"
+            workflow_status="terminé avec indisponibilités"
+        else
+            forgejo_push_status="publié vers ${REMOTE_FORGEJO_NAME}/${REMOTE_FORGEJO_BRANCH}"
+        fi
     fi
 
     if projects_cicd_provider_is_complete "${project_id}" gitlab; then
         gitlab_push_status="échec"
+        PROJECTS_GIT_PUSH_STATUS=""
         if ! gitlab_push "${project_id}"; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
             print_error "Échec du push GitLab."
             return 1
         fi
-        gitlab_push_status="publié vers ${REMOTE_GITLAB_NAME}/${REMOTE_GITLAB_BRANCH}"
+        if [[ "${PROJECTS_GIT_PUSH_STATUS:-}" == "indisponible" ]]; then
+            gitlab_push_status="indisponible — publication non confirmée"
+            workflow_status="terminé avec indisponibilités"
+        else
+            gitlab_push_status="publié vers ${REMOTE_GITLAB_NAME}/${REMOTE_GITLAB_BRANCH}"
+        fi
     fi
 
     if projects_cicd_provider_is_complete "${project_id}" github; then
         github_push_status="échec"
+        PROJECTS_GIT_PUSH_STATUS=""
         if ! github_push "${project_id}"; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
             print_error "Échec du push GitHub."
             return 1
         fi
-        github_push_status="publié vers ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}"
+        if [[ "${PROJECTS_GIT_PUSH_STATUS:-}" == "indisponible" ]]; then
+            github_push_status="indisponible — publication non confirmée"
+            workflow_status="terminé avec indisponibilités"
+        else
+            github_push_status="publié vers ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}"
+        fi
     fi
 
     if [[ "${PROJECT_DOCKERED:-}" != "Yes" ]]; then
@@ -518,7 +536,9 @@ cicd_project() {
     fi
     docker_build_status="${PROJECT_ID}:latest (version ${docker_version})"
 
-    if projects_cicd_provider_is_complete "${project_id}" forgejo; then
+    if [[ "${forgejo_push_status}" == indisponible* ]]; then
+        forgejo_release_status="serveur indisponible, ignorée"
+    elif projects_cicd_provider_is_complete "${project_id}" forgejo; then
         forgejo_release_status="échec"
         if ! projects_forgejo_release "${project_id}"; then
             workflow_status="échec"
@@ -529,7 +549,9 @@ cicd_project() {
         forgejo_release_status="${REMOTE_FORGEJO_BASE_URL#https://}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:${docker_version} et latest"
     fi
 
-    if projects_cicd_provider_is_complete "${project_id}" gitlab; then
+    if [[ "${gitlab_push_status}" == indisponible* ]]; then
+        gitlab_release_status="serveur indisponible, ignorée"
+    elif projects_cicd_provider_is_complete "${project_id}" gitlab; then
         gitlab_release_status="échec"
         if ! projects_gitlab_release "${project_id}"; then
             workflow_status="échec"
@@ -540,7 +562,9 @@ cicd_project() {
         gitlab_release_status="${REMOTE_GITLAB_REGISTRY}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}:${docker_version} et latest"
     fi
 
-    if projects_cicd_provider_is_complete "${project_id}" github; then
+    if [[ "${github_push_status}" == indisponible* ]]; then
+        github_release_status="serveur indisponible, ignorée"
+    elif projects_cicd_provider_is_complete "${project_id}" github; then
         github_release_status="échec"
         if ! projects_github_release "${project_id}"; then
             workflow_status="échec"
@@ -2059,7 +2083,101 @@ git_get_latest_release() {
 }
 
 # Publication vers un fournisseur distant explicite.
+# Le marqueur privé transmet aussi les pannes détectées dans un sous-shell API.
+projects_git_note_unavailable() {
+    local kind="${1:-}"
+    local code="${2:-}"
+
+    [[ -n "${projects_git_unavailable_file:-}" ]] || return 1
+    case "${kind}:${code}" in
+        curl:5|curl:6|curl:7|curl:28|http:502|http:503|http:504|git:network)
+            printf '%s\n' "${kind}:${code}" > "${projects_git_unavailable_file}"
+            ;;
+        *) return 1 ;;
+    esac
+}
+
+projects_git_stderr_is_unavailable() {
+    local error_file="${1:-}"
+    local line=""
+    local reason=""
+
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        [[ "${line}" == "fatal: unable to access 'https://"* ]] || continue
+        reason="${line##*\': }"
+        case "${reason}" in
+            'Could not resolve host:'*|'Could not resolve proxy:'*|\
+            'Failed to connect to '*|'Operation timed out '*|\
+            'Connection timed out '*|'Resolving timed out '*|\
+            'Operation too slow.'*|\
+            'The requested URL returned error: 502'|\
+            'The requested URL returned error: 503'|\
+            'The requested URL returned error: 504')
+                projects_git_note_unavailable git network && return 0
+                ;;
+        esac
+    done < "${error_file}"
+    return 1
+}
+
+# Hors contexte de push, les bibliothèques conservent leur appel curl natif.
+projects_git_curl() {
+    local error_file=""
+    local curl_rc=0
+
+    error_file="$(mktemp "${projects_git_unavailable_file%/*}/curl.XXXXXX")" || return 1
+    curl "$@" --connect-timeout 10 --max-time 30 2> "${error_file}" || curl_rc=$?
+    if ! projects_git_note_unavailable curl "${curl_rc}"; then
+        cat "${error_file}" >&2
+    fi
+    rm -f -- "${error_file}"
+    return "${curl_rc}"
+}
+
 git_push_provider() {
+    local context_dir=""
+    local push_rc=0
+    local provider="${2:-Git}"
+    local projects_git_unavailable_file=""
+
+    PROJECTS_GIT_PUSH_STATUS="échec"
+    context_dir="$(mktemp -d)" || {
+        print_error "Impossible de préparer le contexte de publication Git."
+        return 1
+    }
+    projects_git_unavailable_file="${context_dir}/unavailable"
+    readonly projects_git_unavailable_file
+
+    (
+        trap 'rm -rf -- "${context_dir}"; exit 129' HUP
+        trap 'rm -rf -- "${context_dir}"; exit 130' INT
+        trap 'rm -rf -- "${context_dir}"; exit 143' TERM
+        # Les invites restent sur stderr ; seules les cascades d'erreur réseau
+        # sont remplacées après qualification par le résultat du contexte.
+        print_error() {
+            if [[ ! -s "${projects_git_unavailable_file}" ]]; then
+                printf '❌ %s\n' "$*" >&2
+            fi
+        }
+        _git_push_provider "${@}"
+    ) || push_rc=$?
+
+    if [[ "${push_rc}" -ne 0 && -s "${projects_git_unavailable_file}" ]]; then
+        PROJECTS_GIT_PUSH_STATUS="indisponible"
+        print_info "Serveur ${provider} indisponible — publication non confirmée, reprise nécessaire."
+        push_rc=0
+    elif [[ "${push_rc}" -eq 0 ]]; then
+        PROJECTS_GIT_PUSH_STATUS="publié"
+    fi
+    if ! rm -rf -- "${context_dir}"; then
+        PROJECTS_GIT_PUSH_STATUS="échec"
+        print_error "Impossible de nettoyer le contexte de publication Git."
+        return 1
+    fi
+    return "${push_rc}"
+}
+
+_git_push_provider() {
     local project_id="$1"
     local requested_remote_type="${2:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -3806,6 +3924,7 @@ forgejo_push_all() {
     local project_env=""
     local failed=0
     local selected=0
+    local unavailable=0
 
     if [[ ! -d "${projects_root}" ]]; then
         print_error "Répertoire des projets introuvable : ${projects_root}"
@@ -3864,9 +3983,12 @@ forgejo_push_all() {
 
         selected=$((selected + 1))
 
+        PROJECTS_GIT_PUSH_STATUS=""
         if ! forgejo_push "${project_id}"; then
             print_error "Échec du push Forgejo pour le projet ${project_id}."
             failed=1
+        elif [[ "${PROJECTS_GIT_PUSH_STATUS:-}" == "indisponible" ]]; then
+            unavailable=1
         fi
     done
 
@@ -3880,7 +4002,11 @@ forgejo_push_all() {
         return 1
     fi
 
-    print_success "Push Forgejo terminé pour tous les projets configurés."
+    if [[ "${unavailable}" -eq 1 ]]; then
+        print_info "Push Forgejo terminé avec indisponibilités ; publications non confirmées à reprendre."
+    else
+        print_success "Push Forgejo terminé pour tous les projets configurés."
+    fi
     return 0
 }
 
@@ -7710,13 +7836,36 @@ ASKPASS_EOF
         # ----------------------------------------------------------
 
         local git_rc=0
+        local git_error_output=""
 
-        runuser -u "${DEVOPS_USER}" -- \
-            env "LC_ALL=C" \
-                "GIT_ASKPASS=${askpass_file}" \
-                "GIT_TERMINAL_PROMPT=0" \
-                "HOME=$(eval echo "~${DEVOPS_USER}")" \
-            git -C "${project_path}" "${git_args[@]}" || git_rc=$?
+        if [[ -n "${projects_git_unavailable_file:-}" ]]; then
+            git_error_output="${tmp_dir}/git-stderr"
+            if ! (umask 077; : > "${git_error_output}"); then
+                print_error "Impossible de préparer les diagnostics Git."
+                exit 1
+            fi
+        fi
+
+        local git_command=(
+            runuser -u "${DEVOPS_USER}" --
+            env "LC_ALL=C"
+                "GIT_ASKPASS=${askpass_file}"
+                "GIT_TERMINAL_PROMPT=0"
+                "HOME=$(eval echo "~${DEVOPS_USER}")"
+            git -C "${project_path}" "${git_args[@]}"
+        )
+        if [[ -n "${git_error_output}" ]]; then
+            "${git_command[@]}" 2> "${git_error_output}" || git_rc=$?
+        else
+            "${git_command[@]}" || git_rc=$?
+        fi
+
+        if [[ -n "${projects_git_unavailable_file:-}" ]]; then
+            if [[ "${git_rc}" -ne 128 ]] ||
+                ! projects_git_stderr_is_unavailable "${git_error_output}"; then
+                cat "${git_error_output}" >&2
+            fi
+        fi
 
         if [[ "${git_rc}" -ne 0 ]]; then
             print_error "git_with_token : commande Git échouée (code ${git_rc})."
