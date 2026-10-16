@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 
 _forgejo_curl() {
+    local transport=curl
+    if [[ -n "${projects_git_unavailable_file:-}" ]] &&
+        declare -F projects_git_curl >/dev/null; then
+        transport=projects_git_curl
+    fi
     case "${REMOTE_FORGEJO_SSL_VERIFY:-Yes}" in
         Yes|yes|oui|OUI|true|TRUE|1)
-            curl "$@"
+            "${transport}" "$@"
             ;;
         No|no|non|NON|false|FALSE|0)
-            curl --insecure "$@"
+            "${transport}" --insecure "$@"
             ;;
         *)
             print_error "REMOTE_FORGEJO_SSL_VERIFY doit valoir Yes ou No."
@@ -426,6 +431,11 @@ _forgejo_api_request() {
 
     rm -f "${response_file}"
 
+    if declare -F projects_git_note_unavailable >/dev/null &&
+        projects_git_note_unavailable http "${http_code}"; then
+        return 1
+    fi
+
     printf '%s\n%s' "${response}" "${http_code}"
 
     return 0
@@ -720,6 +730,11 @@ _forgejo_validate_credentials() {
     # ==========================================================
     # Étape 5 : Interprétation du code HTTP
     # ==========================================================
+
+    if declare -F projects_git_note_unavailable >/dev/null &&
+        projects_git_note_unavailable http "${http_code}"; then
+        return 1
+    fi
 
     case "${http_code}" in
 
@@ -1203,6 +1218,12 @@ _forgejo_ensure_credentials() {
                     2>/dev/null
             )"
 
+            if declare -F projects_git_note_unavailable >/dev/null &&
+                projects_git_note_unavailable http "${auth_http_code}"; then
+                rm -f "${netrc_file}"
+                return 1
+            fi
+
             case "${auth_http_code}" in
 
                 200)
@@ -1291,6 +1312,11 @@ _forgejo_ensure_credentials() {
 
             token_http_code="${token_http_response##*$'\n'}"
             token_http_body="${token_http_response%$'\n'*}"
+
+            if declare -F projects_git_note_unavailable >/dev/null &&
+                projects_git_note_unavailable http "${token_http_code}"; then
+                return 1
+            fi
 
             case "${token_http_code}" in
 

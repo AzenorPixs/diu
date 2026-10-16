@@ -10,18 +10,12 @@ secret ni modifier la configuration Git persistante.
 
 ### Requirement: Fonction d'exécution Git authentifiée
 
-La fonction `git_with_token`, définie dans `modules/projects/git.sh`, SHALL
-permettre d'exécuter une commande Git arbitraire avec authentification HTTPS
-par token.
-
-La fonction SHALL accepter en paramètres :
-
-- le chemin du dépôt Git ;
-- l'identifiant utilisateur pour l'authentification HTTPS ;
-- le token d'authentification ;
-- la commande Git et ses arguments (ex: `fetch origin`, `push origin main`).
-
-La fonction SHALL retourner le code de sortie de la commande Git exécutée.
+`git_with_token` SHALL exécuter Git sous authentification HTTPS par token,
+avec chemin du dépôt, identifiant, token, commande et arguments en paramètres.
+La fonction SHALL retourner le code Git original. Hors contexte de push
+tolérant, elle SHALL afficher les erreurs sans token. Dans ce contexte, une
+panne reconnue SHALL signaler l'indisponibilité à l'appelant sans diagnostic
+d'erreur ; les autres échecs SHALL rester explicites.
 
 #### Scenario: Exécution réussie de git fetch
 
@@ -37,7 +31,7 @@ AND le code de retour 0 est retourné
 
 #### Scenario: Échec de la commande Git
 
-WHEN la commande Git échoue (réseau, authentification refusée, etc.)
+WHEN la commande Git échoue hors contexte de push tolérant (réseau, authentification refusée, etc.)
 THEN le code de retour non-zéro de Git est propagé
 AND un message d'erreur explicite est affiché
 AND le message ne contient pas le token

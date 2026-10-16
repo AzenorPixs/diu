@@ -8,18 +8,12 @@ configuré pour un projet DIU.
 
 ### Requirement: commande de publication GitHub
 
-Le système MUST exposer la commande `rid projects github push <ID PROJECT>`.
-
-Le système DOIT exposer la commande `rid projects github push <ID PROJECT>`.
-
-Avant de publier une branche vers GitHub, le système MUST récupérer les
-références du remote GitHub configuré en utilisant le mécanisme authentifié
-existant. Il MUST arrêter la publication sans pousser de branche si cette
-récupération échoue.
-
-La publication de branche GitHub MUST utiliser `--force-with-lease`. Elle
-MUST préserver le push de tags GitHub existant et ne MUST NOT modifier les
-parcours Forgejo ou GitLab.
+Le système MUST exposer `rid projects github push <ID PROJECT>`. Avant le
+push de branche, il MUST récupérer les références GitHub avec
+l'authentification existante et MUST arrêter si le fetch échoue, sauf
+indisponibilité reconnue selon `git-provider-availability`. Le push de branche
+MUST utiliser `--force-with-lease`, préserver le push de tags et conserver les
+parcours Forgejo et GitLab.
 
 #### Scenario: publication du dépôt local
 
@@ -36,7 +30,7 @@ parcours Forgejo ou GitLab.
 
 #### Scenario: récupération GitHub en échec
 
-- **WHEN** la récupération des références du remote GitHub échoue
+- **WHEN** la récupération des références du remote GitHub échoue hors indisponibilité reconnue
 - **THEN** la commande échoue explicitement
 - **THEN** aucune branche GitHub n'est poussée
 
@@ -177,7 +171,7 @@ GitHub authentifiée l'existence du dépôt défini par `REMOTE_GITHUB_OWNER` et
 
 #### Scenario: vérification inaccessible
 
-- **WHEN** l'API GitHub retourne un statut autre que `200` ou `404`
+- **WHEN** l'API GitHub retourne un statut autre que `200`, `404`, `502`, `503` ou `504`
 - **THEN** la commande échoue explicitement sans créer ni modifier de remote local
 
 ### Requirement: création confirmée d'un dépôt GitHub absent
@@ -213,3 +207,15 @@ journaux. Tout fichier temporaire contenant le token DOIT être en permissions
 
 - **WHEN** la publication GitHub vérifie ou crée un dépôt
 - **THEN** le token est transmis par un mécanisme temporaire protégé et n'apparaît pas dans la sortie de la commande
+
+### Requirement: serveur GitHub temporairement indisponible
+
+Le push GitHub MUST appliquer `git-provider-availability` à ses appels API,
+son fetch et ses pushes de branche et de tag. Une indisponibilité reconnue
+MUST retourner zéro avec une publication non confirmée ; les autres échecs
+MUST rester bloquants.
+
+#### Scenario: API ou fetch inaccessible
+
+- **WHEN** la vérification API ou le fetch rencontre une indisponibilité reconnue
+- **THEN** aucun push n'est tenté et la commande retourne zéro avec le statut indisponible

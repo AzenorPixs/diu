@@ -4,6 +4,14 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Les pushes Forgejo, GitLab et GitHub signalent les indisponibilités réseau
+  reconnues sans erreur de commande ni faux succès. CI/CD poursuit les autres
+  fournisseurs et le build, ignore les releases concernées et présente un
+  résumé avec indisponibilités. Le parcours Forgejo groupé poursuit aussi les
+  autres projets. Authentification, TLS, configuration et rejets Git restent
+  bloquants ; une publication partielle nécessite une reprise. Clonages et
+  releases directes conservent leur comportement.
+
 - Correction des références Docker GHCR : propriétaire et dépôt GitHub
   convertis en minuscules pour la release et son résumé CI/CD. Les valeurs de
   `project.env`, l'identité GitHub, l'image locale et la casse du tag de version
