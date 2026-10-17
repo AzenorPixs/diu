@@ -3,7 +3,7 @@
 Version : 0.5
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-16T06:11:02Z
+Début du relevé (UTC) : 2026-10-17T07:35:36Z
 Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -60,13 +60,13 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 1.19.2
+  * 1.19.3
   * /home/devops/.opencode/bin/opencode
 
 
 # OpenSpec
 
-  * 1.14.2
+  * 1.14.3
   * /home/devops/.local/npm/bin/openspec
 
 

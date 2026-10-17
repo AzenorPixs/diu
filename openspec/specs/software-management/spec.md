@@ -262,17 +262,13 @@ la mise à jour globale APT appartient au module `softwares`.
 
 ### Requirement: Variables ChatGPT du moteur APT
 
-Le scope `softwares` SHALL déclarer statiquement
-`SOFTWARES_APT_CHATGPT` et `SOFTWARES_APT_CHATGPT_HOME` avec l'état `ENABLE`.
-La valeur par défaut de
-`SOFTWARES_APT_CHATGPT` SHALL être `0`, puis son initialisation SHALL détecter
-le statut installé du paquet Debian `chatgpt` et produire `1` lorsqu'il est
-installé lorsque la variable n'est pas encore définie. Une valeur déjà
-persistée SHALL être conservée. La valeur par défaut de
-`SOFTWARES_APT_CHATGPT_HOME` SHALL être `~/.codex`. Le fichier `softwares.env`
-SHALL persister les deux variables,
-avec une ligne `export SOFTWARES_APT_CHATGPT=0|1` et une ligne littérale
-`export SOFTWARES_APT_CHATGPT_HOME=~/.codex` pour la valeur par défaut.
+Le scope `softwares` SHALL déclarer `SOFTWARES_APT_CHATGPT` et
+`SOFTWARES_APT_CHATGPT_HOME` statiques et `ENABLE`, avec pour défauts
+respectifs `0` et `~/.codex`. Si la première variable est absente, son
+initialisation SHALL produire `1` si le paquet Debian `chatgpt` est installé,
+`0` sinon. Une valeur persistée SHALL être conservée. `softwares.env` SHALL
+contenir les exports des deux variables : état `0|1` et chemin par défaut
+littéral `~/.codex`.
 
 #### Scenario: ChatGPT absent au démarrage
 
