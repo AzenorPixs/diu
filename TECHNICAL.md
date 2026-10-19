@@ -887,8 +887,11 @@ décide séparément pour chaque projet et poursuit après échec avec un résul
 global non nul. Les commandes `template openspec`, `template devops` et
 `template all` restent indépendantes de cette copie documentaire.
 
-`rid projects sync` synchronise uniquement `AGENTS.md`, `.gitignore`,
-`PROMPTS/` et le protocole conditionnel décrit ci-dessus. Les ressources
+`rid projects sync` synchronise uniquement `AGENTS.md`, `.gitignore`
+et le protocole conditionnel décrit ci-dessus. En mode unitaire ou groupé,
+`PROMPTS/` n'est plus exigé dans le modèle et reste exclu de la synchronisation :
+une destination existante est préservée, y compris ses droits et son propriétaire,
+et une destination absente n'est pas créée. Les ressources
 OpenCode et CAB du projet (`.opencode/{commands,config,skills,broker}`) et le
 broker global `/home/${DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
 droits, propriétaire et caches `__pycache__` compris. Leurs sources ne sont

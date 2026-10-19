@@ -421,7 +421,7 @@ sync_project projet-test
 '''
             result = subprocess.run(
                 ['bash', '-c', script, 'bash', str(ROOT),
-                 f'../tmp/{temporary_path.name}', str(project_path.parent)],
+                 f'../{temporary_path.relative_to("/")}', str(project_path.parent)],
                 text=True, capture_output=True, check=False,
             )
 
@@ -438,7 +438,7 @@ sync_project projet-test
             )
             self.assertEqual(
                 (project_path / 'PROMPTS' / 'nested' / 'INDEX.md').read_text(encoding='utf-8'),
-                'Projet Test projet-test\n',
+                'ancienne version\n',
             )
             self.assertEqual(
                 (project_path / 'PROMPTS' / 'local.md').read_text(encoding='utf-8'),
@@ -448,6 +448,83 @@ sync_project projet-test
                 (project_path / 'README.md').read_text(encoding='utf-8'),
                 'Template template\n',
             )
+
+    def test_sync_excludes_prompts_with_or_without_source_and_destination(self):
+        def snapshot(path):
+            if not path.exists():
+                return None
+            state = {}
+            for item in [path, *sorted(path.rglob('*'))]:
+                metadata = item.stat()
+                state[str(item.relative_to(path))] = (
+                    item.read_bytes() if item.is_file() else None,
+                    metadata.st_mode, metadata.st_uid, metadata.st_gid,
+                    metadata.st_ino, metadata.st_mtime_ns,
+                )
+            return state
+
+        for operation in ('projet-test', 'all'):
+            for source_type in ('absent', 'directory', 'file'):
+                for destination_present in (False, True):
+                    with self.subTest(operation=operation, source_type=source_type,
+                                      destination_present=destination_present):
+                        with tempfile.TemporaryDirectory() as temporary_directory:
+                            temporary_path = Path(temporary_directory)
+                            projects_root = temporary_path / 'datas'
+                            template_path = projects_root / 'template'
+                            template_path.mkdir(parents=True)
+                            for filename in ('AGENTS.md', '.gitignore'):
+                                (template_path / filename).write_text(
+                                    'Template template\n', encoding='utf-8')
+                            source = template_path / 'PROMPTS'
+                            if source_type == 'directory':
+                                source.mkdir()
+                                (source / 'INDEX.md').write_text(
+                                    'Template template source\n', encoding='utf-8')
+                            elif source_type == 'file':
+                                source.write_text('source\n', encoding='utf-8')
+                            project_path = projects_root / 'projet-test'
+                            project_path.mkdir()
+                            (project_path / 'project.env').write_text(
+                                'PROJECT_ID=projet-test\nPROJECT_NAME="Projet Test"\n',
+                                encoding='utf-8')
+                            destination = project_path / 'PROMPTS'
+                            if destination_present:
+                                (destination / 'nested').mkdir(parents=True)
+                                (destination / 'nested' / 'INDEX.md').write_text(
+                                    'Template template local\n', encoding='utf-8')
+                                (destination / 'nested' / 'INDEX.md').chmod(0o640)
+                                destination.chmod(0o750)
+                            before = snapshot(destination)
+                            script = r'''
+set -euo pipefail
+source "$1/modules/projects/projects.sh"
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+print_success() { :; }
+print_info() { :; }
+chown() { printf '%s\n' "$@"; }
+DEVOPS_USER="$2"
+DEVOPS_GROUP=devops
+DEVOPS_PROJECTS_ROOT="$3"
+if [[ "$4" == all ]]; then
+    sync_project_all
+    sync_project_all
+else
+    sync_project "$4"
+    sync_project "$4"
+fi
+'''
+                            result = subprocess.run(
+                                ['bash', '-c', script, 'bash', str(ROOT),
+                                 f'../{temporary_path.relative_to("/")}',
+                                 str(projects_root), operation],
+                                text=True, capture_output=True, check=False)
+                            self.assertEqual(result.returncode, 0, result.stderr)
+                            self.assertEqual(result.stderr, '')
+                            self.assertEqual((project_path / 'AGENTS.md').read_text(),
+                                             'Projet Test projet-test\n')
+                            self.assertEqual(snapshot(destination), before)
+                            self.assertNotIn(str(destination), result.stdout.splitlines())
 
     def test_sync_project_leaves_destination_unchanged_when_template_is_missing(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -460,7 +537,7 @@ sync_project projet-test
             )
             (project_path / 'AGENTS.md').write_text('ancienne version\n', encoding='utf-8')
 
-            devops_user = f'../tmp/{temporary_path.name}'
+            devops_user = f'../{temporary_path.relative_to("/")}'
             script = r'''
 source "$1/modules/projects/projects.sh"
 print_error() { :; }
@@ -508,7 +585,7 @@ sync_project projet-test
                 'PROJECT_ID=other\nPROJECT_NAME="Invalid"\n', encoding='utf-8'
             )
 
-            devops_user = f'../tmp/{temporary_path.name}'
+            devops_user = f'../{temporary_path.relative_to("/")}'
             script = r'''
 source "$1/modules/projects/projects.sh"
 print_error() { :; }
@@ -577,7 +654,7 @@ fi
 '''
                             result = subprocess.run(
                                 ['bash', '-c', script, 'bash', str(ROOT),
-                                 f'../tmp/{temporary_path.name}', str(projects_root),
+                                 f'../{temporary_path.relative_to("/")}', str(projects_root),
                                  operation],
                                 text=True, capture_output=True, check=False)
                             self.assertEqual(result.returncode, 0, result.stderr)
@@ -608,7 +685,7 @@ fi
                     encoding='utf-8',
                 )
 
-            devops_user = f'../tmp/{temporary_path.name}'
+            devops_user = f'../{temporary_path.relative_to("/")}'
             script = r'''
 source "$1/modules/projects/projects.sh"
 print_error() { :; }
@@ -702,7 +779,7 @@ fi
 '''
                             result = subprocess.run(
                                 ['bash', '-c', script, 'bash', str(ROOT),
-                                 f'../tmp/{temporary_path.name}', str(projects_root), operation],
+                                 f'../{temporary_path.relative_to("/")}', str(projects_root), operation],
                                 text=True, capture_output=True, check=False)
                             self.assertEqual(result.returncode, 0, result.stderr)
                             self.assertEqual(result.stderr, '')
@@ -743,7 +820,7 @@ sync_project_all
 '''
                     result = subprocess.run(
                         ['bash', '-c', script, 'bash', str(ROOT),
-                         f'../tmp/{temporary_path.name}'],
+                         f'../{temporary_path.relative_to("/")}'],
                         text=True, capture_output=True, check=False)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(result.stderr, '')
@@ -762,7 +839,7 @@ sync_project_all
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
             projects_root = temporary_path / 'projects'
-            missing_template_user = f'../tmp/{temporary_path.name}/missing'
+            missing_template_user = f'../{temporary_path.relative_to("/")}/missing'
             script = r'''
 source "$1/modules/projects/projects.sh"
 print_error() { :; }
@@ -812,7 +889,7 @@ create_project projet-test
                 'Template template\n', encoding='utf-8'
             )
 
-            devops_user = f'../tmp/{temporary_path.name}'
+            devops_user = f'../{temporary_path.relative_to("/")}'
             script = r'''
 source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*"; }
