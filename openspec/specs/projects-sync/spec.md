@@ -32,29 +32,27 @@ copie.
 
 ### Requirement: Source de synchronisation contrôlée
 
-Avant copie, DIU MUST vérifier le modèle `/home/${DEVOPS_USER}/datas/template`,
-ses fichiers `AGENTS.md`, `.gitignore` et son répertoire `PROMPTS`. Une source
-conservée indisponible ou de type incorrect MUST faire échouer la commande
-avec un code non nul avant copie. En mode unitaire ou groupé, DIU MUST NOT
+Avant toute copie, DIU MUST vérifier l'existence du répertoire modèle
+`/home/${DEVOPS_USER}/datas/template`, des fichiers `AGENTS.md` et
+`.gitignore` et du répertoire `PROMPTS`. Une source conservée indisponible
+ou de type incorrect MUST faire échouer la commande avec un code non nul
+avant toute copie. Pour la synchronisation unitaire ou groupée, DIU MUST NOT
 exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
 `/home/devops/datas/cab/src`.
 
 #### Scenario: Répertoire modèle indisponible
 
-- **WHEN** `/home/${DEVOPS_USER}/datas/template` n'est pas disponible
-- **THEN** DIU échoue avec un code non nul
-- **AND THEN** aucun fichier ni répertoire de synchronisation n'est copié
+- **WHEN** le répertoire modèle n'est pas disponible
+- **THEN** DIU échoue avec un code non nul avant toute copie
 
 #### Scenario: Élément géré manquant du modèle
 
-- **WHEN** le modèle ne contient pas l'un de ses fichiers ou répertoires
-  gérés attendus
-- **THEN** DIU échoue avec un code non nul
-- **AND THEN** aucun élément de synchronisation n'est copié
+- **WHEN** AGENTS.md, .gitignore ou PROMPTS est absent ou de type incorrect
+- **THEN** DIU échoue avec un code non nul avant toute copie
 
 #### Scenario: Modèle sans document d'environnement
 
-- **WHEN** le modèle contient tous ses éléments gérés mais aucun `DEVOPS.md`
+- **WHEN** le modèle possède les éléments conservés mais aucun DEVOPS.md
 - **THEN** la synchronisation unitaire ou groupée accepte ce modèle
 
 #### Scenario: Sources OpenCode et CAB absentes
@@ -66,31 +64,32 @@ exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
 ### Requirement: Copie ciblée et autoritaire du modèle
 
 DIU MUST copier uniquement AGENTS.md, .gitignore et PROMPTS récursivement,
-et ORCHESTRATED_CODING.md seulement pour Yes lu selon implement-projects-update.
-Le modèle MUST écraser les éléments copiés.
-DIU MUST préserver les autres destinations et MUST NOT
-copier, créer, personnaliser, supprimer ou modifier les droits ou le
-propriétaire de DEVOPS.md à la racine, en mode unitaire ou groupé.
+et ORCHESTRATED_CODING.md seulement pour Yes lu selon
+implement-projects-update. Le modèle MUST écraser les éléments copiés.
+DIU MUST préserver les autres destinations et MUST NOT copier, créer,
+personnaliser, supprimer ou modifier les droits ou le propriétaire de
+DEVOPS.md à la racine, en mode unitaire ou groupé.
 
 #### Scenario: Écrasement d'un élément géré
 
-- **WHEN** un fichier ou un contenu de répertoire géré existe déjà dans le projet destination
-- **THEN** sa version issue du modèle devient la version présente après la synchronisation
+- **WHEN** un fichier géré existe déjà dans le projet destination
+- **THEN** sa version issue du modèle devient la version présente après
+  synchronisation, avec la personnalisation Markdown spécifiée
 
 #### Scenario: Préservation d'un élément non géré
 
-- **WHEN** le projet destination contient un élément hors de la sélection
-- **THEN** cet élément est conservé après la synchronisation
+- **WHEN** le projet contient un élément hors de la sélection conservée
+- **THEN** cet élément reste intact après la synchronisation
 
 #### Scenario: Préservation du document d'environnement existant
 
-- **WHEN** le projet destination possède un DEVOPS.md et la synchronisation réussit
+- **WHEN** le projet destination possède un DEVOPS.md
 - **THEN** son contenu, ses droits et son propriétaire restent inchangés
 
 #### Scenario: Absence de création du document d'environnement
 
-- **WHEN** le projet destination ne possède aucun DEVOPS.md, même si le modèle en contient un
-- **THEN** aucun DEVOPS.md n'est créé à la racine du projet destination
+- **WHEN** le projet destination ne possède aucun DEVOPS.md
+- **THEN** la synchronisation n'en crée pas, même si le modèle en contient un
 
 #### Scenario: Copie du protocole pour un projet piloté
 
