@@ -280,7 +280,7 @@ conservant le projet préparé. La capacité de référence est
 
 ### Traçabilité du document DevOps
 
-`projects_template_devops_render` produit la version documentaire `0.5`.
+`projects_template_devops_render` produit la version documentaire `0.6`.
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
 la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
@@ -306,12 +306,19 @@ L'inventaire ne vaut ni qualification fonctionnelle, ni validation d'un
 environnement Python unique, ni preuve de réussite des tests du projet.
 
 Les parcours individuel, groupé et final de création produisent cet en-tête
-une seule fois. Le titre, l'ordre des rubriques, les sondes, les droits et le
-propriétaire sont conservés. À observations identiques, le contenu technique
+une seule fois. Le titre, l'ordre relatif des rubriques existantes, les sondes,
+les droits et le propriétaire sont conservés. À observations identiques, le contenu technique
 reste identique hors horodatage. Les anciens documents prennent le format
-`0.5` lors de leur prochaine génération normale ; aucune migration ni retouche
+`0.6` lors de leur prochaine génération normale ; aucune migration ni retouche
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
+
+La rubrique « Prompts », après le gestionnaire de paquets Python et avant les
+tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
+et son index `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`. Ces chemins
+réutilisent le domicile DevOps construit depuis `ENV_DEVOPS_USER`, indépendamment
+de `DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
+leur absence n'empêche pas la génération.
 
 ### Dépendances Python des environnements du projet
 
@@ -880,8 +887,11 @@ décide séparément pour chaque projet et poursuit après échec avec un résul
 global non nul. Les commandes `template openspec`, `template devops` et
 `template all` restent indépendantes de cette copie documentaire.
 
-`rid projects sync` synchronise uniquement `AGENTS.md`, `.gitignore`,
-`PROMPTS/` et le protocole conditionnel décrit ci-dessus. Les ressources
+`rid projects sync` synchronise uniquement `AGENTS.md`, `.gitignore`
+et le protocole conditionnel décrit ci-dessus. En mode unitaire ou groupé,
+`PROMPTS/` n'est plus exigé dans le modèle et reste exclu de la synchronisation :
+une destination existante est préservée, y compris ses droits et son propriétaire,
+et une destination absente n'est pas créée. Les ressources
 OpenCode et CAB du projet (`.opencode/{commands,config,skills,broker}`) et le
 broker global `/home/${DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
 droits, propriétaire et caches `__pycache__` compris. Leurs sources ne sont
@@ -945,11 +955,15 @@ fixtures, runuser/Docker simulés et actions CI/CD simulées.
 | GitLab | `REMOTE_GITLAB_BASE_URL`, `REMOTE_GITLAB_REGISTRY`, `REMOTE_GITLAB_OWNER`, `REMOTE_GITLAB_REPOSITORY`, `REMOTE_GITLAB_NAME`, `REMOTE_GITLAB_BRANCH`, `REMOTE_GITLAB_SSL_VERIFY` | dépôt = identifiant, remote = `origin`, branche = `main`, TLS = `No` |
 | GitHub | `REMOTE_GITHUB_BASE_URL`, `REMOTE_GITHUB_OWNER`, `REMOTE_GITHUB_REPOSITORY`, `REMOTE_GITHUB_NAME`, `REMOTE_GITHUB_BRANCH` | dépôt = identifiant, remote = `origin`, branche = `main` |
 
-Le code actuel utilise `REMOTE_GITLAB_REGISTRY` comme autorité Docker sans
-protocole ni chemin, avec un port explicite éventuel. La release Docker
-reconfigure une valeur absente ou invalide avant publication. Ce comportement
-est décrit par le change actif `configure-gitlab-container-registry`, dont la
-synchronisation et l'archivage restent distincts de ce cadrage.
+`REMOTE_GITLAB_REGISTRY` est l'autorité explicite du registre Docker, sans
+protocole ni chemin, avec un port éventuel conservé. Toute release GitLab
+l'exige, y compris lorsque seule la publication Debian est activée.
+`projects_gitlab_release` corrige séparément la configuration générale et
+GitLab : seul un bloc incomplet déclenche sa fonction de mise à jour, puis
+`project.env` est rechargé et revérifié. Les contrats principaux GitLab
+portent ces comportements et la reprise limitée à `blob unknown to registry`.
+Le change `configure-gitlab-container-registry` reste actif ; sa qualification
+et son archivage restent distincts de cette synchronisation spécificative.
 
 Les URL configurées ne contiennent pas d'identifiants. Elles servent à
 construire un remote HTTPS de la forme :
@@ -959,9 +973,14 @@ https://<hôte>/<propriétaire>/<dépôt>.git
 ```
 
 Avant un push, le remote demandé est vérifié ou créé par la fonction dédiée
-au fournisseur. Un remote absent est ajouté ; un remote existant dont l'URL
-ne correspond pas à `project.env` provoque un échec explicite et n'est pas
-écrasé.
+au fournisseur. Un remote absent est ajouté. Pour Forgejo, les URL de
+récupération et de publication du seul remote configuré sont réalignées sur
+`project.env` lorsqu'elles divergent, avec un diagnostic explicite. Les URL
+multiples de ce remote sont ramenées à la seule destination déclarée ; un
+échec de correction ou de vérification des URL effectives bloque le push.
+Les autres remotes et `project.env` sont conservés. Une réexécution conforme
+ne réécrit pas les URL. Pour GitLab et GitHub, un remote incohérent provoque
+toujours un échec explicite sans remplacement.
 
 Le remote configuré pour GitLab ou GitHub peut donc être différent de
 `origin`. Un push fournisseur ne doit pas modifier le remote d'un autre
@@ -1075,6 +1094,17 @@ github_push  <PROJECT_ID>
 La publication vérifie le projet, `project.env`, le remote attendu, la branche
 et les identifiants avant de pousser. Les aides CLI doivent rester cohérentes
 avec les commandes `rid projects <provider> update|push`.
+
+Pour Forgejo, un dépôt existant conserve le fetch authentifié préalable et
+`--force-with-lease`. Un dépôt annoncé absent ne déclenche ni fetch ni
+création API : le premier push utilise
+`--force-with-lease=refs/heads/<branche>:` pour attendre explicitement
+l'absence de la branche distante, même si une référence de suivi locale est
+héritée d'un ancien dépôt. Une création concurrente est refusée sans forçage
+inconditionnel ; aucune référence locale n'est supprimée. Le tag du dernier
+commit est publié sans forçage après la réussite du push de branche. La
+création du dépôt reste conditionnée à la configuration push-to-create du
+serveur. Les tests locaux sont dans `tests/test_projects_forgejo_push.py`.
 
 La release du paquet DIU vers Forgejo est un parcours distinct. Il vérifie le
 paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'API
@@ -1202,7 +1232,8 @@ particulier :
 - `SYSTEM_DEBIAN_RELEASE` remplace progressivement `DEBIAN_RELEASE` ;
 - les configurations Forgejo, GitLab et GitHub restent séparées dans
   `project.env` ;
-- les remotes existants ne sont jamais écrasés lorsqu'ils sont incohérents ;
+- seul le remote Forgejo configuré est réaligné automatiquement sur
+  `project.env` ; les remotes GitLab et GitHub incohérents restent refusés ;
 - une nouvelle recette logicielle doit être explicitement enregistrée et
   testée ;
 - un déplacement, un renommage, une suppression ou une modification de

@@ -66,6 +66,18 @@ GHCR, y compris dans le résumé CI/CD : `AzenorPixs/PKeycloak` devient
 les tags Docker sont la version issue de l'unique tag Git de `HEAD` et `latest`.
 Cette commande ne construit pas l'image.
 
+`rid projects forgejo push <ID PROJECT>` réaligne automatiquement les URL de
+récupération et de publication du remote Forgejo configuré sur `project.env`,
+notamment si elles pointent encore vers le modèle. Ce remote utilise ensuite
+la seule destination déclarée ; les autres remotes sont conservés. Une erreur
+de réalignement bloque la publication. Pour un dépôt annoncé absent, le
+premier push attend explicitement l'absence de la branche distante : une
+ancienne référence de suivi locale ne le bloque plus et une création
+concurrente reste protégée. La création du dépôt dépend de l'activation
+push-to-create sur Forgejo. Les dépôts existants gardent le fetch préalable
+et les tags sont publiés sans forçage. Ces corrections s'appliquent aussi au
+parcours groupé `forgejo push all`.
+
 Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue
 est signalée comme « serveur indisponible — publication non confirmée ».
 La commande retourne zéro ; elle n'annonce pas la publication comme réussie.
@@ -85,7 +97,7 @@ Pour générer l'inventaire DevOps d'un projet :
 rid projects template devops <ID PROJECT>
 ```
 
-`DEVOPS.md` est généré au format documentaire `0.5`, avec provenance DIU,
+`DEVOPS.md` est généré au format documentaire `0.6`, avec provenance DIU,
 début du relevé UTC et classification de l'environnement d'exécution fournie
 par DIU. Les dépendances Python sont recherchées en priorité dans les venv du projet
 (`.venv`, `venv`, `env`, puis autres chemins triés), avec repli DevOps explicite.
@@ -94,6 +106,12 @@ installation observée. Les recherches ou sondes impossibles sont signalées
 comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
+
+La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
+`/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps
+configuré, indépendamment de la racine des projets. Ces ressources ne sont
+ni lues ni créées ; les documents existants adoptent le format `0.6` à leur
+prochaine génération.
 
 Les manifestes `package.json` des composants et workspaces sont regroupés sous
 NPM ; `.opencode/package.json` figure sous OpenCode. Les dépendances directes

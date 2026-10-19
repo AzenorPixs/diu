@@ -6534,7 +6534,7 @@ then
 	    echo "alias ceh='cat /etc/hosts'"
 	    echo "alias cehc='cat /etc/host.conf'"
 	    echo "alias cel='cat /etc/localtime'"
-	    echo "alias ci='cat /home/devops/datas/template/PROMPTS/INDEX.md'"
+	    echo "alias ci='cat /home/devops/datas/prompts/INDEX.md'"
 	    echo "alias cm='cat /home/monero/monero.log'"
 	    echo "alias cpmh='cat /proc/meminfo | grep Huge'"
 	    echo "alias cer='cat /etc/rsyslog.conf'"

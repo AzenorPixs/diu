@@ -1,10 +1,10 @@
 # DEVOPS.md — diu
 
-Version : 0.5
+Version : 0.6
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-16T16:58:20Z
-Environnement d'exécution DIU : PROXMOX
+Début du relevé (UTC) : 2026-10-19T13:28:04Z
+Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
@@ -60,13 +60,13 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 1.19.2
+  * 1.19.3
   * /home/devops/.opencode/bin/opencode
 
 
 # OpenSpec
 
-  * 1.14.2
+  * 1.14.3
   * /home/devops/.local/npm/bin/openspec
 
 
@@ -106,6 +106,12 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
   * 26.2.1
   * /home/devops/python/current/bin/pip3
+
+
+# Prompts
+
+  * Dossier des prompts : /home/devops/datas/prompts
+  * Index des prompts : /home/devops/datas/prompts/INDEX.md
 
 
 # Tests navigateurs extérieurs en mode headless

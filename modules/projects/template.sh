@@ -1124,7 +1124,7 @@ projects_template_devops_render() {
     if [[ "${project_title}" == template ]]; then
         project_title=Template
     fi
-    printf '# DEVOPS.md — %s\n\nVersion : 0.5\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
+    printf '# DEVOPS.md — %s\n\nVersion : 0.6\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
         "${project_title}" "${started_at}" "${environment_type}" || return 1
     printf '%s\n' \
         "Les sondes système concernent le contexte d'exécution DIU." \
@@ -1208,6 +1208,9 @@ projects_template_devops_render() {
     binary="${devops_home}/python/current/bin/pip3"
     version="$(projects_template_devops_version python "${devops_home}" "${binary}" --version)" || return 1
     projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}" || return 1
+
+    printf '# Prompts\n\n  * Dossier des prompts : %s/datas/prompts\n  * Index des prompts : %s/datas/prompts/INDEX.md\n\n\n' \
+        "${devops_home}" "${devops_home}" || return 1
 
     printf '# Tests navigateurs extérieurs en mode headless\n\nLa détection ne vérifie pas le fonctionnement du mode headless.\n\n' || return 1
     for name in Chromium Firefox; do

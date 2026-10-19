@@ -8,40 +8,77 @@ dépôt Forgejo distant configuré.
 
 ### Requirement: commande de publication Forgejo
 
-Le système MUST exposer la commande `rid projects forgejo push <ID PROJECT>`
-et la commande groupée `rid projects forgejo push all`.
+DIU MUST exposer `rid projects forgejo push <ID PROJECT>` et sa variante
+`all`, conformément aux scénarios ci-dessous et à `git-provider-availability`.
+La branche MUST utiliser `--force-with-lease` et les tags MUST rester sans
+forçage. Pour un dépôt annoncé absent, le lease MUST attendre l'absence de
+la branche avec `--force-with-lease=refs/heads/<branche>:` et MUST NOT
+dépendre d'une référence héritée ni supprimer une référence locale.
 
 #### Scenario: publication du dépôt local
 
-- ÉTANT DONNÉ le dépôt local du projet `diu`
-- QUAND l'utilisateur exécute `rid projects forgejo push diu`
-- ALORS le dépôt local est poussé vers le dépôt Forgejo distant configuré
-- ET la branche distante configurée reçoit la branche locale publiée
-- ET le tag pointant sur le dernier commit, s'il existe, est publié
+- **GIVEN** un dépôt local et un dépôt Forgejo existant
+- **WHEN** un push Forgejo est demandé
+- **THEN** les références authentifiées sont récupérées avant le push
+- **AND** la branche distante configurée reçoit la branche locale avec
+  `--force-with-lease`
+- **AND** le tag du dernier commit, s'il existe, est publié sans forçage
+
+#### Scenario: récupération Forgejo en échec
+
+- **GIVEN** un dépôt Forgejo existant
+- **WHEN** le fetch échoue pour une cause autre qu'une indisponibilité reconnue
+- **THEN** la commande échoue explicitement sans push de branche ni de tag
 
 #### Scenario: dépôt distant absent
 
-- ÉTANT DONNÉ le dépôt local du projet `diu` et un dépôt Forgejo distant
-  configuré mais absent
-- QUAND l'utilisateur exécute `rid projects forgejo push diu`
-- ALORS le dépôt Forgejo est créé vide avant la récupération de ses références
-- ET la branche distante configurée reçoit la branche locale publiée avec la
-  protection de concurrence configurée
-- ET le tag pointant sur le dernier commit, s'il existe, est publié
+- **GIVEN** un dépôt Forgejo absent
+- **WHEN** un push Forgejo est demandé
+- **THEN** aucun fetch ni appel API de création n'est exécuté
+- **AND** le push utilise `--force-with-lease=refs/heads/<branche>:`
+- **AND** Forgejo peut créer le dépôt selon sa configuration serveur
+- **AND** aucune référence locale n'est supprimée
+- **AND** le tag du dernier commit, s'il existe, est publié sans forçage
+
+#### Scenario: dépôt distant absent avec référence de suivi héritée
+
+- **GIVEN** un dépôt Forgejo absent et une référence de suivi locale héritée
+- **WHEN** un push Forgejo est demandé
+- **THEN** le lease attend l'absence de la branche distante et ignore
+  l'ancienne valeur de suivi
+- **AND** aucune référence locale n'est supprimée
+
+#### Scenario: création concurrente de la branche distante
+
+- **GIVEN** un dépôt annoncé absent lors de la vérification
+- **WHEN** la branche distante est créée avant le premier push
+- **THEN** le lease refuse de l'écraser et la commande échoue explicitement
+- **AND** aucun tag n'est publié après ce rejet
 
 #### Scenario: publication groupée
 
-- ÉTANT DONNÉ plusieurs projets configurés pour Forgejo
-- QUAND l'utilisateur exécute `rid projects forgejo push all`
-- ALORS chaque projet sélectionné est publié par le parcours Forgejo unitaire
+- **WHEN** `rid projects forgejo push all` est demandé
+- **THEN** chaque projet sélectionné utilise le parcours Forgejo unitaire
 
 #### Scenario: sélection explicite de Forgejo
 
-- ÉTANT DONNÉ que le projet possède déjà une configuration GitLab ou GitHub
-- QUAND l'utilisateur exécute `rid projects forgejo push <ID PROJECT>`
-- ALORS la commande sélectionne explicitement le fournisseur Forgejo
-- ET elle utilise ou initialise les variables `REMOTE_FORGEJO_*`
-- ET elle ne remplace pas les configurations GitLab ou GitHub
+- **GIVEN** un projet configuré également pour GitLab ou GitHub
+- **WHEN** un push Forgejo est demandé
+- **THEN** il utilise ou initialise les variables `REMOTE_FORGEJO_*`
+- **AND** les configurations des autres fournisseurs sont conservées
+
+#### Scenario: publication Forgejo sans confirmation
+
+- **GIVEN** une configuration Forgejo et des identifiants valides
+- **WHEN** un push Forgejo est demandé
+- **THEN** il démarre après vérifications sans confirmation supplémentaire
+
+#### Scenario: Indisponibilité reconnue avant le push
+
+- **WHEN** la vérification ou le fetch rencontre une indisponibilité reconnue
+- **THEN** aucun push n'est exécuté
+- **AND** le résultat suit `git-provider-availability` : publication non
+  confirmée, retour zéro et statut interne d'indisponibilité
 
 ### Requirement: configuration Forgejo du projet
 
@@ -71,20 +108,13 @@ REMOTE_FORGEJO_SSL_VERIFY="No"
 
 ### Requirement: identifiants Forgejo
 
-Le système MUST utiliser `config/forgejo.username` et
-`config/forgejo.token` selon le parcours sécurisé Forgejo existant. Lorsque
-l'un de ces fichiers est absent, `forgejo_push()` MUST déléguer leur création
-à la fonction dédiée `forgejo_credentials_setup()` avant d'appeler
-`forgejo-auth`.
-
-`forgejo_credentials_setup()` MUST demander une confirmation explicite avant
-toute écriture, puis demander les informations nécessaires de manière
-interactive. `forgejo-auth` reste strict : il ne crée aucun identifiant et
-retourne une erreur lorsque les identifiants attendus sont absents ou invalides.
-
-Les deux fichiers DOIVENT avoir les permissions `600`, ne DOIVENT jamais être
-affichés dans les journaux et le token DOIT être transmis à Git uniquement par
-`git_with_token`.
+`forgejo_push()` MUST utiliser `config/forgejo.username` et
+`config/forgejo.token` (mode `600`, jamais journalisés). Le token MUST passer
+à Git uniquement par `git_with_token`. Si un fichier manque, le push MUST
+appeler `forgejo_credentials_setup()` avant `forgejo-auth`. Ce setup MUST
+obtenir une confirmation explicite avant toute écriture puis demander les
+données interactivement. Le provider MUST rester strict : aucune création,
+erreur si identifiants absents ou invalides.
 
 #### Scenario: identifiants absents
 
@@ -114,21 +144,48 @@ affichés dans les journaux et le token DOIT être transmis à Git uniquement pa
 
 ### Requirement: remote Forgejo HTTPS
 
-Le remote nommé par `REMOTE_FORGEJO_NAME` MUST utiliser une URL construite
-depuis `REMOTE_FORGEJO_BASE_URL`, `REMOTE_FORGEJO_OWNER` et
-`REMOTE_FORGEJO_REPOSITORY`, au format
-`https://<hôte>/<propriétaire>/<dépôt>.git`.
-
-Si le remote n'existe pas, il DOIT être ajouté. S'il existe avec une autre URL,
-la commande DOIT échouer sans l'écraser.
+Le remote `REMOTE_FORGEJO_NAME` MUST utiliser l'URL construite depuis
+`REMOTE_FORGEJO_BASE_URL`, `REMOTE_FORGEJO_OWNER` et `REMOTE_FORGEJO_REPOSITORY`,
+au format `https://<hôte>/<propriétaire>/<dépôt>.git`. Le helper MUST ajouter
+le remote absent ou réaligner ses URL de récupération et de publication
+sur cette seule destination, conformément aux scénarios ci-dessous.
+Les autres remotes et `project.env` MUST rester inchangés.
 
 #### Scenario: remote absent ou incohérent
 
-- ÉTANT DONNÉ que le remote nommé par `REMOTE_FORGEJO_NAME` est absent ou
-  possède une URL différente de celle déclarée
-- QUAND un push Forgejo est demandé
-- ALORS le remote absent est ajouté avec l'URL déclarée
-- ET un remote incohérent provoque une erreur sans être écrasé
+- **GIVEN** le remote Forgejo configuré est absent ou possède une autre URL
+- **WHEN** un push Forgejo est demandé
+- **THEN** le remote absent est ajouté avec l'URL déclarée
+- **AND** un remote incohérent est réaligné sur cette URL
+
+#### Scenario: URL héritée du modèle
+
+- **GIVEN** le remote pointe encore vers le dépôt du modèle
+- **WHEN** un push Forgejo est demandé
+- **THEN** ses URL sont réalignées sur la configuration du projet
+- **AND** un diagnostic explicite indique la correction sans afficher les
+  anciennes URL
+- **AND** le parcours poursuit les vérifications de publication
+
+#### Scenario: URL de publication distincte ou multiple
+
+- **GIVEN** une URL de récupération correcte et des pushurl incohérentes
+- **WHEN** un push Forgejo est demandé
+- **THEN** toutes les URL du remote sont ramenées à la destination déclarée
+- **AND** les autres remotes sont préservés
+
+#### Scenario: réalignement idempotent
+
+- **GIVEN** les URL du remote correspondent déjà à la destination déclarée
+- **WHEN** le helper est réexécuté
+- **THEN** aucune écriture de configuration n'est effectuée
+
+#### Scenario: échec du réalignement
+
+- **WHEN** une lecture, une correction ou sa vérification finale échoue
+- **THEN** la commande échoue explicitement avant tout push
+- **AND** aucun message de correction réussie n'est affiché
+- **AND** une correction partielle peut être reprise par réexécution
 
 ### Requirement: vérification TLS Forgejo
 

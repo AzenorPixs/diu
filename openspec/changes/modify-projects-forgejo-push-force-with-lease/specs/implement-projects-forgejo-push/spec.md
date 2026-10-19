@@ -2,20 +2,13 @@
 
 ### Requirement: commande de publication Forgejo
 
-Le système MUST exposer la commande `rid projects forgejo push <ID PROJECT>`
-et la commande groupée `rid projects forgejo push all`.
-
-Avant la publication, le système MUST vérifier l'existence du dépôt Forgejo.
-Pour un dépôt existant, il MUST récupérer les références du remote Forgejo
-configuré par le mécanisme authentifié et MUST arrêter le push si cette
-récupération échoue. Pour un dépôt absent, il MUST omettre cette récupération
-et déléguer la création au premier push Git, sans appel API de création,
-selon forgejo-auth.
-
-Le push de branche MUST utiliser `--force-with-lease` et la destination
-Forgejo explicite configurée. La publication MUST préserver le push du tag
-éventuel sans option de forçage. Avec une configuration et des identifiants
-valides, le parcours MUST démarrer sans confirmation supplémentaire du push.
+DIU MUST exposer `rid projects forgejo push <ID PROJECT>` et sa variante
+`all`. Pour un dépôt existant, il MUST réussir le fetch authentifié avant
+le push ; pour un dépôt absent, déléguer la création au premier push sans
+fetch ni création API. La branche MUST utiliser `--force-with-lease`, le
+tag rester sans forçage et le push démarrer sans confirmation supplémentaire
+si configuration et identifiants sont valides. Les échecs MUST respecter
+`git-provider-availability`.
 
 #### Scenario: publication du dépôt local
 
@@ -32,7 +25,7 @@ valides, le parcours MUST démarrer sans confirmation supplémentaire du push.
 #### Scenario: récupération Forgejo en échec
 
 - ÉTANT DONNÉ un dépôt Forgejo existant
-- QUAND la récupération authentifiée de ses références échoue
+- QUAND la récupération authentifiée de ses références échoue pour une cause autre qu'une indisponibilité reconnue
 - ALORS la commande échoue explicitement
 - ET aucun push de branche ni de tag n'est exécuté
 
@@ -69,3 +62,10 @@ valides, le parcours MUST démarrer sans confirmation supplémentaire du push.
 - QUAND l'utilisateur exécute `rid projects forgejo push <ID PROJECT>`
 - ALORS le parcours Forgejo ne demande pas de confirmation avant le push
 - ET le push démarre après les vérifications existantes
+
+#### Scenario: Indisponibilité reconnue avant le push
+
+- **WHEN** la vérification du dépôt ou la récupération préalable rencontre une indisponibilité reconnue
+- **THEN** aucun push n'est exécuté
+- **AND THEN** le résultat public suit git-provider-availability : publication non confirmée, retour zéro et statut interne d'indisponibilité
+
