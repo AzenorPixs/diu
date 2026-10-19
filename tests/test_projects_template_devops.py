@@ -160,6 +160,17 @@ ENV_DEVOPS_USER="$1"
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return self.document.read_text(encoding='utf-8')
 
+    def assert_prompts_section(self, content):
+        prompts = self.home / 'datas/prompts'
+        self.assertEqual(content.count('# Prompts\n'), 1)
+        self.assertIn(f'# Prompts\n\n  * Dossier des prompts : {prompts}\n'
+                      f'  * Index des prompts : {prompts / "INDEX.md"}\n', content)
+        self.assertLess(content.index('# Python - Gestionnaire de paquets\n'),
+                        content.index('# Prompts\n'))
+        self.assertLess(content.index('# Prompts\n'),
+                        content.index('# Tests navigateurs extérieurs en mode headless\n'))
+        self.assertFalse(prompts.exists())
+
     def test_generation_structure_versions_and_executable_paths(self):
         content = self.successful_document(self.run_generation())
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
@@ -167,7 +178,7 @@ ENV_DEVOPS_USER="$1"
             'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
             'Python', 'Python - Dépendances du projet - Source de vérité `pyproject.toml`',
-            'Python - Gestionnaire de paquets',
+            'Python - Gestionnaire de paquets', 'Prompts',
             'Tests navigateurs extérieurs en mode headless',
         ])
         self.assertEqual(re.findall(r'^## (.+)$', content, re.M), ['Chromium', 'Firefox'])
@@ -177,7 +188,8 @@ ENV_DEVOPS_USER="$1"
                           '  * Mode headless : --headless\n', content)
         self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
-        self.assertIn('Version : 0.5', content)
+        self.assertIn('Version : 0.6', content)
+        self.assert_prompts_section(content)
         for title, version, path in (
             ('Docker', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
@@ -208,7 +220,7 @@ ENV_DEVOPS_USER="$1"
     def test_report_provenance_utc_and_capture_before_probes(self):
         self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
         content = self.successful_document(self.run_generation())
-        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.5\n', content)
+        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.6\n', content)
         expected = (
             'Généré automatiquement par Debian Installeur Unifié (DIU).',
             'Début du relevé (UTC) : 2026-10-09T06:30:00Z',
@@ -1401,7 +1413,8 @@ exit $?
                     self.assertIn(f'# DEVOPS.md — {project}', content)
                     self.assertEqual(content.count('## Dépendances JavaScript du projet\n'), 1)
                     self.assertIn('creation-fixture : déclarée 1.0.0', content)
-                    self.assertIn('Version : 0.5\n', content)
+                    self.assertIn('Version : 0.6\n', content)
+                    self.assert_prompts_section(content)
                     self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n', content)
                     self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'), 1)
                     self.assertIn('# Tests navigateurs extérieurs en mode headless\n', content)
@@ -1595,7 +1608,8 @@ projects_template_devops() {
             for project in ('template', 'all', 'python-app'):
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
-                self.assertIn(b'Version : 0.5\n', content)
+                self.assertIn(b'Version : 0.6\n', content)
+                self.assert_prompts_section(content.decode('utf-8'))
                 self.assertEqual(content.count('## Dépendances JavaScript du projet\n'.encode()), 1)
                 self.assertIn(b'batch-fixture : d\xc3\xa9clar\xc3\xa9e 1.0.0', content)
                 self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n'.encode(), content)
@@ -1664,6 +1678,52 @@ class ProjectsTemplateDevopsRuntimeTests(unittest.TestCase):
         finally:
             if restrict_directory:
                 directory.chmod(0o700)
+
+    def test_prompts_paths_follow_configured_user_with_separate_projects_root(self):
+        # Conserver le calcul réel du domicile et le rendu. Isoler seulement
+        # les identités et les sondes ; toutes les écritures restent dans la fixture.
+        script = r'''
+source "$1"
+ENV_DEVOPS_USER="$2"
+DEVOPS_PROJECTS_ROOT="$3"
+id() {
+    case "$1" in
+        -u) printf '1234\n' ;;
+        -un) printf '%s\n' "$ENV_DEVOPS_USER" ;;
+        *) return 99 ;;
+    esac
+}
+print_error() { printf '%s\n' "$*" >&2; }
+print_success() { :; }
+projects_template_devops_python_manifest() { :; }
+projects_template_devops_timestamp() { printf '2026-10-19T06:30:00Z\n'; }
+projects_template_devops_host_binary() { return 1; }
+projects_template_devops_version() { printf 'indisponible\n'; }
+projects_template_devops_user_run() { return 1; }
+projects_template_devops_javascript() { printf '\034'; }
+projects_template_devops_dependencies() { printf '  * manifeste absent\n'; }
+projects_template_devops_postgresql() { printf '  * indisponible\n'; }
+projects_template_devops application
+'''
+        projects_root = self.fixture / 'separate projects'
+        target = projects_root / 'application'
+        target.mkdir(parents=True)
+        document = target / 'DEVOPS.md'
+        document.write_text('Ancien relevé\n', encoding='utf-8')
+        for user in ('devops', 'ci-builder'):
+            with self.subTest(user=user):
+                result = subprocess.run(
+                    ['bash', '-Eeuo', 'pipefail', '-c', script, 'bash', str(MODULE),
+                     user, str(projects_root)], env=self.environment, text=True,
+                    capture_output=True, timeout=10, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                content = document.read_text(encoding='utf-8')
+                self.assertEqual(content.count('# Prompts\n'), 1)
+                self.assertIn(f'# Prompts\n\n  * Dossier des prompts : /home/{user}/datas/prompts\n'
+                              f'  * Index des prompts : /home/{user}/datas/prompts/INDEX.md\n', content)
+                self.assertNotIn(str(projects_root / 'prompts'), content)
+                self.assertIn('Version : 0.6\n', content)
 
     def test_real_go_version_from_inaccessible_caller_directory(self):
         if os.geteuid() == 0:

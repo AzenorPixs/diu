@@ -280,7 +280,7 @@ conservant le projet préparé. La capacité de référence est
 
 ### Traçabilité du document DevOps
 
-`projects_template_devops_render` produit la version documentaire `0.5`.
+`projects_template_devops_render` produit la version documentaire `0.6`.
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
 la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
@@ -306,12 +306,19 @@ L'inventaire ne vaut ni qualification fonctionnelle, ni validation d'un
 environnement Python unique, ni preuve de réussite des tests du projet.
 
 Les parcours individuel, groupé et final de création produisent cet en-tête
-une seule fois. Le titre, l'ordre des rubriques, les sondes, les droits et le
-propriétaire sont conservés. À observations identiques, le contenu technique
+une seule fois. Le titre, l'ordre relatif des rubriques existantes, les sondes,
+les droits et le propriétaire sont conservés. À observations identiques, le contenu technique
 reste identique hors horodatage. Les anciens documents prennent le format
-`0.5` lors de leur prochaine génération normale ; aucune migration ni retouche
+`0.6` lors de leur prochaine génération normale ; aucune migration ni retouche
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
+
+La rubrique « Prompts », après le gestionnaire de paquets Python et avant les
+tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
+et son index `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`. Ces chemins
+réutilisent le domicile DevOps construit depuis `ENV_DEVOPS_USER`, indépendamment
+de `DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
+leur absence n'empêche pas la génération.
 
 ### Dépendances Python des environnements du projet
 

@@ -85,7 +85,7 @@ Pour générer l'inventaire DevOps d'un projet :
 rid projects template devops <ID PROJECT>
 ```
 
-`DEVOPS.md` est généré au format documentaire `0.5`, avec provenance DIU,
+`DEVOPS.md` est généré au format documentaire `0.6`, avec provenance DIU,
 début du relevé UTC et classification de l'environnement d'exécution fournie
 par DIU. Les dépendances Python sont recherchées en priorité dans les venv du projet
 (`.venv`, `venv`, `env`, puis autres chemins triés), avec repli DevOps explicite.
@@ -94,6 +94,12 @@ installation observée. Les recherches ou sondes impossibles sont signalées
 comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
+
+La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
+`/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps
+configuré, indépendamment de la racine des projets. Ces ressources ne sont
+ni lues ni créées ; les documents existants adoptent le format `0.6` à leur
+prochaine génération.
 
 Les manifestes `package.json` des composants et workspaces sont regroupés sous
 NPM ; `.opencode/package.json` figure sous OpenCode. Les dépendances directes
