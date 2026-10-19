@@ -2,15 +2,13 @@
 
 ### Requirement: initialisation de configuration incomplète
 
-Si `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`, `PROJECT_DOCKERED`,
-`PROJECT_DEBIAN_PACKAGE` ou toute variable `REMOTE_GITLAB_*` attendue, y
-compris `REMOTE_GITLAB_REGISTRY`, est manquante ou invalide,
-`projects_gitlab_release` SHALL appeler automatiquement :
-
-- `update_projects <ID PROJECT>` ;
-- `gitlab_update <ID PROJECT>`.
-
-Puis la fonction reprend la commande de release.
+`projects_gitlab_release` SHALL corriger séparément les blocs incomplets :
+`update_projects <ID PROJECT>` pour `PROJECT_ID` non conforme à la cible ou
+`PROJECT_NAME`, `PROJECT_TYPE`, `PROJECT_DOCKERED`, `PROJECT_DEBIAN_PACKAGE`
+absents ; `gitlab_update <ID PROJECT>` pour les variables GitLab attendues,
+dont `REMOTE_GITLAB_REGISTRY` manquante ou invalide. Chaque correction SHALL
+être suivie d'un rechargement et d'une vérification de `project.env` avant
+publication.
 
 #### Scenario: configuration GitLab incomplète
 
@@ -38,15 +36,35 @@ Puis la fonction reprend la commande de release.
   Docker de publication
 - **AND** le registre corrigé ne contient pas de protocole
 
+#### Scenario: Bloc général complet et bloc GitLab incomplet
+
+- **GIVEN** que la configuration générale est complète et conforme et que GitLab est incomplet
+- **WHEN** une release GitLab est demandée
+- **THEN** seul gitlab_update est appelé pour compléter la configuration
+- **AND** project.env est rechargé et revérifié avant toute publication
+
+#### Scenario: Bloc général incomplet et bloc GitLab complet
+
+- **GIVEN** que la configuration générale est incomplète et que GitLab est complet et valide
+- **WHEN** une release GitLab est demandée
+- **THEN** seul update_projects est appelé pour compléter la configuration
+- **AND** project.env est rechargé et revérifié avant toute publication
+
+#### Scenario: Configuration entièrement complète
+
+- **GIVEN** que les deux blocs sont complets et conformes
+- **WHEN** une release GitLab est demandée
+- **THEN** aucune fonction de mise à jour de configuration n'est appelée
+
 ## ADDED Requirements
 
 ### Requirement: registre Docker GitLab explicite
 
-Une release Docker GitLab SHALL utiliser `REMOTE_GITLAB_REGISTRY` comme
-autorité du registre pour l'authentification Docker et les références d'image.
-Elle MUST conserver cette valeur telle qu'elle est configurée, y compris un
-port explicite, sans la déduire de `REMOTE_GITLAB_BASE_URL`. Cette valeur MUST
-être une autorité de registre sans protocole ni chemin.
+Toute release GitLab SHALL exiger `REMOTE_GITLAB_REGISTRY`, y compris sans
+publication Docker. Cette valeur MUST être une autorité sans protocole ni
+chemin. La publication Docker SHALL l'utiliser telle quelle pour
+l'authentification et les références d'image, port inclus, sans la déduire
+de `REMOTE_GITLAB_BASE_URL`.
 
 #### Scenario: registre avec port dédié
 
@@ -56,6 +74,13 @@ port explicite, sans la déduire de `REMOTE_GITLAB_BASE_URL`. Cette valeur MUST
 - **THEN** l'authentification Docker cible `git.ec-nantes.fr:5050`
 - **AND** les images versionnée et `latest` utilisent
   `git.ec-nantes.fr:5050/<owner>/<repository>`
+
+#### Scenario: Release uniquement Debian sans registre
+
+- **GIVEN** que le projet active uniquement la publication Debian et que REMOTE_GITLAB_REGISTRY est absente
+- **WHEN** une release GitLab est demandée
+- **THEN** gitlab_update est appelée avant la publication Debian
+- **AND** aucune publication Docker n'est déclenchée
 
 ### Requirement: reprise ciblée d'une publication Docker transitoirement incohérente
 

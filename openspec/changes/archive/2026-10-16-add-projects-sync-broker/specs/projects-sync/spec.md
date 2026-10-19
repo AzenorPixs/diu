@@ -75,14 +75,12 @@ DEVOPS.md à la racine, en mode unitaire ou groupé.
 
 ### Requirement: Préservation des ressources OpenCode et CAB exclues
 
-Pour la synchronisation unitaire et groupée, DIU MUST NOT consulter les
-sources OpenCode ou CAB exclues, ni copier, créer, personnaliser, supprimer
-ou changer les droits ou le propriétaire des répertoires projet
-`.opencode/commands`, `.opencode/config`, `.opencode/skills` et
-`.opencode/broker`, de leur contenu ou du broker global
-`/home/${DEVOPS_USER}/.opencode/broker`. Cette préservation MUST inclure
-les caches `__pycache__`. L'absence de ces destinations MUST NOT provoquer
-leur création.
+En mode unitaire ou groupé, DIU MUST NOT consulter les sources OpenCode/CAB
+exclues, ni copier, créer, personnaliser, supprimer ou changer le contenu,
+les droits ou le propriétaire des ressources projet
+`.opencode/{commands,config,skills,broker}` ou du broker global
+`/home/${DEVOPS_USER}/.opencode/broker`, caches `__pycache__` inclus.
+Une destination absente MUST rester absente.
 
 #### Scenario: Ressources exclues existantes
 

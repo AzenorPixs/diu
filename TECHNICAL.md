@@ -945,11 +945,15 @@ fixtures, runuser/Docker simulés et actions CI/CD simulées.
 | GitLab | `REMOTE_GITLAB_BASE_URL`, `REMOTE_GITLAB_REGISTRY`, `REMOTE_GITLAB_OWNER`, `REMOTE_GITLAB_REPOSITORY`, `REMOTE_GITLAB_NAME`, `REMOTE_GITLAB_BRANCH`, `REMOTE_GITLAB_SSL_VERIFY` | dépôt = identifiant, remote = `origin`, branche = `main`, TLS = `No` |
 | GitHub | `REMOTE_GITHUB_BASE_URL`, `REMOTE_GITHUB_OWNER`, `REMOTE_GITHUB_REPOSITORY`, `REMOTE_GITHUB_NAME`, `REMOTE_GITHUB_BRANCH` | dépôt = identifiant, remote = `origin`, branche = `main` |
 
-Le code actuel utilise `REMOTE_GITLAB_REGISTRY` comme autorité Docker sans
-protocole ni chemin, avec un port explicite éventuel. La release Docker
-reconfigure une valeur absente ou invalide avant publication. Ce comportement
-est décrit par le change actif `configure-gitlab-container-registry`, dont la
-synchronisation et l'archivage restent distincts de ce cadrage.
+`REMOTE_GITLAB_REGISTRY` est l'autorité explicite du registre Docker, sans
+protocole ni chemin, avec un port éventuel conservé. Toute release GitLab
+l'exige, y compris lorsque seule la publication Debian est activée.
+`projects_gitlab_release` corrige séparément la configuration générale et
+GitLab : seul un bloc incomplet déclenche sa fonction de mise à jour, puis
+`project.env` est rechargé et revérifié. Les contrats principaux GitLab
+portent ces comportements et la reprise limitée à `blob unknown to registry`.
+Le change `configure-gitlab-container-registry` reste actif ; sa qualification
+et son archivage restent distincts de cette synchronisation spécificative.
 
 Les URL configurées ne contiennent pas d'identifiants. Elles servent à
 construire un remote HTTPS de la forme :

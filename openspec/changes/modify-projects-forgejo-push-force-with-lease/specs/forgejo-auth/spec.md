@@ -14,6 +14,8 @@ THEN l'existence du dépôt Forgejo est vérifiée avant toute récupération
 AND pour un dépôt existant, les références du remote Forgejo nommé sont
 récupérées via `forgejo-auth`/`git-auth` avant le push
 AND un échec de récupération empêche le push
+AND une indisponibilité reconnue est qualifiée selon git-provider-availability
+sans annoncer de succès de publication
 AND pour un dépôt absent, aucun fetch ni appel API de création n'est exécuté
 AND le premier push délègue la création à Forgejo selon
 restore-forgejo-push-to-create
@@ -54,3 +56,4 @@ AND `config/forgejo.token` existe mais est vide
 THEN une erreur explicite est affichée
 AND aucun `git fetch` ni `git push` n'est exécuté
 AND la fonction retourne le code 1
+

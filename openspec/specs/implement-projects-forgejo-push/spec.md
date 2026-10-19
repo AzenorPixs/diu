@@ -8,26 +8,45 @@ dépôt Forgejo distant configuré.
 
 ### Requirement: commande de publication Forgejo
 
-Le système MUST exposer la commande `rid projects forgejo push <ID PROJECT>`
-et la commande groupée `rid projects forgejo push all`.
+DIU MUST exposer `rid projects forgejo push <ID PROJECT>` et sa variante
+`all`. Pour un dépôt existant, il MUST réussir le fetch authentifié avant
+le push ; pour un dépôt absent, déléguer la création au premier push sans
+fetch ni création API. La branche MUST utiliser `--force-with-lease`, le
+tag rester sans forçage et le push démarrer sans confirmation supplémentaire
+si configuration et identifiants sont valides. Les échecs MUST respecter
+`git-provider-availability`.
 
 #### Scenario: publication du dépôt local
 
-- ÉTANT DONNÉ le dépôt local du projet `diu`
+- ÉTANT DONNÉ le dépôt local du projet `diu` et un dépôt Forgejo existant
 - QUAND l'utilisateur exécute `rid projects forgejo push diu`
-- ALORS le dépôt local est poussé vers le dépôt Forgejo distant configuré
+- ALORS les références du remote Forgejo configuré sont récupérées avant le
+  push de branche
+- ET le dépôt local est poussé vers le dépôt Forgejo distant configuré avec
+  `--force-with-lease` pour la branche publiée
 - ET la branche distante configurée reçoit la branche locale publiée
-- ET le tag pointant sur le dernier commit, s'il existe, est publié
+- ET le tag pointant sur le dernier commit, s'il existe, est publié sans
+  option de forçage
+
+#### Scenario: récupération Forgejo en échec
+
+- ÉTANT DONNÉ un dépôt Forgejo existant
+- QUAND la récupération authentifiée de ses références échoue pour une cause autre qu'une indisponibilité reconnue
+- ALORS la commande échoue explicitement
+- ET aucun push de branche ni de tag n'est exécuté
 
 #### Scenario: dépôt distant absent
 
 - ÉTANT DONNÉ le dépôt local du projet `diu` et un dépôt Forgejo distant
   configuré mais absent
 - QUAND l'utilisateur exécute `rid projects forgejo push diu`
-- ALORS le dépôt Forgejo est créé vide avant la récupération de ses références
-- ET la branche distante configurée reçoit la branche locale publiée avec la
-  protection de concurrence configurée
-- ET le tag pointant sur le dernier commit, s'il existe, est publié
+- ALORS aucune récupération de références n'est exécutée
+- ET aucun appel API de création n'est exécuté
+- ET le premier push Git Forgejo crée le dépôt selon la configuration serveur
+- ET la branche distante configurée reçoit la branche locale publiée avec
+  `--force-with-lease`
+- ET le tag pointant sur le dernier commit, s'il existe, est publié sans
+  option de forçage
 
 #### Scenario: publication groupée
 
@@ -42,6 +61,19 @@ et la commande groupée `rid projects forgejo push all`.
 - ALORS la commande sélectionne explicitement le fournisseur Forgejo
 - ET elle utilise ou initialise les variables `REMOTE_FORGEJO_*`
 - ET elle ne remplace pas les configurations GitLab ou GitHub
+
+#### Scenario: publication Forgejo sans confirmation
+
+- ÉTANT DONNÉ une configuration Forgejo et des identifiants valides
+- QUAND l'utilisateur exécute `rid projects forgejo push <ID PROJECT>`
+- ALORS le parcours Forgejo ne demande pas de confirmation avant le push
+- ET le push démarre après les vérifications existantes
+
+#### Scenario: Indisponibilité reconnue avant le push
+
+- **WHEN** la vérification du dépôt ou la récupération préalable rencontre une indisponibilité reconnue
+- **THEN** aucun push n'est exécuté
+- **AND THEN** le résultat public suit git-provider-availability : publication non confirmée, retour zéro et statut interne d'indisponibilité
 
 ### Requirement: configuration Forgejo du projet
 
@@ -71,20 +103,13 @@ REMOTE_FORGEJO_SSL_VERIFY="No"
 
 ### Requirement: identifiants Forgejo
 
-Le système MUST utiliser `config/forgejo.username` et
-`config/forgejo.token` selon le parcours sécurisé Forgejo existant. Lorsque
-l'un de ces fichiers est absent, `forgejo_push()` MUST déléguer leur création
-à la fonction dédiée `forgejo_credentials_setup()` avant d'appeler
-`forgejo-auth`.
-
-`forgejo_credentials_setup()` MUST demander une confirmation explicite avant
-toute écriture, puis demander les informations nécessaires de manière
-interactive. `forgejo-auth` reste strict : il ne crée aucun identifiant et
-retourne une erreur lorsque les identifiants attendus sont absents ou invalides.
-
-Les deux fichiers DOIVENT avoir les permissions `600`, ne DOIVENT jamais être
-affichés dans les journaux et le token DOIT être transmis à Git uniquement par
-`git_with_token`.
+`forgejo_push()` MUST utiliser `config/forgejo.username` et
+`config/forgejo.token` (mode `600`, jamais journalisés). Le token MUST passer
+à Git uniquement par `git_with_token`. Si un fichier manque, le push MUST
+appeler `forgejo_credentials_setup()` avant `forgejo-auth`. Ce setup MUST
+obtenir une confirmation explicite avant toute écriture puis demander les
+données interactivement. Le provider MUST rester strict : aucune création,
+erreur si identifiants absents ou invalides.
 
 #### Scenario: identifiants absents
 

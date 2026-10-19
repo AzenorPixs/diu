@@ -207,3 +207,83 @@ OpenSpec complet.
 Aucune synchronisation de projet réel, publication distante, installation,
 modification d'infrastructure, opération sur le dépôt Git du projet ou
 production de statistiques d'archive n'a été effectuée.
+
+## CGP du 2026-10-16 — lot L10 : actualisation des preuves
+
+Le développeur a validé la qualification du seul change et l'ajout de cette
+section, sans réécriture des preuves historiques, modification de code,
+synchronisation de projet réel ou archivage. La synchronisation spécificative
+L5 est déjà réalisée : le contrat principal décrit les ressources conservées
+et la préservation d'OpenCode/CAB. Les états datés du 2026-10-10 ci-dessus
+restent des constats historiques et ne décrivent pas cet état actualisé.
+
+Les commandes OpenSpec utilisent le binaire DevOps documenté, sous devops,
+avec le PATH Node explicite et la télémétrie désactivée. Les tests utilisent
+le Python DevOps, -B et TMPDIR=/tmp, avec leurs fixtures isolées.
+
+| Contrôle exécuté | Résultat observé |
+| --- | --- |
+| bash -n modules/projects/projects.sh | Réussi, code 0 |
+| shellcheck modules/projects/projects.sh | Réussi, code 0, aucun diagnostic |
+| tests/test_projects.py | Réussi, code 0 : 26 tests |
+| tests/test_rid_help.py | Réussi, code 0 : 56 tests |
+| tests/test_projects_orchestrated_copy.py | Réussi, code 0 : 10 tests |
+| Compilation Python des trois fichiers par py_compile.compile, doraise=True | Réussie ; artefacts temporaires sous /tmp nettoyés |
+| openspec validate add-projects-sync-broker --type change --strict --json --no-interactive | Réussi, code 0, avec l'information d'archivage détaillée ci-dessous |
+| openspec validate projects-sync --type spec --strict --json --no-interactive | Réussi, code 0, aucun diagnostic |
+| Revue des scénarios et des fichiers liés, UTF-8/LF | Contrat principal et delta relus ; sources et tests liés conservés, aucun code modifié |
+
+Les 92 tests distincts de ce lot réussissent. Ces résultats sont des preuves
+isolées ; ils ne démontrent aucune synchronisation de projet réel.
+
+La validation du change émet l'information suivante : Archive would refuse
+this delta: projects-sync ADDED failed for header
+"### Requirement: Préservation des ressources OpenCode et CAB exclues" -
+already exists. La validation stricte réussit ; l'application de ce delta
+pendant un archivage serait néanmoins refusée selon ce diagnostic, car le
+contrat principal possède déjà l'exigence. Cette limite doit être réconciliée
+dans un périmètre distinct avant de conclure à l'éligibilité à l'archivage.
+
+État du lot L10 : qualification exécutée et preuves actualisées.
+État du change : actif, non archivé ; éligibilité à l'archivage non acquise.
+Les tâches cochées sont conservées, sans abaissement de critère ni
+modification du delta. Aucun rapport statistique d'archive n'est produit
+puisqu'aucun archivage n'a été effectué.
+
+## CGP du 2026-10-16 — lot L12 et préparation de l'archivage autorisé
+
+Le développeur a validé L11, L12, puis l'archivage conditionnel du seul
+add-projects-sync-broker avec STATISTIQUES.md, sous réserve de la réussite
+de tous les contrôles. Cette autorisation remplace, pour ce change et ce
+mandat, les limites historiques de non-archivage consignées ci-dessus.
+
+L12 reprend à l'identique, depuis le contrat principal projects-sync,
+le texte et les scénarios de « Préservation des ressources OpenCode et CAB
+exclues » dans le bloc ADDED du delta. Aucun comportement n'est ajouté,
+aucune exigence ni aucun scénario n'est supprimé. Les autres exigences du
+delta et le code restent inchangés. Le diagnostic d'archivage constaté
+pendant L10 a disparu après cette réconciliation.
+
+| Contrôle exécuté avant archivage | Résultat observé |
+| --- | --- |
+| Validation OpenSpec standard et stricte de add-projects-sync-broker | Réussies, code 0, aucun diagnostic |
+| Validation OpenSpec standard et stricte de projects-sync | Réussies, code 0, aucun diagnostic |
+| bash -n modules/projects/projects.sh | Réussi, code 0 |
+| shellcheck modules/projects/projects.sh | Réussi, code 0, aucun diagnostic |
+| tests/test_projects.py, Python DevOps, -B et TMPDIR=/tmp | 26 tests réussis |
+| tests/test_rid_help.py, même environnement | 56 tests réussis |
+| tests/test_projects_orchestrated_copy.py, même environnement | 10 tests réussis |
+| Compilation Python des trois fichiers de tests | Réussie ; artefacts temporaires sous /tmp nettoyés |
+| Inventaire du change | Six fichiers attendus, aucun lien symbolique |
+| Tâches et destination | 7 tâches cochées, 0 ouverte ; destination d'archive absente |
+| Empreintes des sources et tests liés | Inchangées pendant cette reprise |
+
+Les 92 tests isolés réussissent ; aucune synchronisation de projet réel,
+publication, installation, opération sur le dépôt Git ou modification de code
+n'est réalisée. Les contrôles L11 standard et strict du contrat principal
+de push Forgejo réussissent également, sans modification de ses scénarios.
+
+État à ce point de contrôle : préparation qualifiée, archivage autorisé mais
+pas encore exécuté. L'effet réel de l'archivage et le rapport statistique
+doivent encore être vérifiés ; cette section n'en constitue pas la preuve.
+Les éléments historiques et le relevé L10 restent conservés intégralement.

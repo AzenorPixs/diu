@@ -12,28 +12,33 @@ Le système MUST exposer la commande `rid projects gitlab update <ID PROJECT>`.
 
 #### Scenario: vérifier une configuration GitLab existante
 
-- ÉTANT DONNÉ que `project.env` contient une configuration générale conforme
-- QUAND l'utilisateur exécute `rid projects gitlab update <ID PROJECT>`
-- ALORS les valeurs `REMOTE_GITLAB_*` existantes sont affichées comme valeurs courantes
-- ET l'utilisateur peut les conserver ou les modifier
-- ET les variables générales et Forgejo sont conservées
+- **GIVEN** que `project.env` contient une configuration générale conforme
+- **WHEN** l'utilisateur exécute `rid projects gitlab update <ID PROJECT>`
+- **THEN** les valeurs `REMOTE_GITLAB_*` existantes, y compris
+  `REMOTE_GITLAB_REGISTRY`, sont affichées comme valeurs courantes
+- **AND** l'utilisateur peut les conserver ou les modifier
+- **AND** les variables générales et Forgejo sont conservées
 
 #### Scenario: créer une configuration GitLab absente
 
-- ÉTANT DONNÉ que la configuration générale est conforme
-- ET que les variables `REMOTE_GITLAB_*` sont absentes ou incomplètes
-- QUAND l'utilisateur exécute `rid projects gitlab update <ID PROJECT>`
-- ALORS seules les variables GitLab sont demandées
-- ET `REMOTE_GITLAB_REPOSITORY` prend par défaut l'identifiant du projet
-- ET `REMOTE_GITLAB_NAME` prend par défaut `origin`
-- ET `REMOTE_GITLAB_BRANCH` prend par défaut `main`
+- **GIVEN** que la configuration générale est conforme
+- **AND** que les variables `REMOTE_GITLAB_*` sont absentes ou incomplètes
+- **WHEN** l'utilisateur exécute `rid projects gitlab update <ID PROJECT>`
+- **THEN** seules les variables GitLab sont demandées
+- **AND** `REMOTE_GITLAB_REPOSITORY` prend par défaut l'identifiant du projet
+- **AND** `REMOTE_GITLAB_NAME` prend par défaut `origin`
+- **AND** `REMOTE_GITLAB_BRANCH` prend par défaut `main`
+- **AND** `REMOTE_GITLAB_REGISTRY` est demandée comme adresse de registre
+  Docker explicite
 
 #### Scenario: configuration générale non conforme
 
-- ÉTANT DONNÉ que `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` ou `PROJECT_DOCKERED` est absent ou incorrect
-- QUAND l'utilisateur exécute `rid projects gitlab update <ID PROJECT>`
-- ALORS la fonction `update_projects()` est appelée pour compléter la configuration générale
-- ET les variables GitLab sont traitées après cette complétion
+- **GIVEN** que `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` ou
+  `PROJECT_DOCKERED` est absent ou incorrect
+- **WHEN** l'utilisateur exécute `rid projects gitlab update <ID PROJECT>`
+- **THEN** la fonction `update_projects()` est appelée pour compléter la
+  configuration générale
+- **AND** les variables GitLab sont traitées après cette complétion
 
 ### Requirement: conservation de project.env
 

@@ -167,9 +167,26 @@ exécuter le push HTTPS authentifié.
 WHEN `forgejo_push()` est exécutée sur un remote Forgejo HTTPS
 AND `config/forgejo.token` existe et est valide
 AND `config/forgejo.username` existe et est valide
-THEN le `git push` est exécuté via `forgejo-auth`/`git-auth`
+THEN l'existence du dépôt Forgejo est vérifiée avant toute récupération
+AND pour un dépôt existant, les références du remote Forgejo nommé sont
+récupérées via `forgejo-auth`/`git-auth` avant le push
+AND un échec de récupération empêche le push
+AND une indisponibilité reconnue est qualifiée selon git-provider-availability
+sans annoncer de succès de publication
+AND pour un dépôt absent, aucun fetch ni appel API de création n'est exécuté
+AND le premier push délègue la création à Forgejo selon
+restore-forgejo-push-to-create
+AND le `git push` est exécuté via `forgejo-auth`/`git-auth`
 AND aucune invite Username/Password n'est affichée
 AND aucun credential n'est stocké de manière persistante
+
+#### Scenario: Dépôt absent avec token valide
+
+WHEN `forgejo_push()` est exécutée avec des identifiants valides
+AND le dépôt Forgejo distant est absent
+THEN aucun `git fetch` ni appel API de création n'est exécuté
+AND le premier `git push` est exécuté via `forgejo-auth`/`git-auth`
+AND la création dépend de la configuration push-to-create du serveur
 
 #### Scenario: Push sans token
 
@@ -260,36 +277,60 @@ AND le provider ne relance pas de bootstrap
 
 ### Requirement: Création du dépôt Forgejo absent
 
-Le provider Forgejo SHALL vérifier l'existence du dépôt distant avant toute
-récupération de références. Lorsqu'il est absent, il SHALL créer un dépôt vide
-par l'API Forgejo authentifiée si le propriétaire est l'utilisateur
-authentifié ou une organisation accessible avec le token. Il SHALL refuser
-explicitement la création sous un autre compte utilisateur, sans utiliser une
-API d'administration.
+Le provider Forgejo SHALL vérifier le dépôt avant récupération : présent
+(`200`), il confirme son existence ; absent (`404`), il délègue sa création
+au premier push sans création API. Une autre réponse SHALL être une erreur,
+qualifiée selon `git-provider-availability` dans le contexte de push tolérant ;
+hors contexte, le contrat d'erreur SHALL rester inchangé.
+
+#### Scenario: Dépôt absent
+
+- **WHEN** le dépôt distant est absent
+- **THEN** le provider n'effectue aucun appel API de création
+- **THEN** le parcours de publication peut réaliser le premier push Git
 
 #### Scenario: Dépôt utilisateur absent
 
 - **WHEN** le dépôt distant est absent et son propriétaire est l'utilisateur
   authentifié
-- **THEN** le provider crée un dépôt vide sous ce compte
-- **THEN** le dépôt créé devient accessible avant toute opération Git
+- **THEN** le provider délègue sa création au premier push Git Forgejo
+- **THEN** aucun appel API de création n'est effectué
 
 #### Scenario: Dépôt d'organisation absent
 
 - **WHEN** le dépôt distant est absent et son propriétaire est une
   organisation accessible avec le token
-- **THEN** le provider crée un dépôt vide dans cette organisation
-- **THEN** le dépôt créé devient accessible avant toute opération Git
+- **THEN** le provider délègue sa création au premier push Git Forgejo
+- **THEN** aucun appel API de création n'est effectué
 
 #### Scenario: Compte utilisateur distinct
 
 - **WHEN** le dépôt distant est absent et son propriétaire est un compte
   utilisateur différent de l'utilisateur authentifié
+- **THEN** le provider délègue sa création au premier push Git Forgejo
+- **THEN** aucun appel API de création n'est effectué
+
+#### Scenario: Dépôt existant
+
+- **WHEN** le dépôt distant existe
+- **THEN** le provider confirme son existence avant la récupération des
+  références
+
+#### Scenario: Vérification refusée
+
+- **WHEN** Forgejo refuse la vérification du dépôt pour une cause autre qu'une indisponibilité reconnue
 - **THEN** le provider retourne une erreur explicite
-- **THEN** aucun dépôt n'est créé
+- **THEN** aucune opération Git n'est tentée
 
 #### Scenario: Création refusée
 
-- **WHEN** Forgejo refuse la création du dépôt absent
-- **THEN** le provider retourne une erreur explicite sans exposer le token
-- **THEN** aucune opération Git n'est tentée
+- **WHEN** Forgejo refuse le premier push Git vers le dépôt absent pour une cause autre qu'une indisponibilité reconnue
+- **THEN** le provider retourne l'erreur du push Git
+- **THEN** aucun appel API de création n'est effectué
+
+#### Scenario: Vérification temporairement indisponible dans un push
+
+- **WHEN** la vérification du dépôt rencontre une indisponibilité reconnue dans le contexte de push tolérant
+- **THEN** la publication publique suit git-provider-availability sans création ni push
+- **AND THEN** les clones et releases directes conservent leur contrat d'erreur hors de ce contexte
+
