@@ -34,10 +34,10 @@ copie.
 
 Avant toute copie, DIU MUST vérifier l'existence du répertoire modèle
 `/home/${DEVOPS_USER}/datas/template`, des fichiers `AGENTS.md` et
-`.gitignore` et du répertoire `PROMPTS`. Une source conservée indisponible
+`.gitignore`. Une source conservée indisponible
 ou de type incorrect MUST faire échouer la commande avec un code non nul
 avant toute copie. Pour la synchronisation unitaire ou groupée, DIU MUST NOT
-exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
+exiger `PROMPTS`, `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
 `/home/devops/datas/cab/src`.
 
 #### Scenario: Répertoire modèle indisponible
@@ -47,12 +47,18 @@ exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
 
 #### Scenario: Élément géré manquant du modèle
 
-- **WHEN** AGENTS.md, .gitignore ou PROMPTS est absent ou de type incorrect
+- **WHEN** AGENTS.md ou .gitignore est absent ou de type incorrect
 - **THEN** DIU échoue avec un code non nul avant toute copie
 
 #### Scenario: Modèle sans document d'environnement
 
 - **WHEN** le modèle possède les éléments conservés mais aucun DEVOPS.md
+- **THEN** la synchronisation unitaire ou groupée accepte ce modèle
+
+#### Scenario: Modèle sans répertoire de prompts
+
+- **WHEN** le modèle possède les éléments conservés mais PROMPTS est absent
+  ou de type incorrect
 - **THEN** la synchronisation unitaire ou groupée accepte ce modèle
 
 #### Scenario: Sources OpenCode et CAB absentes
@@ -63,7 +69,7 @@ exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
 
 ### Requirement: Copie ciblée et autoritaire du modèle
 
-DIU MUST copier uniquement AGENTS.md, .gitignore et PROMPTS récursivement,
+DIU MUST copier uniquement AGENTS.md et .gitignore,
 et ORCHESTRATED_CODING.md seulement pour Yes lu selon
 implement-projects-update. Le modèle MUST écraser les éléments copiés.
 DIU MUST préserver les autres destinations et MUST NOT copier, créer,
@@ -100,6 +106,25 @@ DEVOPS.md à la racine, en mode unitaire ou groupé.
 
 - **WHEN** le mode destination vaut No ou est absent ou vide
 - **THEN** ORCHESTRATED_CODING.md n'est pas copié et sa destination existante reste intacte
+
+### Requirement: Préservation des prompts exclus
+
+En mode unitaire ou groupé, DIU MUST NOT consulter la source PROMPTS du
+modèle, ni copier, créer, personnaliser, supprimer ou modifier les droits
+ou le propriétaire de PROMPTS dans le projet destination.
+
+#### Scenario: Préservation des prompts existants
+
+- **WHEN** le projet destination possède un répertoire PROMPTS
+- **THEN** la synchronisation unitaire ou groupée préserve son contenu et
+  celui de ses descendants, leurs droits et leur propriétaire
+- **AND THEN** aucun Markdown de ce répertoire n'est personnalisé
+
+#### Scenario: Absence de création des prompts
+
+- **WHEN** le projet destination ne possède aucun PROMPTS
+- **THEN** la synchronisation unitaire ou groupée n'en crée pas, même si le
+  modèle en contient un
 
 ### Requirement: Personnalisation des Markdown synchronisés
 
