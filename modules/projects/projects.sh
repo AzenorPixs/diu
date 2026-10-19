@@ -25,11 +25,6 @@ sync_project_template_is_valid() {
             return 1
         fi
     done
-
-    if [[ ! -d "${template_path}/PROMPTS" ]]; then
-        print_error "Le répertoire modèle est introuvable : ${template_path}/PROMPTS"
-        return 1
-    fi
 }
 
 sync_project() {
@@ -107,12 +102,6 @@ sync_project() {
         fi
     done
 
-    if ! cp -a -- "${template_path}/PROMPTS" "${staging_path}/"; then
-        rm -rf -- "${staging_path}"
-        print_error "Impossible de préparer le répertoire modèle : PROMPTS"
-        return 1
-    fi
-
     project_name_sed="$(printf '%s' "${PROJECT_NAME}" | sed 's/[&|\\]/\\&/g')"
     project_id_sed="$(printf '%s' "${PROJECT_ID}" | sed 's/[&|\\]/\\&/g')"
 
@@ -137,22 +126,8 @@ sync_project() {
         synchronized_files+=("${project_path}/${template_file}")
     done
 
-    if ! mkdir -p "${project_path}/PROMPTS"; then
-        rm -rf -- "${staging_path}"
-        print_error "Impossible de préparer la destination de synchronisation."
-        return 1
-    fi
-
-    if ! cp -a -- "${staging_path}/PROMPTS/." "${project_path}/PROMPTS/"; then
-        rm -rf -- "${staging_path}"
-        print_error "Impossible de synchroniser le répertoire : PROMPTS"
-        return 1
-    fi
-
     if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" \
-        "${synchronized_files[@]}" ||
-        ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" \
-        "${project_path}/PROMPTS"; then
+        "${synchronized_files[@]}"; then
 
         rm -rf -- "${staging_path}"
         print_error "Impossible de définir le propriétaire des ressources synchronisées."

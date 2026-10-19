@@ -942,6 +942,10 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertIn('ensure:origin', result.stdout)
         self.assertNotIn('fetch:origin', result.stdout)
         self.assertIn('push:', result.stdout)
+        self.assertIn(
+            '--force-with-lease=refs/heads/main: --set-upstream origin main:main',
+            result.stdout,
+        )
 
     def test_forgejo_push_does_not_require_confirmation(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
