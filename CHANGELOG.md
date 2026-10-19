@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Correction de l'alias Zsh `ci` généré pour root : lecture de
+  `/home/devops/datas/prompts/INDEX.md` à la place de l'ancien chemin
+  `/home/devops/datas/template/PROMPTS/INDEX.md`. Les configurations déjà
+  installées ne sont pas modifiées par cette correction des sources.
+
 - Génération de `DEVOPS.md` au format `0.6` : rubrique Prompts avec le dossier
   `/home/${ENV_DEVOPS_USER}/datas/prompts` et son `INDEX.md`, selon le compte
   DevOps configuré et indépendamment de la racine des projets. Les chemins

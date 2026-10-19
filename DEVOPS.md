@@ -1,9 +1,9 @@
 # DEVOPS.md — diu
 
-Version : 0.5
+Version : 0.6
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-19T08:57:57Z
+Début du relevé (UTC) : 2026-10-19T09:10:00Z
 Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -106,6 +106,12 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
   * 26.2.1
   * /home/devops/python/current/bin/pip3
+
+
+# Prompts
+
+  * Dossier des prompts : /home/devops/datas/prompts
+  * Index des prompts : /home/devops/datas/prompts/INDEX.md
 
 
 # Tests navigateurs extérieurs en mode headless
