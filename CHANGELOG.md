@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Correction du push Forgejo après copie ou changement de dépôt : réalignement
+  automatique des URL du remote configuré sur `project.env`, y compris une
+  URL de push distincte. Le premier push vers un dépôt absent utilise une
+  attente explicite d'absence de branche, indépendante des références de
+  suivi héritées et protégée contre une création concurrente. Le fetch des
+  dépôts existants, les tags sans forçage et GitLab/GitHub sont conservés.
+
 - Correction de l'alias Zsh `ci` généré pour root : lecture de
   `/home/devops/datas/prompts/INDEX.md` à la place de l'ancien chemin
   `/home/devops/datas/template/PROMPTS/INDEX.md`. Les configurations déjà

@@ -2202,6 +2202,7 @@ _git_push_provider() {
     local missing_fields="No"
     local forgejo_credential_remote_name=""
     local forgejo_repository_rc=0
+    local forgejo_branch_lease="--force-with-lease"
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
@@ -2801,6 +2802,8 @@ _git_push_provider() {
             2)
                 print_info \
                     "Premier push Forgejo : récupération des références ignorée."
+                # Une référence héritée d'un autre dépôt ne décrit pas cette cible.
+                forgejo_branch_lease="--force-with-lease=refs/heads/${remote_default_branch}:"
                 ;;
             *)
             print_error "Impossible d'assurer l'existence du dépôt Forgejo distant."
@@ -2898,7 +2901,7 @@ _git_push_provider() {
                 forgejo_git_push_named \
                     "${project_path}" \
                     "${remote_name}" \
-                    --force-with-lease \
+                    "${forgejo_branch_lease}" \
                     --set-upstream \
                     "${remote_name}" \
                     "${current_branch}:${remote_default_branch}" \
@@ -3096,12 +3099,15 @@ _git_push_provider() {
     return 0
 }
 
-# Vérifie ou crée le remote Forgejo du dépôt local.
+# Vérifie, crée ou réaligne le remote Forgejo du dépôt local.
 forgejo_remote_ensure() {
     local project_path="${1:-}"
     local remote_name="${2:-}"
     local expected_url="${3:-}"
     local configured_url=""
+    local configured_push_url=""
+    local remote_added="No"
+    local remote_updated="No"
 
     if [[ -z "${project_path}" || -z "${remote_name}" || -z "${expected_url}" ]]; then
         print_error "Usage : forgejo_remote_ensure <project_path> <remote_name> <url>"
@@ -3109,24 +3115,63 @@ forgejo_remote_ensure() {
     fi
 
     if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" remote get-url --push "${remote_name}" 2>/dev/null)"; then
-        if runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url --all "${remote_name}" 2>/dev/null)"; then
+        if ! runuser -u "${DEVOPS_USER}" -- \
             git -C "${project_path}" remote add "${remote_name}" "${expected_url}"; then
-            print_info \
-                "Remote Forgejo '${remote_name}' ajouté au dépôt local."
-            return 0
+            print_error \
+                "Impossible d'ajouter le remote Forgejo '${remote_name}'."
+            return 1
         fi
-
-        print_error \
-            "Impossible d'ajouter le remote Forgejo '${remote_name}'."
-        return 1
+        configured_url="${expected_url}"
+        remote_added="Yes"
     fi
 
     if [[ "${configured_url}" != "${expected_url}" ]]; then
-        print_error "L'URL du remote Forgejo '${remote_name}' ne correspond pas à project.env."
-        printf 'URL configurée        : %s\n' "${configured_url}"
-        printf 'URL déclarée          : %s\n' "${expected_url}"
+        print_info "Réalignement de l'URL de récupération Forgejo '${remote_name}' sur project.env."
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" config --local --replace-all \
+            "remote.${remote_name}.url" "${expected_url}"; then
+            print_error "Impossible de réaligner l'URL de récupération Forgejo '${remote_name}'."
+            return 1
+        fi
+        remote_updated="Yes"
+    fi
+
+    if ! configured_push_url="$(runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url --push --all "${remote_name}")"; then
+        print_error "Impossible de lire l'URL de publication Forgejo '${remote_name}'."
         return 1
+    fi
+
+    if [[ "${configured_push_url}" != "${expected_url}" ]]; then
+        print_info "Réalignement de l'URL de publication Forgejo '${remote_name}' sur project.env."
+        if ! runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_path}" config --local --replace-all \
+            "remote.${remote_name}.pushurl" "${expected_url}"; then
+            print_error "Impossible de réaligner l'URL de publication Forgejo '${remote_name}'."
+            return 1
+        fi
+        remote_updated="Yes"
+    fi
+
+    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url --all "${remote_name}")" ||
+        ! configured_push_url="$(runuser -u "${DEVOPS_USER}" -- \
+        git -C "${project_path}" remote get-url --push --all "${remote_name}")"; then
+        print_error "Impossible de vérifier les URL du remote Forgejo '${remote_name}'."
+        return 1
+    fi
+
+    if [[ "${configured_url}" != "${expected_url}" ||
+        "${configured_push_url}" != "${expected_url}" ]]; then
+        print_error "Les URL effectives du remote Forgejo '${remote_name}' ne correspondent pas à project.env."
+        return 1
+    fi
+
+    if [[ "${remote_added}" == "Yes" ]]; then
+        print_info "Remote Forgejo '${remote_name}' ajouté au dépôt local."
+    elif [[ "${remote_updated}" == "Yes" ]]; then
+        print_info "Remote Forgejo '${remote_name}' réaligné sur project.env."
     fi
 
     return 0

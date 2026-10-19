@@ -66,6 +66,18 @@ GHCR, y compris dans le résumé CI/CD : `AzenorPixs/PKeycloak` devient
 les tags Docker sont la version issue de l'unique tag Git de `HEAD` et `latest`.
 Cette commande ne construit pas l'image.
 
+`rid projects forgejo push <ID PROJECT>` réaligne automatiquement les URL de
+récupération et de publication du remote Forgejo configuré sur `project.env`,
+notamment si elles pointent encore vers le modèle. Ce remote utilise ensuite
+la seule destination déclarée ; les autres remotes sont conservés. Une erreur
+de réalignement bloque la publication. Pour un dépôt annoncé absent, le
+premier push attend explicitement l'absence de la branche distante : une
+ancienne référence de suivi locale ne le bloque plus et une création
+concurrente reste protégée. La création du dépôt dépend de l'activation
+push-to-create sur Forgejo. Les dépôts existants gardent le fetch préalable
+et les tags sont publiés sans forçage. Ces corrections s'appliquent aussi au
+parcours groupé `forgejo push all`.
+
 Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue
 est signalée comme « serveur indisponible — publication non confirmée ».
 La commande retourne zéro ; elle n'annonce pas la publication comme réussie.

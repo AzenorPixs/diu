@@ -973,9 +973,14 @@ https://<hôte>/<propriétaire>/<dépôt>.git
 ```
 
 Avant un push, le remote demandé est vérifié ou créé par la fonction dédiée
-au fournisseur. Un remote absent est ajouté ; un remote existant dont l'URL
-ne correspond pas à `project.env` provoque un échec explicite et n'est pas
-écrasé.
+au fournisseur. Un remote absent est ajouté. Pour Forgejo, les URL de
+récupération et de publication du seul remote configuré sont réalignées sur
+`project.env` lorsqu'elles divergent, avec un diagnostic explicite. Les URL
+multiples de ce remote sont ramenées à la seule destination déclarée ; un
+échec de correction ou de vérification des URL effectives bloque le push.
+Les autres remotes et `project.env` sont conservés. Une réexécution conforme
+ne réécrit pas les URL. Pour GitLab et GitHub, un remote incohérent provoque
+toujours un échec explicite sans remplacement.
 
 Le remote configuré pour GitLab ou GitHub peut donc être différent de
 `origin`. Un push fournisseur ne doit pas modifier le remote d'un autre
@@ -1089,6 +1094,17 @@ github_push  <PROJECT_ID>
 La publication vérifie le projet, `project.env`, le remote attendu, la branche
 et les identifiants avant de pousser. Les aides CLI doivent rester cohérentes
 avec les commandes `rid projects <provider> update|push`.
+
+Pour Forgejo, un dépôt existant conserve le fetch authentifié préalable et
+`--force-with-lease`. Un dépôt annoncé absent ne déclenche ni fetch ni
+création API : le premier push utilise
+`--force-with-lease=refs/heads/<branche>:` pour attendre explicitement
+l'absence de la branche distante, même si une référence de suivi locale est
+héritée d'un ancien dépôt. Une création concurrente est refusée sans forçage
+inconditionnel ; aucune référence locale n'est supprimée. Le tag du dernier
+commit est publié sans forçage après la réussite du push de branche. La
+création du dépôt reste conditionnée à la configuration push-to-create du
+serveur. Les tests locaux sont dans `tests/test_projects_forgejo_push.py`.
 
 La release du paquet DIU vers Forgejo est un parcours distinct. Il vérifie le
 paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'API
@@ -1216,7 +1232,8 @@ particulier :
 - `SYSTEM_DEBIAN_RELEASE` remplace progressivement `DEBIAN_RELEASE` ;
 - les configurations Forgejo, GitLab et GitHub restent séparées dans
   `project.env` ;
-- les remotes existants ne sont jamais écrasés lorsqu'ils sont incohérents ;
+- seul le remote Forgejo configuré est réaligné automatiquement sur
+  `project.env` ; les remotes GitLab et GitHub incohérents restent refusés ;
 - une nouvelle recette logicielle doit être explicitement enregistrée et
   testée ;
 - un déplacement, un renommage, une suppression ou une modification de
