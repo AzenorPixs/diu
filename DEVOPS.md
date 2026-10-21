@@ -3,7 +3,7 @@
 Version : 0.6
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-19T19:09:08Z
+Début du relevé (UTC) : 2026-10-20T17:21:39Z
 Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -42,7 +42,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Go
 
-  * 1.27.2
+  * 1.27.3
   * /home/devops/go/current/bin/go
 
 
