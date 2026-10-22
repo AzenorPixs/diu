@@ -3,8 +3,8 @@
 Version : 0.6
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-22T03:24:16Z
-Environnement d'exécution DIU : PROXMOX
+Début du relevé (UTC) : 2026-10-22T13:17:00Z
+Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
