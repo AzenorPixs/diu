@@ -851,10 +851,44 @@ pour la sélection des projets par les modèles groupés et pour la vérificatio
 de la configuration générale avant une release Forgejo.
 
 La configuration Git locale comprend la branche locale par défaut et
-l'identité Git. `git_update` est responsable exclusivement de
-`LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et `GIT_USER_EMAIL`. La configuration
-générale du projet relève de `update_projects` ; les parcours de clonage
-utilisent leur configuration interne dédiée.
+l'identité Git. `git_update_local` est responsable exclusivement de
+`LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et `GIT_USER_EMAIL`. Le point d'entrée
+public `git_update` enregistre ensuite l'exception de confiance système du
+projet. La configuration générale du projet relève de `update_projects` ;
+les parcours de clonage utilisent leur configuration interne dédiée.
+
+`rid projects git init <ID PROJECT>` et `rid projects git update <ID PROJECT>`
+enregistrent le chemin absolu canonique du projet dans `safe.directory` avec
+`git config --system --add`. Cet enregistrement nécessite les droits
+d'écriture sur la configuration Git système (normalement `/etc/gitconfig`).
+Il couvre les comptes qui partagent le projet sans modifier son propriétaire.
+Il est silencieux, idempotent, préserve les autres entrées et n'ajoute aucun
+joker. Une entrée vide réinitialise les valeurs antérieures ; une entrée
+exacte n'est considérée présente qu'après la dernière réinitialisation.
+Les chemins finissant par `/*` ou contenant un saut de ligne sont refusés.
+Les includes système sont lus dans leur ordre. Si un include neutralise
+l'entrée du fichier principal, la commande échoue explicitement, sans
+réordonner les règles administrateur ni accumuler de doublons à la relance.
+
+L'initialisation vérifie l'exception après ses prérequis, avant le contrôle
+d'un dépôt existant ; une réexécution sur un dépôt existant la met donc aussi
+en place. La mise à jour ne l'enregistre qu'après le succès des variables
+locales. Une erreur de lecture ou d'écriture provoque un diagnostic et un
+retour non nul ; les écritures déjà effectuées ne sont pas annulées.
+
+`rid projects git status <ID PROJECTS>` affiche `safe.directory : présente`
+ou `absente`, avec la mention `système, entrée exacte` et le chemin canonique,
+avant les opérations sur le dépôt. Ses replis de configuration utilisent
+`git_update_local` sans ajouter d'exception. Une erreur de lecture n'est pas
+assimilée à une absence. Ce diagnostic décrit l'entrée système exacte,
+pas la confiance effective de tous les comptes : une configuration globale
+prioritaire peut en changer l'effet. Une règle large déjà présente n'est
+ni modifiée ni présentée comme l'entrée exacte du projet.
+
+La session de validation utilise uniquement des configurations Git temporaires
+isolées. Aucun dépôt n'est migré automatiquement. Un retour aux sources
+précédentes laisse les exceptions déjà installées en place ; leur révocation
+éventuelle est une opération distincte limitée à l'entrée du projet concerné.
 
 `PROJECT_ORCHESTRATED_CODING` déclare le mode de développement : `No` pour
 un agent de codage autonome, `Yes` pour un agent piloté par un orchestrateur.

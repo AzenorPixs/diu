@@ -23,6 +23,18 @@ transféré au nouveau projet. Les autres fichiers cachés, dont `.gitignore`,
 restent copiés selon les règles existantes. Cette exclusion ne concerne pas
 les `.git` imbriqués et ne modifie aucun projet existant.
 
+`rid projects git init <ID PROJECT>` et `rid projects git update <ID PROJECT>`
+ajoutent une exception Git `safe.directory` système limitée au chemin réel du
+projet, pour permettre son utilisation par les comptes qui le partagent.
+L'ajout nécessite les droits d'écriture système, reste sans doublon et ne
+modifie ni le propriétaire du projet ni les autres exceptions. Une erreur
+est bloquante ; les écritures précédentes restent en place.
+
+`rid projects git status <ID PROJECTS>` indique la présence ou l'absence de
+cette entrée système exacte et son chemin, sans l'ajouter. Des règles Git
+globales prioritaires peuvent modifier son effet pour un compte donné.
+Les détails figurent dans [le cadrage technique](TECHNICAL.md).
+
 Pour construire une image avec `rid projects docker build <ID PROJECT>`, le
 projet peut fournir le fichier public optionnel `build/docker-build.args` :
 

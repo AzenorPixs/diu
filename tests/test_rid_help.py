@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests des chemins d'aide rid exécutables sans configuration de production."""
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 import unittest
@@ -118,7 +119,7 @@ if ! git -C "$DEVOPS_PROJECTS_ROOT/project" rev-parse --verify HEAD >/dev/null; 
 fi
 printf 'complete\\n'
 '''
-        with tempfile.TemporaryDirectory() as temporary_directory:
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-test-git-init-') as temporary_directory:
             project_path = Path(temporary_directory) / 'project'
             project_path.mkdir()
             (project_path / 'project.env').write_text(
@@ -131,6 +132,14 @@ printf 'complete\\n'
             )
             return subprocess.run(
                 ['bash', '-c', script, 'bash', str(ROOT), temporary_directory],
+                env={
+                    **{key: value for key, value in os.environ.items()
+                       if not key.startswith('GIT_')},
+                    'HOME': temporary_directory,
+                    'XDG_CONFIG_HOME': temporary_directory,
+                    'GIT_CONFIG_GLOBAL': str(Path(temporary_directory) / 'global.gitconfig'),
+                    'GIT_CONFIG_SYSTEM': str(Path(temporary_directory) / 'system.gitconfig'),
+                },
                 text=True,
                 capture_output=True,
                 check=False,
