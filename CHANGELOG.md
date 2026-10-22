@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Enregistrement idempotent d'une exception `safe.directory` système limitée
+  au chemin canonique du projet par `rid projects git init` et `update`, y
+  compris pour un dépôt déjà initialisé. `status` affiche son état sans la
+  modifier. Les autres règles et propriétaires sont conservés ; les erreurs
+  de configuration système sont bloquantes, sans annuler les écritures
+  antérieures. Aucun joker ni migration automatique des dépôts existants.
+
 - Correction du push Forgejo après copie ou changement de dépôt : réalignement
   automatique des URL du remote configuré sur `project.env`, y compris une
   URL de push distincte. Le premier push vers un dépôt absent utilise une
