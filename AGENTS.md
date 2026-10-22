@@ -156,6 +156,51 @@ La demande explicite d'une des commandes suivantes autorise les écritures OpenS
 * `/opsx-sync`
 * `/opsx-archive`
 
+### Exécution séquentielle des tâches OpenSpec
+
+En session de codage directe comme pilotée, l’agent DOIT traiter une seule
+tâche élémentaire de `tasks.md` à la fois, dans l’ordre des dépendances.
+Un titre ou un groupe ne constitue pas une tâche élémentaire. Le regroupement
+de plusieurs tâches dans un lot, un fichier ou une commande ne dispense
+jamais de leur réalisation, de leurs tests et de leur validation séparés.
+L’agent NE DOIT PAS commencer ni déléguer l’implémentation d’une autre tâche
+de la même session ou du même RUN avant validation de la tâche courante.
+
+Pour chaque tâche, l’agent DOIT :
+
+1. identifier la tâche, ses prérequis, ses critères et les contrôles requis ;
+2. réaliser uniquement cette tâche, y compris les tests nécessaires ;
+3. examiner les fichiers touchés et exécuter les tests et contrôles applicables ;
+4. consigner les commandes, résultats et preuves pour chaque critère ;
+5. valider techniquement ces preuves en mode direct, ou obtenir leur validation
+   par l’orchestrateur en mode piloté, puis cocher uniquement cette tâche ;
+6. passer automatiquement à la suivante lorsque ses prérequis sont prouvés.
+
+Cette validation technique NE nécessite PAS une confirmation humaine à chaque
+tâche dans le périmètre déjà autorisé. Elle ne remplace ni les autorisations
+OpenSpec et CAB applicables ni les décisions réservées au développeur.
+En mode piloté, une tâche peut nécessiter plusieurs mandats CAB unitaires ;
+l’approbation d’un mandat ne vaut pas validation de la tâche.
+
+Un échec, un critère non prouvé ou un contrôle requis indisponible interdit
+le passage à la tâche suivante. L’agent DOIT appliquer les règles de
+correction, de reprise ou de blocage du processus actif, sans contourner ce
+verrou. Un contrôle non applicable DOIT être motivé ; il ne remplace pas une
+preuve requise. La syntaxe seule ne démontre pas la validité fonctionnelle.
+
+Lors de la préparation autorisée d’un change, les tâches DOIVENT être
+découpées en unités vérifiables successivement, avec dépendances, critères et
+tests ou contrôles identifiés pour chacune. Les tests nécessaires à une tâche
+NE DOIVENT PAS être reportés à une tâche ultérieure. Si le découpage existant
+empêche cette validation, l’agent DOIT signaler le besoin de reprise sans
+modifier OpenSpec hors autorisation.
+
+L’état de session ou le checkpoint prévu DOIT conserver la tâche courante,
+ses preuves, sa validation et la prochaine action. Après interruption,
+vérifier l’état réel, reprendre au premier élément non prouvé et réexécuter
+les contrôles dont les preuves sont devenues invalides. Les validations
+globales et de non-régression requises restent obligatoires avant archivage.
+
 ### Délégation de pilotage OpenSpec
 
 Lorsqu'un agent orchestrateur tel que CGPT pilote un agent de codage, il PEUT valider et autoriser les créations, modifications, corrections, synchronisations et archivages OpenSpec nécessaires à l'objectif demandé, à condition qu'ils respectent strictement les spécifications OpenSpec préalablement validées par le développeur.

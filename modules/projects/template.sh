@@ -135,8 +135,13 @@ projects_template_devops_version() {
 
 projects_template_devops_section() {
     local title="$1" version="$2" binary="$3"
-    printf '# %s\n\n  * %s\n  * %s\n\n\n' \
-        "${title}" "${version}" "${binary:-binaire introuvable}"
+    if [[ "${title}" == Docker ]]; then
+        printf '# %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n' \
+            "${title}" "${version}" "${binary:-binaire introuvable}"
+    else
+        printf '# %s\n\n  * %s\n  * %s\n\n\n' \
+            "${title}" "${version}" "${binary:-binaire introuvable}"
+    fi
 }
 
 projects_template_devops_postgresql() {
