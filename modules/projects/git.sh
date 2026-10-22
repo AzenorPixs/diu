@@ -1679,6 +1679,109 @@ git_commit_all() {
 }
 
 # Initialise un dépôt local Git vierge pour le projet <PROJECT ID>
+_git_safe_directory_project_path() {
+    local project_path=""
+
+    if [[ ! -d "${1:-}" ]] ||
+        ! IFS= read -r -d '' project_path < <(realpath -e -z -- "$1"); then
+        print_error "Impossible de résoudre le répertoire du projet."
+        return 1
+    fi
+
+    # Git interprète un suffixe /* comme une autorisation récursive.
+    if [[ "${project_path}" == */\* || "${project_path}" == *$'\n'* ]]; then
+        print_error "Chemin incompatible avec une exception safe.directory exacte."
+        return 1
+    fi
+
+    printf '%s\n' "${project_path}"
+}
+
+_git_safe_directory_system_state() {
+    local project_path="$1"
+    local include_option="${2:---includes}"
+    local state="absente"
+    local result=0
+
+    # Les séparateurs NUL conservent les valeurs vides et les sauts de ligne.
+    if state="$(
+        set -o pipefail
+        git config --system "${include_option}" --path --null --get-all safe.directory |
+            {
+                local entry=""
+                local current_state="absente"
+                while IFS= read -r -d '' entry; do
+                    if [[ -z "${entry}" ]]; then
+                        current_state="absente"
+                    elif [[ "${entry}" == "${project_path}" ]]; then
+                        current_state="présente"
+                    fi
+                done
+                printf '%s\n' "${current_state}"
+            }
+    )"; then
+        :
+    else
+        result=$?
+        if [[ "${result}" -ne 1 ]]; then
+            print_error "Impossible de lire safe.directory en portée système."
+            return 1
+        fi
+    fi
+
+    printf '%s\n' "${state}"
+}
+
+git_safe_directory_system_ensure() {
+    local project_path=""
+    local state=""
+    local direct_state=""
+
+    if ! project_path="$(_git_safe_directory_project_path "${1:-}")" ||
+        ! state="$(_git_safe_directory_system_state "${project_path}")"; then
+        print_error "Impossible de vérifier l'exception safe.directory système."
+        return 1
+    fi
+
+    if [[ "${state}" == "présente" ]]; then
+        return 0
+    fi
+
+    if ! direct_state="$(_git_safe_directory_system_state "${project_path}" --no-includes)"; then
+        print_error "Impossible de vérifier le fichier Git système principal."
+        return 1
+    fi
+    if [[ "${direct_state}" == "présente" ]]; then
+        print_error "Une configuration Git système incluse réinitialise safe.directory pour ${project_path}."
+        return 1
+    fi
+
+    if ! git config --system --add safe.directory "${project_path}"; then
+        print_error "Impossible d'enregistrer safe.directory système pour ${project_path}."
+        return 1
+    fi
+
+    if ! state="$(_git_safe_directory_system_state "${project_path}")" ||
+        [[ "${state}" != "présente" ]]; then
+        print_error "L'exception safe.directory reste inactive dans la configuration système."
+        return 1
+    fi
+}
+
+git_safe_directory_system_status() {
+    local project_path=""
+    local state=""
+
+    if ! project_path="$(_git_safe_directory_project_path "${1:-}")" ||
+        ! state="$(_git_safe_directory_system_state "${project_path}")"; then
+        print_error "Impossible de vérifier l'exception safe.directory système."
+        return 1
+    fi
+
+    printf '%-22s : %s (système, entrée exacte)\n' "safe.directory" "${state}"
+    printf '%-22s : %s\n' "Chemin de confiance" "${project_path}"
+}
+
 git_init() {
     local project_id="$1"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -1841,6 +1944,10 @@ git_init() {
 
         print_error \
             "${DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
+        return 1
+    fi
+
+    if ! git_safe_directory_system_ensure "${project_path}"; then
         return 1
     fi
 
@@ -5990,6 +6097,10 @@ git_status() {
         return 1
     fi
 
+    if ! git_safe_directory_system_status "${project_path}"; then
+        return 1
+    fi
+
     if ! runuser -u "${DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
@@ -6004,7 +6115,7 @@ git_status() {
             "Le fichier project.env est absent pour le projet ${project_id}."
 
         if ! update_projects "${project_id}" ||
-            ! git_update "${project_id}"; then
+            ! git_update_local "${project_id}"; then
             print_error \
                 "Impossible d'initialiser la configuration Git du projet."
             return 1
@@ -6040,13 +6151,13 @@ git_status() {
             "La configuration du projet est incomplète."
 
         if ! update_projects "${project_id}" ||
-            ! git_update "${project_id}"; then
+            ! git_update_local "${project_id}"; then
             print_error \
                 "Impossible de mettre à jour la configuration Git du projet."
             return 1
         fi
 
-        # Recharge project.env après git_update
+        # Le repli local ne doit pas enregistrer d'exception de confiance.
         unset \
             PROJECT_ID \
             PROJECT_NAME \
@@ -7067,11 +7178,15 @@ git_update_local() {
     return 0
 }
 
-# Point d'entrée public limité à la configuration Git locale.
+# Point d'entrée public : variables locales et exception de confiance système.
 git_update() {
     local project_id="${1:-}"
 
-    git_update_local "${project_id}"
+    if ! git_update_local "${project_id}"; then
+        return 1
+    fi
+
+    git_safe_directory_system_ensure "${DEVOPS_PROJECTS_ROOT}/${project_id}"
 }
 
 # Initialise un dépôt local Git pour le projet <PROJECT ID> à partir d'un clone distant.

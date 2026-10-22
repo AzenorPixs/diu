@@ -3,7 +3,7 @@
 Version : 0.6
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-20T17:21:39Z
+Début du relevé (UTC) : 2026-10-22T03:24:16Z
 Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -24,13 +24,13 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Docker
 
-  * 29.9.1
+  * 29.9.2
   * /usr/bin/docker
 
 
 # Docker-Compose
 
-  * 5.6.0
+  * 5.6.1
   * /usr/local/bin/docker-compose
 
 
@@ -48,7 +48,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Node
 
-  * 24.22.0
+  * 24.22.1
   * /home/devops/node/current/bin/node
 
 
@@ -92,7 +92,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Python
 
-  * 3.14.8
+  * 3.14.9
   * /home/devops/python/current/bin/python3
   * venv: disponible
 
@@ -104,7 +104,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Python - Gestionnaire de paquets
 
-  * 26.2.1
+  * 26.2.2
   * /home/devops/python/current/bin/pip3
 
 
@@ -127,6 +127,6 @@ La détection ne vérifie pas le fonctionnement du mode headless.
 
 ## Firefox
 
-  * 153.5.0esr
+  * 153.5.1esr
   * /usr/bin/firefox
   * Mode headless : --headless
