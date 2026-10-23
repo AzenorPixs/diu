@@ -119,6 +119,15 @@ comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
 
+Après l'OS, la section « Matériel » contient « TPM », avec chemin en premier
+(`/dev/tpmrm0` prioritaire), version, fabricant, identifiant fournisseur,
+révision de spécification et banques/indices PCR alloués. Le fabricant est
+le code ASCII observé et l'identifiant son code hexadécimal. La collecte est
+locale, bornée et en lecture seule ; les propriétés impossibles à relever
+restent explicites sans bloquer le document. Aucun outil ni droit n'est
+modifié et les valeurs des PCR ne sont pas lues. Les documents existants
+adoptent ce rendu à leur prochaine génération normale, au format `0.6`.
+
 La rubrique « Docker, pour tests nécessitant des droits root » indique la
 version, le binaire, puis `/var/run/docker.sock` et l'image
 `debian:stable-slim`. Ces deux références restent affichées si Docker est

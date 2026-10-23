@@ -330,6 +330,40 @@ réutilisent le domicile DevOps construit depuis `ENV_DEVOPS_USER`, indépendamm
 de `DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
 leur absence n'empêche pas la génération.
 
+### Matériel TPM dans le document DevOps
+
+Après « Système d'exploitation », chaque rendu ajoute « Matériel », puis
+« TPM ». Ses six puces sont Chemin, Version, Fabricant, Identifiant
+fournisseur, Révision de spécification et Registres PCR, dans cet ordre.
+La version documentaire reste `0.6`. Le relevé concerne uniquement le
+matériel visible dans le contexte d'exécution DIU.
+
+Le premier périphérique caractère `/dev/tpmrmN` est préféré aux `/dev/tpmN`,
+avec ordre lexical C dans chaque famille et `/dev/tpmrm0` prioritaire.
+Le même indice désigne `/sys/class/tpm/tpmN/tpm_version_major` : 1 donne
+TPM 1.2 et 2 donne TPM 2.0. Un TPM 1.2 conserve chemin et version ; les
+autres champs explicitent la limite de la sonde TPM 2.
+
+Si le périphérique est accessible et `tpm2_getcap` déjà présent, deux requêtes
+locales utilisent explicitement `-T device:<chemin>` : `properties-fixed`
+et `pcrs`. Chacune a une borne de 5 secondes, avec terminaison forcée après
+une seconde supplémentaire. La famille peut compléter une version sysfs
+indisponible. Fabricant reprend le code ASCII de `TPM2_PT_MANUFACTURER` et
+Identifiant fournisseur son code hexadécimal, sans correspondance commerciale
+inventée ; Révision reprend `TPM2_PT_REVISION`, distincte du firmware.
+Registres PCR indique les banques et indices alloués, sans lire les valeurs
+de registres ni modifier leur allocation.
+
+Une absence, un accès refusé, un outil manquant ou une sonde échouée/expirée
+reste explicite et non bloquant. Les propriétés absentes, invalides ou
+dupliquées restent non vérifiables ; les sorties non reconnues et stderr ne
+sont pas publiées. Une réponse dépassant 64 Kio n'est pas analysée.
+Aucun outil n'est installé, aucun droit n'est modifié et aucun transport
+réseau implicite n'est utilisé. Aucun autre TPM n'est sondé en repli après
+un échec. Les parcours individuel, groupé et de création partagent ce rendu.
+Les documents existants l'adoptent à leur prochaine génération normale.
+La référence est `openspec/specs/projects-template-devops/spec.md`.
+
 ### Dépendances Python des environnements du projet
 
 `projects_template_devops_dependencies` recherche les dossiers ordinaires

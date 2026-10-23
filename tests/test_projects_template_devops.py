@@ -34,6 +34,11 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
         self.query_log = self.fixture / 'queries.txt'
         self.clock_log = self.fixture / 'clock.txt'
         self.probe_order_log = self.fixture / 'probe-order.txt'
+        self.tpm_devices = self.fixture / 'tpm-devices'
+        self.tpm_sysfs = self.fixture / 'tpm-sysfs'
+        self.tpm_devices.mkdir()
+        self.tpm_sysfs.mkdir()
+        self.tpm_log = self.fixture / 'tpm-queries.txt'
         self.environment = dict(os.environ, TEST_DEVOPS_HOME=str(self.home),
                                 TEST_HOST_BIN=str(self.host_bin),
                                 TEST_METADATA=str(self.metadata),
@@ -42,6 +47,11 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
                                 TEST_PROBE_ORDER_LOG=str(self.probe_order_log),
                                 TEST_CLOCK_OUTPUT='2026-10-09T06:30:00Z',
                                 TEST_VENV_STATUS='0', TEST_PG_FAILURE='0')
+        self.environment.update(TEST_TPM_DEVICES=str(self.tpm_devices),
+                                TEST_TPM_SYSFS=str(self.tpm_sysfs),
+                                TEST_TPM_LOG=str(self.tpm_log),
+                                TEST_TPM_PROPERTIES=str(self.fixture / 'tpm-properties'),
+                                TEST_TPM_PCRS=str(self.fixture / 'tpm-pcrs'))
         self.environment.pop('DEVOPS_PROJECTS_ROOT', None)
         self.environment.pop('SYSTEM_DEBIAN_ENVIRONNEMENT', None)
         self.executable(self.host_bin / 'date', r'''
@@ -130,6 +140,10 @@ printf '16.4\n'
         self.assertEqual(source.count(home_assignment), 4,
                          'Le test doit isoler les quatre domiciles, sans toucher aux projets réels')
         source = source.replace(home_assignment, 'local devops_home="$TEST_DEVOPS_HOME"')
+        tpm_roots = 'local device_root="${1:-/dev}" sysfs_root="${2:-/sys/class/tpm}"'
+        self.assertEqual(source.count(tpm_roots), 1)
+        source = source.replace(tpm_roots,
+                                'local device_root="$TEST_TPM_DEVICES" sysfs_root="$TEST_TPM_SYSFS"')
         for before, after in source_replacements:
             self.assertEqual(source.count(before), 1)
             source = source.replace(before, after)
@@ -175,7 +189,7 @@ ENV_DEVOPS_USER="$1"
     def test_generation_structure_versions_and_executable_paths(self):
         content = self.successful_document(self.run_generation())
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
-            'DEVOPS.md — Template', "Système d'exploitation",
+            'DEVOPS.md — Template', "Système d'exploitation", 'Matériel',
             'Docker, pour tests nécessitant des droits root',
             'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
@@ -183,7 +197,7 @@ ENV_DEVOPS_USER="$1"
             'Python - Gestionnaire de paquets', 'Prompts',
             'Tests navigateurs extérieurs en mode headless',
         ])
-        self.assertEqual(re.findall(r'^## (.+)$', content, re.M), ['Chromium', 'Firefox'])
+        self.assertEqual(re.findall(r'^## (.+)$', content, re.M), ['TPM', 'Chromium', 'Firefox'])
         for title, version, binary in (('Chromium', '134.0.6998.88', 'chromium'),
                                        ('Firefox', '140.0.4esr', 'firefox')):
             self.assertIn(f'## {title}\n\n  * {version}\n  * {self.host_bin / binary}\n'
@@ -224,6 +238,188 @@ ENV_DEVOPS_USER="$1"
         self.assertNotIn('test-only-private-value', content)
         self.assertNotIn('test-only-user', content)
         self.assertNotIn('test-only-database', content)
+
+    def configure_tpm(self, name='tpmrm0', major='2'):
+        device = self.tpm_devices / name
+        device.symlink_to('/dev/null')
+        index = name.removeprefix('tpm').removeprefix('rm')
+        sysfs = self.tpm_sysfs / f'tpm{index}'
+        sysfs.mkdir(exist_ok=True)
+        (sysfs / 'tpm_version_major').write_text(major + '\n')
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_FAMILY_INDICATOR:\n  raw: 0x322E3000\n  value: "2.0"\n'
+            'TPM2_PT_MANUFACTURER:\n  raw: 0x49465800\n  value: "IFX"\n'
+            'TPM2_PT_REVISION:\n  raw: 0xA4\n  value: 1.64\n'
+            'TPM2_PT_FIRMWARE_VERSION_1:\n  raw: 0x70000\n')
+        Path(self.environment['TEST_TPM_PCRS']).write_text(
+            'selected-pcrs:\n  - sha1: [ 0, 7, 23 ]\n  - sha256: [ 0, 7, 23 ]\n')
+        self.executable(self.host_bin / 'tpm2_getcap', r'''
+[ "$#" -eq 3 ] && [ "$1" = -T ] || exit 9
+case "$2" in "device:$TEST_TPM_DEVICES/"*) ;; *) exit 9 ;; esac
+printf '%s|%s\n' "$2" "$3" >> "$TEST_TPM_LOG"
+if [ "${TEST_TPM_FAILURE:-}" = "$3" ]; then
+    printf 'sortie-non-publiable\n'
+    printf 'erreur-non-publiable\n' >&2
+    exit 1
+fi
+if [ "${TEST_TPM_TIMEOUT:-}" = "$3" ]; then exec sleep 30; fi
+case "$3" in
+    properties-fixed) cat "$TEST_TPM_PROPERTIES" ;;
+    pcrs) cat "$TEST_TPM_PCRS" ;;
+    *) exit 9 ;;
+esac
+''')
+        return device
+
+    def test_tpm_properties_and_allocated_pcr_banks_use_explicit_local_transport(self):
+        device = self.configure_tpm()
+        self.environment['TPM2TOOLS_TCTI'] = 'mssim:host=invalid.example.test'
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# Matériel\n\n## TPM\n\n'
+                      f'  * Chemin : {device}\n'
+                      '  * Version : 2.0\n  * Fabricant : IFX\n'
+                      '  * Identifiant fournisseur : 0x49465800\n'
+                      '  * Révision de spécification : 1.64\n'
+                      '  * Registres PCR : sha1: [0, 7, 23] ; sha256: [0, 7, 23]\n', content)
+        self.assertEqual(self.tpm_log.read_text().splitlines(),
+                         [f'device:{device}|properties-fixed', f'device:{device}|pcrs'])
+        self.assertNotIn('0x70000', content)
+        self.assertEqual(content.count('# Matériel\n'), 1)
+
+    def test_tpm_resource_manager_priority_and_matching_sysfs_index(self):
+        raw = self.configure_tpm('tpm0', '1')
+        manager = self.configure_tpm('tpmrm3', '2')
+        (self.tpm_devices / 'tpmrm0-extra').symlink_to('/dev/null')
+        (self.tpm_devices / 'tpmrm0').write_text('fichier ordinaire, pas un TPM')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {manager}\n  * Version : 2.0\n', content)
+        self.assertNotIn(f'Chemin : {raw}', content)
+        (self.tpm_devices / 'tpmrm0').unlink()
+        preferred = self.configure_tpm('tpmrm0', '2')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {preferred}\n', content)
+
+    def test_tpm_raw_device_fallback_and_version_from_capability_without_sysfs(self):
+        device = self.configure_tpm('tpm4')
+        shutil.rmtree(self.tpm_sysfs / 'tpm4')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n  * Version : 2.0\n', content)
+
+    def test_tpm_absence_reports_all_fields_without_probing(self):
+        content = self.successful_document(self.run_generation())
+        section = content.split('## TPM\n', 1)[1].split('\n# Docker', 1)[0]
+        self.assertEqual(section.count('aucun périphérique TPM visible'), 6)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_missing_tool_preserves_path_and_sysfs_version(self):
+        device = self.configure_tpm()
+        (self.host_bin / 'tpm2_getcap').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n  * Version : 2.0\n', content)
+        self.assertEqual(content.count('tpm2_getcap absent'), 4)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_access_denied_preserves_path_and_does_not_probe(self):
+        device = self.configure_tpm()
+        content = self.successful_document(self.run_generation(source_replacements=(
+            ('[[ ! -r "${device}" || ! -w "${device}" ]]', '[[ 1 == 1 ]]'),)))
+        self.assertIn(f'Chemin : {device}\n  * Version : 2.0\n', content)
+        self.assertEqual(content.count('accès au périphérique refusé'), 4)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_12_is_explicit_without_tpm2_queries(self):
+        device = self.configure_tpm('tpm0', '1')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n  * Version : 1.2\n', content)
+        self.assertEqual(content.count('sonde réservée au TPM 2'), 4)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_partial_and_duplicate_properties_preserve_other_fields(self):
+        self.configure_tpm()
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_MANUFACTURER:\n  raw: 0x49465800\n  value: "IFX"\n'
+            'TPM2_PT_REVISION:\n  value: 1.64\n'
+            'TPM2_PT_REVISION:\n  value: 1.65\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Fabricant : IFX\n', content)
+        self.assertIn('Révision de spécification : non vérifiable\n', content)
+        self.assertIn('Registres PCR : sha1:', content)
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_MANUFACTURER:\n  value: "IFX"\n  value: "AMD"\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Fabricant : non vérifiable\n', content)
+        self.assertIn('Identifiant fournisseur : non vérifiable\n', content)
+
+    def test_tpm_malformed_properties_are_neither_published_nor_executed(self):
+        self.configure_tpm(major='non-reconnu')
+        marker = self.fixture / 'tpm-marker'
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_FAMILY_INDICATOR:\n  value: "mauvaise-famille"\n'
+            f'TPM2_PT_MANUFACTURER:\n  raw: $(touch {marker})\n  value: "[injection](https://invalid.test)"\n'
+            'TPM2_PT_REVISION:\n  value: version-invalide\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Version : non vérifiable\n', content)
+        self.assertIn('Fabricant : non vérifiable\n', content)
+        self.assertIn('Révision de spécification : non vérifiable\n', content)
+        self.assertNotIn('injection', content)
+        self.assertNotIn('touch', content)
+        self.assertFalse(marker.exists())
+
+    def test_tpm_failed_capability_keeps_other_capability_and_hides_raw_errors(self):
+        self.configure_tpm()
+        for capability in ('properties-fixed', 'pcrs'):
+            with self.subTest(capability=capability):
+                self.environment['TEST_TPM_FAILURE'] = capability
+                content = self.successful_document(self.run_generation())
+                field = 'Fabricant' if capability == 'properties-fixed' else 'Registres PCR'
+                self.assertIn(f'{field} : non vérifiable (sonde échouée)', content)
+                self.assertIn('Registres PCR : sha1:' if capability == 'properties-fixed'
+                              else 'Fabricant : IFX', content)
+                self.assertNotIn('non-publiable', content)
+
+    def test_tpm_timeout_is_bounded_and_generation_continues(self):
+        self.configure_tpm()
+        self.environment['TEST_TPM_TIMEOUT'] = 'properties-fixed'
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation())
+        self.assertLess(time.monotonic() - started, 12)
+        self.assertIn('Fabricant : non vérifiable (sonde expirée)', content)
+        self.assertIn('Registres PCR : sha1:', content)
+
+    def test_tpm_malformed_pcr_banks_remain_unknown(self):
+        self.configure_tpm()
+        for output in ('', 'selected-pcrs:\n', 'selected-pcrs:\n  - sha256: [ 0, 999 ]\n',
+                       'selected-pcrs:\n  - sha256: [ 0, 0 ]\n',
+                       'selected-pcrs:\n  - sha256: [ 0 ]\n  - sha256: [ 7 ]\n',
+                       'selected-pcrs:\n  - sha256: [ 0,,7 ]\n',
+                       'selected-pcrs:\n  - sha256: [ $(false) ]\n'):
+            with self.subTest(output=output):
+                Path(self.environment['TEST_TPM_PCRS']).write_text(output)
+                content = self.successful_document(self.run_generation())
+                self.assertIn('Registres PCR : non vérifiable\n', content)
+                self.assertIn('Fabricant : IFX\n', content)
+
+    def test_tpm_large_responses_are_not_published(self):
+        self.configure_tpm()
+        for key in ('TEST_TPM_PROPERTIES', 'TEST_TPM_PCRS'):
+            Path(self.environment[key]).write_text('sortie-trop-grande' * 5000)
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Fabricant : non vérifiable\n', content)
+        self.assertIn('Registres PCR : non vérifiable\n', content)
+        self.assertNotIn('sortie-trop-grande', content)
+
+    def test_tpm_paths_with_spaces_and_second_probe_timeout(self):
+        self.tpm_devices = self.fixture / 'périphériques avec espaces'
+        self.tpm_devices.mkdir()
+        self.environment['TEST_TPM_DEVICES'] = str(self.tpm_devices)
+        device = self.configure_tpm()
+        self.environment['TEST_TPM_TIMEOUT'] = 'pcrs'
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n', content)
+        self.assertIn('Fabricant : IFX\n', content)
+        self.assertIn('Registres PCR : non vérifiable (sonde expirée)', content)
+        self.assertEqual(self.tpm_log.read_text().splitlines(),
+                         [f'device:{device}|properties-fixed', f'device:{device}|pcrs'])
 
     def test_report_provenance_utc_and_capture_before_probes(self):
         self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
@@ -1364,6 +1560,7 @@ projects_template_devops_javascript() {
         self.assertIn('# DEVOPS.md — Projet & essai', (path / 'DEVOPS.md').read_text())
 
     def test_create_project_runs_real_generation_after_copy_and_rights(self):
+        self.configure_tpm()
         projects_source = (ROOT / 'modules/projects/projects.sh').read_text()
         projects_source = projects_source.replace(
             'local template_path="/home/${DEVOPS_USER}/datas/template"',
@@ -1437,6 +1634,8 @@ exit $?
                     self.assertIn('# Tests navigateurs extérieurs en mode headless\n', content)
                     self.assertIn('## Chromium\n\n  * 134.0.6998.88', content)
                     self.assertIn('## Firefox\n\n  * 140.0.4esr', content)
+                    self.assertEqual(content.count('# Matériel\n'), 1)
+                    self.assertIn('Fabricant : IFX\n', content)
                     self.assertEqual((target / 'pyproject.toml').exists(), project_type == 'PYTHON')
                     if project == 'python-minimal':
                         self.assertEqual(tomllib.loads((target / 'pyproject.toml').read_text())['project'],
@@ -1609,6 +1808,7 @@ projects_template_devops() {
         self.assertIn(f'0 sélectionné(s), 0 réussi(s), {ignored} ignoré(s), 0 échoué(s)', result.stdout)
 
     def test_batch_generates_real_documents_and_preserves_them_on_repeat(self):
+        self.configure_tpm()
         root = self.fixture / 'projects'
         before = {}
         for project, project_type in (('template', 'NODE'), ('all', 'NODE'), ('python-app', 'PYTHON')):
@@ -1636,6 +1836,8 @@ projects_template_devops() {
                 self.assertIn('# Tests navigateurs extérieurs en mode headless\n'.encode(), content)
                 self.assertIn(b'## Chromium\n\n  * 134.0.6998.88', content)
                 self.assertIn(b'## Firefox\n\n  * 140.0.4esr', content)
+                self.assertEqual(content.count('# Matériel\n'.encode()), 1)
+                self.assertIn(b'Fabricant : IFX\n', content)
                 if iteration:
                     self.assertEqual(content, before[project])
                 before[project] = content
