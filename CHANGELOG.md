@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : rubrique « Docker, pour tests nécessitant des
+  droits root » avec `/var/run/docker.sock` puis `debian:stable-slim` après
+  la version et le binaire. Ces références documentaires restent affichées
+  si Docker est indisponible, sans sonde du socket, téléchargement ou
+  lancement de l'image. La version documentaire reste `0.6` ; les documents
+  existants adoptent ce rendu à leur prochaine génération normale.
+
 - Enregistrement idempotent d'une exception `safe.directory` système limitée
   au chemin canonique du projet par `rid projects git init` et `update`, y
   compris pour un dépôt déjà initialisé. `status` affiche son état sans la
