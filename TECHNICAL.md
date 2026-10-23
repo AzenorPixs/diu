@@ -280,6 +280,26 @@ conservant le projet préparé. La capacité de référence est
 
 ### Traçabilité du document DevOps
 
+Avant les inventaires de dépendances et les sondes, le rendu commun prépare
+les sept exécutables du domicile `/home/${ENV_DEVOPS_USER}` : Go, Node, npm,
+OpenCode, OpenSpec, Python et pip. Seuls les chemins connus de ces outils sont
+traités, sans parcours récursif. Les cibles ordinaires, y compris celles
+atteintes par les liens internes `current`, npm ou OpenSpec, sont résolues
+et confinées au domicile canonique. Les seuls bits `ugo+x` manquants sont
+ajoutés ; propriétaire et droits de lecture et d'écriture sont conservés.
+Les fichiers déjà dotés des trois bits d'exécution restent inchangés.
+
+Un outil absent reste indisponible sans installation. Une cible externe ou
+non ordinaire, une résolution impossible ou un échec de préparation des
+droits bloque le rendu et conserve le `DEVOPS.md` existant. Les droits déjà
+corrigés restent appliqués si une étape suivante échoue ; une réexécution
+reprend sur l'état constaté. Les outils hôte et les autres fichiers du
+domicile ne sont pas modifiés. Les sondes directes distinguent un binaire
+absent d'un binaire présent non exécutable sans modifier elles-mêmes ses
+droits. Les sondes restent exécutées sous le compte et avec les interpréteurs
+déjà prévus, avec leur borne de 15 secondes. Cette préparation s'applique aux
+parcours individuel, groupé et final de création.
+
 `projects_template_devops_render` produit la version documentaire `0.6`.
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie

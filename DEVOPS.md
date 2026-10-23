@@ -3,8 +3,8 @@
 Version : 0.6
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-23T08:32:19Z
-Environnement d'exécution DIU : PHYSICAL
+Début du relevé (UTC) : 2026-10-23T12:53:53Z
+Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
@@ -22,10 +22,24 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
   * Debian GNU/Linux 13 (trixie)
 
 
-# Docker
+# Matériel
+
+## TPM
+
+  * Chemin : /dev/tpmrm0
+  * Version : 2.0
+  * Fabricant : INTC
+  * Identifiant fournisseur : 0x494E5443
+  * Révision de spécification : 1.38
+  * Registres PCR : sha1: [] ; sha256: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] ; sha384: [] ; sm3_256: []
+
+
+# Docker, pour tests nécessitant des droits root
 
   * 29.9.2
   * /usr/bin/docker
+  * /var/run/docker.sock
+  * debian:stable-slim
 
 
 # Docker-Compose
@@ -60,7 +74,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 1.19.3
+  * indisponible (binaire absent)
   * /home/devops/.opencode/bin/opencode
 
 

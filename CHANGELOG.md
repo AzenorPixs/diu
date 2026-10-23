@@ -4,6 +4,15 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : ajout des droits d'exécution manquants aux sept
+  outils DevOps connus avant les inventaires et sondes. Les liens restent
+  confinés au domicile DevOps ; outils hôte, autres fichiers, propriétaires
+  et droits de lecture et d'écriture sont conservés. Aucun outil absent n'est
+  installé. Une préparation impossible bloque la génération et préserve le
+  document précédent ; les droits déjà ajoutés restent appliqués. Les sondes
+  distinguent désormais binaire absent et binaire non exécutable. Le format
+  reste `0.6`, sans modification des outils installés par cette livraison.
+
 - Génération de `DEVOPS.md` : section « Matériel » après l'OS, avec TPM et
   chemin prioritaire `/dev/tpmrm0`, version, fabricant, identifiant fournisseur,
   révision de spécification et banques/indices PCR alloués. La collecte locale

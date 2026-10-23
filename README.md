@@ -119,6 +119,16 @@ comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
 
+Avant les inventaires et les sondes, DIU ajoute les droits d'exécution
+manquants aux sept outils DevOps présents : Go, Node, npm, OpenCode, OpenSpec,
+Python et pip. Cette préparation vise uniquement leurs chemins connus dans
+le domicile DevOps et les cibles de liens qui y restent confinées. Les
+propriétaires, droits de lecture et d'écriture, outils hôte et autres fichiers
+restent inchangés. Aucun outil absent n'est installé. Une cible externe ou
+non ordinaire, ou un échec de préparation, bloque la génération et conserve
+le document précédent ; les droits déjà ajoutés ne sont pas annulés. Le format
+documentaire reste `0.6`, appliqué à la prochaine génération normale.
+
 Après l'OS, la section « Matériel » contient « TPM », avec chemin en premier
 (`/dev/tpmrm0` prioritaire), version, fabricant, identifiant fournisseur,
 révision de spécification et banques/indices PCR alloués. Le fabricant est
