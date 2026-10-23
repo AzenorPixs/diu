@@ -313,6 +313,16 @@ reste identique hors horodatage. Les anciens documents prennent le format
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
 
+La rubrique « Docker, pour tests nécessitant des droits root » contient,
+dans cet ordre, la version détectée, le chemin du binaire,
+`/var/run/docker.sock` et `debian:stable-slim`. Les deux dernières puces sont
+des références documentaires fixes, conservées même lorsque Docker est
+indisponible ; les diagnostics de version et de binaire restent explicites.
+Le générateur ne vérifie ni la présence ni l'accès au socket ou à l'image,
+ne télécharge ni ne lance de conteneur et ne modifie aucune permission.
+Le tag `debian:stable-slim` suit Debian stable sans figer une version ou un
+digest. Les autres rubriques et sondes sont conservées.
+
 La rubrique « Prompts », après le gestionnaire de paquets Python et avant les
 tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
 et son index `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`. Ces chemins

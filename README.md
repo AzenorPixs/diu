@@ -119,6 +119,12 @@ comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
 
+La rubrique « Docker, pour tests nécessitant des droits root » indique la
+version, le binaire, puis `/var/run/docker.sock` et l'image
+`debian:stable-slim`. Ces deux références restent affichées si Docker est
+indisponible, sans vérification du socket ni téléchargement ou lancement
+de l'image. Le tag suit Debian stable ; aucune version Debian n'est figée.
+
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps
 configuré, indépendamment de la racine des projets. Ces ressources ne sont
