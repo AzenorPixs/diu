@@ -51,6 +51,7 @@ printf 'clock\n' >> "$TEST_PROBE_ORDER_LOG"
 printf '%s\n' "$TEST_CLOCK_OUTPUT"
 ''')
         self.executable(self.host_bin / 'docker',
+                        '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
                         'printf "docker\\n" >> "$TEST_PROBE_ORDER_LOG"\n'
                         "printf 'Docker version 29.1.2, build fixture\\n'")
         self.executable(self.host_bin / 'docker-compose', "printf 'Docker Compose version v5.2.3\\n'")
@@ -174,7 +175,8 @@ ENV_DEVOPS_USER="$1"
     def test_generation_structure_versions_and_executable_paths(self):
         content = self.successful_document(self.run_generation())
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
-            'DEVOPS.md — Template', "Système d'exploitation", 'Docker',
+            'DEVOPS.md — Template', "Système d'exploitation",
+            'Docker, pour tests nécessitant des droits root',
             'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
             'Python', 'Python - Dépendances du projet - Source de vérité `pyproject.toml`',
@@ -191,7 +193,7 @@ ENV_DEVOPS_USER="$1"
         self.assertIn('Version : 0.6', content)
         self.assert_prompts_section(content)
         for title, version, path in (
-            ('Docker', '29.1.2', self.host_bin / 'docker'),
+            ('Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
             ('Git', '2.47.9', self.host_bin / 'git'),
             ('Go', '1.25.3', self.home / 'go/current/bin/go'),
@@ -205,6 +207,12 @@ ENV_DEVOPS_USER="$1"
             ('Python - Gestionnaire de paquets', '25.3.7', self.home / 'python/current/bin/pip3'),
         ):
             self.assertIn(f'# {title}\n\n  * {version}\n  * {path}\n', content)
+        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+                      f'  * 29.1.2\n  * {self.host_bin / "docker"}\n'
+                      '  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n'
+                      '# Docker-Compose\n', content)
+        self.assertEqual(content.count('/var/run/docker.sock'), 1)
+        self.assertEqual(content.count('debian:stable-slim'), 1)
         self.assertIn('  * venv: disponible', content)
         self.assertIn('# PostgreSQL Serveur\n\n  * 16.4\n  * database.example.test:5544', content)
         self.assertIn('pyproject.toml absent', content)
@@ -432,10 +440,19 @@ ENV_DEVOPS_USER="$1"
 
     def test_failed_probe_and_venv_are_explicit(self):
         self.executable(self.home / '.opencode/bin/opencode', 'exit 7')
+        self.executable(self.host_bin / 'docker', 'exit 7')
         self.environment['TEST_VENV_STATUS'] = '1'
         content = self.successful_document(self.run_generation())
         self.assertIn('# OpenCode\n\n  * indisponible (sonde échouée)', content)
         self.assertIn('venv: indisponible', content)
+        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+                      f'  * indisponible (sonde échouée)\n  * {self.host_bin / "docker"}\n'
+                      '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
+        (self.host_bin / 'docker').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+                      '  * indisponible (binaire absent)\n  * binaire introuvable\n'
+                      '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
 
     def test_node_and_pip_scripts_use_devops_interpreters_despite_their_shebangs(self):
         for relative in ('node/current/bin/npm', '.local/npm/bin/openspec',

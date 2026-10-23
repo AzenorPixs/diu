@@ -3,8 +3,8 @@
 Version : 0.6
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-22T13:17:00Z
-Environnement d'exécution DIU : PHYSICAL
+Début du relevé (UTC) : 2026-10-22T19:48:17Z
+Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
@@ -22,10 +22,12 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
   * Debian GNU/Linux 13 (trixie)
 
 
-# Docker
+# Docker, pour tests nécessitant des droits root
 
   * 29.9.2
   * /usr/bin/docker
+  * /var/run/docker.sock
+  * debian:stable-slim
 
 
 # Docker-Compose
@@ -120,7 +122,7 @@ La détection ne vérifie pas le fonctionnement du mode headless.
 
 ## Chromium
 
-  * 155.0.8059.79
+  * 156.0.8078.47
   * /usr/bin/chromium
   * Mode headless : --headless
 
