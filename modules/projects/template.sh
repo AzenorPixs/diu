@@ -77,13 +77,57 @@ projects_template_devops_user_run() {
     fi
 }
 
+projects_template_devops_prepare_executables() {
+    local devops_home="$1" canonical_home="" relative="" target="" mode=""
+
+    if ! canonical_home="$(readlink -f -- "${devops_home}" 2>/dev/null)" ||
+        [[ ! -d "${canonical_home}" ]]; then
+        print_error 'Impossible de résoudre le domicile DevOps pour préparer les exécutables.'
+        return 1
+    fi
+    for relative in go/current/bin/go node/current/bin/node node/current/bin/npm \
+        .opencode/bin/opencode .local/npm/bin/openspec \
+        python/current/bin/python3 python/current/bin/pip3; do
+        if [[ ! -e "${devops_home}/${relative}" && ! -L "${devops_home}/${relative}" ]]; then
+            continue
+        fi
+        if ! target="$(readlink -f -- "${devops_home}/${relative}" 2>/dev/null)" ||
+            [[ "${target}" != "${canonical_home}/"* ]]; then
+            print_error "Cible DevOps non résolue ou hors du domicile : ${relative}."
+            return 1
+        fi
+        if [[ ! -e "${target}" ]]; then
+            continue
+        fi
+        if [[ ! -f "${target}" ]]; then
+            print_error "Le binaire DevOps doit être un fichier ordinaire : ${relative}."
+            return 1
+        fi
+        if ! mode="$(stat -c '%a' -- "${target}" 2>/dev/null)" ||
+            [[ ! "${mode}" =~ ^[0-7]{3,4}$ ]]; then
+            print_error "Impossible de lire les droits du binaire DevOps : ${relative}."
+            return 1
+        fi
+        if (( (8#${mode} & 8#111) != 8#111 )); then
+            if ! chmod ugo+x -- "${target}" 2>/dev/null; then
+                print_error "Impossible de rendre le binaire DevOps exécutable : ${relative}."
+                return 1
+            fi
+        fi
+    done
+}
+
 projects_template_devops_version() {
     local context="$1" devops_home="$2" binary="$3"
     local output=""
     shift 3
 
-    if [[ -z "${binary}" || ! -x "${binary}" ]]; then
+    if [[ -z "${binary}" || ! -e "${binary}" ]]; then
         printf '%s\n' 'indisponible (binaire absent)'
+        return 0
+    fi
+    if [[ ! -f "${binary}" || ! -x "${binary}" ]]; then
+        printf '%s\n' 'indisponible (binaire non exécutable)'
         return 0
     fi
 
@@ -1254,6 +1298,7 @@ projects_template_devops_render() {
     local -a version_arguments=()
 
     started_at="$(projects_template_devops_timestamp)" || return 1
+    projects_template_devops_prepare_executables "${devops_home}" || return 1
     case "${SYSTEM_DEBIAN_ENVIRONNEMENT:-UNSET}" in
         DOCKER|LXC|PHYSICAL|PROXMOX|VM|UNSET)
             environment_type="${SYSTEM_DEBIAN_ENVIRONNEMENT:-UNSET}" ;;

@@ -634,6 +634,172 @@ esac
         self.assertIn('# Python\n\n  * indisponible (binaire absent)', content)
         self.assertIn('venv: indisponible', content)
 
+    def test_prepare_all_devops_tools_before_inventory_and_versions(self):
+        tools = ('go/current/bin/go', 'node/current/bin/node', 'node/current/bin/npm',
+                 '.opencode/bin/opencode', '.local/npm/bin/openspec',
+                 'python/current/bin/python3', 'python/current/bin/pip3')
+        owners = {}
+        for relative in tools:
+            path = self.home / relative
+            path.chmod(0o640)
+            owners[relative] = (path.stat().st_uid, path.stat().st_gid)
+        # Le collecteur JavaScript doit déjà disposer de son Python DevOps.
+        extra = r'''
+projects_template_devops_javascript() {
+    for relative in go/current/bin/go node/current/bin/node node/current/bin/npm \
+        .opencode/bin/opencode .local/npm/bin/openspec \
+        python/current/bin/python3 python/current/bin/pip3; do
+        [[ -x "${TEST_DEVOPS_HOME}/${relative}" ]] || return 1
+    done
+    printf '## Dépendances JavaScript du projet\n\n  * préparation vérifiée\n\034'
+}
+'''
+        content = self.successful_document(self.run_generation(extra))
+        self.assertIn('préparation vérifiée', content)
+        self.assertIn('# OpenCode\n\n  * 1.2.8', content)
+        self.assertIn('# Node\n\n  * 24.3.1', content)
+        self.assertIn('# NPM\n\n  * 11.5.2', content)
+        self.assertIn('# OpenSpec\n\n  * 1.3.9', content)
+        self.assertIn('# Go\n\n  * 1.25.3', content)
+        self.assertIn('# Python\n\n  * 3.13.9', content)
+        self.assertIn('# Python - Gestionnaire de paquets\n\n  * 25.3.7', content)
+        for relative in tools:
+            with self.subTest(tool=relative):
+                observed = (self.home / relative).stat()
+                self.assertEqual(observed.st_mode & 0o777, 0o751)
+                self.assertEqual((observed.st_uid, observed.st_gid), owners[relative])
+
+    def test_preparation_does_not_touch_host_or_unlisted_files(self):
+        unrelated = self.home / 'other-tool'
+        self.executable(unrelated, "printf 'other\\n'")
+        unrelated.chmod(0o640)
+        paths = [unrelated, *self.host_bin.iterdir()]
+        before = {path: (path.read_bytes(), path.stat()) for path in paths}
+        self.successful_document(self.run_generation())
+        for path, (data, observed) in before.items():
+            with self.subTest(path=path.name):
+                self.assertEqual(path.read_bytes(), data)
+                self.assertEqual(path.stat().st_mode, observed.st_mode)
+                self.assertEqual(path.stat().st_ctime_ns, observed.st_ctime_ns)
+
+    def test_preparation_is_idempotent_without_reapplying_chmod(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.chmod(0o664)
+        first = self.successful_document(self.run_generation())
+        prepared = tool.stat()
+        second = self.successful_document(self.run_generation())
+        self.assertEqual(first, second)
+        self.assertEqual(tool.stat().st_ctime_ns, prepared.st_ctime_ns)
+        self.assertEqual(tool.stat().st_mode & 0o777, 0o775)
+
+    def test_internal_binary_and_current_directory_symlinks_are_preserved(self):
+        tool = self.home / '.opencode/bin/opencode'
+        target = self.home / '.opencode/releases/opencode'
+        target.parent.mkdir()
+        tool.rename(target)
+        target.chmod(0o644)
+        tool.symlink_to('../releases/opencode')
+        current = self.home / 'node/current'
+        installed = self.home / 'node/version-fixture'
+        current.rename(installed)
+        current.symlink_to('version-fixture')
+        (installed / 'bin/node').chmod(0o644)
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# OpenCode\n\n  * 1.2.8', content)
+        self.assertIn('# Node\n\n  * 24.3.1', content)
+        self.assertTrue(tool.is_symlink())
+        self.assertTrue(current.is_symlink())
+        self.assertEqual(target.stat().st_mode & 0o777, 0o755)
+        self.assertEqual((installed / 'bin/node').stat().st_mode & 0o777, 0o755)
+
+    def test_external_symlink_fails_without_changing_target_or_document(self):
+        target = self.host_bin / 'git'
+        target.chmod(0o640)
+        tool = self.home / '.opencode/bin/opencode'
+        tool.unlink()
+        tool.symlink_to(target)
+        self.document.write_text('document précédent\n', encoding='utf-8')
+        before = target.stat()
+        result = self.run_generation()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('hors du domicile : .opencode/bin/opencode', result.stderr)
+        self.assertEqual(target.stat().st_mode, before.st_mode)
+        self.assertEqual(target.stat().st_ctime_ns, before.st_ctime_ns)
+        self.assertEqual(self.document.read_text(), 'document précédent\n')
+        self.assertFalse(self.query_log.exists())
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_nonregular_tool_fails_without_changing_its_mode(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.unlink()
+        tool.mkdir(mode=0o700)
+        before = tool.stat().st_mode
+        result = self.run_generation()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('fichier ordinaire : .opencode/bin/opencode', result.stderr)
+        self.assertEqual(tool.stat().st_mode, before)
+        self.assertFalse(self.document.exists())
+
+    def test_missing_and_dangling_internal_tools_are_not_created(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.unlink()
+        tool.symlink_to('missing-opencode')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# OpenCode\n\n  * indisponible (binaire absent)', content)
+        self.assertTrue(tool.is_symlink())
+        self.assertFalse(tool.exists())
+
+    def test_chmod_failure_preserves_document_and_previously_prepared_modes(self):
+        go = self.home / 'go/current/bin/go'
+        opencode = self.home / '.opencode/bin/opencode'
+        go.chmod(0o640)
+        opencode.chmod(0o640)
+        self.document.write_text('document précédent\n', encoding='utf-8')
+        result = self.run_generation(r'''
+chmod() {
+    if [[ "$*" == *'/.opencode/bin/opencode' ]]; then
+        return 1
+    fi
+    command chmod "$@"
+}
+''')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Impossible de rendre le binaire DevOps exécutable', result.stderr)
+        self.assertEqual(self.document.read_text(), 'document précédent\n')
+        self.assertEqual(go.stat().st_mode & 0o777, 0o751)
+        self.assertEqual(opencode.stat().st_mode & 0o777, 0o640)
+        self.assertFalse(self.query_log.exists())
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_resolution_and_mode_failures_stop_before_inventory(self):
+        for extra in ('readlink() { return 1; }',
+                      'stat() { return 1; }',
+                      "stat() { printf 'invalide\\n'; }"):
+            with self.subTest(extra=extra):
+                self.document.write_text('document précédent\n', encoding='utf-8')
+                result = self.run_generation(extra)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.document.read_text(), 'document précédent\n')
+                self.assertFalse(self.query_log.exists())
+                self.assertFalse(self.tpm_log.exists())
+
+    def test_direct_version_distinguishes_nonexecutable_from_missing(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.chmod(0o640)
+        before = tool.stat()
+        result = self.run_generation(r'''
+projects_template_devops_version user "$TEST_DEVOPS_HOME" \
+    "$TEST_DEVOPS_HOME/.opencode/bin/opencode" --version
+projects_template_devops_version user "$TEST_DEVOPS_HOME" \
+    "$TEST_DEVOPS_HOME/missing" --version
+exit
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [
+            'indisponible (binaire non exécutable)', 'indisponible (binaire absent)'])
+        self.assertEqual(tool.stat().st_mode, before.st_mode)
+        self.assertEqual(tool.stat().st_ctime_ns, before.st_ctime_ns)
+
     def test_failed_probe_and_venv_are_explicit(self):
         self.executable(self.home / '.opencode/bin/opencode', 'exit 7')
         self.executable(self.host_bin / 'docker', 'exit 7')
@@ -1900,7 +2066,8 @@ class ProjectsTemplateDevopsRuntimeTests(unittest.TestCase):
 
     def test_prompts_paths_follow_configured_user_with_separate_projects_root(self):
         # Conserver le calcul réel du domicile et le rendu. Isoler seulement
-        # les identités et les sondes ; toutes les écritures restent dans la fixture.
+        # les identités, la préparation des outils et les sondes : le domicile
+        # calculé sert ici aux assertions de chemins, jamais à une mutation réelle.
         script = r'''
 source "$1"
 ENV_DEVOPS_USER="$2"
@@ -1916,6 +2083,7 @@ print_error() { printf '%s\n' "$*" >&2; }
 print_success() { :; }
 projects_template_devops_python_manifest() { :; }
 projects_template_devops_timestamp() { printf '2026-10-19T06:30:00Z\n'; }
+projects_template_devops_prepare_executables() { :; }
 projects_template_devops_host_binary() { return 1; }
 projects_template_devops_version() { printf 'indisponible\n'; }
 projects_template_devops_user_run() { return 1; }
