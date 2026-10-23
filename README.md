@@ -109,7 +109,7 @@ Pour générer l'inventaire DevOps d'un projet :
 rid projects template devops <ID PROJECT>
 ```
 
-`DEVOPS.md` est généré au format documentaire `0.6`, avec provenance DIU,
+`DEVOPS.md` est généré au format documentaire `0.7`, avec provenance DIU,
 début du relevé UTC et classification de l'environnement d'exécution fournie
 par DIU. Les dépendances Python sont recherchées en priorité dans les venv du projet
 (`.venv`, `venv`, `env`, puis autres chemins triés), avec repli DevOps explicite.
@@ -119,6 +119,12 @@ comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
 
+La rubrique « Système d'exploitation » affiche le nom de l'OS puis le résultat
+de `hostname -f` en deuxième puce. Le nom est relevé dans le contexte
+d'exécution DIU, sans valeur codée en dur ni modification du réseau ou du nom
+d'hôte. La sonde est limitée à 15 secondes ; une indisponibilité ou une sortie
+invalide est indiquée explicitement sans bloquer la génération.
+
 Avant les inventaires et les sondes, DIU ajoute les droits d'exécution
 manquants aux sept outils DevOps présents : Go, Node, npm, OpenCode, OpenSpec,
 Python et pip. Cette préparation vise uniquement leurs chemins connus dans
@@ -127,7 +133,7 @@ propriétaires, droits de lecture et d'écriture, outils hôte et autres fichier
 restent inchangés. Aucun outil absent n'est installé. Une cible externe ou
 non ordinaire, ou un échec de préparation, bloque la génération et conserve
 le document précédent ; les droits déjà ajoutés ne sont pas annulés. Le format
-documentaire reste `0.6`, appliqué à la prochaine génération normale.
+documentaire reste `0.7`, appliqué à la prochaine génération normale.
 
 Après l'OS, la section « Matériel » contient « TPM », avec chemin en premier
 (`/dev/tpmrm0` prioritaire), version, fabricant, identifiant fournisseur,
@@ -136,7 +142,7 @@ le code ASCII observé et l'identifiant son code hexadécimal. La collecte est
 locale, bornée et en lecture seule ; les propriétés impossibles à relever
 restent explicites sans bloquer le document. Aucun outil ni droit n'est
 modifié et les valeurs des PCR ne sont pas lues. Les documents existants
-adoptent ce rendu à leur prochaine génération normale, au format `0.6`.
+adoptent ce rendu à leur prochaine génération normale, au format `0.7`.
 
 La rubrique « Docker, pour tests nécessitant des droits root » indique la
 version, le binaire, puis `/var/run/docker.sock` et l'image
@@ -147,7 +153,7 @@ de l'image. Le tag suit Debian stable ; aucune version Debian n'est figée.
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps
 configuré, indépendamment de la racine des projets. Ces ressources ne sont
-ni lues ni créées ; les documents existants adoptent le format `0.6` à leur
+ni lues ni créées ; les documents existants adoptent le format `0.7` à leur
 prochaine génération.
 
 Les manifestes `package.json` des composants et workspaces sont regroupés sous

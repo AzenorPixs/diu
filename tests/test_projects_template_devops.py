@@ -34,6 +34,7 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
         self.query_log = self.fixture / 'queries.txt'
         self.clock_log = self.fixture / 'clock.txt'
         self.probe_order_log = self.fixture / 'probe-order.txt'
+        self.hostname_log = self.fixture / 'hostname-queries.txt'
         self.tpm_devices = self.fixture / 'tpm-devices'
         self.tpm_sysfs = self.fixture / 'tpm-sysfs'
         self.tpm_devices.mkdir()
@@ -45,6 +46,8 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
                                 TEST_QUERY_LOG=str(self.query_log),
                                 TEST_CLOCK_LOG=str(self.clock_log),
                                 TEST_PROBE_ORDER_LOG=str(self.probe_order_log),
+                                TEST_HOSTNAME_LOG=str(self.hostname_log),
+                                TEST_HOSTNAME_OUTPUT='hvp1.pixs.fr',
                                 TEST_CLOCK_OUTPUT='2026-10-09T06:30:00Z',
                                 TEST_VENV_STATUS='0', TEST_PG_FAILURE='0')
         self.environment.update(TEST_TPM_DEVICES=str(self.tpm_devices),
@@ -59,6 +62,11 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
 printf '%s\n' "$*" >> "$TEST_CLOCK_LOG"
 printf 'clock\n' >> "$TEST_PROBE_ORDER_LOG"
 printf '%s\n' "$TEST_CLOCK_OUTPUT"
+''')
+        self.executable(self.host_bin / 'hostname', r'''
+[ "$#" -eq 1 ] && [ "$1" = -f ] || exit 9
+printf '%s\n' "$*" >> "$TEST_HOSTNAME_LOG"
+printf '%s\n' "$TEST_HOSTNAME_OUTPUT"
 ''')
         self.executable(self.host_bin / 'docker',
                         '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
@@ -186,6 +194,69 @@ ENV_DEVOPS_USER="$1"
                         content.index('# Tests navigateurs extérieurs en mode headless\n'))
         self.assertFalse(prompts.exists())
 
+    def test_hostname_follows_os_with_exact_arguments_and_one_call(self):
+        content = self.successful_document(self.run_generation())
+        self.assertRegex(content, r"# Système d'exploitation\n\n  \* [^\n]+\n"
+                                  r"  \* hvp1\.pixs\.fr\n\n\n# Matériel\n")
+        self.assertEqual(self.hostname_log.read_text().splitlines(), ['-f'])
+        self.assertIn('Version : 0.7\n', content)
+
+    def test_hostname_is_refreshed_without_a_hardcoded_value(self):
+        first = self.successful_document(self.run_generation())
+        self.environment['TEST_HOSTNAME_OUTPUT'] = 'dev-build.example.test'
+        second = self.successful_document(self.run_generation())
+        self.assertIn('  * hvp1.pixs.fr\n', first)
+        self.assertIn('  * dev-build.example.test\n', second)
+        self.assertNotIn('hvp1.pixs.fr', second)
+        self.assertEqual(self.hostname_log.read_text().splitlines(), ['-f', '-f'])
+
+    def test_hostname_short_name_and_maximum_length_are_preserved(self):
+        maximum = '.'.join(['a' * 63, 'b' * 63, 'c' * 63, 'd' * 61])
+        self.assertEqual(len(maximum), 253)
+        for output in ('localhost', maximum):
+            with self.subTest(length=len(output)):
+                self.environment['TEST_HOSTNAME_OUTPUT'] = output
+                content = self.successful_document(self.run_generation())
+                self.assertIn(f'  * {output}\n', content)
+
+    def test_hostname_missing_or_failed_does_not_block_generation(self):
+        hostname = self.host_bin / 'hostname'
+        hostname.unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * indisponible (commande hostname absente)\n', content)
+        self.assertIn('# Matériel\n', content)
+        self.assertFalse(self.hostname_log.exists())
+        self.executable(hostname, "printf 'sortie-rejetee-test\\n'; "
+                        "printf 'diagnostic-brut-test\\n' >&2; exit 7")
+        result = self.run_generation()
+        content = self.successful_document(result)
+        self.assertIn("  * indisponible (nom d'hôte non vérifiable)\n", content)
+        self.assertNotIn('sortie-rejetee-test', content + result.stderr)
+        self.assertNotIn('diagnostic-brut-test', content + result.stderr)
+
+    def test_hostname_invalid_output_is_not_published(self):
+        for output in ('', 'first.example.test\nsecond.example.test',
+                       'name with spaces', '<rejected>', 'hôte.example.test',
+                       'a' * 254, '-invalid', 'host\x1b[0m'):
+            with self.subTest(output=repr(output)):
+                self.environment['TEST_HOSTNAME_OUTPUT'] = output
+                content = self.successful_document(self.run_generation())
+                self.assertIn("  * indisponible (nom d'hôte invalide)\n", content)
+                section = content.split("# Système d'exploitation\n", 1)[1].split('# Matériel', 1)[0]
+                self.assertEqual(len(re.findall(r'^  \* ', section, re.M)), 2)
+                self.assertNotIn('first.example.test', section)
+                self.assertNotIn('<rejected>', section)
+
+    def test_hostname_timeout_uses_bounded_probe_and_continues(self):
+        self.executable(self.host_bin / 'hostname', 'exec /bin/sleep 5')
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation(source_replacements=((
+            '/usr/bin/timeout 15s "${binary}" -f 2>/dev/null',
+            '/usr/bin/timeout 0.05s "${binary}" -f 2>/dev/null'),)))
+        self.assertLess(time.monotonic() - started, 3)
+        self.assertIn("  * indisponible (nom d'hôte non vérifiable)\n", content)
+        self.assertIn('# Matériel\n', content)
+
     def test_generation_structure_versions_and_executable_paths(self):
         content = self.successful_document(self.run_generation())
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
@@ -204,7 +275,7 @@ ENV_DEVOPS_USER="$1"
                           '  * Mode headless : --headless\n', content)
         self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
-        self.assertIn('Version : 0.6', content)
+        self.assertIn('Version : 0.7', content)
         self.assert_prompts_section(content)
         for title, version, path in (
             ('Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
@@ -424,7 +495,7 @@ esac
     def test_report_provenance_utc_and_capture_before_probes(self):
         self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
         content = self.successful_document(self.run_generation())
-        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.6\n', content)
+        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.7\n', content)
         expected = (
             'Généré automatiquement par Debian Installeur Unifié (DIU).',
             'Début du relevé (UTC) : 2026-10-09T06:30:00Z',
@@ -1793,7 +1864,8 @@ exit $?
                     self.assertIn(f'# DEVOPS.md — {project}', content)
                     self.assertEqual(content.count('## Dépendances JavaScript du projet\n'), 1)
                     self.assertIn('creation-fixture : déclarée 1.0.0', content)
-                    self.assertIn('Version : 0.6\n', content)
+                    self.assertIn('Version : 0.7\n', content)
+                    self.assertIn('  * hvp1.pixs.fr\n', content)
                     self.assert_prompts_section(content)
                     self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n', content)
                     self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'), 1)
@@ -1991,7 +2063,8 @@ projects_template_devops() {
             for project in ('template', 'all', 'python-app'):
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
-                self.assertIn(b'Version : 0.6\n', content)
+                self.assertIn(b'Version : 0.7\n', content)
+                self.assertIn(b'  * hvp1.pixs.fr\n', content)
                 self.assert_prompts_section(content.decode('utf-8'))
                 self.assertEqual(content.count('## Dépendances JavaScript du projet\n'.encode()), 1)
                 self.assertIn(b'batch-fixture : d\xc3\xa9clar\xc3\xa9e 1.0.0', content)
@@ -2110,7 +2183,7 @@ projects_template_devops application
                 self.assertIn(f'# Prompts\n\n  * Dossier des prompts : /home/{user}/datas/prompts\n'
                               f'  * Index des prompts : /home/{user}/datas/prompts/INDEX.md\n', content)
                 self.assertNotIn(str(projects_root / 'prompts'), content)
-                self.assertIn('Version : 0.6\n', content)
+                self.assertIn('Version : 0.7\n', content)
 
     def test_real_go_version_from_inaccessible_caller_directory(self):
         if os.geteuid() == 0:

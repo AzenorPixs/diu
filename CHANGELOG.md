@@ -4,6 +4,14 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` au format documentaire `0.7` : le résultat
+  dynamique de `hostname -f` apparaît en deuxième puce sous « Système
+  d'exploitation », après le nom de l'OS. La sonde est limitée à 15 secondes ;
+  absence, échec, expiration ou sortie invalide sont signalés sans bloquer la
+  génération. Aucun nom n'est codé en dur et aucune configuration réseau ou
+  du nom d'hôte n'est modifiée. Les documents existants adoptent le format
+  à leur prochaine génération normale.
+
 - Génération de `DEVOPS.md` : ajout des droits d'exécution manquants aux sept
   outils DevOps connus avant les inventaires et sondes. Les liens restent
   confinés au domicile DevOps ; outils hôte, autres fichiers, propriétaires

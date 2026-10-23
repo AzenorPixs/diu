@@ -1287,10 +1287,30 @@ finally:
 PY_JS
 }
 
+projects_template_devops_hostname() {
+    local binary="" output=""
+    local LC_ALL=C
+
+    if ! binary="$(projects_template_devops_host_binary hostname)" || [[ ! -x "${binary}" ]]; then
+        printf '%s\n' 'indisponible (commande hostname absente)'
+        return 0
+    fi
+    if ! output="$(/usr/bin/timeout 15s "${binary}" -f 2>/dev/null)"; then
+        printf '%s\n' "indisponible (nom d'hôte non vérifiable)"
+        return 0
+    fi
+    if [[ ! "${output}" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]{0,252}$ ]]; then
+        printf '%s\n' "indisponible (nom d'hôte invalide)"
+        return 0
+    fi
+    printf '%s\n' "${output}"
+}
+
 projects_template_devops_render() {
     local devops_home="$1" template_path="$2"
     local project_title="${3:-${template_path##*/}}"
     local name="" binary="" version="" context="" operating_system=""
+    local hostname=""
     local psql_binary="" compose_binary="" python_binary="${devops_home}/python/current/bin/python3"
     local venv_status='indisponible'
     local started_at="" environment_type=UNSET
@@ -1315,7 +1335,7 @@ projects_template_devops_render() {
     if [[ "${project_title}" == template ]]; then
         project_title=Template
     fi
-    printf '# DEVOPS.md — %s\n\nVersion : 0.6\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
+    printf '# DEVOPS.md — %s\n\nVersion : 0.7\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
         "${project_title}" "${started_at}" "${environment_type}" || return 1
     printf '%s\n' \
         "Les sondes système concernent le contexte d'exécution DIU." \
@@ -1329,7 +1349,8 @@ projects_template_devops_render() {
         'Un inventaire multi-environnements ne valide pas un environnement Python unique.' \
         'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.' \
         '' || return 1
-    printf '# Système d\047exploitation\n\n  * %s\n\n\n' "${operating_system}" || return 1
+    hostname="$(projects_template_devops_hostname)" || return 1
+    printf '# Système d\047exploitation\n\n  * %s\n  * %s\n\n\n' "${operating_system}" "${hostname}" || return 1
     projects_template_devops_tpm /dev /sys/class/tpm || return 1
 
     if ! javascript_report="$(projects_template_devops_javascript "${devops_home}" "${template_path}" 2>/dev/null)" ||
