@@ -4,6 +4,14 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : section « Matériel » après l'OS, avec TPM et
+  chemin prioritaire `/dev/tpmrm0`, version, fabricant, identifiant fournisseur,
+  révision de spécification et banques/indices PCR alloués. La collecte locale
+  est bornée et en lecture seule ; TPM inaccessible, outil absent et
+  propriétés non vérifiables restent explicites sans bloquer la génération.
+  Aucune installation, modification de droits ni lecture des valeurs PCR.
+  Le format reste `0.6`, adopté lors de la prochaine génération normale.
+
 - Génération de `DEVOPS.md` : rubrique « Docker, pour tests nécessitant des
   droits root » avec `/var/run/docker.sock` puis `debian:stable-slim` après
   la version et le binaire. Ces références documentaires restent affichées

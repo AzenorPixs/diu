@@ -144,6 +144,147 @@ projects_template_devops_section() {
     fi
 }
 
+projects_template_devops_tpm_device() {
+    local device_root="$1" candidate=""
+    local LC_ALL=C
+    for candidate in "${device_root}"/tpmrm[0-9]* "${device_root}"/tpm[0-9]*; do
+        if [[ -c "${candidate}" && "${candidate##*/}" =~ ^tpm(rm)?[0-9]+$ ]]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+projects_template_devops_tpm_property() {
+    local output="$1" property="$2" field="$3" pattern="$4"
+    local line="" current="" value="" blocks=0 values=0
+    while IFS= read -r line; do
+        if [[ "${line}" =~ ^([A-Z0-9_]+):[[:space:]]*$ ]]; then
+            current="${BASH_REMATCH[1]}"
+            if [[ "${current}" == "${property}" ]]; then
+                blocks=$((blocks + 1))
+            fi
+        elif [[ "${current}" == "${property}" &&
+            "${line}" =~ ^[[:space:]]+(raw|value):[[:space:]]*(.*)$ &&
+            "${BASH_REMATCH[1]}" == "${field}" ]]; then
+            value="${BASH_REMATCH[2]}"
+            values=$((values + 1))
+        fi
+    done <<< "${output}"
+    if [[ "${value}" == \"*\" ]]; then
+        value="${value:1:${#value}-2}"
+    fi
+    if [[ "${blocks}" -ne 1 || "${values}" -ne 1 || ! "${value}" =~ ${pattern} ]]; then
+        return 1
+    fi
+    printf '%s\n' "${value}"
+}
+
+projects_template_devops_tpm_pcrs() {
+    local output="$1" line="" bank="" selection="" value="" result="" banks=',' seen=""
+    local header=0
+    local pattern='^[[:space:]]*-[[:space:]]+([a-z][a-z0-9_]{0,31}):[[:space:]]*\[([^]]*)\][[:space:]]*$'
+    local indices_pattern='^[[:space:]]*([0-9]{1,3}([[:space:]]*,[[:space:]]*[0-9]{1,3})*)?[[:space:]]*$'
+    local -a indices=()
+    while IFS= read -r line; do
+        if [[ "${line}" == 'selected-pcrs:' && "${header}" -eq 0 ]]; then
+            header=1
+        elif [[ "${line}" =~ ^[[:space:]]*$ ]]; then
+            continue
+        elif [[ "${header}" -eq 1 && "${line}" =~ ${pattern} ]]; then
+            bank="${BASH_REMATCH[1]}"
+            selection="${BASH_REMATCH[2]}"
+            if [[ "${banks}" == *",${bank},"* || ! "${selection}" =~ ${indices_pattern} ]]; then
+                return 1
+            fi
+            banks+="${bank},"
+            IFS=',' read -r -a indices <<< "${selection}"
+            selection='' seen=','
+            for value in "${indices[@]}"; do
+                value="${value//[[:space:]]/}"
+                [[ -n "${value}" ]] || continue
+                value="$((10#${value}))"
+                if [[ "${value}" -gt 255 || "${seen}" == *",${value},"* ]]; then
+                    return 1
+                fi
+                seen+="${value},"
+                selection+="${selection:+, }${value}"
+            done
+            result+="${result:+ ; }${bank}: [${selection}]"
+        else
+            return 1
+        fi
+    done <<< "${output}"
+    [[ -n "${result}" ]] || return 1
+    printf '%s\n' "${result}"
+}
+
+projects_template_devops_tpm() {
+    local device_root="${1:-/dev}" sysfs_root="${2:-/sys/class/tpm}"
+    local device="" index="" major="" binary="" output="" status=0
+    local version='non vérifiable' manufacturer='non vérifiable'
+    local vendor='non vérifiable' revision='non vérifiable' pcrs='non vérifiable'
+    local diagnostic='indisponible (aucun périphérique TPM visible)'
+
+    if device="$(projects_template_devops_tpm_device "${device_root}")"; then
+        index="${device##*/tpm}"
+        index="${index#rm}"
+        if [[ -r "${sysfs_root}/tpm${index}/tpm_version_major" ]] &&
+            IFS= read -r major < "${sysfs_root}/tpm${index}/tpm_version_major"; then
+            case "${major}" in
+                1) version=1.2 ;;
+                2) version=2.0 ;;
+            esac
+        fi
+        if [[ "${version}" == 1.2 ]]; then
+            diagnostic='non vérifiable (sonde réservée au TPM 2)'
+        elif [[ ! -r "${device}" || ! -w "${device}" ]]; then
+            diagnostic='non vérifiable (accès au périphérique refusé)'
+        elif ! binary="$(projects_template_devops_host_binary tpm2_getcap)" || [[ ! -x "${binary}" ]]; then
+            diagnostic='non vérifiable (tpm2_getcap absent)'
+        else
+            diagnostic=''
+            if output="$(/usr/bin/timeout --kill-after=1s 5s "${binary}" -T "device:${device}" properties-fixed 2>/dev/null)"; then
+                if [[ "${#output}" -le 65536 ]]; then
+                    if [[ "${version}" == 'non vérifiable' ]]; then
+                        version="$(projects_template_devops_tpm_property "${output}" TPM2_PT_FAMILY_INDICATOR value '^2[.]0$')" || version='non vérifiable'
+                    fi
+                    manufacturer="$(projects_template_devops_tpm_property "${output}" TPM2_PT_MANUFACTURER value '^[A-Za-z0-9][A-Za-z0-9 ._-]{0,31}$')" || manufacturer='non vérifiable'
+                    vendor="$(projects_template_devops_tpm_property "${output}" TPM2_PT_MANUFACTURER raw '^0[xX][0-9A-Fa-f]{1,8}$')" || vendor='non vérifiable'
+                    revision="$(projects_template_devops_tpm_property "${output}" TPM2_PT_REVISION value '^[0-9]{1,3}[.][0-9]{2}$')" || revision='non vérifiable'
+                fi
+            else
+                status=$?
+                manufacturer='non vérifiable (sonde échouée)'
+                if [[ "${status}" -eq 124 || "${status}" -eq 137 ]]; then
+                    manufacturer='non vérifiable (sonde expirée)'
+                fi
+                vendor="${manufacturer}" revision="${manufacturer}"
+            fi
+            if output="$(/usr/bin/timeout --kill-after=1s 5s "${binary}" -T "device:${device}" pcrs 2>/dev/null)"; then
+                if [[ "${#output}" -le 65536 ]]; then
+                    pcrs="$(projects_template_devops_tpm_pcrs "${output}")" || pcrs='non vérifiable'
+                fi
+            else
+                status=$?
+                pcrs='non vérifiable (sonde échouée)'
+                if [[ "${status}" -eq 124 || "${status}" -eq 137 ]]; then
+                    pcrs='non vérifiable (sonde expirée)'
+                fi
+            fi
+        fi
+    else
+        device="${diagnostic}"
+        version="${diagnostic}"
+    fi
+    if [[ -n "${diagnostic}" ]]; then
+        manufacturer="${diagnostic}" vendor="${diagnostic}" revision="${diagnostic}" pcrs="${diagnostic}"
+    fi
+    printf '# Matériel\n\n## TPM\n\n  * Chemin : %s\n  * Version : %s\n  * Fabricant : %s\n  * Identifiant fournisseur : %s\n  * Révision de spécification : %s\n  * Registres PCR : %s\n\n\n' \
+        "${device}" "${version}" "${manufacturer}" "${vendor}" "${revision}" "${pcrs}"
+}
+
 projects_template_devops_postgresql() {
     local project_env="$1" psql_binary="$2"
     if [[ ! -x /usr/bin/python3 ]]; then
@@ -1144,6 +1285,7 @@ projects_template_devops_render() {
         'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.' \
         '' || return 1
     printf '# Système d\047exploitation\n\n  * %s\n\n\n' "${operating_system}" || return 1
+    projects_template_devops_tpm /dev /sys/class/tpm || return 1
 
     if ! javascript_report="$(projects_template_devops_javascript "${devops_home}" "${template_path}" 2>/dev/null)" ||
         [[ "${javascript_report}" != *$'\034'* ]]; then
