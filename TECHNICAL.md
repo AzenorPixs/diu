@@ -300,10 +300,21 @@ droits. Les sondes restent exécutées sous le compte et avec les interpréteurs
 déjà prévus, avec leur borne de 15 secondes. Cette préparation s'applique aux
 parcours individuel, groupé et final de création.
 
-`projects_template_devops_render` produit la version documentaire `0.6`.
+`projects_template_devops_render` produit la version documentaire `0.7`.
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
 la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
+
+La rubrique « Système d'exploitation » contient le nom de l'OS puis, en
+deuxième puce, le résultat de `hostname -f` dans le contexte d'exécution DIU.
+Cette commande système est appelée une seule fois par rendu, avec une borne
+de 15 secondes. Le helper accepte une ligne de 1 à 253 caractères ASCII
+alphanumériques, points ou tirets, commençant par un caractère alphanumérique ;
+un nom court retourné par la commande reste inchangé, sans suffixe inventé.
+Une commande absente, échouée ou expirée, ou une sortie invalide, produit un
+diagnostic explicite en deuxième puce et n'empêche pas les autres rubriques.
+Ni la sortie rejetée ni stderr ne sont publiés. Aucun nom de machine n'est
+codé en dur et aucune configuration du nom d'hôte ou du réseau n'est modifiée.
 
 La capture utilise une seule fois le binaire `date` hôte, avant les sondes,
 avec `-u` et une borne de 15 secondes. Une commande absente, échouée, expirée
@@ -329,7 +340,7 @@ Les parcours individuel, groupé et final de création produisent cet en-tête
 une seule fois. Le titre, l'ordre relatif des rubriques existantes, les sondes,
 les droits et le propriétaire sont conservés. À observations identiques, le contenu technique
 reste identique hors horodatage. Les anciens documents prennent le format
-`0.6` lors de leur prochaine génération normale ; aucune migration ni retouche
+`0.7` lors de leur prochaine génération normale ; aucune migration ni retouche
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
 
@@ -355,7 +366,7 @@ leur absence n'empêche pas la génération.
 Après « Système d'exploitation », chaque rendu ajoute « Matériel », puis
 « TPM ». Ses six puces sont Chemin, Version, Fabricant, Identifiant
 fournisseur, Révision de spécification et Registres PCR, dans cet ordre.
-La version documentaire reste `0.6`. Le relevé concerne uniquement le
+La version documentaire reste `0.7`. Le relevé concerne uniquement le
 matériel visible dans le contexte d'exécution DIU.
 
 Le premier périphérique caractère `/dev/tpmrmN` est préféré aux `/dev/tpmN`,
