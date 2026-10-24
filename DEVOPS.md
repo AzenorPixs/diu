@@ -1,9 +1,9 @@
 # DEVOPS.md — diu
 
-Version : 0.6
+Version : 0.7
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-23T14:53:41Z
+Début du relevé (UTC) : 2026-10-24T12:40:58Z
 Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -20,6 +20,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 # Système d'exploitation
 
   * Debian GNU/Linux 13 (trixie)
+  * hvp1.pixs.fr
 
 
 # Matériel
@@ -80,7 +81,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenSpec
 
-  * 1.14.3
+  * 1.15.0
   * /home/devops/.local/npm/bin/openspec
 
 

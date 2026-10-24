@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Initialisation de `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` à `0`
+  dans le scope `environnements` si elles sont absentes, avec persistance puis
+  export. Les valeurs existantes, même vides, sont conservées sans doublon
+  lors des réexécutions normales. Les erreurs de persistance sont explicites.
+  Aucun test Docker/LXC n'est lancé ; la configuration réelle sera complétée
+  à la prochaine exécution normale du DIU mis à jour.
+
 - Génération de `DEVOPS.md` au format documentaire `0.7` : le résultat
   dynamique de `hostname -f` apparaît en deuxième puce sous « Système
   d'exploitation », après le nom de l'OS. La sonde est limitée à 15 secondes ;

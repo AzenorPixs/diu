@@ -647,6 +647,26 @@ invalide.
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
 
+### Indicateurs de tests DevOps
+
+`modules/diu/variables/environnements/env_devops_tests_docker.sh` et
+`env_devops_tests_lxc.sh` déclarent respectivement `ENV_DEVOPS_TESTS_DOCKER`
+et `ENV_DEVOPS_TESTS_LXC` : `STATIC`, `ENABLE`, scope `environnements`,
+valeur initiale `0`. Après chargement de la configuration, chaque variable
+absente est persistée dans `/root/diu/config/environnements.env`, puis exportée.
+Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
+produit un diagnostic stderr et un statut non nul, sans définir la variable
+absente concernée.
+
+Les valeurs déjà définies, même vides, sont conservées et exportées sans
+réécriture. Le chargement normal suivi de la génération ne crée aucun doublon ;
+les autres lignes et scopes sont conservés. Aucun consommateur, lancement de
+test Docker/LXC ni changement d'infrastructure n'est ajouté. La configuration
+réelle adopte ces valeurs à la prochaine exécution normale du DIU mis à jour.
+Le contrat est défini dans
+`openspec/specs/devops-tests-environment-flags/spec.md` et vérifié en isolation
+par `tests/test_env_devops_tests.py`.
+
 ### Fuseau horaire système
 
 `modules/diu/variables/system/system_time_zone.sh` déclare `SYSTEM_TIME_ZONE`,
