@@ -347,7 +347,7 @@ manuelle n'est nécessaire. La référence est
 La rubrique « Conteneur Docker, pour tests nécessitant des droits root » est
 générée uniquement si `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`. Elle contient,
 dans cet ordre, la version détectée, le chemin du binaire,
-`/var/run/docker.sock` et `debian:stable-slim`. Les deux dernières puces sont
+`/var/run/docker.sock` et `debian:stable-slim`. Ces deux références sont
 des références documentaires fixes, conservées même lorsque Docker est
 indisponible ; les diagnostics de version et de binaire restent explicites.
 Un indicateur absent, vide ou différent de `1` omet la rubrique et sa sonde Docker.
@@ -359,11 +359,20 @@ digest. Docker-Compose et les autres rubriques et sondes restent indépendants.
 La rubrique « Conteneur LXC, pour tests nécessitant des droits root » est générée
 uniquement si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`, indépendamment de Docker.
 Elle suit Docker lorsqu'il est présent, sinon Matériel, et précède Docker-Compose.
-Elle contient trois puces fixes : « Variables d'accès disponible dans project.env »,
+Ses trois premières puces sont fixes : « Variables d'accès disponible dans project.env »,
 « Debian 13 », « Accès TPM OK ». Ces mentions sont déclaratives : le générateur
 ne lit pas d'identifiants LXC, ne se connecte pas au conteneur et ne qualifie pas
 son TPM. Une valeur absente, vide ou différente de `1` omet cette rubrique.
 Les trois parcours de génération partagent ce rendu au format `0.7`.
+
+Chaque rubrique de conteneur activée se termine par la même puce d'autorisation :
+« Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
+Docker contient ainsi cinq puces et LXC quatre. La fonction commune
+`projects_template_devops_test_authorization` émet cette dernière puce ; un échec
+d'écriture est propagé et conserve le document existant. Aucune autorisation
+orpheline n'est émise pour une rubrique omise. Cette génération reste documentaire :
+elle ne modifie pas les contrôles de permissions imposés par les outils ou
+plateformes et ne lance aucune opération réelle dans les conteneurs.
 
 La rubrique « Prompts », après le gestionnaire de paquets Python et avant les
 tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
@@ -665,6 +674,11 @@ uniquement sa ligne persistante exacte.
 et `ENV_DEVOPS_TESTS_LXC` : `STATIC`, `ENABLE`, scope `environnements`,
 valeur initiale `0`. Après chargement de la configuration, chaque variable
 absente est persistée dans `/root/diu/config/environnements.env`, puis exportée.
+Les nouvelles lignes de ces deux indicateurs commencent par huit espaces avant
+`export`, comme les lignes du fichier de configuration présentées par le
+développeur. Une désactivation reconnaît également les déclarations anciennes
+sans retrait ou précédées de tabulations ; les lignes existantes ne sont pas
+reformatées lors de la génération.
 Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
 produit un diagnostic stderr et un statut non nul, sans définir la variable
 absente concernée.

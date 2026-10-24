@@ -3,7 +3,7 @@
 Version : 0.7
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-24T13:38:49Z
+Début du relevé (UTC) : 2026-10-24T14:03:49Z
 Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -35,12 +35,19 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
   * Registres PCR : sha1: [] ; sha256: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] ; sha384: [] ; sm3_256: []
 
 
-# Docker, pour tests nécessitant des droits root
+# Conteneur Docker, pour tests nécessitant des droits root
 
   * 29.9.2
   * /usr/bin/docker
   * /var/run/docker.sock
   * debian:stable-slim
+
+
+# Conteneur LXC, pour tests nécessitant des droits root
+
+  * Variables d'accès disponible dans project.env
+  * Debian 13
+  * Accès TPM OK
 
 
 # Docker-Compose

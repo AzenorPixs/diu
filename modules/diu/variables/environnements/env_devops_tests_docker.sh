@@ -16,7 +16,7 @@ if [[ "$state" == ENABLE ]]; then
             printf '%s\n' 'ENV_DEVOPS_TESTS_DOCKER : création du répertoire de configuration impossible.' >&2
             return 1
         fi
-        if ! printf 'export ENV_DEVOPS_TESTS_DOCKER=%s\n' "$default_value" >> "$variable_config_file"; then
+        if ! printf '        export ENV_DEVOPS_TESTS_DOCKER=%s\n' "$default_value" >> "$variable_config_file"; then
             printf '%s\n' 'ENV_DEVOPS_TESTS_DOCKER : persistance impossible.' >&2
             return 1
         fi
@@ -27,7 +27,7 @@ if [[ "$state" == ENABLE ]]; then
 else
     unset ENV_DEVOPS_TESTS_DOCKER
     if [[ -f "$variable_config_file" ]]; then
-        if ! sed -i '/^export ENV_DEVOPS_TESTS_DOCKER=/d' "$variable_config_file"; then
+        if ! sed -i '/^[[:blank:]]*export ENV_DEVOPS_TESTS_DOCKER=/d' "$variable_config_file"; then
             printf '%s\n' 'ENV_DEVOPS_TESTS_DOCKER : suppression de la déclaration impossible.' >&2
             return 1
         fi

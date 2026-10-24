@@ -4,6 +4,21 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : dernière puce commune aux rubriques Docker et LXC
+  activées, autorisant explicitement les agents de codage et les orchestrateurs
+  à préparer, exécuter, répéter et nettoyer les tests du projet dans le conteneur,
+  y compris avec droits root, sans approbation supplémentaire. L'autorisation
+  couvre le conteneur et les ressources dédiées aux tests. Les conditions
+  d'activation, l'ordre, les sondes et le format `0.7` restent inchangés ; les
+  contrôles techniques des outils ou plateformes ne sont pas modifiés.
+  Les documents existants adoptent cette puce à leur prochaine génération normale.
+
+- Alignement des nouvelles lignes `ENV_DEVOPS_TESTS_DOCKER` et
+  `ENV_DEVOPS_TESTS_LXC` avec huit espaces avant `export` dans
+  `environnements.env`. Leur suppression déclarative accepte aussi les lignes
+  sans retrait ou précédées de tabulations. Les valeurs et lignes déjà
+  présentes sont conservées sans reformatage global.
+
 - Génération de `DEVOPS.md` : les rubriques « Conteneur Docker, pour tests
   nécessitant des droits root » et « Conteneur LXC, pour tests nécessitant des
   droits root » dépendent indépendamment de `ENV_DEVOPS_TESTS_DOCKER=1` et

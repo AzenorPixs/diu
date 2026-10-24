@@ -8,6 +8,8 @@ Les indicateurs `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` sont
 initialisés indépendamment à `0` dans `/root/diu/config/environnements.env`
 lorsqu'ils sont absents, puis exportés. Les valeurs existantes, même vides,
 sont conservées ; les réexécutions normales ne créent aucun doublon.
+Les nouvelles lignes de ces deux indicateurs portent un retrait de huit
+espaces avant `export` ; les lignes déjà présentes ne sont pas reformatées.
 Une erreur de persistance est bloquante. Cet ajout ne lance aucun test Docker
 ou LXC ; les valeurs seront générées à la prochaine exécution normale du DIU
 mis à jour.
@@ -162,12 +164,20 @@ Sinon, cette rubrique et sa sonde Docker sont omises ; Docker-Compose reste pré
 
 La rubrique « Conteneur LXC, pour tests nécessitant des droits root » apparaît
 indépendamment si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`. Elle suit Docker
-lorsqu'il est présent, sinon Matériel, et précède Docker-Compose, avec trois puces :
+lorsqu'il est présent, sinon Matériel, et précède Docker-Compose. Ses trois premières
+puces sont :
 « Variables d'accès disponible dans project.env », « Debian 13 », « Accès TPM OK ».
 Ces mentions sont déclaratives, sans connexion LXC, lecture d'identifiants ni
 qualification TPM distante. Pour chaque indicateur, une valeur absente, vide ou
 différente de `1` omet sa rubrique. Le format reste `0.7` et les documents existants
 adoptent ce comportement à leur prochaine génération normale.
+
+Les deux rubriques activées ajoutent en dernière puce l'autorisation commune :
+« Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
+Cette consigne explicite l'autorisation des tests pour les deux types d'agents.
+Elle ne désactive pas les contrôles techniques de permissions imposés par les
+outils ou leur plateforme. Docker comporte cinq puces et LXC quatre ; une
+rubrique désactivée n'émet aucune puce d'autorisation.
 
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps

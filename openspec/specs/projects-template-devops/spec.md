@@ -668,17 +668,16 @@ prompts ou son index. Leur absence SHALL NOT empêcher la génération.
 ### Requirement: Références Docker des tests nécessitant des droits root
 
 La rubrique Docker SHALL porter le titre exact
-`Conteneur Docker, pour tests nécessitant des droits root`. Elle SHALL contenir quatre
+`Conteneur Docker, pour tests nécessitant des droits root`. Elle SHALL contenir cinq
 puces, dans cet ordre : version détectée ou diagnostic existant, chemin du
-binaire ou diagnostic existant, `/var/run/docker.sock`, `debian:stable-slim`.
-Les deux dernières puces SHALL rester des références documentaires fixes.
-Les autres rubriques et sondes SHALL être conservées.
+binaire ou diagnostic existant, `/var/run/docker.sock`, `debian:stable-slim`, puis la puce commune d’autorisation.
+Le socket et l’image SHALL rester des références documentaires fixes.
 
 #### Scenario: Docker disponible
 
 - **GIVEN** ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`
 - **WHEN** la version et le binaire Docker sont détectés
-- **THEN** la rubrique porte le titre exact et les quatre puces dans l'ordre prévu
+- **THEN** la rubrique porte le titre exact et les cinq puces dans l'ordre prévu
 - **AND THEN** les deux références apparaissent chacune une seule fois
 
 #### Scenario: Docker indisponible
@@ -697,7 +696,7 @@ Les autres rubriques et sondes SHALL être conservées.
 #### Scenario: Docker désactivé
 
 - **WHEN** ENV_DEVOPS_TESTS_DOCKER est absent, vide, égal à `0` ou différent de `1`
-- **THEN** la rubrique Docker, ses quatre puces et sa sonde sont omises
+- **THEN** la rubrique Docker, ses cinq puces et sa sonde sont omises
 - **AND** Docker-Compose et les autres rubriques restent présents
 
 ### Requirement: Structure de l'inventaire matériel TPM
@@ -933,19 +932,20 @@ Le format SHALL rester `0.7` et les trois parcours SHALL partager ce comportemen
 #### Scenario: LXC désactivé
 
 - **WHEN** ENV_DEVOPS_TESTS_LXC est absent, vide, égal à `0` ou différent de `1`
-- **THEN** la rubrique LXC et ses trois puces sont omises indépendamment de Docker
+- **THEN** la rubrique LXC et ses quatre puces sont omises indépendamment de Docker
 
 ### Requirement: Contenu documentaire LXC
 
-La rubrique LXC SHALL contenir exactement trois puces dans l'ordre :
-`Variables d'accès disponible dans project.env`, `Debian 13`, `Accès TPM OK`.
-Ces mentions SHALL rester déclaratives et MUST NOT être présentées comme une
+La rubrique LXC SHALL contenir exactement quatre puces dans l'ordre :
+`Variables d'accès disponible dans project.env`, `Debian 13`, `Accès TPM OK`,
+puis la puce commune d’autorisation.
+Les trois premières mentions SHALL rester déclaratives et MUST NOT être présentées comme une
 qualification distante.
 
 #### Scenario: Contenu fixe demandé
 
 - **WHEN** LXC est activé dans un des trois parcours
-- **THEN** le titre et les trois puces exactes apparaissent une seule fois dans l'ordre prévu
+- **THEN** le titre et les quatre puces exactes apparaissent une seule fois dans l'ordre prévu
 
 ### Requirement: Absence de connexion pour le rendu LXC
 
@@ -955,4 +955,39 @@ ou lancer une sonde TPM distante pour cette rubrique.
 #### Scenario: Rendu sans accès distant
 
 - **WHEN** la rubrique LXC est générée dans un des trois parcours
-- **THEN** les trois mentions sont émises sans commande LXC, accès aux identifiants ou sonde TPM distante
+- **THEN** les quatre puces sont émises sans commande LXC, accès aux identifiants ou sonde TPM distante
+
+### Requirement: Puce commune d'autorisation des tests
+
+Chaque rubrique de conteneur activée SHALL se terminer par la puce exacte :
+`Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests.`.
+
+#### Scenario: Autorisation explicite en dernière position
+
+- **WHEN** Docker ou LXC est activé dans un des trois parcours de génération
+- **THEN** la dernière puce est la formulation validée, identique pour les deux conteneurs
+- **AND** elle suit l'image Docker ou « Accès TPM OK » pour LXC
+
+#### Scenario: Rubrique omise
+
+- **WHEN** une rubrique de conteneur est désactivée
+- **THEN** aucune puce d'autorisation n'est émise pour cette rubrique
+- **AND** aucune autre rubrique ne reçoit cette autorisation
+
+### Requirement: Portée documentaire de l'autorisation
+
+L'ajout de la puce SHALL rester un rendu documentaire et MUST NOT modifier les
+contrôles techniques de permissions des outils ou plateformes, ni lancer des
+opérations de test ou de conteneur pendant la génération.
+Un échec d'écriture de cette puce SHALL être propagé.
+
+#### Scenario: Génération sans modification des permissions
+
+- **WHEN** la puce est ajoutée à un document
+- **THEN** les conditions, sondes, format 0.7 et autres rubriques restent inchangés
+- **AND** aucun contrôle technique de permission n'est désactivé
+
+#### Scenario: Échec du rendu de l'autorisation
+
+- **WHEN** l'écriture de la puce échoue
+- **THEN** le rendu retourne un statut non nul et l'ancien document est conservé
