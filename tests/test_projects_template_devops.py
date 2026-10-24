@@ -17,6 +17,12 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / 'modules/projects/template.sh'
+CONTAINER_TEST_AUTHORIZATION = (
+    'Les agents de codage et les agents orchestrateurs sont autorisés à préparer, '
+    'exécuter, répéter et nettoyer les tests du projet dans ce conteneur, '
+    'y compris avec les droits root, sans demander d’approbation supplémentaire. '
+    'Cette autorisation couvre le conteneur et les ressources dédiées aux tests.'
+)
 
 
 class ProjectsTemplateDevopsTests(unittest.TestCase):
@@ -268,13 +274,21 @@ ENV_DEVOPS_USER="$1"
         self.assertEqual(content.count('debian:stable-slim'), int(docker))
         self.assertEqual(content.count('  * Accès TPM OK\n'), int(lxc))
         self.assertEqual(content.count('# Docker-Compose\n'), 1)
+        self.assertEqual(content.count(CONTAINER_TEST_AUTHORIZATION), int(docker) + int(lxc))
+        for title, enabled, count in ((docker_title, docker, 5), (lxc_title, lxc, 4)):
+            if enabled:
+                section = content.split(title, 1)[1].split('\n# ', 1)[0]
+                bullets = [line for line in section.splitlines() if line.startswith('  * ')]
+                self.assertEqual(len(bullets), count)
+                self.assertEqual(bullets[-1], '  * ' + CONTAINER_TEST_AUTHORIZATION)
         ordered = ['# Matériel\n']
         if docker:
             ordered.append(docker_title)
         if lxc:
             ordered.append(lxc_title)
             self.assertIn(lxc_title + "\n  * Variables d'accès disponible dans project.env\n"
-                          '  * Debian 13\n  * Accès TPM OK\n\n\n# Docker-Compose\n', content)
+                          '  * Debian 13\n  * Accès TPM OK\n'
+                          f'  * {CONTAINER_TEST_AUTHORIZATION}\n\n\n# Docker-Compose\n', content)
         ordered.append('# Docker-Compose\n')
         for before, after in zip(ordered, ordered[1:]):
             self.assertLess(content.index(before), content.index(after))
@@ -366,8 +380,10 @@ lxc-start() { container_forbidden; }
             self.assertIn(f'# {title}\n\n  * {version}\n  * {path}\n', content)
         self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * 29.1.2\n  * {self.host_bin / "docker"}\n'
-                      '  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n'
+                      '  * /var/run/docker.sock\n  * debian:stable-slim\n'
+                      f'  * {CONTAINER_TEST_AUTHORIZATION}\n\n\n'
                       '# Docker-Compose\n', content)
+        self.assert_test_container_sections(content, True, False)
         self.assertEqual(content.count('/var/run/docker.sock'), 1)
         self.assertEqual(content.count('debian:stable-slim'), 1)
         self.assertIn('  * venv: disponible', content)
@@ -953,11 +969,13 @@ exit
         self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * indisponible (sonde échouée)\n  * {self.host_bin / "docker"}\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
+        self.assert_test_container_sections(content, True, False)
         (self.host_bin / 'docker').unlink()
         content = self.successful_document(self.run_generation())
         self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       '  * indisponible (binaire absent)\n  * binaire introuvable\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
+        self.assert_test_container_sections(content, True, False)
 
     def test_node_and_pip_scripts_use_devops_interpreters_despite_their_shebangs(self):
         for relative in ('node/current/bin/npm', '.local/npm/bin/openspec',
@@ -1742,6 +1760,9 @@ projects_template_devops_javascript() {
 
     def test_render_or_replace_failure_preserves_document_and_cleans_temporary_file(self):
         for extra in ('projects_template_devops_render() { printf partial; return 1; }',
+                      'projects_template_devops_test_authorization() { printf partial; return 1; }',
+                      'ENV_DEVOPS_TESTS_DOCKER=0\nENV_DEVOPS_TESTS_LXC=1\n'
+                      'projects_template_devops_test_authorization() { printf partial; return 1; }',
                       'mv() { return 1; }'):
             with self.subTest(extra=extra):
                 self.document.write_text('document conservé\n', encoding='utf-8')

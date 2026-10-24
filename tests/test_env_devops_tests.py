@@ -55,7 +55,7 @@ source "$BASH_SCRIPT_PATH/config.sh"
         result = self.run_case('''config_load
 [[ "$ENV_DEVOPS_TESTS_DOCKER" == 0 && "$ENV_DEVOPS_TESTS_LXC" == 0 ]]
 bash -c '[[ "$ENV_DEVOPS_TESTS_DOCKER" == 0 && "$ENV_DEVOPS_TESTS_LXC" == 0 ]]'
-[[ "$(cat "$TEST_CONFIG")" == $'export ENV_DEVOPS_TESTS_DOCKER=0\\nexport ENV_DEVOPS_TESTS_LXC=0' ]]
+[[ "$(cat "$TEST_CONFIG")" == $'        export ENV_DEVOPS_TESTS_DOCKER=0\\n        export ENV_DEVOPS_TESTS_LXC=0' ]]
 [[ "$(find "$TEST_CONFIG_DIR" -type f | wc -l)" == 1 ]]
 ''')
         self.assert_success(result)
@@ -97,7 +97,7 @@ printf '%s\\n' '# configuration contrôlée' 'export NEIGHBOR=keep' \\
     'export ''' + variable + '''=1' > "$TEST_CONFIG"
 config_load
 [[ "$''' + variable + '''" == 1 && "$NEIGHBOR" == keep ]]
-[[ "$(grep -c '^export ENV_DEVOPS_TESTS_.*=0$' "$TEST_CONFIG")" == 1 ]]
+[[ "$(grep -c '^[[:blank:]]*export ENV_DEVOPS_TESTS_.*=0$' "$TEST_CONFIG")" == 1 ]]
 [[ "$(grep -c '^export ENV_DEVOPS_TESTS_.*=1$' "$TEST_CONFIG")" == 1 ]]
 grep -qx '# configuration contrôlée' "$TEST_CONFIG"
 grep -qx 'export NEIGHBOR=keep' "$TEST_CONFIG"
@@ -155,6 +155,28 @@ source "$TEST_DECLARATIONS/''' + variable.lower() + '''.sh"
 [[ "$(wc -l < "$TEST_CONFIG")" == 2 ]]
 ''', disabled=variable)
                 self.assert_success(result)
+
+    def test_disabled_cleanup_accepts_indented_lines(self):
+        for variable in VARIABLES:
+            other = next(name for name in VARIABLES if name != variable)
+            for prefix in ('        ', '\t'):
+                with self.subTest(variable=variable, prefix=prefix):
+                    result = self.run_case('''mkdir -p "$TEST_CONFIG_DIR"
+printf '%s\\n' 'PREEXISTING=keep' \\
+    '        export __OTHER__=1' \\
+    '__PREFIX__export __VARIABLE__=1' \\
+    '__PREFIX__export __VARIABLE___EXTRA=keep' > "$TEST_CONFIG"
+source "$TEST_CONFIG"
+source "$TEST_DECLARATIONS/__DECLARATION__.sh"
+[[ -z "${__VARIABLE__+x}" && "$__OTHER__" == 1 ]]
+grep -qx '        export __OTHER__=1' "$TEST_CONFIG"
+grep -qx 'PREEXISTING=keep' "$TEST_CONFIG"
+grep -qx '__PREFIX__export __VARIABLE___EXTRA=keep' "$TEST_CONFIG"
+[[ "$(wc -l < "$TEST_CONFIG")" == 3 ]]
+'''.replace('__VARIABLE__', variable).replace('__OTHER__', other)
+                       .replace('__PREFIX__', prefix)
+                       .replace('__DECLARATION__', variable.lower()), disabled=variable)
+                    self.assert_success(result)
 
     def test_disabled_cleanup_failure_is_reported(self):
         for variable in VARIABLES:

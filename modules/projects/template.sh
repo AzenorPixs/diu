@@ -177,11 +177,16 @@ projects_template_devops_version() {
     fi
 }
 
+projects_template_devops_test_authorization() {
+    printf "  * Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests.\n\n\n"
+}
+
 projects_template_devops_section() {
     local title="$1" version="$2" binary="$3"
     if [[ "${title}" == Docker ]]; then
-        printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n' \
-            "${title}" "${version}" "${binary:-binaire introuvable}"
+        printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n' \
+            "${title}" "${version}" "${binary:-binaire introuvable}" || return 1
+        projects_template_devops_test_authorization || return 1
     else
         printf '# %s\n\n  * %s\n  * %s\n\n\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}"
@@ -1365,7 +1370,8 @@ projects_template_devops_render() {
             Docker) [[ "${ENV_DEVOPS_TESTS_DOCKER:-0}" == 1 ]] || continue ;;
             LXC)
                 if [[ "${ENV_DEVOPS_TESTS_LXC:-0}" == 1 ]]; then
-                    printf '# Conteneur LXC, pour tests nécessitant des droits root\n\n  * Variables d\047accès disponible dans project.env\n  * Debian 13\n  * Accès TPM OK\n\n\n' || return 1
+                    printf '# Conteneur LXC, pour tests nécessitant des droits root\n\n  * Variables d\047accès disponible dans project.env\n  * Debian 13\n  * Accès TPM OK\n' || return 1
+                    projects_template_devops_test_authorization || return 1
                 fi
                 continue
                 ;;
