@@ -4,6 +4,14 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
+Les indicateurs `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` sont
+initialisés indépendamment à `0` dans `/root/diu/config/environnements.env`
+lorsqu'ils sont absents, puis exportés. Les valeurs existantes, même vides,
+sont conservées ; les réexécutions normales ne créent aucun doublon.
+Une erreur de persistance est bloquante. Cet ajout ne lance aucun test Docker
+ou LXC ; les valeurs seront générées à la prochaine exécution normale du DIU
+mis à jour.
+
 La création avec `rid projects create <ID PROJECT>` et la mise à jour des
 variables avec `rid projects update <ID PROJECT>` demandent
 `PROJECT_ORCHESTRATED_CODING` : `No` pour un agent de codage autonome, `Yes`
