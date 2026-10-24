@@ -344,15 +344,26 @@ reste identique hors horodatage. Les anciens documents prennent le format
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
 
-La rubrique « Docker, pour tests nécessitant des droits root » contient,
+La rubrique « Conteneur Docker, pour tests nécessitant des droits root » est
+générée uniquement si `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`. Elle contient,
 dans cet ordre, la version détectée, le chemin du binaire,
 `/var/run/docker.sock` et `debian:stable-slim`. Les deux dernières puces sont
 des références documentaires fixes, conservées même lorsque Docker est
 indisponible ; les diagnostics de version et de binaire restent explicites.
+Un indicateur absent, vide ou différent de `1` omet la rubrique et sa sonde Docker.
 Le générateur ne vérifie ni la présence ni l'accès au socket ou à l'image,
 ne télécharge ni ne lance de conteneur et ne modifie aucune permission.
 Le tag `debian:stable-slim` suit Debian stable sans figer une version ou un
-digest. Les autres rubriques et sondes sont conservées.
+digest. Docker-Compose et les autres rubriques et sondes restent indépendants.
+
+La rubrique « Conteneur LXC, pour tests nécessitant des droits root » est générée
+uniquement si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`, indépendamment de Docker.
+Elle suit Docker lorsqu'il est présent, sinon Matériel, et précède Docker-Compose.
+Elle contient trois puces fixes : « Variables d'accès disponible dans project.env »,
+« Debian 13 », « Accès TPM OK ». Ces mentions sont déclaratives : le générateur
+ne lit pas d'identifiants LXC, ne se connecte pas au conteneur et ne qualifie pas
+son TPM. Une valeur absente, vide ou différente de `1` omet cette rubrique.
+Les trois parcours de génération partagent ce rendu au format `0.7`.
 
 La rubrique « Prompts », après le gestionnaire de paquets Python et avant les
 tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
@@ -660,9 +671,11 @@ absente concernée.
 
 Les valeurs déjà définies, même vides, sont conservées et exportées sans
 réécriture. Le chargement normal suivi de la génération ne crée aucun doublon ;
-les autres lignes et scopes sont conservés. Aucun consommateur, lancement de
-test Docker/LXC ni changement d'infrastructure n'est ajouté. La configuration
-réelle adopte ces valeurs à la prochaine exécution normale du DIU mis à jour.
+les autres lignes et scopes sont conservés. Le générateur DevOps consomme ces
+indicateurs uniquement pour afficher les rubriques documentaires Docker et LXC
+décrites dans « Traçabilité du document DevOps ». Aucun lancement de test
+Docker/LXC ni changement d'infrastructure n'est ajouté. La configuration réelle
+adopte ces valeurs à la prochaine exécution normale du DIU mis à jour.
 Le contrat est défini dans
 `openspec/specs/devops-tests-environment-flags/spec.md` et vérifié en isolation
 par `tests/test_env_devops_tests.py`.
