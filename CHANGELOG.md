@@ -4,6 +4,16 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : les rubriques « Conteneur Docker, pour tests
+  nécessitant des droits root » et « Conteneur LXC, pour tests nécessitant des
+  droits root » dépendent indépendamment de `ENV_DEVOPS_TESTS_DOCKER=1` et
+  `ENV_DEVOPS_TESTS_LXC=1`. Une valeur absente, vide ou différente de `1` omet
+  la rubrique concernée ; Docker désactivé n'est pas sondé. LXC suit Docker
+  s'il est présent, sinon Matériel, avant Docker-Compose qui reste indépendant.
+  Les trois puces LXC sont déclaratives, sans connexion, lecture d'identifiants
+  ni qualification TPM distante. Les références Docker restent inchangées.
+  Le format reste `0.7`, appliqué à la prochaine génération normale.
+
 - Initialisation de `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` à `0`
   dans le scope `environnements` si elles sont absentes, avec persistance puis
   export. Les valeurs existantes, même vides, sont conservées sans doublon

@@ -49,7 +49,8 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
                                 TEST_HOSTNAME_LOG=str(self.hostname_log),
                                 TEST_HOSTNAME_OUTPUT='hvp1.pixs.fr',
                                 TEST_CLOCK_OUTPUT='2026-10-09T06:30:00Z',
-                                TEST_VENV_STATUS='0', TEST_PG_FAILURE='0')
+                                TEST_VENV_STATUS='0', TEST_PG_FAILURE='0',
+                                ENV_DEVOPS_TESTS_DOCKER='1', ENV_DEVOPS_TESTS_LXC='0')
         self.environment.update(TEST_TPM_DEVICES=str(self.tpm_devices),
                                 TEST_TPM_SYSFS=str(self.tpm_sysfs),
                                 TEST_TPM_LOG=str(self.tpm_log),
@@ -257,11 +258,82 @@ ENV_DEVOPS_USER="$1"
         self.assertIn("  * indisponible (nom d'hôte non vérifiable)\n", content)
         self.assertIn('# Matériel\n', content)
 
+    def assert_test_container_sections(self, content, docker, lxc):
+        docker_title = '# Conteneur Docker, pour tests nécessitant des droits root\n'
+        lxc_title = '# Conteneur LXC, pour tests nécessitant des droits root\n'
+        self.assertEqual(content.count(docker_title), int(docker))
+        self.assertEqual(content.count(lxc_title), int(lxc))
+        self.assertNotIn('# Docker, pour tests nécessitant des droits root\n', content)
+        self.assertEqual(content.count('/var/run/docker.sock'), int(docker))
+        self.assertEqual(content.count('debian:stable-slim'), int(docker))
+        self.assertEqual(content.count('  * Accès TPM OK\n'), int(lxc))
+        self.assertEqual(content.count('# Docker-Compose\n'), 1)
+        ordered = ['# Matériel\n']
+        if docker:
+            ordered.append(docker_title)
+        if lxc:
+            ordered.append(lxc_title)
+            self.assertIn(lxc_title + "\n  * Variables d'accès disponible dans project.env\n"
+                          '  * Debian 13\n  * Accès TPM OK\n\n\n# Docker-Compose\n', content)
+        ordered.append('# Docker-Compose\n')
+        for before, after in zip(ordered, ordered[1:]):
+            self.assertLess(content.index(before), content.index(after))
+        self.assertIn('Version : 0.7\n', content)
+
+    def test_container_flags_independent_and_document_refresh(self):
+        extra = """
+container_forbidden() { printf 'interdit' > "$TEST_DEVOPS_HOME/forbidden"; return 99; }
+eval "$(declare -f projects_template_devops_host_binary | sed '1s/projects_template_devops_host_binary/original_host_binary/')"
+projects_template_devops_host_binary() {
+    if [[ "$1" == docker && "${ENV_DEVOPS_TESTS_DOCKER:-0}" != 1 ]]; then
+        container_forbidden
+        return 99
+    fi
+    original_host_binary "$@"
+}
+lxc() { container_forbidden; }
+lxc-info() { container_forbidden; }
+lxc-attach() { container_forbidden; }
+lxc-start() { container_forbidden; }
+"""
+        for docker, lxc in (('0', '0'), ('1', '0'), ('0', '1'), ('1', '1'), ('0', '0')):
+            with self.subTest(docker=docker, lxc=lxc):
+                self.environment.update(ENV_DEVOPS_TESTS_DOCKER=docker, ENV_DEVOPS_TESTS_LXC=lxc)
+                if self.probe_order_log.exists():
+                    self.probe_order_log.unlink()
+                content = self.successful_document(self.run_generation(extra))
+                self.assert_test_container_sections(content, docker == '1', lxc == '1')
+                self.assertEqual(self.probe_order_log.read_text().splitlines(),
+                                 ['clock', 'docker'] if docker == '1' else ['clock'])
+                self.assertFalse((self.home / 'forbidden').exists())
+                repeated = self.successful_document(self.run_generation(extra))
+                self.assertEqual(content, repeated)
+
+    def test_container_flags_absent_empty_and_nonliteral_one_are_disabled(self):
+        marker = self.fixture / 'flag-executed'
+        for name, other in (('ENV_DEVOPS_TESTS_DOCKER', 'ENV_DEVOPS_TESTS_LXC'),
+                            ('ENV_DEVOPS_TESTS_LXC', 'ENV_DEVOPS_TESTS_DOCKER')):
+            self.environment[other] = '1'
+            for value in (None, '', '0', '01', 'true', '1 ', f'$(touch "{marker}")'):
+                with self.subTest(name=name, value=value):
+                    if value is None:
+                        self.environment.pop(name, None)
+                    else:
+                        self.environment[name] = value
+                    content = self.successful_document(self.run_generation())
+                    self.assert_test_container_sections(content,
+                                                        name != 'ENV_DEVOPS_TESTS_DOCKER',
+                                                        name != 'ENV_DEVOPS_TESTS_LXC')
+                    if value and value != '0':
+                        self.assertNotIn(f'\n  * {value}\n', content)
+                    self.assertFalse(marker.exists())
+            self.environment[name] = '0'
+
     def test_generation_structure_versions_and_executable_paths(self):
         content = self.successful_document(self.run_generation())
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
             'DEVOPS.md — Template', "Système d'exploitation", 'Matériel',
-            'Docker, pour tests nécessitant des droits root',
+            'Conteneur Docker, pour tests nécessitant des droits root',
             'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
             'Python', 'Python - Dépendances du projet - Source de vérité `pyproject.toml`',
@@ -278,7 +350,7 @@ ENV_DEVOPS_USER="$1"
         self.assertIn('Version : 0.7', content)
         self.assert_prompts_section(content)
         for title, version, path in (
-            ('Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
+            ('Conteneur Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
             ('Git', '2.47.9', self.host_bin / 'git'),
             ('Go', '1.25.3', self.home / 'go/current/bin/go'),
@@ -292,7 +364,7 @@ ENV_DEVOPS_USER="$1"
             ('Python - Gestionnaire de paquets', '25.3.7', self.home / 'python/current/bin/pip3'),
         ):
             self.assertIn(f'# {title}\n\n  * {version}\n  * {path}\n', content)
-        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+        self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * 29.1.2\n  * {self.host_bin / "docker"}\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n'
                       '# Docker-Compose\n', content)
@@ -378,7 +450,7 @@ esac
 
     def test_tpm_absence_reports_all_fields_without_probing(self):
         content = self.successful_document(self.run_generation())
-        section = content.split('## TPM\n', 1)[1].split('\n# Docker', 1)[0]
+        section = content.split('## TPM\n', 1)[1].split('\n# Conteneur Docker', 1)[0]
         self.assertEqual(section.count('aucun périphérique TPM visible'), 6)
         self.assertFalse(self.tpm_log.exists())
 
@@ -878,12 +950,12 @@ exit
         content = self.successful_document(self.run_generation())
         self.assertIn('# OpenCode\n\n  * indisponible (sonde échouée)', content)
         self.assertIn('venv: indisponible', content)
-        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+        self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * indisponible (sonde échouée)\n  * {self.host_bin / "docker"}\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
         (self.host_bin / 'docker').unlink()
         content = self.successful_document(self.run_generation())
-        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+        self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       '  * indisponible (binaire absent)\n  * binaire introuvable\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
 
@@ -1797,6 +1869,7 @@ projects_template_devops_javascript() {
         self.assertIn('# DEVOPS.md — Projet & essai', (path / 'DEVOPS.md').read_text())
 
     def test_create_project_runs_real_generation_after_copy_and_rights(self):
+        self.environment['ENV_DEVOPS_TESTS_LXC'] = '1'
         self.configure_tpm()
         projects_source = (ROOT / 'modules/projects/projects.sh').read_text()
         projects_source = projects_source.replace(
@@ -1862,6 +1935,7 @@ exit $?
                     self.assertEqual(result.returncode, 0, result.stderr)
                     content = (target / 'DEVOPS.md').read_text()
                     self.assertIn(f'# DEVOPS.md — {project}', content)
+                    self.assert_test_container_sections(content, True, True)
                     self.assertEqual(content.count('## Dépendances JavaScript du projet\n'), 1)
                     self.assertIn('creation-fixture : déclarée 1.0.0', content)
                     self.assertIn('Version : 0.7\n', content)
@@ -2046,6 +2120,7 @@ projects_template_devops() {
         self.assertIn(f'0 sélectionné(s), 0 réussi(s), {ignored} ignoré(s), 0 échoué(s)', result.stdout)
 
     def test_batch_generates_real_documents_and_preserves_them_on_repeat(self):
+        self.environment['ENV_DEVOPS_TESTS_LXC'] = '1'
         self.configure_tpm()
         root = self.fixture / 'projects'
         before = {}
@@ -2064,6 +2139,7 @@ projects_template_devops() {
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
                 self.assertIn(b'Version : 0.7\n', content)
+                self.assert_test_container_sections(content.decode('utf-8'), True, True)
                 self.assertIn(b'  * hvp1.pixs.fr\n', content)
                 self.assert_prompts_section(content.decode('utf-8'))
                 self.assertEqual(content.count('## Dépendances JavaScript du projet\n'.encode()), 1)

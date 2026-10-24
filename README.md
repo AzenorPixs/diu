@@ -152,11 +152,22 @@ restent explicites sans bloquer le document. Aucun outil ni droit n'est
 modifié et les valeurs des PCR ne sont pas lues. Les documents existants
 adoptent ce rendu à leur prochaine génération normale, au format `0.7`.
 
-La rubrique « Docker, pour tests nécessitant des droits root » indique la
-version, le binaire, puis `/var/run/docker.sock` et l'image
+La rubrique « Conteneur Docker, pour tests nécessitant des droits root » apparaît
+uniquement si `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`. Elle indique la
+version détectée, le binaire, puis `/var/run/docker.sock` et l'image
 `debian:stable-slim`. Ces deux références restent affichées si Docker est
 indisponible, sans vérification du socket ni téléchargement ou lancement
 de l'image. Le tag suit Debian stable ; aucune version Debian n'est figée.
+Sinon, cette rubrique et sa sonde Docker sont omises ; Docker-Compose reste présent.
+
+La rubrique « Conteneur LXC, pour tests nécessitant des droits root » apparaît
+indépendamment si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`. Elle suit Docker
+lorsqu'il est présent, sinon Matériel, et précède Docker-Compose, avec trois puces :
+« Variables d'accès disponible dans project.env », « Debian 13 », « Accès TPM OK ».
+Ces mentions sont déclaratives, sans connexion LXC, lecture d'identifiants ni
+qualification TPM distante. Pour chaque indicateur, une valeur absente, vide ou
+différente de `1` omet sa rubrique. Le format reste `0.7` et les documents existants
+adoptent ce comportement à leur prochaine génération normale.
 
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps

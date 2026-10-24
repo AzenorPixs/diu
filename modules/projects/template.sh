@@ -180,7 +180,7 @@ projects_template_devops_version() {
 projects_template_devops_section() {
     local title="$1" version="$2" binary="$3"
     if [[ "${title}" == Docker ]]; then
-        printf '# %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n' \
+        printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}"
     else
         printf '# %s\n\n  * %s\n  * %s\n\n\n' \
@@ -1360,7 +1360,16 @@ projects_template_devops_render() {
     javascript_dependencies="${javascript_report%%$'\034'*}"
     opencode_dependencies="${javascript_report#*$'\034'}"
 
-    for name in Docker Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
+    for name in Docker LXC Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
+        case "${name}" in
+            Docker) [[ "${ENV_DEVOPS_TESTS_DOCKER:-0}" == 1 ]] || continue ;;
+            LXC)
+                if [[ "${ENV_DEVOPS_TESTS_LXC:-0}" == 1 ]]; then
+                    printf '# Conteneur LXC, pour tests nécessitant des droits root\n\n  * Variables d\047accès disponible dans project.env\n  * Debian 13\n  * Accès TPM OK\n\n\n' || return 1
+                fi
+                continue
+                ;;
+        esac
         context=host
         version_arguments=(--version)
         case "${name}" in
