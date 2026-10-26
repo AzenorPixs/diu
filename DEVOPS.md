@@ -3,7 +3,7 @@
 Version : 0.7
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-24T14:03:49Z
+Début du relevé (UTC) : 2026-10-26T13:58:48Z
 Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -41,6 +41,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
   * /usr/bin/docker
   * /var/run/docker.sock
   * debian:stable-slim
+  * Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests.
 
 
 # Conteneur LXC, pour tests nécessitant des droits root
@@ -48,6 +49,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
   * Variables d'accès disponible dans project.env
   * Debian 13
   * Accès TPM OK
+  * Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests.
 
 
 # Docker-Compose
@@ -114,7 +116,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Python
 
-  * 3.14.9
+  * 3.14.10
   * /home/devops/python/current/bin/python3
   * venv: disponible
 

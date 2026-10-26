@@ -356,20 +356,23 @@ ne télécharge ni ne lance de conteneur et ne modifie aucune permission.
 Le tag `debian:stable-slim` suit Debian stable sans figer une version ou un
 digest. Docker-Compose et les autres rubriques et sondes restent indépendants.
 
-La rubrique « Conteneur LXC, pour tests nécessitant des droits root » est générée
+La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » est générée
 uniquement si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`, indépendamment de Docker.
 Elle suit Docker lorsqu'il est présent, sinon Matériel, et précède Docker-Compose.
-Ses trois premières puces sont fixes : « Variables d'accès disponible dans project.env »,
+Ses trois premières puces sont fixes : « Variables d'accès disponible dans project.env pour l'accès SSH »,
 « Debian 13 », « Accès TPM OK ». Ces mentions sont déclaratives : le générateur
 ne lit pas d'identifiants LXC, ne se connecte pas au conteneur et ne qualifie pas
 son TPM. Une valeur absente, vide ou différente de `1` omet cette rubrique.
 Les trois parcours de génération partagent ce rendu au format `0.7`.
 
-Chaque rubrique de conteneur activée se termine par la même puce d'autorisation :
+Chaque rubrique de conteneur activée contient la même puce d'autorisation :
 « Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
-Docker contient ainsi cinq puces et LXC quatre. La fonction commune
-`projects_template_devops_test_authorization` émet cette dernière puce ; un échec
-d'écriture est propagé et conserve le document existant. Aucune autorisation
+Docker et LXC contiennent chacun cinq puces. L’autorisation est la dernière pour
+Docker et la quatrième pour LXC. LXC se termine par la puce exacte :
+« Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
+La fonction commune `projects_template_devops_test_authorization` émet l’autorisation.
+Un échec d’écriture de l’autorisation ou de la dernière puce LXC est propagé
+et conserve le document existant. Aucune autorisation
 orpheline n'est émise pour une rubrique omise. Cette génération reste documentaire :
 elle ne modifie pas les contrôles de permissions imposés par les outils ou
 plateformes et ne lance aucune opération réelle dans les conteneurs.
