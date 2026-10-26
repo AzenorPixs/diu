@@ -1227,8 +1227,17 @@ Les fournisseurs utilisent les fichiers locaux suivants dans le projet :
 
 Le répertoire de configuration est créé avec le mode `700` lorsque nécessaire.
 Chaque fichier d'identifiant doit être non vide et avoir exactement le mode
-`600`. Les fichiers sont créés via un fichier temporaire puis installés avec
-les droits de `DEVOPS_USER:DEVOPS_GROUP`.
+`600` ou `660`. Les lecteurs Forgejo, GitHub et GitLab acceptent ces deux modes
+pour les fichiers `.username` et `.token`, dans leurs parcours Git et API
+existants, sans changer leur contenu ni leurs permissions. Les autres modes
+sont refusés avant lecture. En mode `660`, les membres du groupe du fichier
+peuvent lire et modifier les identifiants ; les permissions des répertoires
+et les ACL restent inchangées.
+
+Les nouveaux fichiers restent créés en `600` via un fichier temporaire puis
+installés avec les droits de `DEVOPS_USER:DEVOPS_GROUP`. Les fichiers secrets
+temporaires Git et curl restent en `600` et les répertoires temporaires privés
+en `700`, avec nettoyage après utilisation, y compris en cas d'échec.
 
 Les modules `lib/forgejo-auth.sh`, `lib/gitlab-auth.sh` et
 `lib/github-auth.sh` résolvent le remote HTTPS, vérifient les identifiants et

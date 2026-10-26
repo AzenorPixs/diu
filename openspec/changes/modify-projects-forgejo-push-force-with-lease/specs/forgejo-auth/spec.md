@@ -44,7 +44,7 @@ AND la fonction retourne le code 1
 #### Scenario: Push avec permissions invalides
 
 WHEN `forgejo_push()` est exécutée
-AND `config/forgejo.token` existe mais ses permissions ne sont pas 600
+AND `config/forgejo.token` existe mais ses permissions ne sont ni 600 ni 660
 THEN une erreur de sécurité explicite est affichée
 AND aucun `git fetch` ni `git push` n'est exécuté
 AND la fonction retourne le code 1

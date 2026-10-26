@@ -113,6 +113,13 @@ et rejets Git restent bloquants. Une publication interrompue peut être
 partielle et nécessite une reprise. Les commandes de release lancées
 directement conservent leur gestion d'erreur.
 
+Les fichiers locaux `config/<fournisseur>.username` et
+`config/<fournisseur>.token` de Forgejo, GitHub et GitLab acceptent exactement
+les modes `0600` et `0660`, dans les parcours Git et API existants. Les fichiers
+existants conservent leur contenu et leurs permissions. Les autres modes
+restent refusés. Avec `0660`, le groupe peut lire et modifier les identifiants.
+Les nouveaux identifiants et les secrets temporaires restent créés en `0600`.
+
 Pour générer l'inventaire DevOps d'un projet :
 
 ```bash

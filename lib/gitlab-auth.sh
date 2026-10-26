@@ -49,13 +49,15 @@ _gitlab_resolve_remote() {
 _gitlab_read_username() {
     local project_path="${1:-}"
     local username_file="${project_path}/config/gitlab.username"
+    local username_perms=""
 
     if [[ ! -f "${username_file}" ]]; then
         print_error "Le nom d'utilisateur GitLab est absent : ${username_file}"
         return 1
     fi
-    if [[ "$(stat -c '%a' "${username_file}" 2>/dev/null)" != "600" ]]; then
-        print_error "Les permissions de ${username_file} doivent être 600."
+    username_perms="$(stat -c '%a' "${username_file}" 2>/dev/null)"
+    if [[ "${username_perms}" != "600" && "${username_perms}" != "660" ]]; then
+        print_error "Les permissions de ${username_file} doivent être 600 ou 660."
         return 1
     fi
     if ! IFS= read -r gitlab_username < "${username_file}" || [[ -z "${gitlab_username}" ]]; then
@@ -67,13 +69,15 @@ _gitlab_read_username() {
 _gitlab_read_token() {
     local project_path="${1:-}"
     local token_file="${project_path}/config/gitlab.token"
+    local token_perms=""
 
     if [[ ! -f "${token_file}" ]]; then
         print_error "Le token GitLab est absent : ${token_file}"
         return 1
     fi
-    if [[ "$(stat -c '%a' "${token_file}" 2>/dev/null)" != "600" ]]; then
-        print_error "Les permissions de ${token_file} doivent être 600."
+    token_perms="$(stat -c '%a' "${token_file}" 2>/dev/null)"
+    if [[ "${token_perms}" != "600" && "${token_perms}" != "660" ]]; then
+        print_error "Les permissions de ${token_file} doivent être 600 ou 660."
         return 1
     fi
     if ! IFS= read -r gitlab_token < "${token_file}" || [[ -z "${gitlab_token}" ]]; then
