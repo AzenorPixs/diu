@@ -266,29 +266,35 @@ ENV_DEVOPS_USER="$1"
 
     def assert_test_container_sections(self, content, docker, lxc):
         docker_title = '# Conteneur Docker, pour tests nécessitant des droits root\n'
-        lxc_title = '# Conteneur LXC, pour tests nécessitant des droits root\n'
+        lxc_title = '# Conteneur LXC, pour tests nécessitant des droits root accessible en SSH\n'
+        retention = 'Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests.'
         self.assertEqual(content.count(docker_title), int(docker))
         self.assertEqual(content.count(lxc_title), int(lxc))
         self.assertNotIn('# Docker, pour tests nécessitant des droits root\n', content)
         self.assertEqual(content.count('/var/run/docker.sock'), int(docker))
         self.assertEqual(content.count('debian:stable-slim'), int(docker))
         self.assertEqual(content.count('  * Accès TPM OK\n'), int(lxc))
+        self.assertEqual(content.count('  * ' + retention + '\n'), int(lxc))
         self.assertEqual(content.count('# Docker-Compose\n'), 1)
         self.assertEqual(content.count(CONTAINER_TEST_AUTHORIZATION), int(docker) + int(lxc))
-        for title, enabled, count in ((docker_title, docker, 5), (lxc_title, lxc, 4)):
+        for title, enabled, count in ((docker_title, docker, 5), (lxc_title, lxc, 5)):
             if enabled:
                 section = content.split(title, 1)[1].split('\n# ', 1)[0]
                 bullets = [line for line in section.splitlines() if line.startswith('  * ')]
                 self.assertEqual(len(bullets), count)
-                self.assertEqual(bullets[-1], '  * ' + CONTAINER_TEST_AUTHORIZATION)
+                self.assertEqual(bullets[3 if title == lxc_title else 4],
+                                 '  * ' + CONTAINER_TEST_AUTHORIZATION)
+                if title == lxc_title:
+                    self.assertEqual(bullets[-1], '  * ' + retention)
         ordered = ['# Matériel\n']
         if docker:
             ordered.append(docker_title)
         if lxc:
             ordered.append(lxc_title)
-            self.assertIn(lxc_title + "\n  * Variables d'accès disponible dans project.env\n"
+            self.assertIn(lxc_title + "\n  * Variables d'accès disponible dans project.env pour l'accès SSH\n"
                           '  * Debian 13\n  * Accès TPM OK\n'
-                          f'  * {CONTAINER_TEST_AUTHORIZATION}\n\n\n# Docker-Compose\n', content)
+                          f'  * {CONTAINER_TEST_AUTHORIZATION}\n'
+                          f'  * {retention}\n\n\n# Docker-Compose\n', content)
         ordered.append('# Docker-Compose\n')
         for before, after in zip(ordered, ordered[1:]):
             self.assertLess(content.index(before), content.index(after))
@@ -309,6 +315,7 @@ lxc() { container_forbidden; }
 lxc-info() { container_forbidden; }
 lxc-attach() { container_forbidden; }
 lxc-start() { container_forbidden; }
+ssh() { container_forbidden; }
 """
         for docker, lxc in (('0', '0'), ('1', '0'), ('0', '1'), ('1', '1'), ('0', '0')):
             with self.subTest(docker=docker, lxc=lxc):
@@ -1763,6 +1770,9 @@ projects_template_devops_javascript() {
                       'projects_template_devops_test_authorization() { printf partial; return 1; }',
                       'ENV_DEVOPS_TESTS_DOCKER=0\nENV_DEVOPS_TESTS_LXC=1\n'
                       'projects_template_devops_test_authorization() { printf partial; return 1; }',
+                      'ENV_DEVOPS_TESTS_DOCKER=0\nENV_DEVOPS_TESTS_LXC=1\n'
+                      'printf() { if [[ "$1" == *"Binaires et bibliothèques installés"* ]]; '
+                      'then return 1; fi; builtin printf "$@"; }',
                       'mv() { return 1; }'):
             with self.subTest(extra=extra):
                 self.document.write_text('document conservé\n', encoding='utf-8')

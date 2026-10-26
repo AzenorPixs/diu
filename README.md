@@ -162,22 +162,25 @@ indisponible, sans vérification du socket ni téléchargement ou lancement
 de l'image. Le tag suit Debian stable ; aucune version Debian n'est figée.
 Sinon, cette rubrique et sa sonde Docker sont omises ; Docker-Compose reste présent.
 
-La rubrique « Conteneur LXC, pour tests nécessitant des droits root » apparaît
+La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » apparaît
 indépendamment si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`. Elle suit Docker
 lorsqu'il est présent, sinon Matériel, et précède Docker-Compose. Ses trois premières
 puces sont :
-« Variables d'accès disponible dans project.env », « Debian 13 », « Accès TPM OK ».
+« Variables d'accès disponible dans project.env pour l'accès SSH », « Debian 13 », « Accès TPM OK ».
 Ces mentions sont déclaratives, sans connexion LXC, lecture d'identifiants ni
 qualification TPM distante. Pour chaque indicateur, une valeur absente, vide ou
 différente de `1` omet sa rubrique. Le format reste `0.7` et les documents existants
 adoptent ce comportement à leur prochaine génération normale.
 
-Les deux rubriques activées ajoutent en dernière puce l'autorisation commune :
+Les deux rubriques activées contiennent l'autorisation commune :
 « Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
 Cette consigne explicite l'autorisation des tests pour les deux types d'agents.
 Elle ne désactive pas les contrôles techniques de permissions imposés par les
-outils ou leur plateforme. Docker comporte cinq puces et LXC quatre ; une
-rubrique désactivée n'émet aucune puce d'autorisation.
+outils ou leur plateforme. Docker et LXC comportent chacun cinq puces.
+L’autorisation est dernière pour Docker et quatrième pour LXC. LXC se termine par :
+« Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
+Une rubrique désactivée n’émet aucune puce d’autorisation ni de conservation
+des dépendances de test.
 
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps

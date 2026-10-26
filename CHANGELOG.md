@@ -4,6 +4,14 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : le titre LXC précise « accessible en SSH » et sa
+  première puce devient « Variables d'accès disponible dans project.env pour l'accès SSH ».
+  Une cinquième puce indique « Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. ».
+  L’autorisation commune reste inchangée en quatrième position pour LXC et en
+  dernière position pour Docker. Activation, ordre des rubriques et format `0.7`
+  conservés, sans connexion distante ni gestion des paquets pendant la génération.
+  Les documents existants adoptent ce rendu à leur prochaine génération normale.
+
 - Génération de `DEVOPS.md` : dernière puce commune aux rubriques Docker et LXC
   activées, autorisant explicitement les agents de codage et les orchestrateurs
   à préparer, exécuter, répéter et nettoyer les tests du projet dans le conteneur,
