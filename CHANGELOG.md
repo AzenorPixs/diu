@@ -4,6 +4,14 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : ajout de Nuitka déclaré dans
+  `[build-system].requires`, avec contraintes et extras éventuels, dans la
+  rubrique commune « Python - Outils de compilation ». Seuls les outils déclarés
+  apparaissent, Cython puis Nuitka ; découverte et sondes partagées, états et
+  provenances indépendants, sans repli global ni import des compilateurs.
+  Aucun paquet installé, manifeste modifié ou compilation lancée. Format `0.7`
+  et parcours existants conservés ; application à la prochaine génération normale.
+
 - Génération de `DEVOPS.md` : rubrique « Python - Outils de compilation »
   après pip et avant Prompts uniquement si Cython est déclaré dans
   `[build-system].requires` de `pyproject.toml`. Vérification isolée dans les
