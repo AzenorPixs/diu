@@ -4,6 +4,14 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : rubrique « Python - Outils de compilation »
+  après pip et avant Prompts uniquement si Cython est déclaré dans
+  `[build-system].requires` de `pyproject.toml`. Vérification isolée dans les
+  venv du projet, avec version et provenance, absence vérifiée ou installation
+  non vérifiable ; aucune sonde Cython sans déclaration, aucun repli global,
+  installation ni modification du manifeste. Format `0.7` conservé, appliqué
+  aux documents existants lors de leur prochaine génération normale.
+
 - Génération de `DEVOPS.md` : rubrique permanente « OpenSSH & SSHPASS » après
   les conteneurs éventuels et avant Docker-Compose. Quatre puces présentent
   les versions et chemins hôte de `ssh` et `sshpass`, relevés avec `-V` et
