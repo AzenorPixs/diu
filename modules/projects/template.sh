@@ -501,9 +501,11 @@ PY
 
 projects_template_devops_dependencies() {
     local devops_home="$1" template_path="$2" python_binary="$3"
+    local inventory="${4:-runtime}"
     local analyzer="${python_binary}" analysis_is_devops=1
     local manifest="${template_path}/pyproject.toml"
     if [[ ! -f "${manifest}" ]]; then
+        [[ "${inventory}" != cython ]] || return 0
         printf '  * pyproject.toml absent : dépendances non déclarées dans le projet\n'
         return 0
     fi
@@ -515,12 +517,16 @@ projects_template_devops_dependencies() {
         analysis_is_devops=0
     fi
     if [[ ! -x "${analyzer}" ]]; then
-        printf "  * Dépendances non vérifiables : Python d'analyse absent\n"
+        if [[ "${inventory}" == cython ]]; then
+            printf "  * Cython : déclaration non vérifiable (Python d'analyse absent)\n"
+        else
+            printf "  * Dépendances non vérifiables : Python d'analyse absent\n"
+        fi
         return 0
     fi
 
     projects_template_devops_user_run "${devops_home}" "${analyzer}" -I -B - \
-        "${manifest}" "${python_binary}" "${analysis_is_devops}" <<'PY'
+        "${manifest}" "${python_binary}" "${analysis_is_devops}" "${inventory}" <<'PY'
 from importlib import metadata
 from pathlib import Path
 import json
@@ -661,19 +667,31 @@ def emit(label, version, interpreter, environment, location):
 
 
 def main():
+    compilation = sys.argv[4] == "cython"
     try:
         import tomllib
     except ImportError:
-        print("  * Lecture non disponible : module tomllib absent du Python d'analyse")
+        if compilation:
+            print("  * Cython : déclaration non vérifiable (module tomllib absent)")
+        else:
+            print("  * Lecture non disponible : module tomllib absent du Python d'analyse")
         return
     try:
         manifest = Path(sys.argv[1])
         project_root = manifest.parent.resolve()
-        project = tomllib.loads(manifest.read_text(encoding="utf-8")).get("project", {})
-        if not isinstance(project, dict):
-            raise ValueError("projet invalide")
-        dependencies = project.get("dependencies", [])
-        dynamic = project.get("dynamic", [])
+        document = tomllib.loads(manifest.read_text(encoding="utf-8"))
+        if compilation:
+            build_system = document.get("build-system", {})
+            if not isinstance(build_system, dict):
+                raise ValueError("construction invalide")
+            dependencies = build_system.get("requires", [])
+            dynamic = []
+        else:
+            project = document.get("project", {})
+            if not isinstance(project, dict):
+                raise ValueError("projet invalide")
+            dependencies = project.get("dependencies", [])
+            dynamic = project.get("dynamic", [])
         if (not isinstance(dependencies, list) or not all(isinstance(item, str) for item in dependencies)
                 or not isinstance(dynamic, list) or not all(isinstance(item, str) for item in dynamic)):
             raise ValueError("dependances invalides")
@@ -686,12 +704,18 @@ def main():
             if "@" in constraint:
                 constraint = "(référence directe déclarée dans pyproject.toml)"
             name = match[1]
-            declarations.append((re.sub(r"[-_.]+", "-", name).lower(),
-                                 (name + " " + constraint).strip()))
+            normalized = re.sub(r"[-_.]+", "-", name).lower()
+            if not compilation or normalized == "cython":
+                declarations.append((normalized, (name + " " + constraint).strip()))
     except (OSError, ValueError, UnicodeError):
-        print("  * pyproject.toml illisible ou invalide : dépendances non vérifiables")
+        if compilation:
+            print("  * Cython : déclaration non vérifiable (pyproject.toml illisible ou invalide)")
+        else:
+            print("  * pyproject.toml illisible ou invalide : dépendances non vérifiables")
         return
 
+    if compilation and not declarations:
+        return
     if "dependencies" in dynamic:
         print("  * Dépendances dynamiques : versions non vérifiables depuis pyproject.toml")
     elif not declarations:
@@ -702,6 +726,7 @@ def main():
     wanted = {name for name, _label in declarations}
     selected = {}
     uncertain = set()
+    verified_environments = []
     deadline = time.monotonic() + SEARCH_BUDGET
     environments, incomplete = discover_environments(project_root, deadline)
     for environment in environments:
@@ -716,11 +741,35 @@ def main():
             uncertain.update(missing)
             continue
         interpreter, values = observation
+        verified_environments.append(environment)
         for name, value in values.items():
             if value is None:
                 uncertain.add(name)
             else:
                 selected[name] = (str(interpreter), str(environment), value)
+
+    if compilation:
+        print("# Python - Outils de compilation\n")
+        if "cython" in selected:
+            interpreter, environment, value = selected["cython"]
+            print(f"  * Cython : {value['version']}")
+            print(f"    * Interpréteur : {interpreter}")
+            print(f"    * Environnement : {environment}")
+            print(f"    * Installation : {value['location']}")
+        else:
+            unknown = incomplete or "cython" in uncertain or not environments
+            status = "installation non vérifiable" if unknown else "non installé"
+            print(f"  * Cython : {status}")
+            for environment in verified_environments:
+                print(f"    * Environnement vérifié : {environment}")
+            if not environments:
+                print("    * Diagnostic : aucun venv du projet détecté")
+        for _name, label in declarations:
+            print(f"    * Déclaration : {label}")
+        print("    * Source : pyproject.toml — [build-system].requires")
+        if incomplete or uncertain:
+            print("    * Diagnostic : recherche ou sonde des venv non vérifiable, inventaire partiel")
+        return
 
     if incomplete or uncertain:
         print("  * Recherche ou sonde des venv du projet non vérifiable : inventaire partiel.")
@@ -1357,6 +1406,7 @@ projects_template_devops_render() {
     local venv_status='indisponible'
     local started_at="" environment_type=UNSET
     local javascript_report="" javascript_dependencies="" opencode_dependencies=""
+    local compilation_report=""
     local -a version_arguments=()
 
     started_at="$(projects_template_devops_timestamp)" || return 1
@@ -1385,6 +1435,7 @@ projects_template_devops_render() {
         'Les dépendances Python sont recherchées en priorité dans les venv du projet, puis dans le Python DevOps en repli explicite.' \
         "Dans l’inventaire Python, la flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées." \
         'Les dépendances Python attendues proviennent de [project].dependencies dans pyproject.toml.' \
+        'Les outils de compilation Python éventuellement affichés proviennent de [build-system].requires et sont recherchés uniquement dans les venv du projet.' \
         'Les dépendances JavaScript sont regroupées par manifeste et catégorie sous NPM et OpenCode.' \
         'Leurs déclarations, versions verrouillées npm et métadonnées locales sont distinctes ; un verrou ne prouve pas une installation.' \
         'Les contraintes JavaScript ne sont pas résolues et cet inventaire ne prouve pas le chargement de plugins OpenCode.' \
@@ -1484,6 +1535,13 @@ projects_template_devops_render() {
     binary="${devops_home}/python/current/bin/pip3"
     version="$(projects_template_devops_version python "${devops_home}" "${binary}" --version)" || return 1
     projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}" || return 1
+
+    if ! compilation_report="$(projects_template_devops_dependencies "${devops_home}" "${template_path}" "${python_binary}" cython 2>/dev/null)"; then
+        compilation_report='  * Cython : déclaration ou installation non vérifiable (sonde Python échouée)'
+    fi
+    if [[ -n "${compilation_report}" ]]; then
+        printf '%s\n\n\n' "${compilation_report}" || return 1
+    fi
 
     printf '# Prompts\n\n  * Dossier des prompts : %s/datas/prompts\n  * Index des prompts : %s/datas/prompts/INDEX.md\n\n\n' \
         "${devops_home}" "${devops_home}" || return 1

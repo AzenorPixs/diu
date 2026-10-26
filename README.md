@@ -136,6 +136,16 @@ comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
 
+Si `pyproject.toml` déclare Cython dans `[build-system].requires`, DIU ajoute
+« Python - Outils de compilation » après le gestionnaire de paquets Python
+et avant Prompts. Il vérifie alors uniquement les venv du projet et indique
+la version observée et ses chemins, « non installé » si l’absence est établie,
+ou « installation non vérifiable » si une vérification est impossible ou
+incomplète, notamment sans venv. Sans déclaration, cette rubrique et les
+sondes Cython sont omises. Aucun paquet n’est installé, aucun manifeste n’est
+modifié et aucune compilation n’est lancée. Le format reste `0.7` ; les documents
+existants adoptent ce rendu à leur prochaine génération normale.
+
 La rubrique « Système d'exploitation » affiche le nom de l'OS puis le résultat
 de `hostname -f` en deuxième puce. Le nom est relevé dans le contexte
 d'exécution DIU, sans valeur codée en dur ni modification du réseau ou du nom

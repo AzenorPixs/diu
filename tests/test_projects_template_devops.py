@@ -1130,6 +1130,212 @@ exit
         (self.template / "pyproject.toml").write_text(
             "[project]\ndependencies = " + json.dumps(dependencies) + "\n", encoding="utf-8")
 
+    def cython_manifest(self, requirement='Cython'):
+        manifest = self.template / 'pyproject.toml'
+        manifest.write_text('[project]\ndependencies = []\n\n[build-system]\nrequires = '
+                            + json.dumps(['setuptools', requirement]) + '\n', encoding='utf-8')
+        return manifest
+
+    def cython_inventory(self, source_replacements=()):
+        source = MODULE.read_text(encoding='utf-8')
+        for before, after in source_replacements:
+            self.assertEqual(source.count(before), 1)
+            source = source.replace(before, after)
+        return subprocess.run(
+            ['bash', '-Eeuo', 'pipefail', '-c', source + '\n'
+             'projects_template_devops_dependencies "$1" "$2" "$3" cython\n',
+             'bash', str(self.home), str(self.template), str(self.home / 'python/current/bin/python3')],
+            text=True, capture_output=True,
+            env=dict(self.environment, ENV_DEVOPS_USER=getpass.getuser()), timeout=20, check=False)
+
+    def test_cython_declared_version_paths_and_section_order(self):
+        environment, interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        self.add_distribution(self.metadata, 'Cython', '9.9')
+        for requirement in ('Cython', 'cython>=3.0', 'CYTHON==3.3.0',
+                            'Cython>=3; python_version >= "3.12"'):
+            with self.subTest(requirement=requirement):
+                manifest = self.cython_manifest(requirement)
+                initial = manifest.read_bytes()
+                content = self.successful_document(self.run_generation())
+                self.assertEqual(content.count('# Python - Outils de compilation\n'), 1)
+                self.assertIn('  * Cython : 3.3.0\n', content)
+                self.assertIn(f'    * Interpréteur : {interpreter}\n', content)
+                self.assertIn(f'    * Environnement : {environment}\n', content)
+                self.assertIn(f'    * Installation : {location.resolve()}\n', content)
+                self.assertIn('    * Déclaration : ' + requirement.replace('cython>=', 'cython >=').replace(
+                    'CYTHON==', 'CYTHON ==').replace('Cython>=', 'Cython >=') + '\n', content)
+                self.assertIn('    * Source : pyproject.toml — [build-system].requires\n', content)
+                self.assertLess(content.index('# Python - Gestionnaire de paquets\n'),
+                                content.index('# Python - Outils de compilation\n'))
+                self.assertLess(content.index('# Python - Outils de compilation\n'),
+                                content.index('# Prompts\n'))
+                self.assertEqual(manifest.read_bytes(), initial)
+                self.assertIn('Version : 0.7\n', content)
+                self.assertNotIn('Cython : 9.9', content)
+
+    def test_cython_undeclared_never_discovers_or_probes_environments(self):
+        self.project_venv('.venv', {'Cython': '3.3.0'})
+        manifests = (None, '[project]\ndependencies = []\n',
+                     '[project]\ndependencies = ["Cython"]\n',
+                     '# Cython\n[build-system]\nrequires = ["setuptools"]\n',
+                     '[build-system]\nrequires = ["Cython-tools", "my-Cython"]\n',
+                     '[project.optional-dependencies]\nbuild = ["Cython"]\n')
+        discovery = 'def discover_environments(project_root, deadline):\n'
+        replacements = ((discovery, discovery + '    raise RuntimeError("unexpected-discovery")\n'),)
+        for text in manifests:
+            with self.subTest(manifest=text):
+                manifest = self.template / 'pyproject.toml'
+                if text is None:
+                    manifest.unlink(missing_ok=True)
+                else:
+                    manifest.write_text(text, encoding='utf-8')
+                result = self.cython_inventory(replacements)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, '')
+        content = self.successful_document(self.run_generation())
+        self.assertNotIn('# Python - Outils de compilation\n', content)
+
+    def test_cython_absence_is_scoped_to_verified_project_venvs(self):
+        self.cython_manifest()
+        environments = [self.project_venv(path, {})[0] for path in ('.venv', 'backend/build-env')]
+        self.add_distribution(self.metadata, 'Cython', '9.9')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : non installé\n', content)
+        self.assertNotIn('Cython : 9.9', content)
+        for environment in environments:
+            self.assertIn(f'    * Environnement vérifié : {environment}\n', content)
+        self.assertNotIn('Python DevOps (repli)', content)
+
+    def test_cython_without_project_venv_is_not_verifiable(self):
+        self.cython_manifest()
+        self.add_distribution(self.metadata, 'Cython', '9.9')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : installation non vérifiable\n', content)
+        self.assertIn('Diagnostic : aucun venv du projet détecté', content)
+        self.assertNotIn('Cython : non installé', content)
+
+    def test_cython_invalid_manifest_never_emits_compilation_section(self):
+        for manifest in ('[build-system\n', '[build-system]\nrequires = "Cython"\n',
+                         '[build-system]\nrequires = [1]\n', 'build-system = 1\n'):
+            with self.subTest(manifest=manifest):
+                (self.template / 'pyproject.toml').write_text(manifest, encoding='utf-8')
+                content = self.successful_document(self.run_generation())
+                self.assertIn('Cython : déclaration non vérifiable', content)
+                self.assertNotIn('# Python - Outils de compilation\n', content)
+                self.assertNotIn('Cython : non installé', content)
+
+    def test_cython_build_only_manifest_without_devops_python(self):
+        (self.template / 'pyproject.toml').write_text(
+            '[build-system]\nrequires = ["Cython"]\n', encoding='utf-8')
+        environment, interpreter, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        (self.home / 'python/current/bin/python3').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertIn(f'    * Interpréteur : {interpreter}\n', content)
+        self.assertIn(f'    * Environnement : {environment}\n', content)
+
+    def test_cython_priority_and_paths_with_spaces(self):
+        self.cython_manifest()
+        preferred, _interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        nested, nested_python, _location = self.project_venv('backend/build env', {'Cython': '3.2.0'})
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'    * Environnement : {preferred}\n', content)
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        for distribution in location.glob('*.dist-info'):
+            shutil.rmtree(distribution)
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.2.0\n', content)
+        self.assertIn(f'    * Environnement : {nested}\n', content)
+        self.assertIn(f'    * Interpréteur : {nested_python}\n', content)
+
+    def test_cython_metadata_probe_never_imports_cython_or_pth(self):
+        self.cython_manifest()
+        _environment, _interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        marker = self.fixture / 'cython-code-executed'
+        payload = f'import pathlib; pathlib.Path({str(marker)!r}).touch()\n'
+        (location / 'cython.py').write_text(payload, encoding='utf-8')
+        (location / 'Cython').mkdir()
+        (location / 'Cython/__init__.py').write_text(payload, encoding='utf-8')
+        (location / 'cython.pth').write_text(payload, encoding='utf-8')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertFalse(marker.exists())
+
+    def test_cython_failed_or_ambiguous_probe_never_proves_absence(self):
+        self.cython_manifest()
+        _environment, interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        self.add_distribution(location, 'Cython', '3.2.0')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : installation non vérifiable\n', content)
+        interpreter.unlink()
+        self.executable(interpreter, "printf 'private-cython-probe\\n' >&2\nexit 7")
+        result = self.run_generation()
+        content = self.successful_document(result)
+        self.assertIn('  * Cython : installation non vérifiable\n', content)
+        self.assertNotIn('Cython : non installé', content)
+        self.assertNotIn('private-cython-probe', content + result.stdout + result.stderr)
+
+    def test_cython_search_budget_exhaustion_never_proves_absence(self):
+        self.cython_manifest()
+        before = 'SEARCH_BUDGET = 12.0\nPROBE_TIMEOUT = 3.0'
+        result = self.cython_inventory(((before, 'SEARCH_BUDGET = -1.0\nPROBE_TIMEOUT = 3.0'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Cython : installation non vérifiable', result.stdout)
+        self.assertNotIn('Cython : non installé', result.stdout)
+
+    def test_cython_probe_timeout_terminates_descendants(self):
+        self.cython_manifest()
+        environment = self.template / '.venv'
+        (environment / 'bin').mkdir(parents=True)
+        (environment / 'pyvenv.cfg').write_text('home = fixture\n')
+        pid_file = self.fixture / 'cython-child.pid'
+        self.executable(environment / 'bin/python3',
+                        f"/usr/bin/sleep 10 &\nprintf '%s\\n' \"$!\" > '{pid_file}'\nwait")
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation())
+        self.assertLess(time.monotonic() - started, 8)
+        self.assertIn('Cython : installation non vérifiable', content)
+        status = Path(f'/proc/{int(pid_file.read_text())}/stat')
+        self.assertTrue(not status.exists() or status.read_text().split()[2] == 'Z')
+
+    def test_cython_direct_reference_is_redacted(self):
+        self.cython_manifest('Cython @ https://example.test/private-reference')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Déclaration : Cython (référence directe déclarée dans pyproject.toml)', content)
+        self.assertNotIn('private-reference', content)
+
+    def test_cython_batch_only_documents_declaring_project(self):
+        root = self.fixture / 'projects with spaces'
+        declaring = self.configured_project(root, 'native-app', {'PROJECT_TYPE': 'PYTHON'})
+        other = self.configured_project(root, 'web-app', {'PROJECT_TYPE': 'PYTHON'})
+        original_template = self.template
+        try:
+            self.template = declaring
+            self.cython_manifest()
+            environment, _interpreter, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        finally:
+            self.template = original_template
+        result = self.run_generation(projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        content = (declaring / 'DEVOPS.md').read_text()
+        self.assertEqual(content.count('# Python - Outils de compilation\n'), 1)
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertIn(f'    * Environnement : {environment}\n', content)
+        self.assertNotIn('# Python - Outils de compilation\n', (other / 'DEVOPS.md').read_text())
+
+    def test_cython_collector_failure_discards_partial_output(self):
+        self.cython_manifest()
+        content = self.successful_document(self.run_generation(r'''
+eval "$(declare -f projects_template_devops_dependencies | sed '1s/projects_template_devops_dependencies/saved_dependencies/')"
+projects_template_devops_dependencies() {
+    if [[ "${4:-}" == cython ]]; then printf 'private-cython-output'; return 7; fi
+    saved_dependencies "$@"
+}
+'''))
+        self.assertIn('Cython : déclaration ou installation non vérifiable', content)
+        self.assertNotIn('private-cython-output', content)
+        self.assertIn('# Prompts\n', content)
+
     def test_project_venv_matches_pixs_dependencies_and_effective_paths(self):
         packages = {"Django": "6.1.1", "psycopg": "3.3.6",
                     "asgiref": "3.12.1", "sqlparse": "0.6.0"}
@@ -2001,7 +2207,8 @@ projects_template_devops_javascript() {
         (self.template / 'README.md').write_text('# Template\n')
         self.javascript_manifest('frontend/package.json', dependencies={'creation-fixture': '1.0.0'})
         # Un modèle Python ne doit pas transmettre son manifeste à un projet Node.
-        (self.template / 'pyproject.toml').write_text('[project]\nname="existing"\ndependencies=[]\n')
+        (self.template / 'pyproject.toml').write_text(
+            '[project]\nname="existing"\ndependencies=[]\n[build-system]\nrequires=["Cython"]\n')
         extra = projects_source + r'''
 check_devops_user() { return 0; }
 install() { mkdir -p "${!#}"; }
@@ -2072,6 +2279,10 @@ exit $?
                     self.assertEqual(content.count('# Matériel\n'), 1)
                     self.assertIn('Fabricant : IFX\n', content)
                     self.assertEqual((target / 'pyproject.toml').exists(), project_type == 'PYTHON')
+                    self.assertEqual('# Python - Outils de compilation\n' in content,
+                                     project == 'python-app')
+                    if project == 'python-app':
+                        self.assertIn('Cython : installation non vérifiable', content)
                     if project == 'python-minimal':
                         self.assertEqual(tomllib.loads((target / 'pyproject.toml').read_text())['project'],
                                          {'name': project, 'version': '0.0.0', 'dependencies': []})
