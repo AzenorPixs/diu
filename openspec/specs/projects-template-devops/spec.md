@@ -70,7 +70,7 @@ Tests navigateurs extérieurs en mode headless SHALL terminer le document.
 #### Scenario: Rubriques documentaires conservées
 
 - **WHEN** un document DevOps est généré
-- **THEN** les rubriques restent dans l'ordre : Système d'exploitation, Matériel, `Conteneur Docker, pour tests nécessitant des droits root` si activé, `Conteneur LXC, pour tests nécessitant des droits root accessible en SSH` si activé, Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source de vérité `pyproject.toml`, Python - Gestionnaire de paquets, Prompts, Tests navigateurs extérieurs en mode headless
+- **THEN** les rubriques restent dans l'ordre : Système d'exploitation, Matériel, `Conteneur Docker, pour tests nécessitant des droits root` si activé, `Conteneur LXC, pour tests nécessitant des droits root accessible en SSH` si activé, OpenSSH & SSHPASS, Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source de vérité `pyproject.toml`, Python - Gestionnaire de paquets, Prompts, Tests navigateurs extérieurs en mode headless
 - **AND THEN** seules les métadonnées de traçabilité et la légende précèdent la première rubrique, après la version documentaire
 - **AND THEN** la section finale contient Chromium puis Firefox
 
@@ -709,7 +709,7 @@ générations individuelle, groupée et finale de création.
 #### Scenario: Rendu matériel commun
 
 - **WHEN** un des trois parcours génère le document
-- **THEN** Matériel et TPM apparaissent une seule fois après l'OS et avant les rubriques de conteneurs activées, ou avant Docker-Compose si elles sont omises
+- **THEN** Matériel et TPM apparaissent une seule fois après l'OS et avant les rubriques de conteneurs activées, ou avant OpenSSH & SSHPASS si elles sont omises
 - **AND THEN** les six champs sont présents dans l'ordre prévu
 
 ### Requirement: Sélection locale et version du TPM
@@ -916,18 +916,18 @@ et MUST NOT provoquer de résolution ou de sonde du binaire Docker.
 Le rendu commun SHALL générer `Conteneur LXC, pour tests nécessitant des droits root accessible en SSH`
 uniquement si ENV_DEVOPS_TESTS_LXC vaut exactement `1`, indépendamment de Docker.
 Une valeur absente, vide ou différente SHALL omettre cette rubrique.
-LXC SHALL suivre Docker s'il est présent, sinon Matériel, et SHALL précéder Docker-Compose.
+LXC SHALL suivre Docker s'il est présent, sinon Matériel, et SHALL précéder OpenSSH & SSHPASS, puis Docker-Compose.
 Le format SHALL rester `0.7` et les trois parcours SHALL partager ce comportement.
 
 #### Scenario: Deux conteneurs activés
 
 - **WHEN** les deux indicateurs valent exactement `1`
-- **THEN** les rubriques sont Matériel, Conteneur Docker, Conteneur LXC, Docker-Compose
+- **THEN** les rubriques sont Matériel, Conteneur Docker, Conteneur LXC, OpenSSH & SSHPASS, Docker-Compose
 
 #### Scenario: LXC seul
 
 - **WHEN** seul ENV_DEVOPS_TESTS_LXC vaut exactement `1`
-- **THEN** LXC suit Matériel et précède Docker-Compose sans rubrique ni sonde Docker
+- **THEN** LXC suit Matériel et précède OpenSSH & SSHPASS puis Docker-Compose sans rubrique ni sonde Docker
 
 #### Scenario: LXC désactivé
 
@@ -1005,3 +1005,34 @@ Un échec d'écriture de cette puce SHALL être propagé.
 
 - **WHEN** l'écriture de la puce échoue
 - **THEN** le rendu retourne un statut non nul et l'ancien document est conservé
+
+### Requirement: Rubrique locale OpenSSH et SSHPASS
+
+Le rendu commun SHALL émettre une seule rubrique `OpenSSH & SSHPASS` après les rubriques de conteneurs présentes et avant Docker-Compose, indépendamment des indicateurs Docker et LXC. Elle SHALL contenir exactement quatre puces : version OpenSSH, chemin hôte de ssh, version sshpass, chemin hôte de sshpass. Le format SHALL rester 0.7.
+
+#### Scenario: Rubrique dans tous les parcours
+
+- **WHEN** un document est généré individuellement, en groupe ou en fin de création
+- **THEN** la rubrique apparaît une seule fois avec ses quatre puces, après LXC s’il est actif et immédiatement avant Docker-Compose
+- **AND** les conditions et contenus des autres rubriques restent préservés
+
+#### Scenario: Conteneurs désactivés
+
+- **WHEN** Docker et LXC sont omis
+- **THEN** OpenSSH & SSHPASS suit Matériel et précède Docker-Compose
+
+### Requirement: Sondes locales de version SSH
+
+DIU SHALL résoudre ssh et sshpass dans le PATH système contrôlé et appeler chaque binaire une fois avec le seul argument -V, avec une borne de 15 secondes. DIU SHALL extraire uniquement la version de la première ligne OpenSSH_ ou sshpass, y compris OpenSSH sur stderr. DIU MUST NOT établir de connexion, lire d’identifiants, installer d’outil ni modifier les droits pour ces sondes.
+
+#### Scenario: Versions observées et actualisées
+
+- **WHEN** les binaires retournent OpenSSH_10.0p2 suivi d’informations Debian/OpenSSL et sshpass 1.10 suivi de sa licence
+- **THEN** seules les versions 10.0p2 et 1.10 apparaissent avec leurs chemins respectifs
+- **AND** une génération ultérieure utilise les nouvelles versions retournées, sans valeur codée en dur
+
+#### Scenario: Outil indisponible ou sortie invalide
+
+- **WHEN** un outil est absent, non exécutable, échoue, expire ou ne retourne pas le préfixe et une version reconnus
+- **THEN** sa puce de version porte un diagnostic explicite sans sortie brute, ancienne version ni repli vers la version OpenSSL
+- **AND** le chemin détecté, ou une absence explicite de binaire, reste indiqué et les autres rubriques sont générées

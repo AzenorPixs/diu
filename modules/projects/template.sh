@@ -177,6 +177,43 @@ projects_template_devops_version() {
     fi
 }
 
+projects_template_devops_ssh_version() {
+    local tool="$1" binary="$2" output="" pattern=""
+
+    if [[ -z "${binary}" || ! -e "${binary}" ]]; then
+        printf '%s\n' 'indisponible (binaire absent)'
+        return 0
+    fi
+    if [[ ! -f "${binary}" || ! -x "${binary}" ]]; then
+        printf '%s\n' 'indisponible (binaire non exécutable)'
+        return 0
+    fi
+    case "${tool}" in
+        ssh)
+            # OpenSSH publie sa version sur stderr, sans connexion avec -V.
+            if ! output="$(/usr/bin/timeout 15s "${binary}" -V 2>&1)"; then
+                printf '%s\n' 'indisponible (sonde échouée)'
+                return 0
+            fi
+            pattern='^OpenSSH_([0-9]+\.[0-9]+(p[0-9]+)?)([[:space:]]|$)'
+            ;;
+        sshpass)
+            if ! output="$(/usr/bin/timeout 15s "${binary}" -V 2>/dev/null)"; then
+                printf '%s\n' 'indisponible (sonde échouée)'
+                return 0
+            fi
+            pattern='^sshpass[[:blank:]]+([0-9]+\.[0-9]+(\.[0-9]+)?)([[:space:]]|$)'
+            ;;
+        *) return 1 ;;
+    esac
+    output="${output%%$'\n'*}"
+    if [[ "${output}" =~ ${pattern} ]]; then
+        printf '%s\n' "${BASH_REMATCH[1]}"
+    else
+        printf '%s\n' 'indisponible (version non reconnue)'
+    fi
+}
+
 projects_template_devops_test_authorization() {
     printf "  * Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests.%s" "${1-$'\n\n\n'}"
 }
@@ -1315,7 +1352,7 @@ projects_template_devops_render() {
     local devops_home="$1" template_path="$2"
     local project_title="${3:-${template_path##*/}}"
     local name="" binary="" version="" context="" operating_system=""
-    local hostname=""
+    local hostname="" ssh_tool=""
     local psql_binary="" compose_binary="" python_binary="${devops_home}/python/current/bin/python3"
     local venv_status='indisponible'
     local started_at="" environment_type=UNSET
@@ -1365,7 +1402,7 @@ projects_template_devops_render() {
     javascript_dependencies="${javascript_report%%$'\034'*}"
     opencode_dependencies="${javascript_report#*$'\034'}"
 
-    for name in Docker LXC Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
+    for name in Docker LXC 'OpenSSH & SSHPASS' Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
         case "${name}" in
             Docker) [[ "${ENV_DEVOPS_TESTS_DOCKER:-0}" == 1 ]] || continue ;;
             LXC)
@@ -1374,6 +1411,16 @@ projects_template_devops_render() {
                     projects_template_devops_test_authorization $'\n' || return 1
                     printf '  * Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests.\n\n\n' || return 1
                 fi
+                continue
+                ;;
+            'OpenSSH & SSHPASS')
+                printf '# OpenSSH & SSHPASS\n\n' || return 1
+                for ssh_tool in ssh sshpass; do
+                    binary="$(projects_template_devops_host_binary "${ssh_tool}")" || binary=''
+                    version="$(projects_template_devops_ssh_version "${ssh_tool}" "${binary}")" || return 1
+                    printf '  * %s\n  * %s\n' "${version}" "${binary:-binaire introuvable}" || return 1
+                done
+                printf '\n\n' || return 1
                 continue
                 ;;
         esac

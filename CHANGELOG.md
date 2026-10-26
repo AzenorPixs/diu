@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : rubrique permanente « OpenSSH & SSHPASS » après
+  les conteneurs éventuels et avant Docker-Compose. Quatre puces présentent
+  les versions et chemins hôte de `ssh` et `sshpass`, relevés avec `-V` et
+  une borne de 15 secondes par outil, sans connexion ni lecture d’identifiants.
+  Les indisponibilités sont explicites ; le format `0.7` reste conservé.
+  Les documents existants adoptent ce contenu à leur prochaine génération normale.
+
 - Authentification Forgejo, GitHub et GitLab : les fichiers `.username` et
   `.token` existants acceptent exactement `0600` ou `0660` dans les parcours
   Git et API, sans modification de contenu ou de permissions. Les autres modes

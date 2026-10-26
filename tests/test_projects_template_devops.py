@@ -79,6 +79,13 @@ printf '%s\n' "$TEST_HOSTNAME_OUTPUT"
                         '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
                         'printf "docker\\n" >> "$TEST_PROBE_ORDER_LOG"\n'
                         "printf 'Docker version 29.1.2, build fixture\\n'")
+        for tool, output in (('ssh', 'OpenSSH_10.0p2 Debian-fixture, OpenSSL 3.5.7'),
+                             ('sshpass', 'sshpass 1.10')):
+            redirect = ' >&2' if tool == 'ssh' else ''
+            self.executable(self.host_bin / tool,
+                            '[ "$#" -eq 1 ] && [ "$1" = -V ] || exit 9\n'
+                            f"printf '%s\\n' '{tool} -V' >> \"$TEST_HOST_BIN/ssh-queries\"\n"
+                            f"printf '%s\\n' '{output}'{redirect}\n")
         self.executable(self.host_bin / 'docker-compose', "printf 'Docker Compose version v5.2.3\\n'")
         self.executable(self.host_bin / 'git', "printf 'git version 2.47.9\\n'")
         self.executable(self.host_bin / 'openssl', "printf 'OpenSSL 3.5.3 1 Jan 2026\\n'")
@@ -294,11 +301,96 @@ ENV_DEVOPS_USER="$1"
             self.assertIn(lxc_title + "\n  * Variables d'accès disponible dans project.env pour l'accès SSH\n"
                           '  * Debian 13\n  * Accès TPM OK\n'
                           f'  * {CONTAINER_TEST_AUTHORIZATION}\n'
-                          f'  * {retention}\n\n\n# Docker-Compose\n', content)
-        ordered.append('# Docker-Compose\n')
+                          f'  * {retention}\n\n\n# OpenSSH & SSHPASS\n', content)
+        self.assert_ssh_section(content)
+        ordered.extend(('# OpenSSH & SSHPASS\n', '# Docker-Compose\n'))
         for before, after in zip(ordered, ordered[1:]):
             self.assertLess(content.index(before), content.index(after))
         self.assertIn('Version : 0.7\n', content)
+
+    def assert_ssh_section(self, content, ssh_version='10.0p2', sshpass_version='1.10'):
+        title = '# OpenSSH & SSHPASS\n'
+        self.assertEqual(content.count(title), 1)
+        self.assertIn(title + f'\n  * {ssh_version}\n  * {self.host_bin / "ssh"}\n'
+                      f'  * {sshpass_version}\n  * {self.host_bin / "sshpass"}\n'
+                      '\n\n# Docker-Compose\n', content)
+
+    def test_ssh_versions_from_binaries_and_refresh(self):
+        content = self.successful_document(self.run_generation())
+        self.assert_ssh_section(content)
+        self.assertEqual((self.host_bin / 'ssh-queries').read_text().splitlines(),
+                         ['ssh -V', 'sshpass -V'])
+        self.executable(self.host_bin / 'ssh', "printf 'OpenSSH_11.2p3 fixture, OpenSSL 9.9.9\\n'")
+        self.executable(self.host_bin / 'sshpass', "printf 'sshpass 1.12\\nlicense-marker\\n'")
+        content = self.successful_document(self.run_generation())
+        self.assert_ssh_section(content, '11.2p3', '1.12')
+        self.assertNotIn('license-marker', content)
+        self.assertNotIn('9.9.9', content)
+
+    def test_ssh_missing_failed_and_unrecognized_keep_other_sections(self):
+        for tool in ('ssh', 'sshpass'):
+            path = self.host_bin / tool
+            original = path.read_bytes()
+            for body, diagnostic in (
+                (None, 'binaire absent'),
+                ("printf 'OpenSSH_88.1p1 private-error-marker\\n' >&2; exit 7", 'sonde échouée'),
+                ("printf 'private-output-marker 3.5.7\\nOpenSSH_88.1p1\\n'", 'version non reconnue'),
+                ("printf ''", 'version non reconnue'),
+            ):
+                with self.subTest(tool=tool, diagnostic=diagnostic, body=body):
+                    if body is None:
+                        path.unlink()
+                    else:
+                        self.executable(path, body)
+                    result = self.run_generation()
+                    content = self.successful_document(result)
+                    self.assertIn(f'  * indisponible ({diagnostic})\n', content)
+                    self.assertIn('  * binaire introuvable\n' if body is None else f'  * {path}\n', content)
+                    self.assertIn('# Docker-Compose\n', content)
+                    for marker in ('private-error-marker', 'private-output-marker', '88.1p1'):
+                        self.assertNotIn(marker, content + result.stdout + result.stderr)
+                    path.write_bytes(original)
+                    path.chmod(0o755)
+
+    def test_ssh_binary_paths_with_spaces(self):
+        spaced = self.fixture / 'host tools with spaces'
+        shutil.copytree(self.host_bin, spaced)
+        self.host_bin = spaced
+        self.environment['TEST_HOST_BIN'] = str(spaced)
+        content = self.successful_document(self.run_generation())
+        self.assert_ssh_section(content)
+        self.assertEqual((spaced / 'ssh-queries').read_text().splitlines(),
+                         ['ssh -V', 'sshpass -V'])
+
+    def test_ssh_nonexecutable_preserves_path_without_chmod(self):
+        path = self.host_bin / 'ssh'
+        path.chmod(0o644)
+        content = self.successful_document(self.run_generation(extra='''
+projects_template_devops_host_binary() {
+    if [[ -f "${TEST_HOST_BIN}/$1" ]]; then printf '%s\n' "${TEST_HOST_BIN}/$1"; else return 1; fi
+}
+'''))
+        self.assertIn(f'  * indisponible (binaire non exécutable)\n  * {path}\n', content)
+        self.assertEqual(path.stat().st_mode & 0o777, 0o644)
+
+    def test_ssh_timeout_is_bounded_and_does_not_publish_partial_output(self):
+        for tool in ('ssh', 'sshpass'):
+            with self.subTest(tool=tool):
+                path = self.host_bin / tool
+                original = path.read_bytes()
+                self.executable(path, "printf 'private-timeout-marker\\n'; exec sleep 5")
+                redirect = '2>&1' if tool == 'ssh' else '2>/dev/null'
+                before = f'/usr/bin/timeout 15s "${{binary}}" -V {redirect}'
+                after = f'/usr/bin/timeout 0.05s "${{binary}}" -V {redirect}'
+                started = time.monotonic()
+                result = self.run_generation(source_replacements=((before, after),))
+                content = self.successful_document(result)
+                self.assertLess(time.monotonic() - started, 3)
+                self.assertIn('  * indisponible (sonde échouée)\n', content)
+                self.assertIn('# Docker-Compose\n', content)
+                self.assertNotIn('private-timeout-marker', content + result.stdout + result.stderr)
+                path.write_bytes(original)
+                path.chmod(0o755)
 
     def test_container_flags_independent_and_document_refresh(self):
         extra = """
@@ -355,7 +447,7 @@ ssh() { container_forbidden; }
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
             'DEVOPS.md — Template', "Système d'exploitation", 'Matériel',
             'Conteneur Docker, pour tests nécessitant des droits root',
-            'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
+            'OpenSSH & SSHPASS', 'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
             'Python', 'Python - Dépendances du projet - Source de vérité `pyproject.toml`',
             'Python - Gestionnaire de paquets', 'Prompts',
@@ -389,7 +481,7 @@ ssh() { container_forbidden; }
                       f'  * 29.1.2\n  * {self.host_bin / "docker"}\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n'
                       f'  * {CONTAINER_TEST_AUTHORIZATION}\n\n\n'
-                      '# Docker-Compose\n', content)
+                      '# OpenSSH & SSHPASS\n', content)
         self.assert_test_container_sections(content, True, False)
         self.assertEqual(content.count('/var/run/docker.sock'), 1)
         self.assertEqual(content.count('debian:stable-slim'), 1)
