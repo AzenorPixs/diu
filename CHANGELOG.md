@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Authentification Forgejo, GitHub et GitLab : les fichiers `.username` et
+  `.token` existants acceptent exactement `0600` ou `0660` dans les parcours
+  Git et API, sans modification de contenu ou de permissions. Les autres modes
+  restent refusés avant lecture. Le mode `0660` autorise l'accès du groupe ;
+  les nouveaux identifiants et les secrets temporaires restent en `0600`.
+
 - Génération de `DEVOPS.md` : le titre LXC précise « accessible en SSH » et sa
   première puce devient « Variables d'accès disponible dans project.env pour l'accès SSH ».
   Une cinquième puce indique « Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. ».
