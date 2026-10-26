@@ -465,30 +465,34 @@ sont signalés sans sortie brute. Une absence non prouvée est indiquée comme
 manifeste, références directes et dépendances dynamiques sont conservés.
 La référence reste `openspec/specs/projects-template-devops/spec.md`.
 
-### Outils de compilation Python : Cython déclaré
+### Outils de compilation Python : Cython et Nuitka déclarés
 
-Le rendu lit d’abord `[build-system].requires` dans `pyproject.toml`. Seul le
-nom de distribution `Cython`, sans distinction de casse et avec ses éventuelles
-contraintes ou marqueurs déclaratifs, déclenche la rubrique « Python - Outils
-de compilation », après le gestionnaire de paquets et avant Prompts. Sans cette
-déclaration, aucune découverte ni sonde de venv Cython n’est exécutée et cette
-rubrique est omise. Un commentaire ou une autre table ne constitue pas cette
-déclaration. Un manifeste invalide ou une analyse impossible produit un diagnostic
-de déclaration non vérifiable sans rubrique ; un manifeste absent reste signalé
-par l’inventaire d’exécution existant.
+Le rendu lit d’abord `[build-system].requires` dans `pyproject.toml`. Les noms
+de distribution `Cython` et `Nuitka`, sans distinction de casse et avec leurs
+éventuels extras, contraintes ou marqueurs déclaratifs, déclenchent la rubrique
+unique « Python - Outils de compilation », après le gestionnaire de paquets et
+avant Prompts. Elle contient uniquement les outils déclarés, Cython puis Nuitka.
+Un commentaire ou une autre table ne constitue pas cette déclaration. Sans aucun
+des deux outils déclarés, la rubrique et la découverte des venv de compilation
+sont omises ; un outil non déclaré n’est jamais demandé aux sondes. Un manifeste
+invalide ou une analyse impossible produit un diagnostic commun de déclaration
+non vérifiable sans rubrique ; un manifeste absent reste signalé par l’inventaire
+d’exécution existant.
 
-Le mode Cython de `projects_template_devops_dependencies` réutilise la découverte
-ordonnée et les sondes isolées ci-dessus, avec les mêmes bornes, uniquement dans
-les venv du projet. Il ne consulte pas les paquets globaux en repli. Une observation
-valide indique version, interpréteur, environnement et installation. Une absence
-établie indique « Cython : non installé » avec les environnements vérifiés.
-Une recherche ou sonde incomplète, impossible ou ambiguë, y compris l’absence
-de venv, indique « Cython : installation non vérifiable ». Les références directes
-sont masquées, les contraintes ne sont pas résolues et aucune conformité de version
-ni utilisation effective pour compiler n’est déduite de cet inventaire.
+Le mode `compilation` de `projects_template_devops_dependencies` (alias interne
+`cython` conservé) réutilise une découverte ordonnée commune et les sondes isolées
+ci-dessus, avec les mêmes bornes, uniquement dans les venv du projet. Les sondes
+ne demandent que les noms déclarés encore recherchés. Aucun paquet global ne sert
+de repli. Chaque outil garde son état et sa provenance : version, interpréteur,
+environnement et installation observés, « non installé » avec les environnements
+vérifiés si son absence est établie, ou « installation non vérifiable » sinon,
+notamment sans venv. Une métadonnée ambiguë pour un outil ne rend pas inconnue
+l’observation valide de l’autre. Les références directes sont masquées, les
+contraintes ne sont pas résolues et aucune conformité de version ni utilisation
+effective pour compiler n’est déduite de cet inventaire.
 
 Les trois parcours partagent ce rendu au format `0.7`, sans activation shell,
-import de Cython, chargement de `.pth`, installation, compilation ni modification
+import de Cython ou Nuitka, chargement de `.pth`, installation, compilation ni modification
 du manifeste. Les documents existants l’adoptent à leur prochaine génération
 normale. La référence reste `openspec/specs/projects-template-devops/spec.md`.
 

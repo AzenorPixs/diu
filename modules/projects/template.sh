@@ -502,10 +502,13 @@ PY
 projects_template_devops_dependencies() {
     local devops_home="$1" template_path="$2" python_binary="$3"
     local inventory="${4:-runtime}"
+    if [[ "${inventory}" == cython ]]; then
+        inventory=compilation
+    fi
     local analyzer="${python_binary}" analysis_is_devops=1
     local manifest="${template_path}/pyproject.toml"
     if [[ ! -f "${manifest}" ]]; then
-        [[ "${inventory}" != cython ]] || return 0
+        [[ "${inventory}" != compilation ]] || return 0
         printf '  * pyproject.toml absent : dépendances non déclarées dans le projet\n'
         return 0
     fi
@@ -517,8 +520,8 @@ projects_template_devops_dependencies() {
         analysis_is_devops=0
     fi
     if [[ ! -x "${analyzer}" ]]; then
-        if [[ "${inventory}" == cython ]]; then
-            printf "  * Cython : déclaration non vérifiable (Python d'analyse absent)\n"
+        if [[ "${inventory}" == compilation ]]; then
+            printf "  * Outils de compilation Python : déclaration non vérifiable (Python d'analyse absent)\n"
         else
             printf "  * Dépendances non vérifiables : Python d'analyse absent\n"
         fi
@@ -667,12 +670,13 @@ def emit(label, version, interpreter, environment, location):
 
 
 def main():
-    compilation = sys.argv[4] == "cython"
+    compilation = sys.argv[4] == "compilation"
+    compilers = {"cython": "Cython", "nuitka": "Nuitka"}
     try:
         import tomllib
     except ImportError:
         if compilation:
-            print("  * Cython : déclaration non vérifiable (module tomllib absent)")
+            print("  * Outils de compilation Python : déclaration non vérifiable (module tomllib absent)")
         else:
             print("  * Lecture non disponible : module tomllib absent du Python d'analyse")
         return
@@ -705,11 +709,11 @@ def main():
                 constraint = "(référence directe déclarée dans pyproject.toml)"
             name = match[1]
             normalized = re.sub(r"[-_.]+", "-", name).lower()
-            if not compilation or normalized == "cython":
+            if not compilation or normalized in compilers:
                 declarations.append((normalized, (name + " " + constraint).strip()))
     except (OSError, ValueError, UnicodeError):
         if compilation:
-            print("  * Cython : déclaration non vérifiable (pyproject.toml illisible ou invalide)")
+            print("  * Outils de compilation Python : déclaration non vérifiable (pyproject.toml illisible ou invalide)")
         else:
             print("  * pyproject.toml illisible ou invalide : dépendances non vérifiables")
         return
@@ -750,23 +754,27 @@ def main():
 
     if compilation:
         print("# Python - Outils de compilation\n")
-        if "cython" in selected:
-            interpreter, environment, value = selected["cython"]
-            print(f"  * Cython : {value['version']}")
-            print(f"    * Interpréteur : {interpreter}")
-            print(f"    * Environnement : {environment}")
-            print(f"    * Installation : {value['location']}")
-        else:
-            unknown = incomplete or "cython" in uncertain or not environments
-            status = "installation non vérifiable" if unknown else "non installé"
-            print(f"  * Cython : {status}")
-            for environment in verified_environments:
-                print(f"    * Environnement vérifié : {environment}")
-            if not environments:
-                print("    * Diagnostic : aucun venv du projet détecté")
-        for _name, label in declarations:
-            print(f"    * Déclaration : {label}")
-        print("    * Source : pyproject.toml — [build-system].requires")
+        for name, title in compilers.items():
+            if name not in wanted:
+                continue
+            if name in selected:
+                interpreter, environment, value = selected[name]
+                print(f"  * {title} : {value['version']}")
+                print(f"    * Interpréteur : {interpreter}")
+                print(f"    * Environnement : {environment}")
+                print(f"    * Installation : {value['location']}")
+            else:
+                unknown = incomplete or name in uncertain or not environments
+                status = "installation non vérifiable" if unknown else "non installé"
+                print(f"  * {title} : {status}")
+                for environment in verified_environments:
+                    print(f"    * Environnement vérifié : {environment}")
+                if not environments:
+                    print("    * Diagnostic : aucun venv du projet détecté")
+            for declared_name, label in declarations:
+                if declared_name == name:
+                    print(f"    * Déclaration : {label}")
+            print("    * Source : pyproject.toml — [build-system].requires")
         if incomplete or uncertain:
             print("    * Diagnostic : recherche ou sonde des venv non vérifiable, inventaire partiel")
         return
@@ -1536,8 +1544,8 @@ projects_template_devops_render() {
     version="$(projects_template_devops_version python "${devops_home}" "${binary}" --version)" || return 1
     projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}" || return 1
 
-    if ! compilation_report="$(projects_template_devops_dependencies "${devops_home}" "${template_path}" "${python_binary}" cython 2>/dev/null)"; then
-        compilation_report='  * Cython : déclaration ou installation non vérifiable (sonde Python échouée)'
+    if ! compilation_report="$(projects_template_devops_dependencies "${devops_home}" "${template_path}" "${python_binary}" compilation 2>/dev/null)"; then
+        compilation_report='  * Outils de compilation Python : déclaration ou installation non vérifiable (sonde Python échouée)'
     fi
     if [[ -n "${compilation_report}" ]]; then
         printf '%s\n\n\n' "${compilation_report}" || return 1

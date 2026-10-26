@@ -1136,14 +1136,14 @@ exit
                             + json.dumps(['setuptools', requirement]) + '\n', encoding='utf-8')
         return manifest
 
-    def cython_inventory(self, source_replacements=()):
+    def compilation_inventory(self, source_replacements=()):
         source = MODULE.read_text(encoding='utf-8')
         for before, after in source_replacements:
             self.assertEqual(source.count(before), 1)
             source = source.replace(before, after)
         return subprocess.run(
             ['bash', '-Eeuo', 'pipefail', '-c', source + '\n'
-             'projects_template_devops_dependencies "$1" "$2" "$3" cython\n',
+             'projects_template_devops_dependencies "$1" "$2" "$3" compilation\n',
              'bash', str(self.home), str(self.template), str(self.home / 'python/current/bin/python3')],
             text=True, capture_output=True,
             env=dict(self.environment, ENV_DEVOPS_USER=getpass.getuser()), timeout=20, check=False)
@@ -1189,7 +1189,7 @@ exit
                     manifest.unlink(missing_ok=True)
                 else:
                     manifest.write_text(text, encoding='utf-8')
-                result = self.cython_inventory(replacements)
+                result = self.compilation_inventory(replacements)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stdout, '')
         content = self.successful_document(self.run_generation())
@@ -1220,7 +1220,7 @@ exit
             with self.subTest(manifest=manifest):
                 (self.template / 'pyproject.toml').write_text(manifest, encoding='utf-8')
                 content = self.successful_document(self.run_generation())
-                self.assertIn('Cython : déclaration non vérifiable', content)
+                self.assertIn('Outils de compilation Python : déclaration non vérifiable', content)
                 self.assertNotIn('# Python - Outils de compilation\n', content)
                 self.assertNotIn('Cython : non installé', content)
 
@@ -1278,7 +1278,7 @@ exit
     def test_cython_search_budget_exhaustion_never_proves_absence(self):
         self.cython_manifest()
         before = 'SEARCH_BUDGET = 12.0\nPROBE_TIMEOUT = 3.0'
-        result = self.cython_inventory(((before, 'SEARCH_BUDGET = -1.0\nPROBE_TIMEOUT = 3.0'),))
+        result = self.compilation_inventory(((before, 'SEARCH_BUDGET = -1.0\nPROBE_TIMEOUT = 3.0'),))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Cython : installation non vérifiable', result.stdout)
         self.assertNotIn('Cython : non installé', result.stdout)
@@ -1328,13 +1328,217 @@ exit
         content = self.successful_document(self.run_generation(r'''
 eval "$(declare -f projects_template_devops_dependencies | sed '1s/projects_template_devops_dependencies/saved_dependencies/')"
 projects_template_devops_dependencies() {
-    if [[ "${4:-}" == cython ]]; then printf 'private-cython-output'; return 7; fi
+    if [[ "${4:-}" == compilation ]]; then printf 'private-cython-output'; return 7; fi
     saved_dependencies "$@"
 }
 '''))
-        self.assertIn('Cython : déclaration ou installation non vérifiable', content)
+        self.assertIn('Outils de compilation Python : déclaration ou installation non vérifiable', content)
         self.assertNotIn('private-cython-output', content)
         self.assertIn('# Prompts\n', content)
+
+    def compilation_manifest(self, requirements):
+        manifest = self.template / 'pyproject.toml'
+        manifest.write_text('[project]\ndependencies = []\n\n[build-system]\nrequires = '
+                            + json.dumps(requirements)
+                            + '\nbuild-backend = "setuptools.build_meta"\n', encoding='utf-8')
+        return manifest
+
+    def test_nuitka_declared_version_extras_and_provenance(self):
+        environment, interpreter, location = self.project_venv('.venv', {'Nuitka': '2.7.1'})
+        self.add_distribution(self.metadata, 'Nuitka', '9.9')
+        for requirement, declaration in (
+                ('Nuitka', 'Nuitka'), ('nuitka>=2', 'nuitka >=2'),
+                ('NUITKA==2.7.1', 'NUITKA ==2.7.1'),
+                ('Nuitka[build-wheel]', 'Nuitka [build-wheel]'),
+                ('Nuitka>=2; python_version >= "3.12"', 'Nuitka >=2; python_version >= "3.12"')):
+            with self.subTest(requirement=requirement):
+                manifest = self.compilation_manifest(['setuptools', requirement])
+                before = manifest.read_bytes()
+                content = self.successful_document(self.run_generation())
+                self.assertEqual(content.count('# Python - Outils de compilation\n'), 1)
+                self.assertIn('  * Nuitka : 2.7.1\n', content)
+                self.assertIn(f'    * Déclaration : {declaration}\n', content)
+                self.assertIn('    * Source : pyproject.toml — [build-system].requires\n', content)
+                self.assertIn(f'    * Interpréteur : {interpreter}\n', content)
+                self.assertIn(f'    * Environnement : {environment}\n', content)
+                self.assertIn(f'    * Installation : {location.resolve()}\n', content)
+                self.assertNotIn('  * Cython :', content)
+                self.assertNotIn('Nuitka : 9.9', content)
+                self.assertEqual(before, manifest.read_bytes())
+
+    def test_nuitka_four_declaration_combinations_share_one_section(self):
+        self.project_venv('.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+        for requirements in ([], ['Cython'], ['Nuitka'], ['Nuitka', 'Cython']):
+            with self.subTest(requirements=requirements):
+                self.compilation_manifest(requirements)
+                content = self.successful_document(self.run_generation())
+                self.assertEqual(content.count('# Python - Outils de compilation\n'), bool(requirements))
+                for tool in ('Cython', 'Nuitka'):
+                    self.assertEqual(f'  * {tool} :' in content, tool in requirements)
+                if requirements:
+                    self.assertLess(content.index('# Python - Gestionnaire de paquets\n'),
+                                    content.index('# Python - Outils de compilation\n'))
+                    self.assertLess(content.index('# Python - Outils de compilation\n'),
+                                    content.index('# Prompts\n'))
+                if len(requirements) == 2:
+                    self.assertLess(content.index('  * Cython :'), content.index('  * Nuitka :'))
+
+    def test_nuitka_undeclared_never_discovers_and_is_not_requested_in_probes(self):
+        self.project_venv('.venv', {'Nuitka': '2.7.1', 'Cython': '3.3.0'})
+        discovery = 'def discover_environments(project_root, deadline):\n'
+        for text in ('[project]\ndependencies = ["Nuitka"]\n',
+                     '# Nuitka\n[build-system]\nrequires = ["setuptools", "nuitka-tools"]\n',
+                     '[tool.nuitka]\nshow-scons = true\n',
+                     '[project.optional-dependencies]\nbuild = ["Nuitka"]\n'):
+            with self.subTest(manifest=text):
+                (self.template / 'pyproject.toml').write_text(text)
+                result = self.compilation_inventory((
+                    (discovery, discovery + '    raise RuntimeError("unexpected-discovery")\n'),))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, '')
+        self.compilation_manifest(['Cython'])
+        wanted = 'wanted = set(json.loads(sys.argv[2]))\n'
+        result = self.compilation_inventory(((wanted, wanted + 'assert wanted == {"cython"}\n'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Cython : 3.3.0', result.stdout)
+        self.assertNotIn('Nuitka :', result.stdout)
+        self.compilation_manifest(['Nuitka'])
+        result = self.compilation_inventory(((wanted, wanted + 'assert wanted == {"nuitka"}\n'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Nuitka : 2.7.1', result.stdout)
+        self.assertNotIn('Cython :', result.stdout)
+
+    def test_nuitka_absence_and_cython_version_are_independent_of_global_packages(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        environment, _interpreter, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        self.add_distribution(self.metadata, 'Nuitka', '9.9')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertIn('  * Nuitka : non installé\n', content)
+        self.assertIn(f'    * Environnement vérifié : {environment}\n', content)
+        self.assertNotIn('Nuitka : 9.9', content)
+        self.assertNotIn('Python DevOps (repli)', content)
+
+    def test_nuitka_shared_discovery_and_probe_run_once_for_both_names(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        self.project_venv('.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+        log = self.fixture / 'compiler-searches'
+        discovery = 'def discover_environments(project_root, deadline):\n'
+        wanted = 'wanted = set(json.loads(sys.argv[2]))\n'
+        result = self.compilation_inventory((
+            (discovery, discovery + f'    with Path({str(log)!r}).open("a") as stream: '
+             'stream.write("discover\\n")\n'),
+            (wanted, wanted + 'assert wanted == {"cython", "nuitka"}\n'
+             + f'with Path({str(log)!r}).open("a") as stream: stream.write("probe\\n")\n')))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Cython : 3.3.0', result.stdout)
+        self.assertIn('Nuitka : 2.7.1', result.stdout)
+        self.assertEqual(log.read_text().splitlines(), ['discover', 'probe'])
+
+    def test_nuitka_ambiguous_metadata_does_not_contaminate_cython_and_reciprocally(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        _environment, _interpreter, location = self.project_venv(
+            '.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+        duplicate = self.add_distribution(location, 'Nuitka', '2.7.2')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Cython : 3.3.0\n', content)
+        self.assertIn('Nuitka : installation non vérifiable\n', content)
+        shutil.rmtree(duplicate)
+        self.add_distribution(location, 'Cython', '3.2.0')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Nuitka : 2.7.1\n', content)
+        self.assertIn('Cython : installation non vérifiable\n', content)
+
+    def test_nuitka_distinct_venvs_spaces_priority_and_no_import_or_pth(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        cython_env, _python, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        nuitka_env, nuitka_python, location = self.project_venv('backend/build env', {'Nuitka': '2.7.1'})
+        self.project_venv('z-build', {'Nuitka': '2.6.0'})
+        marker = self.fixture / 'nuitka-code-executed'
+        payload = f'import pathlib; pathlib.Path({str(marker)!r}).touch()\n'
+        (location / 'nuitka').mkdir()
+        (location / 'nuitka/__init__.py').write_text(payload)
+        (location / 'nuitka.pth').write_text(payload)
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'  * Cython : 3.3.0\n    * Interpréteur : {cython_env}/bin/python3\n', content)
+        self.assertIn(f'  * Nuitka : 2.7.1\n    * Interpréteur : {nuitka_python}\n'
+                      f'    * Environnement : {nuitka_env}\n', content)
+        self.assertNotIn('Nuitka : 2.6.0', content)
+        self.assertFalse(marker.exists())
+
+    def test_nuitka_no_venv_or_failed_probe_remains_unknown(self):
+        self.compilation_manifest(['Nuitka'])
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Nuitka : installation non vérifiable\n', content)
+        self.assertIn('aucun venv du projet détecté', content)
+        environment = self.template / '.venv'
+        (environment / 'bin').mkdir(parents=True)
+        (environment / 'pyvenv.cfg').write_text('home = fixture\n')
+        self.executable(environment / 'bin/python3', "printf 'private-nuitka-probe\\n' >&2\nexit 7")
+        result = self.run_generation()
+        content = self.successful_document(result)
+        self.assertIn('Nuitka : installation non vérifiable\n', content)
+        self.assertNotIn('Nuitka : non installé', content)
+        self.assertNotIn('private-nuitka-probe', content + result.stdout + result.stderr)
+
+    def test_nuitka_budget_and_probe_timeout_preserve_unknown_and_stop_descendants(self):
+        self.compilation_manifest(['Nuitka'])
+        before = 'SEARCH_BUDGET = 12.0\nPROBE_TIMEOUT = 3.0'
+        result = self.compilation_inventory(((before, 'SEARCH_BUDGET = -1.0\nPROBE_TIMEOUT = 3.0'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Nuitka : installation non vérifiable', result.stdout)
+        environment = self.template / '.venv'
+        (environment / 'bin').mkdir(parents=True)
+        (environment / 'pyvenv.cfg').write_text('home = fixture\n')
+        pid_file = self.fixture / 'nuitka-child.pid'
+        self.executable(environment / 'bin/python3',
+                        f"/usr/bin/sleep 10 &\nprintf '%s\\n' \"$!\" > '{pid_file}'\nwait")
+        result = self.compilation_inventory(((before, 'SEARCH_BUDGET = 12.0\nPROBE_TIMEOUT = 0.1'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Nuitka : installation non vérifiable', result.stdout)
+        status = Path(f'/proc/{int(pid_file.read_text())}/stat')
+        self.assertTrue(not status.exists() or status.read_text().split()[2] == 'Z')
+
+    def test_nuitka_build_only_manifest_without_devops_python(self):
+        (self.template / 'pyproject.toml').write_text('[build-system]\nrequires = ["Nuitka"]\n')
+        _environment, interpreter, _location = self.project_venv('.venv', {'Nuitka': '2.7.1'})
+        (self.home / 'python/current/bin/python3').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Nuitka : 2.7.1\n    * Interpréteur : {interpreter}\n', content)
+
+    def test_nuitka_direct_reference_is_redacted_and_bad_manifest_is_not_absence(self):
+        self.compilation_manifest(['Nuitka @ https://example.test/private-nuitka-reference'])
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Déclaration : Nuitka (référence directe déclarée dans pyproject.toml)', content)
+        self.assertNotIn('private-nuitka-reference', content)
+        (self.template / 'pyproject.toml').write_text('[build-system]\nrequires = "Nuitka"\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Outils de compilation Python : déclaration non vérifiable', content)
+        self.assertNotIn('# Python - Outils de compilation\n', content)
+        self.assertNotIn('Nuitka : non installé', content)
+
+    def test_nuitka_batch_only_documents_declared_compilers(self):
+        root = self.fixture / 'projects with spaces'
+        original_template = self.template
+        for project, requirements in (('cython-app', ['Cython']), ('nuitka-app', ['Nuitka']),
+                                      ('both-app', ['Nuitka', 'Cython']), ('plain-app', [])):
+            path = self.configured_project(root, project, {'PROJECT_TYPE': 'PYTHON'})
+            try:
+                self.template = path
+                self.compilation_manifest(requirements)
+                self.project_venv('.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+            finally:
+                self.template = original_template
+        result = self.run_generation(projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for project, tools in (('cython-app', ['Cython']), ('nuitka-app', ['Nuitka']),
+                               ('both-app', ['Cython', 'Nuitka']), ('plain-app', [])):
+            content = (root / project / 'DEVOPS.md').read_text()
+            self.assertEqual(content.count('# Python - Outils de compilation\n'), bool(tools))
+            for tool in ('Cython', 'Nuitka'):
+                self.assertEqual(f'  * {tool} :' in content, tool in tools)
+            if tools:
+                self.assertIn(f'Environnement : {root / project}/.venv\n', content)
 
     def test_project_venv_matches_pixs_dependencies_and_effective_paths(self):
         packages = {"Django": "6.1.1", "psycopg": "3.3.6",
@@ -2208,7 +2412,7 @@ projects_template_devops_javascript() {
         self.javascript_manifest('frontend/package.json', dependencies={'creation-fixture': '1.0.0'})
         # Un modèle Python ne doit pas transmettre son manifeste à un projet Node.
         (self.template / 'pyproject.toml').write_text(
-            '[project]\nname="existing"\ndependencies=[]\n[build-system]\nrequires=["Cython"]\n')
+            '[project]\nname="existing"\ndependencies=[]\n[build-system]\nrequires=["Cython", "Nuitka"]\n')
         extra = projects_source + r'''
 check_devops_user() { return 0; }
 install() { mkdir -p "${!#}"; }
@@ -2283,6 +2487,7 @@ exit $?
                                      project == 'python-app')
                     if project == 'python-app':
                         self.assertIn('Cython : installation non vérifiable', content)
+                        self.assertIn('Nuitka : installation non vérifiable', content)
                     if project == 'python-minimal':
                         self.assertEqual(tomllib.loads((target / 'pyproject.toml').read_text())['project'],
                                          {'name': project, 'version': '0.0.0', 'dependencies': []})
