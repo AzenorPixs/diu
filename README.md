@@ -171,7 +171,7 @@ Sinon, cette rubrique et sa sonde Docker sont omises ; Docker-Compose reste pré
 
 La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » apparaît
 indépendamment si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`. Elle suit Docker
-lorsqu'il est présent, sinon Matériel, et précède Docker-Compose. Ses trois premières
+lorsqu'il est présent, sinon Matériel, et précède OpenSSH & SSHPASS, puis Docker-Compose. Ses trois premières
 puces sont :
 « Variables d'accès disponible dans project.env pour l'accès SSH », « Debian 13 », « Accès TPM OK ».
 Ces mentions sont déclaratives, sans connexion LXC, lecture d'identifiants ni
@@ -188,6 +188,18 @@ L’autorisation est dernière pour Docker et quatrième pour LXC. LXC se termin
 « Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
 Une rubrique désactivée n’émet aucune puce d’autorisation ni de conservation
 des dépendances de test.
+
+La rubrique permanente « OpenSSH & SSHPASS » suit LXC lorsqu’il est présent,
+sinon le dernier bloc précédent, et précède Docker-Compose. Ses quatre puces
+indiquent la version OpenSSH, le chemin hôte de `ssh`, la version sshpass et
+le chemin hôte de `sshpass`. Les versions proviennent de `ssh -V` (y compris
+sa sortie sur stderr) et `sshpass -V`, avec une borne de 15 secondes par outil.
+Seul le numéro de version est publié ; absences, échecs, expirations et sorties
+non reconnues sont signalés explicitement. Aucune connexion, lecture
+d’identifiants, installation ou modification des droits de ces outils n’est
+réalisée. Cette rubrique est indépendante des indicateurs Docker/LXC et
+commune aux trois parcours, au format documentaire `0.7`. Les documents existants
+l’adoptent à leur prochaine génération normale.
 
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps

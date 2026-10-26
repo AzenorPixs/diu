@@ -358,7 +358,7 @@ digest. Docker-Compose et les autres rubriques et sondes restent indépendants.
 
 La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » est générée
 uniquement si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`, indépendamment de Docker.
-Elle suit Docker lorsqu'il est présent, sinon Matériel, et précède Docker-Compose.
+Elle suit Docker lorsqu'il est présent, sinon Matériel, et précède OpenSSH & SSHPASS, puis Docker-Compose.
 Ses trois premières puces sont fixes : « Variables d'accès disponible dans project.env pour l'accès SSH »,
 « Debian 13 », « Accès TPM OK ». Ces mentions sont déclaratives : le générateur
 ne lit pas d'identifiants LXC, ne se connecte pas au conteneur et ne qualifie pas
@@ -376,6 +376,18 @@ et conserve le document existant. Aucune autorisation
 orpheline n'est émise pour une rubrique omise. Cette génération reste documentaire :
 elle ne modifie pas les contrôles de permissions imposés par les outils ou
 plateformes et ne lance aucune opération réelle dans les conteneurs.
+
+La rubrique permanente « OpenSSH & SSHPASS » suit LXC lorsqu’il est présent,
+sinon le dernier bloc précédent, et précède Docker-Compose. Ses quatre puces
+indiquent la version OpenSSH, le chemin hôte de `ssh`, la version sshpass et
+le chemin hôte de `sshpass`. Les versions proviennent de `ssh -V` (y compris
+sa sortie sur stderr) et `sshpass -V`, avec une borne de 15 secondes par outil.
+Seul le numéro de version est publié ; absences, échecs, expirations et sorties
+non reconnues sont signalés explicitement. Aucune connexion, lecture
+d’identifiants, installation ou modification des droits de ces outils n’est
+réalisée. Cette rubrique est indépendante des indicateurs Docker/LXC et
+commune aux trois parcours, au format documentaire `0.7`. Les documents existants
+l’adoptent à leur prochaine génération normale.
 
 La rubrique « Prompts », après le gestionnaire de paquets Python et avant les
 tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
