@@ -77,13 +77,57 @@ projects_template_devops_user_run() {
     fi
 }
 
+projects_template_devops_prepare_executables() {
+    local devops_home="$1" canonical_home="" relative="" target="" mode=""
+
+    if ! canonical_home="$(readlink -f -- "${devops_home}" 2>/dev/null)" ||
+        [[ ! -d "${canonical_home}" ]]; then
+        print_error 'Impossible de résoudre le domicile DevOps pour préparer les exécutables.'
+        return 1
+    fi
+    for relative in go/current/bin/go node/current/bin/node node/current/bin/npm \
+        .opencode/bin/opencode .local/npm/bin/openspec \
+        python/current/bin/python3 python/current/bin/pip3; do
+        if [[ ! -e "${devops_home}/${relative}" && ! -L "${devops_home}/${relative}" ]]; then
+            continue
+        fi
+        if ! target="$(readlink -f -- "${devops_home}/${relative}" 2>/dev/null)" ||
+            [[ "${target}" != "${canonical_home}/"* ]]; then
+            print_error "Cible DevOps non résolue ou hors du domicile : ${relative}."
+            return 1
+        fi
+        if [[ ! -e "${target}" ]]; then
+            continue
+        fi
+        if [[ ! -f "${target}" ]]; then
+            print_error "Le binaire DevOps doit être un fichier ordinaire : ${relative}."
+            return 1
+        fi
+        if ! mode="$(stat -c '%a' -- "${target}" 2>/dev/null)" ||
+            [[ ! "${mode}" =~ ^[0-7]{3,4}$ ]]; then
+            print_error "Impossible de lire les droits du binaire DevOps : ${relative}."
+            return 1
+        fi
+        if (( (8#${mode} & 8#111) != 8#111 )); then
+            if ! chmod ugo+x -- "${target}" 2>/dev/null; then
+                print_error "Impossible de rendre le binaire DevOps exécutable : ${relative}."
+                return 1
+            fi
+        fi
+    done
+}
+
 projects_template_devops_version() {
     local context="$1" devops_home="$2" binary="$3"
     local output=""
     shift 3
 
-    if [[ -z "${binary}" || ! -x "${binary}" ]]; then
+    if [[ -z "${binary}" || ! -e "${binary}" ]]; then
         printf '%s\n' 'indisponible (binaire absent)'
+        return 0
+    fi
+    if [[ ! -f "${binary}" || ! -x "${binary}" ]]; then
+        printf '%s\n' 'indisponible (binaire non exécutable)'
         return 0
     fi
 
@@ -133,15 +177,198 @@ projects_template_devops_version() {
     fi
 }
 
+projects_template_devops_ssh_version() {
+    local tool="$1" binary="$2" output="" pattern=""
+
+    if [[ -z "${binary}" || ! -e "${binary}" ]]; then
+        printf '%s\n' 'indisponible (binaire absent)'
+        return 0
+    fi
+    if [[ ! -f "${binary}" || ! -x "${binary}" ]]; then
+        printf '%s\n' 'indisponible (binaire non exécutable)'
+        return 0
+    fi
+    case "${tool}" in
+        ssh)
+            # OpenSSH publie sa version sur stderr, sans connexion avec -V.
+            if ! output="$(/usr/bin/timeout 15s "${binary}" -V 2>&1)"; then
+                printf '%s\n' 'indisponible (sonde échouée)'
+                return 0
+            fi
+            pattern='^OpenSSH_([0-9]+\.[0-9]+(p[0-9]+)?)([[:space:]]|$)'
+            ;;
+        sshpass)
+            if ! output="$(/usr/bin/timeout 15s "${binary}" -V 2>/dev/null)"; then
+                printf '%s\n' 'indisponible (sonde échouée)'
+                return 0
+            fi
+            pattern='^sshpass[[:blank:]]+([0-9]+\.[0-9]+(\.[0-9]+)?)([[:space:]]|$)'
+            ;;
+        *) return 1 ;;
+    esac
+    output="${output%%$'\n'*}"
+    if [[ "${output}" =~ ${pattern} ]]; then
+        printf '%s\n' "${BASH_REMATCH[1]}"
+    else
+        printf '%s\n' 'indisponible (version non reconnue)'
+    fi
+}
+
+projects_template_devops_test_authorization() {
+    printf "  * Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests.%s" "${1-$'\n\n\n'}"
+}
+
 projects_template_devops_section() {
     local title="$1" version="$2" binary="$3"
     if [[ "${title}" == Docker ]]; then
-        printf '# %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n' \
-            "${title}" "${version}" "${binary:-binaire introuvable}"
+        printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n' \
+            "${title}" "${version}" "${binary:-binaire introuvable}" || return 1
+        projects_template_devops_test_authorization || return 1
     else
         printf '# %s\n\n  * %s\n  * %s\n\n\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}"
     fi
+}
+
+projects_template_devops_tpm_device() {
+    local device_root="$1" candidate=""
+    local LC_ALL=C
+    for candidate in "${device_root}"/tpmrm[0-9]* "${device_root}"/tpm[0-9]*; do
+        if [[ -c "${candidate}" && "${candidate##*/}" =~ ^tpm(rm)?[0-9]+$ ]]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+projects_template_devops_tpm_property() {
+    local output="$1" property="$2" field="$3" pattern="$4"
+    local line="" current="" value="" blocks=0 values=0
+    while IFS= read -r line; do
+        if [[ "${line}" =~ ^([A-Z0-9_]+):[[:space:]]*$ ]]; then
+            current="${BASH_REMATCH[1]}"
+            if [[ "${current}" == "${property}" ]]; then
+                blocks=$((blocks + 1))
+            fi
+        elif [[ "${current}" == "${property}" &&
+            "${line}" =~ ^[[:space:]]+(raw|value):[[:space:]]*(.*)$ &&
+            "${BASH_REMATCH[1]}" == "${field}" ]]; then
+            value="${BASH_REMATCH[2]}"
+            values=$((values + 1))
+        fi
+    done <<< "${output}"
+    if [[ "${value}" == \"*\" ]]; then
+        value="${value:1:${#value}-2}"
+    fi
+    if [[ "${blocks}" -ne 1 || "${values}" -ne 1 || ! "${value}" =~ ${pattern} ]]; then
+        return 1
+    fi
+    printf '%s\n' "${value}"
+}
+
+projects_template_devops_tpm_pcrs() {
+    local output="$1" line="" bank="" selection="" value="" result="" banks=',' seen=""
+    local header=0
+    local pattern='^[[:space:]]*-[[:space:]]+([a-z][a-z0-9_]{0,31}):[[:space:]]*\[([^]]*)\][[:space:]]*$'
+    local indices_pattern='^[[:space:]]*([0-9]{1,3}([[:space:]]*,[[:space:]]*[0-9]{1,3})*)?[[:space:]]*$'
+    local -a indices=()
+    while IFS= read -r line; do
+        if [[ "${line}" == 'selected-pcrs:' && "${header}" -eq 0 ]]; then
+            header=1
+        elif [[ "${line}" =~ ^[[:space:]]*$ ]]; then
+            continue
+        elif [[ "${header}" -eq 1 && "${line}" =~ ${pattern} ]]; then
+            bank="${BASH_REMATCH[1]}"
+            selection="${BASH_REMATCH[2]}"
+            if [[ "${banks}" == *",${bank},"* || ! "${selection}" =~ ${indices_pattern} ]]; then
+                return 1
+            fi
+            banks+="${bank},"
+            IFS=',' read -r -a indices <<< "${selection}"
+            selection='' seen=','
+            for value in "${indices[@]}"; do
+                value="${value//[[:space:]]/}"
+                [[ -n "${value}" ]] || continue
+                value="$((10#${value}))"
+                if [[ "${value}" -gt 255 || "${seen}" == *",${value},"* ]]; then
+                    return 1
+                fi
+                seen+="${value},"
+                selection+="${selection:+, }${value}"
+            done
+            result+="${result:+ ; }${bank}: [${selection}]"
+        else
+            return 1
+        fi
+    done <<< "${output}"
+    [[ -n "${result}" ]] || return 1
+    printf '%s\n' "${result}"
+}
+
+projects_template_devops_tpm() {
+    local device_root="${1:-/dev}" sysfs_root="${2:-/sys/class/tpm}"
+    local device="" index="" major="" binary="" output="" status=0
+    local version='non vérifiable' manufacturer='non vérifiable'
+    local vendor='non vérifiable' revision='non vérifiable' pcrs='non vérifiable'
+    local diagnostic='indisponible (aucun périphérique TPM visible)'
+
+    if device="$(projects_template_devops_tpm_device "${device_root}")"; then
+        index="${device##*/tpm}"
+        index="${index#rm}"
+        if [[ -r "${sysfs_root}/tpm${index}/tpm_version_major" ]] &&
+            IFS= read -r major < "${sysfs_root}/tpm${index}/tpm_version_major"; then
+            case "${major}" in
+                1) version=1.2 ;;
+                2) version=2.0 ;;
+            esac
+        fi
+        if [[ "${version}" == 1.2 ]]; then
+            diagnostic='non vérifiable (sonde réservée au TPM 2)'
+        elif [[ ! -r "${device}" || ! -w "${device}" ]]; then
+            diagnostic='non vérifiable (accès au périphérique refusé)'
+        elif ! binary="$(projects_template_devops_host_binary tpm2_getcap)" || [[ ! -x "${binary}" ]]; then
+            diagnostic='non vérifiable (tpm2_getcap absent)'
+        else
+            diagnostic=''
+            if output="$(/usr/bin/timeout --kill-after=1s 5s "${binary}" -T "device:${device}" properties-fixed 2>/dev/null)"; then
+                if [[ "${#output}" -le 65536 ]]; then
+                    if [[ "${version}" == 'non vérifiable' ]]; then
+                        version="$(projects_template_devops_tpm_property "${output}" TPM2_PT_FAMILY_INDICATOR value '^2[.]0$')" || version='non vérifiable'
+                    fi
+                    manufacturer="$(projects_template_devops_tpm_property "${output}" TPM2_PT_MANUFACTURER value '^[A-Za-z0-9][A-Za-z0-9 ._-]{0,31}$')" || manufacturer='non vérifiable'
+                    vendor="$(projects_template_devops_tpm_property "${output}" TPM2_PT_MANUFACTURER raw '^0[xX][0-9A-Fa-f]{1,8}$')" || vendor='non vérifiable'
+                    revision="$(projects_template_devops_tpm_property "${output}" TPM2_PT_REVISION value '^[0-9]{1,3}[.][0-9]{2}$')" || revision='non vérifiable'
+                fi
+            else
+                status=$?
+                manufacturer='non vérifiable (sonde échouée)'
+                if [[ "${status}" -eq 124 || "${status}" -eq 137 ]]; then
+                    manufacturer='non vérifiable (sonde expirée)'
+                fi
+                vendor="${manufacturer}" revision="${manufacturer}"
+            fi
+            if output="$(/usr/bin/timeout --kill-after=1s 5s "${binary}" -T "device:${device}" pcrs 2>/dev/null)"; then
+                if [[ "${#output}" -le 65536 ]]; then
+                    pcrs="$(projects_template_devops_tpm_pcrs "${output}")" || pcrs='non vérifiable'
+                fi
+            else
+                status=$?
+                pcrs='non vérifiable (sonde échouée)'
+                if [[ "${status}" -eq 124 || "${status}" -eq 137 ]]; then
+                    pcrs='non vérifiable (sonde expirée)'
+                fi
+            fi
+        fi
+    else
+        device="${diagnostic}"
+        version="${diagnostic}"
+    fi
+    if [[ -n "${diagnostic}" ]]; then
+        manufacturer="${diagnostic}" vendor="${diagnostic}" revision="${diagnostic}" pcrs="${diagnostic}"
+    fi
+    printf '# Matériel\n\n## TPM\n\n  * Chemin : %s\n  * Version : %s\n  * Fabricant : %s\n  * Identifiant fournisseur : %s\n  * Révision de spécification : %s\n  * Registres PCR : %s\n\n\n' \
+        "${device}" "${version}" "${manufacturer}" "${vendor}" "${revision}" "${pcrs}"
 }
 
 projects_template_devops_postgresql() {
@@ -274,9 +501,14 @@ PY
 
 projects_template_devops_dependencies() {
     local devops_home="$1" template_path="$2" python_binary="$3"
+    local inventory="${4:-runtime}"
+    if [[ "${inventory}" == cython ]]; then
+        inventory=compilation
+    fi
     local analyzer="${python_binary}" analysis_is_devops=1
     local manifest="${template_path}/pyproject.toml"
     if [[ ! -f "${manifest}" ]]; then
+        [[ "${inventory}" != compilation ]] || return 0
         printf '  * pyproject.toml absent : dépendances non déclarées dans le projet\n'
         return 0
     fi
@@ -288,12 +520,16 @@ projects_template_devops_dependencies() {
         analysis_is_devops=0
     fi
     if [[ ! -x "${analyzer}" ]]; then
-        printf "  * Dépendances non vérifiables : Python d'analyse absent\n"
+        if [[ "${inventory}" == compilation ]]; then
+            printf "  * Outils de compilation Python : déclaration non vérifiable (Python d'analyse absent)\n"
+        else
+            printf "  * Dépendances non vérifiables : Python d'analyse absent\n"
+        fi
         return 0
     fi
 
     projects_template_devops_user_run "${devops_home}" "${analyzer}" -I -B - \
-        "${manifest}" "${python_binary}" "${analysis_is_devops}" <<'PY'
+        "${manifest}" "${python_binary}" "${analysis_is_devops}" "${inventory}" <<'PY'
 from importlib import metadata
 from pathlib import Path
 import json
@@ -434,19 +670,32 @@ def emit(label, version, interpreter, environment, location):
 
 
 def main():
+    compilation = sys.argv[4] == "compilation"
+    compilers = {"cython": "Cython", "nuitka": "Nuitka"}
     try:
         import tomllib
     except ImportError:
-        print("  * Lecture non disponible : module tomllib absent du Python d'analyse")
+        if compilation:
+            print("  * Outils de compilation Python : déclaration non vérifiable (module tomllib absent)")
+        else:
+            print("  * Lecture non disponible : module tomllib absent du Python d'analyse")
         return
     try:
         manifest = Path(sys.argv[1])
         project_root = manifest.parent.resolve()
-        project = tomllib.loads(manifest.read_text(encoding="utf-8")).get("project", {})
-        if not isinstance(project, dict):
-            raise ValueError("projet invalide")
-        dependencies = project.get("dependencies", [])
-        dynamic = project.get("dynamic", [])
+        document = tomllib.loads(manifest.read_text(encoding="utf-8"))
+        if compilation:
+            build_system = document.get("build-system", {})
+            if not isinstance(build_system, dict):
+                raise ValueError("construction invalide")
+            dependencies = build_system.get("requires", [])
+            dynamic = []
+        else:
+            project = document.get("project", {})
+            if not isinstance(project, dict):
+                raise ValueError("projet invalide")
+            dependencies = project.get("dependencies", [])
+            dynamic = project.get("dynamic", [])
         if (not isinstance(dependencies, list) or not all(isinstance(item, str) for item in dependencies)
                 or not isinstance(dynamic, list) or not all(isinstance(item, str) for item in dynamic)):
             raise ValueError("dependances invalides")
@@ -459,12 +708,18 @@ def main():
             if "@" in constraint:
                 constraint = "(référence directe déclarée dans pyproject.toml)"
             name = match[1]
-            declarations.append((re.sub(r"[-_.]+", "-", name).lower(),
-                                 (name + " " + constraint).strip()))
+            normalized = re.sub(r"[-_.]+", "-", name).lower()
+            if not compilation or normalized in compilers:
+                declarations.append((normalized, (name + " " + constraint).strip()))
     except (OSError, ValueError, UnicodeError):
-        print("  * pyproject.toml illisible ou invalide : dépendances non vérifiables")
+        if compilation:
+            print("  * Outils de compilation Python : déclaration non vérifiable (pyproject.toml illisible ou invalide)")
+        else:
+            print("  * pyproject.toml illisible ou invalide : dépendances non vérifiables")
         return
 
+    if compilation and not declarations:
+        return
     if "dependencies" in dynamic:
         print("  * Dépendances dynamiques : versions non vérifiables depuis pyproject.toml")
     elif not declarations:
@@ -475,6 +730,7 @@ def main():
     wanted = {name for name, _label in declarations}
     selected = {}
     uncertain = set()
+    verified_environments = []
     deadline = time.monotonic() + SEARCH_BUDGET
     environments, incomplete = discover_environments(project_root, deadline)
     for environment in environments:
@@ -489,11 +745,39 @@ def main():
             uncertain.update(missing)
             continue
         interpreter, values = observation
+        verified_environments.append(environment)
         for name, value in values.items():
             if value is None:
                 uncertain.add(name)
             else:
                 selected[name] = (str(interpreter), str(environment), value)
+
+    if compilation:
+        print("# Python - Outils de compilation\n")
+        for name, title in compilers.items():
+            if name not in wanted:
+                continue
+            if name in selected:
+                interpreter, environment, value = selected[name]
+                print(f"  * {title} : {value['version']}")
+                print(f"    * Interpréteur : {interpreter}")
+                print(f"    * Environnement : {environment}")
+                print(f"    * Installation : {value['location']}")
+            else:
+                unknown = incomplete or name in uncertain or not environments
+                status = "installation non vérifiable" if unknown else "non installé"
+                print(f"  * {title} : {status}")
+                for environment in verified_environments:
+                    print(f"    * Environnement vérifié : {environment}")
+                if not environments:
+                    print("    * Diagnostic : aucun venv du projet détecté")
+            for declared_name, label in declarations:
+                if declared_name == name:
+                    print(f"    * Déclaration : {label}")
+            print("    * Source : pyproject.toml — [build-system].requires")
+        if incomplete or uncertain:
+            print("    * Diagnostic : recherche ou sonde des venv non vérifiable, inventaire partiel")
+        return
 
     if incomplete or uncertain:
         print("  * Recherche ou sonde des venv du projet non vérifiable : inventaire partiel.")
@@ -1102,17 +1386,39 @@ finally:
 PY_JS
 }
 
+projects_template_devops_hostname() {
+    local binary="" output=""
+    local LC_ALL=C
+
+    if ! binary="$(projects_template_devops_host_binary hostname)" || [[ ! -x "${binary}" ]]; then
+        printf '%s\n' 'indisponible (commande hostname absente)'
+        return 0
+    fi
+    if ! output="$(/usr/bin/timeout 15s "${binary}" -f 2>/dev/null)"; then
+        printf '%s\n' "indisponible (nom d'hôte non vérifiable)"
+        return 0
+    fi
+    if [[ ! "${output}" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]{0,252}$ ]]; then
+        printf '%s\n' "indisponible (nom d'hôte invalide)"
+        return 0
+    fi
+    printf '%s\n' "${output}"
+}
+
 projects_template_devops_render() {
     local devops_home="$1" template_path="$2"
     local project_title="${3:-${template_path##*/}}"
     local name="" binary="" version="" context="" operating_system=""
+    local hostname="" ssh_tool=""
     local psql_binary="" compose_binary="" python_binary="${devops_home}/python/current/bin/python3"
     local venv_status='indisponible'
     local started_at="" environment_type=UNSET
     local javascript_report="" javascript_dependencies="" opencode_dependencies=""
+    local compilation_report=""
     local -a version_arguments=()
 
     started_at="$(projects_template_devops_timestamp)" || return 1
+    projects_template_devops_prepare_executables "${devops_home}" || return 1
     case "${SYSTEM_DEBIAN_ENVIRONNEMENT:-UNSET}" in
         DOCKER|LXC|PHYSICAL|PROXMOX|VM|UNSET)
             environment_type="${SYSTEM_DEBIAN_ENVIRONNEMENT:-UNSET}" ;;
@@ -1129,7 +1435,7 @@ projects_template_devops_render() {
     if [[ "${project_title}" == template ]]; then
         project_title=Template
     fi
-    printf '# DEVOPS.md — %s\n\nVersion : 0.6\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
+    printf '# DEVOPS.md — %s\n\nVersion : 0.7\n\nGénéré automatiquement par Debian Installeur Unifié (DIU).\nDébut du relevé (UTC) : %s\nEnvironnement d\047exécution DIU : %s\n\n' \
         "${project_title}" "${started_at}" "${environment_type}" || return 1
     printf '%s\n' \
         "Les sondes système concernent le contexte d'exécution DIU." \
@@ -1137,13 +1443,16 @@ projects_template_devops_render() {
         'Les dépendances Python sont recherchées en priorité dans les venv du projet, puis dans le Python DevOps en repli explicite.' \
         "Dans l’inventaire Python, la flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées." \
         'Les dépendances Python attendues proviennent de [project].dependencies dans pyproject.toml.' \
+        'Les outils de compilation Python éventuellement affichés proviennent de [build-system].requires et sont recherchés uniquement dans les venv du projet.' \
         'Les dépendances JavaScript sont regroupées par manifeste et catégorie sous NPM et OpenCode.' \
         'Leurs déclarations, versions verrouillées npm et métadonnées locales sont distinctes ; un verrou ne prouve pas une installation.' \
         'Les contraintes JavaScript ne sont pas résolues et cet inventaire ne prouve pas le chargement de plugins OpenCode.' \
         'Un inventaire multi-environnements ne valide pas un environnement Python unique.' \
         'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.' \
         '' || return 1
-    printf '# Système d\047exploitation\n\n  * %s\n\n\n' "${operating_system}" || return 1
+    hostname="$(projects_template_devops_hostname)" || return 1
+    printf '# Système d\047exploitation\n\n  * %s\n  * %s\n\n\n' "${operating_system}" "${hostname}" || return 1
+    projects_template_devops_tpm /dev /sys/class/tpm || return 1
 
     if ! javascript_report="$(projects_template_devops_javascript "${devops_home}" "${template_path}" 2>/dev/null)" ||
         [[ "${javascript_report}" != *$'\034'* ]]; then
@@ -1152,7 +1461,28 @@ projects_template_devops_render() {
     javascript_dependencies="${javascript_report%%$'\034'*}"
     opencode_dependencies="${javascript_report#*$'\034'}"
 
-    for name in Docker Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
+    for name in Docker LXC 'OpenSSH & SSHPASS' Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
+        case "${name}" in
+            Docker) [[ "${ENV_DEVOPS_TESTS_DOCKER:-0}" == 1 ]] || continue ;;
+            LXC)
+                if [[ "${ENV_DEVOPS_TESTS_LXC:-0}" == 1 ]]; then
+                    printf '# Conteneur LXC, pour tests nécessitant des droits root accessible en SSH\n\n  * Variables d\047accès disponible dans project.env pour l\047accès SSH\n  * Debian 13\n  * Accès TPM OK\n' || return 1
+                    projects_template_devops_test_authorization $'\n' || return 1
+                    printf '  * Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests.\n\n\n' || return 1
+                fi
+                continue
+                ;;
+            'OpenSSH & SSHPASS')
+                printf '# OpenSSH & SSHPASS\n\n' || return 1
+                for ssh_tool in ssh sshpass; do
+                    binary="$(projects_template_devops_host_binary "${ssh_tool}")" || binary=''
+                    version="$(projects_template_devops_ssh_version "${ssh_tool}" "${binary}")" || return 1
+                    printf '  * %s\n  * %s\n' "${version}" "${binary:-binaire introuvable}" || return 1
+                done
+                printf '\n\n' || return 1
+                continue
+                ;;
+        esac
         context=host
         version_arguments=(--version)
         case "${name}" in
@@ -1213,6 +1543,13 @@ projects_template_devops_render() {
     binary="${devops_home}/python/current/bin/pip3"
     version="$(projects_template_devops_version python "${devops_home}" "${binary}" --version)" || return 1
     projects_template_devops_section 'Python - Gestionnaire de paquets' "${version}" "${binary}" || return 1
+
+    if ! compilation_report="$(projects_template_devops_dependencies "${devops_home}" "${template_path}" "${python_binary}" compilation 2>/dev/null)"; then
+        compilation_report='  * Outils de compilation Python : déclaration ou installation non vérifiable (sonde Python échouée)'
+    fi
+    if [[ -n "${compilation_report}" ]]; then
+        printf '%s\n\n\n' "${compilation_report}" || return 1
+    fi
 
     printf '# Prompts\n\n  * Dossier des prompts : %s/datas/prompts\n  * Index des prompts : %s/datas/prompts/INDEX.md\n\n\n' \
         "${devops_home}" "${devops_home}" || return 1

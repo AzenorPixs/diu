@@ -109,7 +109,7 @@ REMOTE_FORGEJO_SSL_VERIFY="No"
 ### Requirement: identifiants Forgejo
 
 `forgejo_push()` MUST utiliser `config/forgejo.username` et
-`config/forgejo.token` (mode `600`, jamais journalisés). Le token MUST passer
+`config/forgejo.token` (mode `600` ou `660`, jamais journalisés). Le token MUST passer
 à Git uniquement par `git_with_token`. Si un fichier manque, le push MUST
 appeler `forgejo_credentials_setup()` avant `forgejo-auth`. Ce setup MUST
 obtenir une confirmation explicite avant toute écriture puis demander les
@@ -141,6 +141,14 @@ erreur si identifiants absents ou invalides.
 - QUAND un push Forgejo est demandé
 - ALORS la commande échoue explicitement
 - ET le contenu de l'identifiant n'est jamais affiché
+
+#### Scenario: Identifiants partagés existants
+
+- **WHEN** `config/forgejo.username` et `config/forgejo.token` sont non vides et ont chacun le mode exact `600` ou `660`
+- **THEN** les lecteurs les acceptent dans les parcours Git et API existants
+- **AND** leurs contenus et leurs permissions restent inchangés
+- **AND** les autres modes sont refusés avant lecture sans affichage des identifiants
+- **AND** la protection des secrets temporaires reste inchangée
 
 ### Requirement: remote Forgejo HTTPS
 

@@ -4,6 +4,100 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : ajout de Nuitka déclaré dans
+  `[build-system].requires`, avec contraintes et extras éventuels, dans la
+  rubrique commune « Python - Outils de compilation ». Seuls les outils déclarés
+  apparaissent, Cython puis Nuitka ; découverte et sondes partagées, états et
+  provenances indépendants, sans repli global ni import des compilateurs.
+  Aucun paquet installé, manifeste modifié ou compilation lancée. Format `0.7`
+  et parcours existants conservés ; application à la prochaine génération normale.
+
+- Génération de `DEVOPS.md` : rubrique « Python - Outils de compilation »
+  après pip et avant Prompts uniquement si Cython est déclaré dans
+  `[build-system].requires` de `pyproject.toml`. Vérification isolée dans les
+  venv du projet, avec version et provenance, absence vérifiée ou installation
+  non vérifiable ; aucune sonde Cython sans déclaration, aucun repli global,
+  installation ni modification du manifeste. Format `0.7` conservé, appliqué
+  aux documents existants lors de leur prochaine génération normale.
+
+- Génération de `DEVOPS.md` : rubrique permanente « OpenSSH & SSHPASS » après
+  les conteneurs éventuels et avant Docker-Compose. Quatre puces présentent
+  les versions et chemins hôte de `ssh` et `sshpass`, relevés avec `-V` et
+  une borne de 15 secondes par outil, sans connexion ni lecture d’identifiants.
+  Les indisponibilités sont explicites ; le format `0.7` reste conservé.
+  Les documents existants adoptent ce contenu à leur prochaine génération normale.
+
+- Authentification Forgejo, GitHub et GitLab : les fichiers `.username` et
+  `.token` existants acceptent exactement `0600` ou `0660` dans les parcours
+  Git et API, sans modification de contenu ou de permissions. Les autres modes
+  restent refusés avant lecture. Le mode `0660` autorise l'accès du groupe ;
+  les nouveaux identifiants et les secrets temporaires restent en `0600`.
+
+- Génération de `DEVOPS.md` : le titre LXC précise « accessible en SSH » et sa
+  première puce devient « Variables d'accès disponible dans project.env pour l'accès SSH ».
+  Une cinquième puce indique « Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. ».
+  L’autorisation commune reste inchangée en quatrième position pour LXC et en
+  dernière position pour Docker. Activation, ordre des rubriques et format `0.7`
+  conservés, sans connexion distante ni gestion des paquets pendant la génération.
+  Les documents existants adoptent ce rendu à leur prochaine génération normale.
+
+- Génération de `DEVOPS.md` : dernière puce commune aux rubriques Docker et LXC
+  activées, autorisant explicitement les agents de codage et les orchestrateurs
+  à préparer, exécuter, répéter et nettoyer les tests du projet dans le conteneur,
+  y compris avec droits root, sans approbation supplémentaire. L'autorisation
+  couvre le conteneur et les ressources dédiées aux tests. Les conditions
+  d'activation, l'ordre, les sondes et le format `0.7` restent inchangés ; les
+  contrôles techniques des outils ou plateformes ne sont pas modifiés.
+  Les documents existants adoptent cette puce à leur prochaine génération normale.
+
+- Alignement des nouvelles lignes `ENV_DEVOPS_TESTS_DOCKER` et
+  `ENV_DEVOPS_TESTS_LXC` avec huit espaces avant `export` dans
+  `environnements.env`. Leur suppression déclarative accepte aussi les lignes
+  sans retrait ou précédées de tabulations. Les valeurs et lignes déjà
+  présentes sont conservées sans reformatage global.
+
+- Génération de `DEVOPS.md` : les rubriques « Conteneur Docker, pour tests
+  nécessitant des droits root » et « Conteneur LXC, pour tests nécessitant des
+  droits root » dépendent indépendamment de `ENV_DEVOPS_TESTS_DOCKER=1` et
+  `ENV_DEVOPS_TESTS_LXC=1`. Une valeur absente, vide ou différente de `1` omet
+  la rubrique concernée ; Docker désactivé n'est pas sondé. LXC suit Docker
+  s'il est présent, sinon Matériel, avant Docker-Compose qui reste indépendant.
+  Les trois puces LXC sont déclaratives, sans connexion, lecture d'identifiants
+  ni qualification TPM distante. Les références Docker restent inchangées.
+  Le format reste `0.7`, appliqué à la prochaine génération normale.
+
+- Initialisation de `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` à `0`
+  dans le scope `environnements` si elles sont absentes, avec persistance puis
+  export. Les valeurs existantes, même vides, sont conservées sans doublon
+  lors des réexécutions normales. Les erreurs de persistance sont explicites.
+  Aucun test Docker/LXC n'est lancé ; la configuration réelle sera complétée
+  à la prochaine exécution normale du DIU mis à jour.
+
+- Génération de `DEVOPS.md` au format documentaire `0.7` : le résultat
+  dynamique de `hostname -f` apparaît en deuxième puce sous « Système
+  d'exploitation », après le nom de l'OS. La sonde est limitée à 15 secondes ;
+  absence, échec, expiration ou sortie invalide sont signalés sans bloquer la
+  génération. Aucun nom n'est codé en dur et aucune configuration réseau ou
+  du nom d'hôte n'est modifiée. Les documents existants adoptent le format
+  à leur prochaine génération normale.
+
+- Génération de `DEVOPS.md` : ajout des droits d'exécution manquants aux sept
+  outils DevOps connus avant les inventaires et sondes. Les liens restent
+  confinés au domicile DevOps ; outils hôte, autres fichiers, propriétaires
+  et droits de lecture et d'écriture sont conservés. Aucun outil absent n'est
+  installé. Une préparation impossible bloque la génération et préserve le
+  document précédent ; les droits déjà ajoutés restent appliqués. Les sondes
+  distinguent désormais binaire absent et binaire non exécutable. Le format
+  reste `0.6`, sans modification des outils installés par cette livraison.
+
+- Génération de `DEVOPS.md` : section « Matériel » après l'OS, avec TPM et
+  chemin prioritaire `/dev/tpmrm0`, version, fabricant, identifiant fournisseur,
+  révision de spécification et banques/indices PCR alloués. La collecte locale
+  est bornée et en lecture seule ; TPM inaccessible, outil absent et
+  propriétés non vérifiables restent explicites sans bloquer la génération.
+  Aucune installation, modification de droits ni lecture des valeurs PCR.
+  Le format reste `0.6`, adopté lors de la prochaine génération normale.
+
 - Génération de `DEVOPS.md` : rubrique « Docker, pour tests nécessitant des
   droits root » avec `/var/run/docker.sock` puis `debian:stable-slim` après
   la version et le binaire. Ces références documentaires restent affichées

@@ -4,6 +4,16 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
+Les indicateurs `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` sont
+initialisés indépendamment à `0` dans `/root/diu/config/environnements.env`
+lorsqu'ils sont absents, puis exportés. Les valeurs existantes, même vides,
+sont conservées ; les réexécutions normales ne créent aucun doublon.
+Les nouvelles lignes de ces deux indicateurs portent un retrait de huit
+espaces avant `export` ; les lignes déjà présentes ne sont pas reformatées.
+Une erreur de persistance est bloquante. Cet ajout ne lance aucun test Docker
+ou LXC ; les valeurs seront générées à la prochaine exécution normale du DIU
+mis à jour.
+
 La création avec `rid projects create <ID PROJECT>` et la mise à jour des
 variables avec `rid projects update <ID PROJECT>` demandent
 `PROJECT_ORCHESTRATED_CODING` : `No` pour un agent de codage autonome, `Yes`
@@ -103,13 +113,20 @@ et rejets Git restent bloquants. Une publication interrompue peut être
 partielle et nécessite une reprise. Les commandes de release lancées
 directement conservent leur gestion d'erreur.
 
+Les fichiers locaux `config/<fournisseur>.username` et
+`config/<fournisseur>.token` de Forgejo, GitHub et GitLab acceptent exactement
+les modes `0600` et `0660`, dans les parcours Git et API existants. Les fichiers
+existants conservent leur contenu et leurs permissions. Les autres modes
+restent refusés. Avec `0660`, le groupe peut lire et modifier les identifiants.
+Les nouveaux identifiants et les secrets temporaires restent créés en `0600`.
+
 Pour générer l'inventaire DevOps d'un projet :
 
 ```bash
 rid projects template devops <ID PROJECT>
 ```
 
-`DEVOPS.md` est généré au format documentaire `0.6`, avec provenance DIU,
+`DEVOPS.md` est généré au format documentaire `0.7`, avec provenance DIU,
 début du relevé UTC et classification de l'environnement d'exécution fournie
 par DIU. Les dépendances Python sont recherchées en priorité dans les venv du projet
 (`.venv`, `venv`, `env`, puis autres chemins triés), avec repli DevOps explicite.
@@ -119,16 +136,88 @@ comme non vérifiables. Cet inventaire ne valide pas une composition Python
 unique et ne constitue ni une qualification fonctionnelle ni une preuve de
 réussite des tests.
 
-La rubrique « Docker, pour tests nécessitant des droits root » indique la
-version, le binaire, puis `/var/run/docker.sock` et l'image
+Si `pyproject.toml` déclare Cython ou Nuitka dans `[build-system].requires`, DIU
+ajoute une seule rubrique « Python - Outils de compilation » après le gestionnaire
+de paquets Python et avant Prompts. Elle contient uniquement les outils déclarés,
+Cython puis Nuitka, avec contraintes ou extras éventuels comme `Nuitka[build-wheel]`.
+Une découverte commune et des sondes isolées dans les venv du projet indiquent,
+pour chaque outil indépendamment, sa version et ses chemins, « non installé »
+si l’absence est établie, ou « installation non vérifiable » sinon, notamment
+sans venv. Un outil non déclaré n’est ni sondé ni affiché ; sans les deux, la
+rubrique et sa découverte sont omises. Aucun paquet global ne sert de repli,
+aucun paquet n’est installé, aucun manifeste n’est modifié et aucune compilation
+n’est lancée. Le format reste `0.7` ; les documents existants adoptent ce rendu
+à leur prochaine génération normale.
+
+La rubrique « Système d'exploitation » affiche le nom de l'OS puis le résultat
+de `hostname -f` en deuxième puce. Le nom est relevé dans le contexte
+d'exécution DIU, sans valeur codée en dur ni modification du réseau ou du nom
+d'hôte. La sonde est limitée à 15 secondes ; une indisponibilité ou une sortie
+invalide est indiquée explicitement sans bloquer la génération.
+
+Avant les inventaires et les sondes, DIU ajoute les droits d'exécution
+manquants aux sept outils DevOps présents : Go, Node, npm, OpenCode, OpenSpec,
+Python et pip. Cette préparation vise uniquement leurs chemins connus dans
+le domicile DevOps et les cibles de liens qui y restent confinées. Les
+propriétaires, droits de lecture et d'écriture, outils hôte et autres fichiers
+restent inchangés. Aucun outil absent n'est installé. Une cible externe ou
+non ordinaire, ou un échec de préparation, bloque la génération et conserve
+le document précédent ; les droits déjà ajoutés ne sont pas annulés. Le format
+documentaire reste `0.7`, appliqué à la prochaine génération normale.
+
+Après l'OS, la section « Matériel » contient « TPM », avec chemin en premier
+(`/dev/tpmrm0` prioritaire), version, fabricant, identifiant fournisseur,
+révision de spécification et banques/indices PCR alloués. Le fabricant est
+le code ASCII observé et l'identifiant son code hexadécimal. La collecte est
+locale, bornée et en lecture seule ; les propriétés impossibles à relever
+restent explicites sans bloquer le document. Aucun outil ni droit n'est
+modifié et les valeurs des PCR ne sont pas lues. Les documents existants
+adoptent ce rendu à leur prochaine génération normale, au format `0.7`.
+
+La rubrique « Conteneur Docker, pour tests nécessitant des droits root » apparaît
+uniquement si `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`. Elle indique la
+version détectée, le binaire, puis `/var/run/docker.sock` et l'image
 `debian:stable-slim`. Ces deux références restent affichées si Docker est
 indisponible, sans vérification du socket ni téléchargement ou lancement
 de l'image. Le tag suit Debian stable ; aucune version Debian n'est figée.
+Sinon, cette rubrique et sa sonde Docker sont omises ; Docker-Compose reste présent.
+
+La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » apparaît
+indépendamment si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`. Elle suit Docker
+lorsqu'il est présent, sinon Matériel, et précède OpenSSH & SSHPASS, puis Docker-Compose. Ses trois premières
+puces sont :
+« Variables d'accès disponible dans project.env pour l'accès SSH », « Debian 13 », « Accès TPM OK ».
+Ces mentions sont déclaratives, sans connexion LXC, lecture d'identifiants ni
+qualification TPM distante. Pour chaque indicateur, une valeur absente, vide ou
+différente de `1` omet sa rubrique. Le format reste `0.7` et les documents existants
+adoptent ce comportement à leur prochaine génération normale.
+
+Les deux rubriques activées contiennent l'autorisation commune :
+« Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
+Cette consigne explicite l'autorisation des tests pour les deux types d'agents.
+Elle ne désactive pas les contrôles techniques de permissions imposés par les
+outils ou leur plateforme. Docker et LXC comportent chacun cinq puces.
+L’autorisation est dernière pour Docker et quatrième pour LXC. LXC se termine par :
+« Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
+Une rubrique désactivée n’émet aucune puce d’autorisation ni de conservation
+des dépendances de test.
+
+La rubrique permanente « OpenSSH & SSHPASS » suit LXC lorsqu’il est présent,
+sinon le dernier bloc précédent, et précède Docker-Compose. Ses quatre puces
+indiquent la version OpenSSH, le chemin hôte de `ssh`, la version sshpass et
+le chemin hôte de `sshpass`. Les versions proviennent de `ssh -V` (y compris
+sa sortie sur stderr) et `sshpass -V`, avec une borne de 15 secondes par outil.
+Seul le numéro de version est publié ; absences, échecs, expirations et sorties
+non reconnues sont signalés explicitement. Aucune connexion, lecture
+d’identifiants, installation ou modification des droits de ces outils n’est
+réalisée. Cette rubrique est indépendante des indicateurs Docker/LXC et
+commune aux trois parcours, au format documentaire `0.7`. Les documents existants
+l’adoptent à leur prochaine génération normale.
 
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps
 configuré, indépendamment de la racine des projets. Ces ressources ne sont
-ni lues ni créées ; les documents existants adoptent le format `0.6` à leur
+ni lues ni créées ; les documents existants adoptent le format `0.7` à leur
 prochaine génération.
 
 Les manifestes `package.json` des composants et workspaces sont regroupés sous
