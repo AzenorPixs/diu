@@ -78,6 +78,14 @@ AND la fonction retourne le code 1
 
 ### Requirement: Vérification Git avant publication
 
+La fonction SHALL conserver les contrôles Git préalables et la politique de
+bootstrap ci-dessous, en acceptant les tokens existants en `600` ou `660`.
+
+#### Scenario: Contrôles préalables conservés
+
+WHEN une publication Forgejo est demandée
+THEN les contrôles suivants restent obligatoires.
+
 Avant toute publication Forgejo, la fonction SHALL vérifier que le
 dépôt local est dans un état valide pour la publication.
 
@@ -104,8 +112,8 @@ fail-closed sans tentative de bootstrap.
 | État du fichier                          | Comportement                                      |
 |------------------------------------------|---------------------------------------------------|
 | Absent                                   | Bootstrap automatique possible                    |
-| Présent, permissions 600, contenu valide | Utilisation directe                               |
-| Présent, permissions ≠ 600               | Fail-closed, erreur explicite, aucun bootstrap    |
+| Présent, permissions 600 ou 660, contenu valide | Utilisation directe                               |
+| Présent, permissions autres que 600 ou 660               | Fail-closed, erreur explicite, aucun bootstrap    |
 | Présent, contenu vide                    | Fail-closed, erreur explicite, aucun bootstrap    |
 | Présent, token refusé par Forgejo        | Fail-closed, erreur explicite, aucun bootstrap    |
 
@@ -128,7 +136,7 @@ Les vérifications Git obligatoires sont :
 WHEN le dépôt est un dépôt Git valide
 AND origin existe et est HTTPS
 AND la branche courante est main
-AND `config/forgejo.token` existe avec des permissions 600 et un contenu non vide
+AND `config/forgejo.token` existe avec des permissions 600 ou 660 et un contenu non vide
 AND le token est accepté par Forgejo
 THEN les informations Forgejo sont déduites depuis le remote
 AND le token est lu et validé
@@ -178,7 +186,7 @@ AND la fonction retourne le code 1
 #### Scenario: Fichier token présent mais permissions invalides
 
 WHEN `config/forgejo.token` existe
-AND ses permissions ne sont pas exactement 600
+AND ses permissions ne sont ni 600 ni 660
 THEN la fonction affiche une erreur de sécurité explicite
 AND aucun bootstrap automatique n'est tenté
 AND aucun `git fetch` n'est exécuté
@@ -260,18 +268,26 @@ AND le repository est diu
 
 ### Requirement: Authentification par token
 
+La fonction SHALL utiliser le token local en `600` ou `660` sans modifier ses
+permissions, en conservant les contraintes de stockage et de bootstrap.
+
+#### Scenario: Contraintes de stockage et de bootstrap conservées
+
+WHEN une authentification API est demandée
+THEN les contraintes suivantes restent applicables.
+
 La fonction SHALL utiliser un Access Token Forgejo pour
 l'authentification aux API.
 
 Le token SHALL être stocké dans `<project_path>/config/forgejo.token`.
 
-Le fichier token SHALL avoir les permissions exactes `600`.
+Le fichier token SHALL avoir les permissions exactes `600` ou `660`.
 
 Le token ne SHALL jamais être affiché dans les logs ni la sortie standard.
 
 La fonction ne SHALL jamais corriger silencieusement les permissions
 du fichier token. L'administrateur devra appliquer explicitement
-`chmod 600` en cas de permissions invalides.
+`chmod 600` ou `chmod 660` en cas de permissions invalides.
 
 Le bootstrap automatique avec authentification 2FA/OTP est hors périmètre
 de ce premier change. Si le bootstrap ne peut pas aboutir à cause de la
@@ -287,13 +303,13 @@ sera déterminé lors de la vérification du Swagger de l'instance Forgejo
 #### Scenario: Token présent et permissions valides
 
 WHEN config/forgejo.token existe
-AND ses permissions sont exactement 600
+AND ses permissions sont exactement 600 ou 660
 THEN la fonction utilise ce token pour l'authentification
 
 #### Scenario: Permissions du token invalides
 
 WHEN config/forgejo.token existe
-AND ses permissions ne sont pas exactement 600
+AND ses permissions ne sont ni 600 ni 660
 THEN la fonction affiche une erreur de sécurité explicite
 AND le token n'est pas utilisé
 AND aucun appel de publication Forgejo n'est effectué
@@ -329,6 +345,12 @@ AND aucune Release n'est créée
 AND la fonction retourne le code 1
 
 Le mot de passe saisi ne SHALL jamais être écrit sur disque ni affiché.
+
+#### Scenario: Token partagé existant
+
+WHEN le token est non vide et en mode exact 660
+THEN la fonction l'utilise sans bootstrap ni changement de contenu ou de mode
+AND aucun secret n'est affiché
 
 ### Requirement: Vérification de l'existence de la Release
 

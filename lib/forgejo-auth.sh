@@ -35,7 +35,7 @@ _forgejo_resolve_remote() {
     #   config/forgejo.username
     #   config/forgejo.token
     #
-    # Les credentials doivent être en permissions 600.
+    # Les credentials existants doivent être en permissions 600 ou 660.
     #
     # API :
     #   forgejo_api_get
@@ -145,10 +145,10 @@ _forgejo_read_username() {
 
     username_perms="$(stat -c %a "${username_file}" 2>/dev/null)"
 
-    if [[ "${username_perms}" != "600" ]]; then
+    if [[ "${username_perms}" != "600" && "${username_perms}" != "660" ]]; then
         print_error \
             "forgejo-auth : permissions invalides sur ${username_file} : ${username_perms}"
-        print_error "Permissions attendues : 600"
+        print_error "Permissions attendues : 600 ou 660"
         return 1
     fi
 
@@ -179,10 +179,10 @@ _forgejo_read_token() {
 
     token_perms="$(stat -c %a "${token_file}" 2>/dev/null)"
 
-    if [[ "${token_perms}" != "600" ]]; then
+    if [[ "${token_perms}" != "600" && "${token_perms}" != "660" ]]; then
         print_error \
             "forgejo-auth : permissions invalides sur ${token_file} : ${token_perms}"
-        print_error "Permissions attendues : 600"
+        print_error "Permissions attendues : 600 ou 660"
         return 1
     fi
 

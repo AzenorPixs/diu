@@ -280,10 +280,41 @@ conservant le projet préparé. La capacité de référence est
 
 ### Traçabilité du document DevOps
 
-`projects_template_devops_render` produit la version documentaire `0.6`.
+Avant les inventaires de dépendances et les sondes, le rendu commun prépare
+les sept exécutables du domicile `/home/${ENV_DEVOPS_USER}` : Go, Node, npm,
+OpenCode, OpenSpec, Python et pip. Seuls les chemins connus de ces outils sont
+traités, sans parcours récursif. Les cibles ordinaires, y compris celles
+atteintes par les liens internes `current`, npm ou OpenSpec, sont résolues
+et confinées au domicile canonique. Les seuls bits `ugo+x` manquants sont
+ajoutés ; propriétaire et droits de lecture et d'écriture sont conservés.
+Les fichiers déjà dotés des trois bits d'exécution restent inchangés.
+
+Un outil absent reste indisponible sans installation. Une cible externe ou
+non ordinaire, une résolution impossible ou un échec de préparation des
+droits bloque le rendu et conserve le `DEVOPS.md` existant. Les droits déjà
+corrigés restent appliqués si une étape suivante échoue ; une réexécution
+reprend sur l'état constaté. Les outils hôte et les autres fichiers du
+domicile ne sont pas modifiés. Les sondes directes distinguent un binaire
+absent d'un binaire présent non exécutable sans modifier elles-mêmes ses
+droits. Les sondes restent exécutées sous le compte et avec les interpréteurs
+déjà prévus, avec leur borne de 15 secondes. Cette préparation s'applique aux
+parcours individuel, groupé et final de création.
+
+`projects_template_devops_render` produit la version documentaire `0.7`.
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
 la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
+
+La rubrique « Système d'exploitation » contient le nom de l'OS puis, en
+deuxième puce, le résultat de `hostname -f` dans le contexte d'exécution DIU.
+Cette commande système est appelée une seule fois par rendu, avec une borne
+de 15 secondes. Le helper accepte une ligne de 1 à 253 caractères ASCII
+alphanumériques, points ou tirets, commençant par un caractère alphanumérique ;
+un nom court retourné par la commande reste inchangé, sans suffixe inventé.
+Une commande absente, échouée ou expirée, ou une sortie invalide, produit un
+diagnostic explicite en deuxième puce et n'empêche pas les autres rubriques.
+Ni la sortie rejetée ni stderr ne sont publiés. Aucun nom de machine n'est
+codé en dur et aucune configuration du nom d'hôte ou du réseau n'est modifiée.
 
 La capture utilise une seule fois le binaire `date` hôte, avant les sondes,
 avec `-u` et une borne de 15 secondes. Une commande absente, échouée, expirée
@@ -299,7 +330,7 @@ sans relancer son détecteur ni interpréter `PROJECT_DOCKERED`.
 
 La légende distingue les sondes système, l'outillage du compte DevOps et les
 déclarations et observations des dépendances Python et JavaScript. Les
-dépendances Python proviennent uniquement de
+dépendances Python d’exécution proviennent uniquement de
 `[project].dependencies` dans `pyproject.toml` et sont recherchées d'abord
 dans les venv du projet, puis avec le Python DevOps en repli explicite.
 L'inventaire ne vaut ni qualification fonctionnelle, ni validation d'un
@@ -309,26 +340,96 @@ Les parcours individuel, groupé et final de création produisent cet en-tête
 une seule fois. Le titre, l'ordre relatif des rubriques existantes, les sondes,
 les droits et le propriétaire sont conservés. À observations identiques, le contenu technique
 reste identique hors horodatage. Les anciens documents prennent le format
-`0.6` lors de leur prochaine génération normale ; aucune migration ni retouche
+`0.7` lors de leur prochaine génération normale ; aucune migration ni retouche
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
 
-La rubrique « Docker, pour tests nécessitant des droits root » contient,
+La rubrique « Conteneur Docker, pour tests nécessitant des droits root » est
+générée uniquement si `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`. Elle contient,
 dans cet ordre, la version détectée, le chemin du binaire,
-`/var/run/docker.sock` et `debian:stable-slim`. Les deux dernières puces sont
+`/var/run/docker.sock` et `debian:stable-slim`. Ces deux références sont
 des références documentaires fixes, conservées même lorsque Docker est
 indisponible ; les diagnostics de version et de binaire restent explicites.
+Un indicateur absent, vide ou différent de `1` omet la rubrique et sa sonde Docker.
 Le générateur ne vérifie ni la présence ni l'accès au socket ou à l'image,
 ne télécharge ni ne lance de conteneur et ne modifie aucune permission.
 Le tag `debian:stable-slim` suit Debian stable sans figer une version ou un
-digest. Les autres rubriques et sondes sont conservées.
+digest. Docker-Compose et les autres rubriques et sondes restent indépendants.
 
-La rubrique « Prompts », après le gestionnaire de paquets Python et avant les
+La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » est générée
+uniquement si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`, indépendamment de Docker.
+Elle suit Docker lorsqu'il est présent, sinon Matériel, et précède OpenSSH & SSHPASS, puis Docker-Compose.
+Ses trois premières puces sont fixes : « Variables d'accès disponible dans project.env pour l'accès SSH »,
+« Debian 13 », « Accès TPM OK ». Ces mentions sont déclaratives : le générateur
+ne lit pas d'identifiants LXC, ne se connecte pas au conteneur et ne qualifie pas
+son TPM. Une valeur absente, vide ou différente de `1` omet cette rubrique.
+Les trois parcours de génération partagent ce rendu au format `0.7`.
+
+Chaque rubrique de conteneur activée contient la même puce d'autorisation :
+« Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
+Docker et LXC contiennent chacun cinq puces. L’autorisation est la dernière pour
+Docker et la quatrième pour LXC. LXC se termine par la puce exacte :
+« Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
+La fonction commune `projects_template_devops_test_authorization` émet l’autorisation.
+Un échec d’écriture de l’autorisation ou de la dernière puce LXC est propagé
+et conserve le document existant. Aucune autorisation
+orpheline n'est émise pour une rubrique omise. Cette génération reste documentaire :
+elle ne modifie pas les contrôles de permissions imposés par les outils ou
+plateformes et ne lance aucune opération réelle dans les conteneurs.
+
+La rubrique permanente « OpenSSH & SSHPASS » suit LXC lorsqu’il est présent,
+sinon le dernier bloc précédent, et précède Docker-Compose. Ses quatre puces
+indiquent la version OpenSSH, le chemin hôte de `ssh`, la version sshpass et
+le chemin hôte de `sshpass`. Les versions proviennent de `ssh -V` (y compris
+sa sortie sur stderr) et `sshpass -V`, avec une borne de 15 secondes par outil.
+Seul le numéro de version est publié ; absences, échecs, expirations et sorties
+non reconnues sont signalés explicitement. Aucune connexion, lecture
+d’identifiants, installation ou modification des droits de ces outils n’est
+réalisée. Cette rubrique est indépendante des indicateurs Docker/LXC et
+commune aux trois parcours, au format documentaire `0.7`. Les documents existants
+l’adoptent à leur prochaine génération normale.
+
+La rubrique « Prompts », après le gestionnaire de paquets Python et l’éventuelle
+rubrique « Python - Outils de compilation », et avant les
 tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
 et son index `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`. Ces chemins
 réutilisent le domicile DevOps construit depuis `ENV_DEVOPS_USER`, indépendamment
 de `DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
 leur absence n'empêche pas la génération.
+
+### Matériel TPM dans le document DevOps
+
+Après « Système d'exploitation », chaque rendu ajoute « Matériel », puis
+« TPM ». Ses six puces sont Chemin, Version, Fabricant, Identifiant
+fournisseur, Révision de spécification et Registres PCR, dans cet ordre.
+La version documentaire reste `0.7`. Le relevé concerne uniquement le
+matériel visible dans le contexte d'exécution DIU.
+
+Le premier périphérique caractère `/dev/tpmrmN` est préféré aux `/dev/tpmN`,
+avec ordre lexical C dans chaque famille et `/dev/tpmrm0` prioritaire.
+Le même indice désigne `/sys/class/tpm/tpmN/tpm_version_major` : 1 donne
+TPM 1.2 et 2 donne TPM 2.0. Un TPM 1.2 conserve chemin et version ; les
+autres champs explicitent la limite de la sonde TPM 2.
+
+Si le périphérique est accessible et `tpm2_getcap` déjà présent, deux requêtes
+locales utilisent explicitement `-T device:<chemin>` : `properties-fixed`
+et `pcrs`. Chacune a une borne de 5 secondes, avec terminaison forcée après
+une seconde supplémentaire. La famille peut compléter une version sysfs
+indisponible. Fabricant reprend le code ASCII de `TPM2_PT_MANUFACTURER` et
+Identifiant fournisseur son code hexadécimal, sans correspondance commerciale
+inventée ; Révision reprend `TPM2_PT_REVISION`, distincte du firmware.
+Registres PCR indique les banques et indices alloués, sans lire les valeurs
+de registres ni modifier leur allocation.
+
+Une absence, un accès refusé, un outil manquant ou une sonde échouée/expirée
+reste explicite et non bloquant. Les propriétés absentes, invalides ou
+dupliquées restent non vérifiables ; les sorties non reconnues et stderr ne
+sont pas publiées. Une réponse dépassant 64 Kio n'est pas analysée.
+Aucun outil n'est installé, aucun droit n'est modifié et aucun transport
+réseau implicite n'est utilisé. Aucun autre TPM n'est sondé en repli après
+un échec. Les parcours individuel, groupé et de création partagent ce rendu.
+Les documents existants l'adoptent à leur prochaine génération normale.
+La référence est `openspec/specs/projects-template-devops/spec.md`.
 
 ### Dépendances Python des environnements du projet
 
@@ -363,6 +464,37 @@ sont signalés sans sortie brute. Une absence non prouvée est indiquée comme
 `non vérifiable`, avec les limites de l'inventaire. Les diagnostics de
 manifeste, références directes et dépendances dynamiques sont conservés.
 La référence reste `openspec/specs/projects-template-devops/spec.md`.
+
+### Outils de compilation Python : Cython et Nuitka déclarés
+
+Le rendu lit d’abord `[build-system].requires` dans `pyproject.toml`. Les noms
+de distribution `Cython` et `Nuitka`, sans distinction de casse et avec leurs
+éventuels extras, contraintes ou marqueurs déclaratifs, déclenchent la rubrique
+unique « Python - Outils de compilation », après le gestionnaire de paquets et
+avant Prompts. Elle contient uniquement les outils déclarés, Cython puis Nuitka.
+Un commentaire ou une autre table ne constitue pas cette déclaration. Sans aucun
+des deux outils déclarés, la rubrique et la découverte des venv de compilation
+sont omises ; un outil non déclaré n’est jamais demandé aux sondes. Un manifeste
+invalide ou une analyse impossible produit un diagnostic commun de déclaration
+non vérifiable sans rubrique ; un manifeste absent reste signalé par l’inventaire
+d’exécution existant.
+
+Le mode `compilation` de `projects_template_devops_dependencies` (alias interne
+`cython` conservé) réutilise une découverte ordonnée commune et les sondes isolées
+ci-dessus, avec les mêmes bornes, uniquement dans les venv du projet. Les sondes
+ne demandent que les noms déclarés encore recherchés. Aucun paquet global ne sert
+de repli. Chaque outil garde son état et sa provenance : version, interpréteur,
+environnement et installation observés, « non installé » avec les environnements
+vérifiés si son absence est établie, ou « installation non vérifiable » sinon,
+notamment sans venv. Une métadonnée ambiguë pour un outil ne rend pas inconnue
+l’observation valide de l’autre. Les références directes sont masquées, les
+contraintes ne sont pas résolues et aucune conformité de version ni utilisation
+effective pour compiler n’est déduite de cet inventaire.
+
+Les trois parcours partagent ce rendu au format `0.7`, sans activation shell,
+import de Cython ou Nuitka, chargement de `.pth`, installation, compilation ni modification
+du manifeste. Les documents existants l’adoptent à leur prochaine génération
+normale. La référence reste `openspec/specs/projects-template-devops/spec.md`.
 
 ### Dépendances JavaScript et OpenCode du projet
 
@@ -581,6 +713,33 @@ invalide.
 
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
+
+### Indicateurs de tests DevOps
+
+`modules/diu/variables/environnements/env_devops_tests_docker.sh` et
+`env_devops_tests_lxc.sh` déclarent respectivement `ENV_DEVOPS_TESTS_DOCKER`
+et `ENV_DEVOPS_TESTS_LXC` : `STATIC`, `ENABLE`, scope `environnements`,
+valeur initiale `0`. Après chargement de la configuration, chaque variable
+absente est persistée dans `/root/diu/config/environnements.env`, puis exportée.
+Les nouvelles lignes de ces deux indicateurs commencent par huit espaces avant
+`export`, comme les lignes du fichier de configuration présentées par le
+développeur. Une désactivation reconnaît également les déclarations anciennes
+sans retrait ou précédées de tabulations ; les lignes existantes ne sont pas
+reformatées lors de la génération.
+Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
+produit un diagnostic stderr et un statut non nul, sans définir la variable
+absente concernée.
+
+Les valeurs déjà définies, même vides, sont conservées et exportées sans
+réécriture. Le chargement normal suivi de la génération ne crée aucun doublon ;
+les autres lignes et scopes sont conservés. Le générateur DevOps consomme ces
+indicateurs uniquement pour afficher les rubriques documentaires Docker et LXC
+décrites dans « Traçabilité du document DevOps ». Aucun lancement de test
+Docker/LXC ni changement d'infrastructure n'est ajouté. La configuration réelle
+adopte ces valeurs à la prochaine exécution normale du DIU mis à jour.
+Le contrat est défini dans
+`openspec/specs/devops-tests-environment-flags/spec.md` et vérifié en isolation
+par `tests/test_env_devops_tests.py`.
 
 ### Fuseau horaire système
 
@@ -1112,8 +1271,17 @@ Les fournisseurs utilisent les fichiers locaux suivants dans le projet :
 
 Le répertoire de configuration est créé avec le mode `700` lorsque nécessaire.
 Chaque fichier d'identifiant doit être non vide et avoir exactement le mode
-`600`. Les fichiers sont créés via un fichier temporaire puis installés avec
-les droits de `DEVOPS_USER:DEVOPS_GROUP`.
+`600` ou `660`. Les lecteurs Forgejo, GitHub et GitLab acceptent ces deux modes
+pour les fichiers `.username` et `.token`, dans leurs parcours Git et API
+existants, sans changer leur contenu ni leurs permissions. Les autres modes
+sont refusés avant lecture. En mode `660`, les membres du groupe du fichier
+peuvent lire et modifier les identifiants ; les permissions des répertoires
+et les ACL restent inchangées.
+
+Les nouveaux fichiers restent créés en `600` via un fichier temporaire puis
+installés avec les droits de `DEVOPS_USER:DEVOPS_GROUP`. Les fichiers secrets
+temporaires Git et curl restent en `600` et les répertoires temporaires privés
+en `700`, avec nettoyage après utilisation, y compris en cas d'échec.
 
 Les modules `lib/forgejo-auth.sh`, `lib/gitlab-auth.sh` et
 `lib/github-auth.sh` résolvent le remote HTTPS, vérifient les identifiants et

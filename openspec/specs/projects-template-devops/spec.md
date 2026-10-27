@@ -52,25 +52,33 @@ sans identifiant SHALL être rejetée avec la nouvelle utilisation.
 
 ### Requirement: Structure et version documentaire
 
-Le document SHALL conserver le titre `DEVOPS.md — <ID PROJECT>`, la version `0.6` et l'ordre des rubriques du scénario « Rubriques documentaires conservées ». Pour template, le titre SHALL être `DEVOPS.md — Template`. Chaque rubrique logicielle SHALL placer le chemin après la version ; PostgreSQL Serveur SHALL placer l'adresse après la version. Tests navigateurs extérieurs en mode headless SHALL terminer le document, avec Chromium puis Firefox.
+Le document SHALL conserver le titre `DEVOPS.md — <ID PROJECT>`, la version
+`0.7` et l'ordre du scénario « Rubriques documentaires conservées ».
+Pour template, le titre SHALL être `DEVOPS.md — Template`.
+Matériel SHALL suivre immédiatement Système d'exploitation.
+Chaque rubrique logicielle SHALL placer le chemin après la version ;
+PostgreSQL Serveur SHALL placer l'adresse après la version.
+Tests navigateurs extérieurs en mode headless SHALL terminer le document.
 
 #### Scenario: Actualisation d'un document ancien
 
 - **WHEN** DEVOPS.md existe avec des versions anciennes
 - **THEN** toutes les versions logicielles sont sondées de nouveau et les valeurs anciennes sont remplacées
-- **AND THEN** la version documentaire devient 0.6 et les rubriques existantes conservent leur ordre relatif
+- **AND THEN** la version documentaire devient 0.7 et les rubriques existantes conservent leur ordre relatif
 - **AND THEN** une seule section Prompts précède la section finale Tests navigateurs extérieurs en mode headless
 
 #### Scenario: Rubriques documentaires conservées
 
 - **WHEN** un document DevOps est généré
-- **THEN** les rubriques restent dans l'ordre : Système d'exploitation, `Docker, pour tests nécessitant des droits root`, Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source de vérité `pyproject.toml`, Python - Gestionnaire de paquets, Prompts, Tests navigateurs extérieurs en mode headless
+- **THEN** les rubriques restent dans l'ordre : Système d'exploitation, Matériel, `Conteneur Docker, pour tests nécessitant des droits root` si activé, `Conteneur LXC, pour tests nécessitant des droits root accessible en SSH` si activé, OpenSSH & SSHPASS, Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source de vérité `pyproject.toml`, Python - Gestionnaire de paquets, Python - Outils de compilation si Cython ou Nuitka est déclaré dans [build-system].requires, Prompts, Tests navigateurs extérieurs en mode headless
 - **AND THEN** seules les métadonnées de traçabilité et la légende précèdent la première rubrique, après la version documentaire
+- **AND THEN** la section finale contient Chromium puis Firefox
 
 ### Requirement: Distinction entre hôte et environnement DevOps
 
 DIU SHALL relever le système d'exploitation hôte et les versions des outils
-hôte Docker, Docker-Compose, Git, OpenSSL et PostgreSQL Client. DIU SHALL
+hôte Docker-Compose, Git, OpenSSL et PostgreSQL Client. Docker SHALL être
+relevé uniquement si ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`. DIU SHALL
 relever Go, Node, NPM, OpenCode, OpenSpec, Python et pip depuis les binaires
 situés dans `/home/${ENV_DEVOPS_USER}`, sous cet utilisateur. DIU SHALL NOT
 remplacer un outil DevOps manquant par un outil hôte. NPM et OpenSpec SHALL
@@ -100,7 +108,7 @@ SHALL être indiquée explicitement, sans conserver une version ancienne.
 
 ### Requirement: Python et dépendances déclarées
 
-La rubrique Python SHALL indiquer venv et ensurepip en troisième ligne ; la rubrique pip SHALL conserver sa version et son chemin DevOps. Les dépendances SHALL provenir uniquement de [project].dependencies et être recherchées dans les venv du projet avant le repli Python DevOps. Le document SHALL conserver les contraintes et signaler manifeste absent, invalide, dynamique ou paquet introuvable/non vérifiable, sans inventer ni installer de dépendance.
+La rubrique Python SHALL indiquer venv et ensurepip en troisième ligne ; la rubrique pip SHALL conserver sa version et son chemin DevOps. Les dépendances d’exécution de cette rubrique SHALL provenir uniquement de [project].dependencies et être recherchées dans les venv du projet avant le repli Python DevOps. Le document SHALL conserver les contraintes et signaler manifeste absent, invalide, dynamique ou paquet introuvable/non vérifiable, sans inventer ni installer de dépendance.
 
 #### Scenario: Manifeste absent
 
@@ -155,7 +163,7 @@ en utilisant uniquement des libellés fixes et les noms de variables reconnus.
 
 ### Requirement: Écriture limitée et robuste
 
-DIU SHALL écrire seulement DEVOPS.md, ses temporaires régénérables et le manifeste Python conditionnel dans le projet ciblé, en UTF-8/LF. Tout échec de préparation ou d'écriture SHALL retourner un code non nul et préserver l'existant. L'actualisation SHALL conserver droits et propriétaire ; la synchronisation et la préparation des créations SHALL rester inchangées. Les créations SHALL finir par la génération DevOps. À observations identiques, le contenu SHALL être identique hors horodatage.
+DIU SHALL limiter ses écritures à DEVOPS.md, ses temporaires et au manifeste Python conditionnel du projet, en UTF-8/LF, sauf préparation des exécutables DevOps connus. Tout échec SHALL être signalé par un code non nul et préserver l'existant. L'actualisation SHALL conserver droits et propriétaire. Synchronisation et préparation des créations SHALL rester inchangées ; les créations SHALL finir par la génération DevOps. À observations identiques, le contenu SHALL être identique hors horodatage.
 
 #### Scenario: Échec de remplacement
 
@@ -392,7 +400,7 @@ Le document SHALL indiquer la classification actuelle SYSTEM_DEBIAN_ENVIRONNEMEN
 
 ### Requirement: Provenance et portée informative du relevé
 
-Avant la première rubrique, le document SHALL identifier DIU et distinguer sondes système, outils DevOps et dépendances du projet. La légende SHALL expliquer priorité des venv, repli DevOps, source [project].dependencies pour Python, manifestes JavaScript par composant, distinction déclaration/verrou/observation et absence de qualification fonctionnelle ou de preuve de tests. Les parcours individuel, groupé et de création SHALL conserver cette présentation sans doublon.
+Avant la première rubrique, DIU SHALL distinguer sondes système, outils DevOps et dépendances. La légende SHALL expliquer priorité des venv et repli DevOps, sources [project].dependencies et [build-system].requires pour Cython et Nuitka, manifestes JavaScript par composant, déclaration/verrou/observation et absence de qualification fonctionnelle ou preuve de tests. Les trois parcours SHALL partager cette présentation sans doublon.
 
 #### Scenario: Parcours de génération existants
 
@@ -660,20 +668,21 @@ prompts ou son index. Leur absence SHALL NOT empêcher la génération.
 ### Requirement: Références Docker des tests nécessitant des droits root
 
 La rubrique Docker SHALL porter le titre exact
-`Docker, pour tests nécessitant des droits root`. Elle SHALL contenir quatre
+`Conteneur Docker, pour tests nécessitant des droits root`. Elle SHALL contenir cinq
 puces, dans cet ordre : version détectée ou diagnostic existant, chemin du
-binaire ou diagnostic existant, `/var/run/docker.sock`, `debian:stable-slim`.
-Les deux dernières puces SHALL rester des références documentaires fixes.
-Les autres rubriques et sondes SHALL être conservées.
+binaire ou diagnostic existant, `/var/run/docker.sock`, `debian:stable-slim`, puis la puce commune d’autorisation.
+Le socket et l’image SHALL rester des références documentaires fixes.
 
 #### Scenario: Docker disponible
 
+- **GIVEN** ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`
 - **WHEN** la version et le binaire Docker sont détectés
-- **THEN** la rubrique porte le titre exact et les quatre puces dans l'ordre prévu
+- **THEN** la rubrique porte le titre exact et les cinq puces dans l'ordre prévu
 - **AND THEN** les deux références apparaissent chacune une seule fois
 
 #### Scenario: Docker indisponible
 
+- **GIVEN** ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`
 - **WHEN** le binaire Docker est absent ou sa sonde échoue
 - **THEN** les diagnostics existants sont conservés dans les premières puces
 - **AND THEN** le socket et l'image restent indiqués sans nouvelle sonde ou action Docker
@@ -683,3 +692,454 @@ Les autres rubriques et sondes SHALL être conservées.
 - **WHEN** les références Docker sont ajoutées au document
 - **THEN** le générateur ne sonde pas le socket, ne télécharge ni ne lance l'image et ne modifie aucune permission
 - **AND THEN** leur présence ne constitue pas une preuve de disponibilité ou de fonctionnement
+
+#### Scenario: Docker désactivé
+
+- **WHEN** ENV_DEVOPS_TESTS_DOCKER est absent, vide, égal à `0` ou différent de `1`
+- **THEN** la rubrique Docker, ses cinq puces et sa sonde sont omises
+- **AND** Docker-Compose et les autres rubriques restent présents
+
+### Requirement: Structure de l'inventaire matériel TPM
+
+La rubrique Matériel SHALL contenir une sous-rubrique TPM avec six puces
+dans cet ordre : Chemin, Version, Fabricant, Identifiant fournisseur,
+Révision de spécification, Registres PCR. Le rendu SHALL être commun aux
+générations individuelle, groupée et finale de création.
+
+#### Scenario: Rendu matériel commun
+
+- **WHEN** un des trois parcours génère le document
+- **THEN** Matériel et TPM apparaissent une seule fois après l'OS et avant les rubriques de conteneurs activées, ou avant OpenSSH & SSHPASS si elles sont omises
+- **AND THEN** les six champs sont présents dans l'ordre prévu
+
+### Requirement: Sélection locale et version du TPM
+
+DIU SHALL sélectionner un périphérique caractère tpmrmN avant tpmN dans
+l'ordre lexical C de chaque famille. La version majeure sysfs du même
+indice SHALL fournir 1.2 ou 2.0 pour les valeurs 1 ou 2. Une famille TPM 2
+valide MAY compléter une version sysfs indisponible. DIU SHALL conserver
+le chemin choisi si les sondes échouent, sans repli sur un autre TPM.
+
+#### Scenario: Gestionnaire de ressources disponible
+
+- **WHEN** /dev/tpmrm0 et /dev/tpm0 sont visibles
+- **THEN** Chemin indique /dev/tpmrm0 en première puce
+- **AND THEN** la version provient du sysfs de tpm0 ou de la famille observée
+
+#### Scenario: Gestionnaire absent
+
+- **WHEN** seul un périphérique caractère tpmN est visible
+- **THEN** son chemin est sélectionné et le sysfs du même indice est utilisé
+
+#### Scenario: Aucun périphérique visible
+
+- **WHEN** aucun périphérique TPM n'est visible dans le contexte DIU
+- **THEN** les six champs indiquent cette indisponibilité sans conclure à une absence physique
+- **AND THEN** aucune sonde TPM n'est exécutée
+
+### Requirement: Propriétés publiques du TPM
+
+DIU SHALL utiliser uniquement properties-fixed de tpm2_getcap déjà présent
+pour relever la famille, la valeur ASCII et le code hexadécimal de
+TPM2_PT_MANUFACTURER, puis TPM2_PT_REVISION. Fabricant SHALL utiliser la
+valeur ASCII ; Identifiant fournisseur SHALL utiliser le code hexadécimal.
+Une propriété absente, invalide ou dupliquée SHALL rester non vérifiable.
+
+#### Scenario: Propriétés disponibles
+
+- **WHEN** la sonde renvoie des propriétés publiques reconnues
+- **THEN** famille, fabricant, identifiant et révision de spécification sont rendus séparément
+- **AND THEN** aucune version de firmware n'est utilisée comme révision de spécification
+
+#### Scenario: Propriétés incomplètes ou mal formées
+
+- **WHEN** une propriété manque, est dupliquée ou n'a pas un format reconnu
+- **THEN** le champ concerné reste non vérifiable et les autres champs valides sont conservés
+- **AND THEN** aucune valeur brute non reconnue n'est publiée ou exécutée
+
+### Requirement: Inventaire des registres PCR alloués
+
+DIU SHALL utiliser uniquement pcrs de tpm2_getcap pour indiquer les banques
+et leurs indices PCR alloués. DIU SHALL NOT lire les valeurs de registres,
+choisir arbitrairement un PCR ou modifier l'allocation. Une réponse vide,
+ambiguë ou mal formée SHALL rester non vérifiable.
+
+#### Scenario: Plusieurs banques allouées
+
+- **WHEN** pcrs fournit des banques et des listes d'indices valides
+- **THEN** Registres PCR contient chaque banque et ses indices sans valeur de registre
+
+#### Scenario: PCR impossibles à relever
+
+- **WHEN** la réponse PCR échoue ou n'est pas reconnue
+- **THEN** Registres PCR indique cette limite sans bloquer la génération ni effacer les propriétés valides
+
+### Requirement: Sondes TPM bornées et sans mutation
+
+Chaque sonde SHALL utiliser le transport explicite device du chemin retenu,
+avec 5 secondes de délai et une seconde supplémentaire avant terminaison
+forcée. DIU SHALL NOT installer un outil, modifier permissions ou TPM,
+utiliser un transport réseau implicite ou publier stderr. Une indisponibilité
+SHALL produire un diagnostic fixe par champ sans bloquer le document.
+
+#### Scenario: Outil absent ou accès refusé
+
+- **WHEN** tpm2_getcap manque ou le périphérique n'est pas accessible
+- **THEN** chemin et version sysfs disponibles sont conservés, les autres champs explicitent la limite
+- **AND THEN** aucune installation ni élévation de privilèges n'est tentée
+
+#### Scenario: Sonde expirée ou échouée
+
+- **WHEN** une requête échoue ou dépasse son délai
+- **THEN** ses champs indiquent une sonde échouée ou expirée sans exposer ses sorties
+- **AND THEN** la génération continue avec les autres informations vérifiables
+
+#### Scenario: TPM 1.2 visible
+
+- **WHEN** sysfs indique un TPM 1.2
+- **THEN** chemin et version sont rendus, les autres champs signalent la limite de la sonde TPM 2
+- **AND THEN** tpm2_getcap n'est pas exécuté
+
+### Requirement: Préparation des exécutables DevOps connus
+
+Avant les inventaires et sondes du rendu commun, DIU SHALL préparer uniquement
+ces chemins sous `/home/${ENV_DEVOPS_USER}` : `go/current/bin/go`,
+`node/current/bin/node`, `node/current/bin/npm`, `.opencode/bin/opencode`,
+`.local/npm/bin/openspec`, `python/current/bin/python3` et
+`python/current/bin/pip3`. Les outils absents SHALL rester indisponibles sans
+création ni installation. La version documentaire, les commandes et le
+contexte des sondes SHALL rester inchangés.
+
+#### Scenario: Sept outils présents sans droit d'exécution
+
+- **WHEN** les sept fichiers DevOps existent sans bits d'exécution
+- **THEN** DIU ajoute leurs bits ugo+x avant les inventaires et les sondes
+- **AND THEN** les versions et inventaires disponibles sont relevés normalement
+- **AND THEN** propriétaires, droits de lecture et d'écriture, outils hôte et autres fichiers restent inchangés
+
+### Requirement: Confinement de la préparation DevOps
+
+DIU SHALL résoudre chaque cible existante et SHALL vérifier qu'elle est un
+fichier ordinaire dans le domicile canonique DevOps avant de modifier ses
+droits. DIU SHALL NOT parcourir récursivement le domicile, modifier les outils
+hôte ou modifier un autre fichier pour cette préparation. Une cible externe
+ou non ordinaire SHALL être refusée sans modification de cette cible.
+
+#### Scenario: Cible externe ou non ordinaire
+
+- **WHEN** un chemin connu désigne une cible externe ou un objet non ordinaire
+- **THEN** DIU refuse la préparation sans modifier cette cible
+- **AND THEN** le document précédent est conservé
+
+### Requirement: Ajout idempotent des droits d'exécution
+
+DIU SHALL ajouter les seuls bits `ugo+x` manquants et SHALL conserver le
+propriétaire et les droits de lecture et d'écriture. Un fichier déjà doté de
+ces trois bits SHALL rester inchangé. Les liens internes SHALL être conservés.
+
+#### Scenario: Liens symboliques internes et réexécution
+
+- **WHEN** un chemin connu désigne un fichier via un lien interne au domicile DevOps
+- **THEN** DIU prépare sa cible ordinaire sans remplacer le lien
+- **AND THEN** une réexécution ne modifie pas les fichiers déjà dotés des trois bits d'exécution
+
+### Requirement: Diagnostics et échecs de préparation DevOps
+
+Une sonde directe SHALL distinguer fichier absent et fichier présent non
+exécutable sans modifier ses droits. Une préparation impossible SHALL arrêter
+la génération avec un code non nul et un diagnostic contextuel avant les
+inventaires et sondes suivants. Le DEVOPS.md précédent SHALL être conservé.
+Les droits déjà préparés SHALL rester appliqués sans annulation automatique.
+
+#### Scenario: Outil absent ou sonde directe non exécutable
+
+- **WHEN** un outil connu est absent ou une sonde directe reçoit un fichier non exécutable
+- **THEN** le diagnostic distingue binaire absent et binaire non exécutable
+- **AND THEN** aucun fichier manquant n'est créé ni remplacé par un outil hôte
+
+#### Scenario: Préparation refusée
+
+- **WHEN** une cible sort du domicile, n'est pas un fichier ordinaire, ne peut pas être résolue ou ses droits ne peuvent pas être préparés
+- **THEN** DIU retourne un code non nul avec un diagnostic contextuel sans lancer les inventaires et sondes suivants
+- **AND THEN** le DEVOPS.md précédent est conservé
+- **AND THEN** les droits déjà préparés restent appliqués sans annulation automatique
+
+### Requirement: Nom d'hôte dans la rubrique système
+
+DIU SHALL ajouter en deuxième puce de Système d'exploitation le résultat
+de `hostname -f`, après le nom de l'OS. La sonde SHALL utiliser le binaire
+système du contexte d'exécution DIU, sans modifier le nom ni le réseau.
+Sa durée SHALL être bornée à 15 secondes. Sa sortie SHALL être une seule
+ligne de 1 à 253 caractères ASCII alphanumériques, points ou tirets,
+commençant par un caractère alphanumérique. Une impossibilité SHALL être
+rendue explicitement sans bloquer la génération.
+
+#### Scenario: Nom d'hôte disponible
+
+- **WHEN** hostname -f réussit avec hvp1.pixs.fr
+- **THEN** la rubrique contient le nom de l'OS puis hvp1.pixs.fr en deuxième puce
+- **AND THEN** hostname est appelé une seule fois avec le seul argument -f
+- **AND THEN** la rubrique Matériel et les rubriques suivantes gardent leur ordre
+
+#### Scenario: Valeur actualisée dans tous les parcours
+
+- **WHEN** le nom retourné change entre deux générations individuelles, groupées ou à la création
+- **THEN** chaque document utilise la valeur actuellement retournée sans nom codé en dur
+- **AND THEN** le document porte la version 0.7
+
+#### Scenario: Commande indisponible, échouée ou expirée
+
+- **WHEN** hostname est absent, échoue ou dépasse la durée autorisée
+- **THEN** la deuxième puce indique explicitement une indisponibilité
+- **AND THEN** la génération se poursuit sans nom inventé ni erreur brute
+
+#### Scenario: Sortie invalide
+
+- **WHEN** hostname retourne une sortie vide, multiligne, trop longue ou contenant des caractères non admis
+- **THEN** la deuxième puce indique un nom d'hôte invalide sans publier la sortie rejetée
+- **AND THEN** aucune valeur ancienne ni aucun repli sur hostname sans -f n'est utilisé
+
+### Requirement: Activation de la rubrique Docker
+
+La rubrique Docker SHALL être générée uniquement si ENV_DEVOPS_TESTS_DOCKER vaut
+exactement `1`. Une valeur absente, vide ou différente SHALL omettre la rubrique
+et MUST NOT provoquer de résolution ou de sonde du binaire Docker.
+
+#### Scenario: Indicateur Docker désactivant
+
+- **WHEN** ENV_DEVOPS_TESTS_DOCKER est absent, vide, égal à `0` ou différent de `1`
+- **THEN** la rubrique Docker et sa sonde sont omises, indépendamment de LXC
+- **AND** Docker-Compose reste présent
+
+### Requirement: Rubrique LXC documentaire conditionnelle
+
+Le rendu commun SHALL générer `Conteneur LXC, pour tests nécessitant des droits root accessible en SSH`
+uniquement si ENV_DEVOPS_TESTS_LXC vaut exactement `1`, indépendamment de Docker.
+Une valeur absente, vide ou différente SHALL omettre cette rubrique.
+LXC SHALL suivre Docker s'il est présent, sinon Matériel, et SHALL précéder OpenSSH & SSHPASS, puis Docker-Compose.
+Le format SHALL rester `0.7` et les trois parcours SHALL partager ce comportement.
+
+#### Scenario: Deux conteneurs activés
+
+- **WHEN** les deux indicateurs valent exactement `1`
+- **THEN** les rubriques sont Matériel, Conteneur Docker, Conteneur LXC, OpenSSH & SSHPASS, Docker-Compose
+
+#### Scenario: LXC seul
+
+- **WHEN** seul ENV_DEVOPS_TESTS_LXC vaut exactement `1`
+- **THEN** LXC suit Matériel et précède OpenSSH & SSHPASS puis Docker-Compose sans rubrique ni sonde Docker
+
+#### Scenario: LXC désactivé
+
+- **WHEN** ENV_DEVOPS_TESTS_LXC est absent, vide, égal à `0` ou différent de `1`
+- **THEN** la rubrique LXC et ses cinq puces sont omises indépendamment de Docker
+
+### Requirement: Contenu documentaire LXC
+
+La rubrique LXC SHALL contenir exactement cinq puces dans l'ordre :
+`Variables d'accès disponible dans project.env pour l'accès SSH`, `Debian 13`, `Accès TPM OK`,
+puis la puce commune d’autorisation et enfin
+`Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests.`.
+Les trois premières mentions SHALL rester déclaratives et MUST NOT être présentées comme une
+qualification distante.
+
+#### Scenario: Contenu fixe demandé
+
+- **WHEN** LXC est activé dans un des trois parcours
+- **THEN** le titre et les cinq puces exactes apparaissent une seule fois dans l'ordre prévu
+
+#### Scenario: Conservation des dépendances de test
+
+- **WHEN** la rubrique LXC est générée
+- **THEN** sa cinquième et dernière puce est exactement `Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests.`
+- **AND** aucune installation ni désinstallation n’est exécutée par ce rendu documentaire
+
+### Requirement: Absence de connexion pour le rendu LXC
+
+Le générateur MUST NOT lire les identifiants LXC, se connecter à un conteneur
+ou lancer une sonde TPM distante pour cette rubrique.
+
+#### Scenario: Rendu sans accès distant
+
+- **WHEN** la rubrique LXC est générée dans un des trois parcours
+- **THEN** les cinq puces sont émises sans commande LXC, accès aux identifiants ou sonde TPM distante
+
+### Requirement: Puce commune d'autorisation des tests
+
+Chaque rubrique de conteneur activée SHALL contenir la puce exacte ci-dessous,
+en dernière position pour Docker et en quatrième position pour LXC :
+`Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests.`.
+
+#### Scenario: Autorisation explicite en dernière position
+
+- **WHEN** Docker est activé dans un des trois parcours de génération
+- **THEN** sa dernière puce est la formulation validée
+- **AND** elle suit l’image Docker
+
+#### Scenario: Rubrique omise
+
+- **WHEN** une rubrique de conteneur est désactivée
+- **THEN** aucune puce d'autorisation n'est émise pour cette rubrique
+- **AND** aucune autre rubrique ne reçoit cette autorisation
+
+#### Scenario: Autorisation LXC avant la conservation des dépendances
+
+- **WHEN** LXC est activé dans un des trois parcours de génération
+- **THEN** sa quatrième puce est la formulation commune validée
+- **AND** elle suit « Accès TPM OK » et précède la puce de conservation des binaires et bibliothèques
+
+### Requirement: Portée documentaire de l'autorisation
+
+L'ajout de la puce SHALL rester un rendu documentaire et MUST NOT modifier les
+contrôles techniques de permissions des outils ou plateformes, ni lancer des
+opérations de test ou de conteneur pendant la génération.
+Un échec d'écriture de cette puce SHALL être propagé.
+
+#### Scenario: Génération sans modification des permissions
+
+- **WHEN** la puce est ajoutée à un document
+- **THEN** les conditions, sondes, format 0.7 et autres rubriques restent inchangés
+- **AND** aucun contrôle technique de permission n'est désactivé
+
+#### Scenario: Échec du rendu de l'autorisation
+
+- **WHEN** l'écriture de la puce échoue
+- **THEN** le rendu retourne un statut non nul et l'ancien document est conservé
+
+### Requirement: Rubrique locale OpenSSH et SSHPASS
+
+Le rendu commun SHALL émettre une seule rubrique `OpenSSH & SSHPASS` après les rubriques de conteneurs présentes et avant Docker-Compose, indépendamment des indicateurs Docker et LXC. Elle SHALL contenir exactement quatre puces : version OpenSSH, chemin hôte de ssh, version sshpass, chemin hôte de sshpass. Le format SHALL rester 0.7.
+
+#### Scenario: Rubrique dans tous les parcours
+
+- **WHEN** un document est généré individuellement, en groupe ou en fin de création
+- **THEN** la rubrique apparaît une seule fois avec ses quatre puces, après LXC s’il est actif et immédiatement avant Docker-Compose
+- **AND** les conditions et contenus des autres rubriques restent préservés
+
+#### Scenario: Conteneurs désactivés
+
+- **WHEN** Docker et LXC sont omis
+- **THEN** OpenSSH & SSHPASS suit Matériel et précède Docker-Compose
+
+### Requirement: Sondes locales de version SSH
+
+DIU SHALL résoudre ssh et sshpass dans le PATH système contrôlé et appeler chaque binaire une fois avec le seul argument -V, avec une borne de 15 secondes. DIU SHALL extraire uniquement la version de la première ligne OpenSSH_ ou sshpass, y compris OpenSSH sur stderr. DIU MUST NOT établir de connexion, lire d’identifiants, installer d’outil ni modifier les droits pour ces sondes.
+
+#### Scenario: Versions observées et actualisées
+
+- **WHEN** les binaires retournent OpenSSH_10.0p2 suivi d’informations Debian/OpenSSL et sshpass 1.10 suivi de sa licence
+- **THEN** seules les versions 10.0p2 et 1.10 apparaissent avec leurs chemins respectifs
+- **AND** une génération ultérieure utilise les nouvelles versions retournées, sans valeur codée en dur
+
+#### Scenario: Outil indisponible ou sortie invalide
+
+- **WHEN** un outil est absent, non exécutable, échoue, expire ou ne retourne pas le préfixe et une version reconnus
+- **THEN** sa puce de version porte un diagnostic explicite sans sortie brute, ancienne version ni repli vers la version OpenSSL
+- **AND** le chemin détecté, ou une absence explicite de binaire, reste indiqué et les autres rubriques sont générées
+
+### Requirement: Déclaration préalable de Cython pour la compilation
+
+DIU SHALL reconnaître le nom de distribution Cython, sans distinction de casse, uniquement dans la liste [build-system].requires du TOML. DIU SHALL émettre « Python - Outils de compilation » après pip et avant Prompts si Cython ou Nuitka est déclaré, avec une entrée Cython seulement s’il est déclaré. Sans déclaration confirmée, DIU MUST NOT découvrir ou sonder des venv pour Cython. Une analyse invalide ou impossible SHALL produire un diagnostic fixe hors de cette rubrique.
+
+#### Scenario: Cython déclaré pour la construction
+
+- **WHEN** [build-system].requires contient Cython, cython ou une exigence Cython avec contrainte ou marqueur
+- **THEN** la rubrique de compilation apparaît une seule fois après pip et avant Prompts, avec la déclaration et sa source
+- **AND** les contraintes et marqueurs restent déclaratifs sans résolution, et les références directes restent masquées
+- **AND** les dépendances d’exécution restent inchangées
+
+#### Scenario: Cython non déclaré pour la construction
+
+- **WHEN** le manifeste est absent, sans [build-system].requires, ou déclare Cython uniquement dans une autre table, un commentaire ou un nom de distribution différent
+- **THEN** l’entrée Cython est omise et aucune sonde Cython n’est exécutée ; la rubrique et la découverte sont omises si Nuitka n’est pas déclaré non plus
+- **AND** un manifeste absent reste signalé par l’inventaire d’exécution existant
+
+#### Scenario: Déclaration non vérifiable
+
+- **WHEN** le manifeste est illisible, invalide, possède un requires mal typé ou l’analyseur est indisponible
+- **THEN** le diagnostic explique que la déclaration n’est pas vérifiable sans émettre la rubrique de compilation ni conclure à une absence d’installation
+
+### Requirement: Installation de Cython observée dans les venv du projet
+
+Après déclaration confirmée, DIU SHALL rechercher Cython uniquement dans les venv du projet, dans l’ordre .venv, venv, env puis autres chemins triés. Les résultats SHALL distinguer version observée, « Cython : non installé » avec environnements vérifiés et « Cython : installation non vérifiable ». L’absence de venv ou une recherche ou sonde incomplète SHALL NOT prouver une absence. DIU MUST NOT utiliser de paquet global en repli.
+
+#### Scenario: Cython installé dans un venv
+
+- **WHEN** un venv du projet fournit des métadonnées Cython valides
+- **THEN** le premier environnement selon la priorité fournit la version et les chemins observés, sans déduire un usage fonctionnel ni une conformité de version
+
+#### Scenario: Absence vérifiée de Cython
+
+- **WHEN** la découverte est achevée et tous les venv trouvés ont été sondés avec succès sans métadonnées Cython
+- **THEN** le document indique non installé et les environnements vérifiés, même si le Python DevOps possède Cython
+
+#### Scenario: Installation non vérifiable
+
+- **WHEN** aucun venv n’est trouvé, ou une recherche ou sonde échoue, expire, dépasse son budget ou fournit des métadonnées ambiguës sans installation valide observée
+- **THEN** le document indique installation non vérifiable avec un diagnostic fixe sans sortie rejetée
+
+#### Scenario: Rendu et isolation communs
+
+- **WHEN** un rendu individuel, groupé ou final de création traite un projet déclarant Cython
+- **THEN** la rubrique conditionnelle est identique à observations égales, avec chemins du projet, sans import de paquet ni chargement de .pth, installation ou modification du manifeste
+
+### Requirement: Sondes Cython isolées et rendu commun
+
+DIU SHALL sonder les métadonnées avec -I -B -S, dans les bornes existantes de 3 secondes par sonde et 12 secondes de recherche/sondes. DIU MUST NOT importer Cython, charger de .pth, installer, compiler ni modifier le manifeste. Les trois parcours SHALL partager ce rendu au format 0.7. Les chemins observés SHALL provenir des environnements du projet ; aucune sortie rejetée SHALL être publiée.
+
+#### Scenario: Sonde passive et bornée
+
+- **WHEN** un environnement contient Cython, un fichier .pth à effet de bord ou un interpréteur qui expire
+- **THEN** aucun paquet ni fichier .pth n’est exécuté, et toute expiration termine la sonde et ses descendants sans exposer de sortie brute
+- **AND** les contraintes déclarées ne sont pas résolues et aucun fichier de manifeste n’est modifié
+
+### Requirement: Déclaration préalable de Nuitka pour la compilation
+
+DIU SHALL reconnaître uniquement Nuitka, sans distinction de casse, dans [build-system].requires, avec ses contraintes, marqueurs ou extras. DIU SHALL afficher une entrée Nuitka uniquement après déclaration confirmée. Sans cette déclaration, DIU MUST NOT sonder Nuitka. Les références directes SHALL être masquées ; les marqueurs et contraintes SHALL rester déclaratifs, sans résolution. Une autre table ou un commentaire MUST NOT déclencher cette détection.
+
+#### Scenario: Déclarations Nuitka acceptées
+
+- **WHEN** requires contient Nuitka, nuitka, NUITKA>=2 ou Nuitka[build-wheel]
+- **THEN** l’entrée Nuitka est affichée avec sa déclaration et sa source, après sondage conditionnel
+
+#### Scenario: Nuitka non déclaré pour la construction
+
+- **WHEN** Nuitka est absent de requires, seulement dans une autre table, un commentaire ou un nom tel que nuitka-tools
+- **THEN** aucune entrée ni sonde Nuitka n’est produite, même si Nuitka est installé localement
+
+### Requirement: États Nuitka indépendants et provenance locale
+
+DIU SHALL appliquer à Nuitka les sondes isolées et bornées des venv du projet, sans import, .pth, installation, compilation, modification de manifeste ni repli global. L’entrée SHALL indiquer la version et les chemins observés, non installé avec les venv vérifiés si l’absence est établie, ou installation non vérifiable sinon, notamment sans venv. L’état de Nuitka SHALL rester indépendant de celui de Cython.
+
+#### Scenario: Version locale et environnement observés
+
+- **WHEN** le premier venv valide selon la priorité fournit Nuitka
+- **THEN** sa version, son interpréteur, son environnement et son installation sont indiqués, sans conformité de version ni usage effectif déduits
+- **AND** la présence de Nuitka dans le Python global ne remplace jamais une absence locale
+
+#### Scenario: Absence et impossibilité de vérification
+
+- **WHEN** tous les venv découverts sont sondés avec succès sans Nuitka
+- **THEN** Nuitka est indiqué non installé avec les environnements vérifiés
+- **AND** aucun venv, une découverte incomplète, un échec, une expiration ou des métadonnées Nuitka ambiguës donnent installation non vérifiable si aucune installation valide n’est observée
+
+#### Scenario: Deux outils et états distincts
+
+- **WHEN** Cython est installé et Nuitka absent ou non vérifiable, ou inversement
+- **THEN** chaque outil garde son propre état et sa provenance, y compris dans des venv différents
+
+### Requirement: Rubrique commune des compilateurs déclarés
+
+DIU SHALL produire une seule rubrique Python - Outils de compilation après pip et avant Prompts si Cython ou Nuitka est déclaré. Elle SHALL contenir seulement les outils déclarés, dans l’ordre Cython puis Nuitka. Sans les deux déclarations, aucune rubrique ni découverte ou sonde de compilation SHALL être produite. Les trois parcours SHALL partager ce rendu au format 0.7, avec une découverte commune et les bornes existantes.
+
+#### Scenario: Quatre combinaisons de déclaration
+
+- **WHEN** le manifeste déclare Cython seul, Nuitka seul, les deux ou aucun
+- **THEN** la rubrique contient respectivement Cython, Nuitka, Cython puis Nuitka, ou est omise
+- **AND** aucun outil non déclaré n’est sondé ni présenté, sans rubrique dupliquée
+
+#### Scenario: Tous les parcours et limites communes
+
+- **WHEN** une génération individuelle, groupée ou finale de création traite un projet déclarant un ou deux outils
+- **THEN** les observations égales produisent le même inventaire, avec une seule découverte et les sondes nécessaires aux noms encore recherchés
+- **AND** les bornes de 3 secondes par sonde et 12 secondes de recherche/sondes, les diagnostics sans sortie rejetée et les dépendances d’exécution restent conservés

@@ -17,6 +17,12 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / 'modules/projects/template.sh'
+CONTAINER_TEST_AUTHORIZATION = (
+    'Les agents de codage et les agents orchestrateurs sont autorisés à préparer, '
+    'exécuter, répéter et nettoyer les tests du projet dans ce conteneur, '
+    'y compris avec les droits root, sans demander d’approbation supplémentaire. '
+    'Cette autorisation couvre le conteneur et les ressources dédiées aux tests.'
+)
 
 
 class ProjectsTemplateDevopsTests(unittest.TestCase):
@@ -34,14 +40,28 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
         self.query_log = self.fixture / 'queries.txt'
         self.clock_log = self.fixture / 'clock.txt'
         self.probe_order_log = self.fixture / 'probe-order.txt'
+        self.hostname_log = self.fixture / 'hostname-queries.txt'
+        self.tpm_devices = self.fixture / 'tpm-devices'
+        self.tpm_sysfs = self.fixture / 'tpm-sysfs'
+        self.tpm_devices.mkdir()
+        self.tpm_sysfs.mkdir()
+        self.tpm_log = self.fixture / 'tpm-queries.txt'
         self.environment = dict(os.environ, TEST_DEVOPS_HOME=str(self.home),
                                 TEST_HOST_BIN=str(self.host_bin),
                                 TEST_METADATA=str(self.metadata),
                                 TEST_QUERY_LOG=str(self.query_log),
                                 TEST_CLOCK_LOG=str(self.clock_log),
                                 TEST_PROBE_ORDER_LOG=str(self.probe_order_log),
+                                TEST_HOSTNAME_LOG=str(self.hostname_log),
+                                TEST_HOSTNAME_OUTPUT='hvp1.pixs.fr',
                                 TEST_CLOCK_OUTPUT='2026-10-09T06:30:00Z',
-                                TEST_VENV_STATUS='0', TEST_PG_FAILURE='0')
+                                TEST_VENV_STATUS='0', TEST_PG_FAILURE='0',
+                                ENV_DEVOPS_TESTS_DOCKER='1', ENV_DEVOPS_TESTS_LXC='0')
+        self.environment.update(TEST_TPM_DEVICES=str(self.tpm_devices),
+                                TEST_TPM_SYSFS=str(self.tpm_sysfs),
+                                TEST_TPM_LOG=str(self.tpm_log),
+                                TEST_TPM_PROPERTIES=str(self.fixture / 'tpm-properties'),
+                                TEST_TPM_PCRS=str(self.fixture / 'tpm-pcrs'))
         self.environment.pop('DEVOPS_PROJECTS_ROOT', None)
         self.environment.pop('SYSTEM_DEBIAN_ENVIRONNEMENT', None)
         self.executable(self.host_bin / 'date', r'''
@@ -50,10 +70,22 @@ printf '%s\n' "$*" >> "$TEST_CLOCK_LOG"
 printf 'clock\n' >> "$TEST_PROBE_ORDER_LOG"
 printf '%s\n' "$TEST_CLOCK_OUTPUT"
 ''')
+        self.executable(self.host_bin / 'hostname', r'''
+[ "$#" -eq 1 ] && [ "$1" = -f ] || exit 9
+printf '%s\n' "$*" >> "$TEST_HOSTNAME_LOG"
+printf '%s\n' "$TEST_HOSTNAME_OUTPUT"
+''')
         self.executable(self.host_bin / 'docker',
                         '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
                         'printf "docker\\n" >> "$TEST_PROBE_ORDER_LOG"\n'
                         "printf 'Docker version 29.1.2, build fixture\\n'")
+        for tool, output in (('ssh', 'OpenSSH_10.0p2 Debian-fixture, OpenSSL 3.5.7'),
+                             ('sshpass', 'sshpass 1.10')):
+            redirect = ' >&2' if tool == 'ssh' else ''
+            self.executable(self.host_bin / tool,
+                            '[ "$#" -eq 1 ] && [ "$1" = -V ] || exit 9\n'
+                            f"printf '%s\\n' '{tool} -V' >> \"$TEST_HOST_BIN/ssh-queries\"\n"
+                            f"printf '%s\\n' '{output}'{redirect}\n")
         self.executable(self.host_bin / 'docker-compose', "printf 'Docker Compose version v5.2.3\\n'")
         self.executable(self.host_bin / 'git', "printf 'git version 2.47.9\\n'")
         self.executable(self.host_bin / 'openssl', "printf 'OpenSSL 3.5.3 1 Jan 2026\\n'")
@@ -130,6 +162,10 @@ printf '16.4\n'
         self.assertEqual(source.count(home_assignment), 4,
                          'Le test doit isoler les quatre domiciles, sans toucher aux projets réels')
         source = source.replace(home_assignment, 'local devops_home="$TEST_DEVOPS_HOME"')
+        tpm_roots = 'local device_root="${1:-/dev}" sysfs_root="${2:-/sys/class/tpm}"'
+        self.assertEqual(source.count(tpm_roots), 1)
+        source = source.replace(tpm_roots,
+                                'local device_root="$TEST_TPM_DEVICES" sysfs_root="$TEST_TPM_SYSFS"')
         for before, after in source_replacements:
             self.assertEqual(source.count(before), 1)
             source = source.replace(before, after)
@@ -172,28 +208,262 @@ ENV_DEVOPS_USER="$1"
                         content.index('# Tests navigateurs extérieurs en mode headless\n'))
         self.assertFalse(prompts.exists())
 
+    def test_hostname_follows_os_with_exact_arguments_and_one_call(self):
+        content = self.successful_document(self.run_generation())
+        self.assertRegex(content, r"# Système d'exploitation\n\n  \* [^\n]+\n"
+                                  r"  \* hvp1\.pixs\.fr\n\n\n# Matériel\n")
+        self.assertEqual(self.hostname_log.read_text().splitlines(), ['-f'])
+        self.assertIn('Version : 0.7\n', content)
+
+    def test_hostname_is_refreshed_without_a_hardcoded_value(self):
+        first = self.successful_document(self.run_generation())
+        self.environment['TEST_HOSTNAME_OUTPUT'] = 'dev-build.example.test'
+        second = self.successful_document(self.run_generation())
+        self.assertIn('  * hvp1.pixs.fr\n', first)
+        self.assertIn('  * dev-build.example.test\n', second)
+        self.assertNotIn('hvp1.pixs.fr', second)
+        self.assertEqual(self.hostname_log.read_text().splitlines(), ['-f', '-f'])
+
+    def test_hostname_short_name_and_maximum_length_are_preserved(self):
+        maximum = '.'.join(['a' * 63, 'b' * 63, 'c' * 63, 'd' * 61])
+        self.assertEqual(len(maximum), 253)
+        for output in ('localhost', maximum):
+            with self.subTest(length=len(output)):
+                self.environment['TEST_HOSTNAME_OUTPUT'] = output
+                content = self.successful_document(self.run_generation())
+                self.assertIn(f'  * {output}\n', content)
+
+    def test_hostname_missing_or_failed_does_not_block_generation(self):
+        hostname = self.host_bin / 'hostname'
+        hostname.unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * indisponible (commande hostname absente)\n', content)
+        self.assertIn('# Matériel\n', content)
+        self.assertFalse(self.hostname_log.exists())
+        self.executable(hostname, "printf 'sortie-rejetee-test\\n'; "
+                        "printf 'diagnostic-brut-test\\n' >&2; exit 7")
+        result = self.run_generation()
+        content = self.successful_document(result)
+        self.assertIn("  * indisponible (nom d'hôte non vérifiable)\n", content)
+        self.assertNotIn('sortie-rejetee-test', content + result.stderr)
+        self.assertNotIn('diagnostic-brut-test', content + result.stderr)
+
+    def test_hostname_invalid_output_is_not_published(self):
+        for output in ('', 'first.example.test\nsecond.example.test',
+                       'name with spaces', '<rejected>', 'hôte.example.test',
+                       'a' * 254, '-invalid', 'host\x1b[0m'):
+            with self.subTest(output=repr(output)):
+                self.environment['TEST_HOSTNAME_OUTPUT'] = output
+                content = self.successful_document(self.run_generation())
+                self.assertIn("  * indisponible (nom d'hôte invalide)\n", content)
+                section = content.split("# Système d'exploitation\n", 1)[1].split('# Matériel', 1)[0]
+                self.assertEqual(len(re.findall(r'^  \* ', section, re.M)), 2)
+                self.assertNotIn('first.example.test', section)
+                self.assertNotIn('<rejected>', section)
+
+    def test_hostname_timeout_uses_bounded_probe_and_continues(self):
+        self.executable(self.host_bin / 'hostname', 'exec /bin/sleep 5')
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation(source_replacements=((
+            '/usr/bin/timeout 15s "${binary}" -f 2>/dev/null',
+            '/usr/bin/timeout 0.05s "${binary}" -f 2>/dev/null'),)))
+        self.assertLess(time.monotonic() - started, 3)
+        self.assertIn("  * indisponible (nom d'hôte non vérifiable)\n", content)
+        self.assertIn('# Matériel\n', content)
+
+    def assert_test_container_sections(self, content, docker, lxc):
+        docker_title = '# Conteneur Docker, pour tests nécessitant des droits root\n'
+        lxc_title = '# Conteneur LXC, pour tests nécessitant des droits root accessible en SSH\n'
+        retention = 'Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests.'
+        self.assertEqual(content.count(docker_title), int(docker))
+        self.assertEqual(content.count(lxc_title), int(lxc))
+        self.assertNotIn('# Docker, pour tests nécessitant des droits root\n', content)
+        self.assertEqual(content.count('/var/run/docker.sock'), int(docker))
+        self.assertEqual(content.count('debian:stable-slim'), int(docker))
+        self.assertEqual(content.count('  * Accès TPM OK\n'), int(lxc))
+        self.assertEqual(content.count('  * ' + retention + '\n'), int(lxc))
+        self.assertEqual(content.count('# Docker-Compose\n'), 1)
+        self.assertEqual(content.count(CONTAINER_TEST_AUTHORIZATION), int(docker) + int(lxc))
+        for title, enabled, count in ((docker_title, docker, 5), (lxc_title, lxc, 5)):
+            if enabled:
+                section = content.split(title, 1)[1].split('\n# ', 1)[0]
+                bullets = [line for line in section.splitlines() if line.startswith('  * ')]
+                self.assertEqual(len(bullets), count)
+                self.assertEqual(bullets[3 if title == lxc_title else 4],
+                                 '  * ' + CONTAINER_TEST_AUTHORIZATION)
+                if title == lxc_title:
+                    self.assertEqual(bullets[-1], '  * ' + retention)
+        ordered = ['# Matériel\n']
+        if docker:
+            ordered.append(docker_title)
+        if lxc:
+            ordered.append(lxc_title)
+            self.assertIn(lxc_title + "\n  * Variables d'accès disponible dans project.env pour l'accès SSH\n"
+                          '  * Debian 13\n  * Accès TPM OK\n'
+                          f'  * {CONTAINER_TEST_AUTHORIZATION}\n'
+                          f'  * {retention}\n\n\n# OpenSSH & SSHPASS\n', content)
+        self.assert_ssh_section(content)
+        ordered.extend(('# OpenSSH & SSHPASS\n', '# Docker-Compose\n'))
+        for before, after in zip(ordered, ordered[1:]):
+            self.assertLess(content.index(before), content.index(after))
+        self.assertIn('Version : 0.7\n', content)
+
+    def assert_ssh_section(self, content, ssh_version='10.0p2', sshpass_version='1.10'):
+        title = '# OpenSSH & SSHPASS\n'
+        self.assertEqual(content.count(title), 1)
+        self.assertIn(title + f'\n  * {ssh_version}\n  * {self.host_bin / "ssh"}\n'
+                      f'  * {sshpass_version}\n  * {self.host_bin / "sshpass"}\n'
+                      '\n\n# Docker-Compose\n', content)
+
+    def test_ssh_versions_from_binaries_and_refresh(self):
+        content = self.successful_document(self.run_generation())
+        self.assert_ssh_section(content)
+        self.assertEqual((self.host_bin / 'ssh-queries').read_text().splitlines(),
+                         ['ssh -V', 'sshpass -V'])
+        self.executable(self.host_bin / 'ssh', "printf 'OpenSSH_11.2p3 fixture, OpenSSL 9.9.9\\n'")
+        self.executable(self.host_bin / 'sshpass', "printf 'sshpass 1.12\\nlicense-marker\\n'")
+        content = self.successful_document(self.run_generation())
+        self.assert_ssh_section(content, '11.2p3', '1.12')
+        self.assertNotIn('license-marker', content)
+        self.assertNotIn('9.9.9', content)
+
+    def test_ssh_missing_failed_and_unrecognized_keep_other_sections(self):
+        for tool in ('ssh', 'sshpass'):
+            path = self.host_bin / tool
+            original = path.read_bytes()
+            for body, diagnostic in (
+                (None, 'binaire absent'),
+                ("printf 'OpenSSH_88.1p1 private-error-marker\\n' >&2; exit 7", 'sonde échouée'),
+                ("printf 'private-output-marker 3.5.7\\nOpenSSH_88.1p1\\n'", 'version non reconnue'),
+                ("printf ''", 'version non reconnue'),
+            ):
+                with self.subTest(tool=tool, diagnostic=diagnostic, body=body):
+                    if body is None:
+                        path.unlink()
+                    else:
+                        self.executable(path, body)
+                    result = self.run_generation()
+                    content = self.successful_document(result)
+                    self.assertIn(f'  * indisponible ({diagnostic})\n', content)
+                    self.assertIn('  * binaire introuvable\n' if body is None else f'  * {path}\n', content)
+                    self.assertIn('# Docker-Compose\n', content)
+                    for marker in ('private-error-marker', 'private-output-marker', '88.1p1'):
+                        self.assertNotIn(marker, content + result.stdout + result.stderr)
+                    path.write_bytes(original)
+                    path.chmod(0o755)
+
+    def test_ssh_binary_paths_with_spaces(self):
+        spaced = self.fixture / 'host tools with spaces'
+        shutil.copytree(self.host_bin, spaced)
+        self.host_bin = spaced
+        self.environment['TEST_HOST_BIN'] = str(spaced)
+        content = self.successful_document(self.run_generation())
+        self.assert_ssh_section(content)
+        self.assertEqual((spaced / 'ssh-queries').read_text().splitlines(),
+                         ['ssh -V', 'sshpass -V'])
+
+    def test_ssh_nonexecutable_preserves_path_without_chmod(self):
+        path = self.host_bin / 'ssh'
+        path.chmod(0o644)
+        content = self.successful_document(self.run_generation(extra='''
+projects_template_devops_host_binary() {
+    if [[ -f "${TEST_HOST_BIN}/$1" ]]; then printf '%s\n' "${TEST_HOST_BIN}/$1"; else return 1; fi
+}
+'''))
+        self.assertIn(f'  * indisponible (binaire non exécutable)\n  * {path}\n', content)
+        self.assertEqual(path.stat().st_mode & 0o777, 0o644)
+
+    def test_ssh_timeout_is_bounded_and_does_not_publish_partial_output(self):
+        for tool in ('ssh', 'sshpass'):
+            with self.subTest(tool=tool):
+                path = self.host_bin / tool
+                original = path.read_bytes()
+                self.executable(path, "printf 'private-timeout-marker\\n'; exec sleep 5")
+                redirect = '2>&1' if tool == 'ssh' else '2>/dev/null'
+                before = f'/usr/bin/timeout 15s "${{binary}}" -V {redirect}'
+                after = f'/usr/bin/timeout 0.05s "${{binary}}" -V {redirect}'
+                started = time.monotonic()
+                result = self.run_generation(source_replacements=((before, after),))
+                content = self.successful_document(result)
+                self.assertLess(time.monotonic() - started, 3)
+                self.assertIn('  * indisponible (sonde échouée)\n', content)
+                self.assertIn('# Docker-Compose\n', content)
+                self.assertNotIn('private-timeout-marker', content + result.stdout + result.stderr)
+                path.write_bytes(original)
+                path.chmod(0o755)
+
+    def test_container_flags_independent_and_document_refresh(self):
+        extra = """
+container_forbidden() { printf 'interdit' > "$TEST_DEVOPS_HOME/forbidden"; return 99; }
+eval "$(declare -f projects_template_devops_host_binary | sed '1s/projects_template_devops_host_binary/original_host_binary/')"
+projects_template_devops_host_binary() {
+    if [[ "$1" == docker && "${ENV_DEVOPS_TESTS_DOCKER:-0}" != 1 ]]; then
+        container_forbidden
+        return 99
+    fi
+    original_host_binary "$@"
+}
+lxc() { container_forbidden; }
+lxc-info() { container_forbidden; }
+lxc-attach() { container_forbidden; }
+lxc-start() { container_forbidden; }
+ssh() { container_forbidden; }
+"""
+        for docker, lxc in (('0', '0'), ('1', '0'), ('0', '1'), ('1', '1'), ('0', '0')):
+            with self.subTest(docker=docker, lxc=lxc):
+                self.environment.update(ENV_DEVOPS_TESTS_DOCKER=docker, ENV_DEVOPS_TESTS_LXC=lxc)
+                if self.probe_order_log.exists():
+                    self.probe_order_log.unlink()
+                content = self.successful_document(self.run_generation(extra))
+                self.assert_test_container_sections(content, docker == '1', lxc == '1')
+                self.assertEqual(self.probe_order_log.read_text().splitlines(),
+                                 ['clock', 'docker'] if docker == '1' else ['clock'])
+                self.assertFalse((self.home / 'forbidden').exists())
+                repeated = self.successful_document(self.run_generation(extra))
+                self.assertEqual(content, repeated)
+
+    def test_container_flags_absent_empty_and_nonliteral_one_are_disabled(self):
+        marker = self.fixture / 'flag-executed'
+        for name, other in (('ENV_DEVOPS_TESTS_DOCKER', 'ENV_DEVOPS_TESTS_LXC'),
+                            ('ENV_DEVOPS_TESTS_LXC', 'ENV_DEVOPS_TESTS_DOCKER')):
+            self.environment[other] = '1'
+            for value in (None, '', '0', '01', 'true', '1 ', f'$(touch "{marker}")'):
+                with self.subTest(name=name, value=value):
+                    if value is None:
+                        self.environment.pop(name, None)
+                    else:
+                        self.environment[name] = value
+                    content = self.successful_document(self.run_generation())
+                    self.assert_test_container_sections(content,
+                                                        name != 'ENV_DEVOPS_TESTS_DOCKER',
+                                                        name != 'ENV_DEVOPS_TESTS_LXC')
+                    if value and value != '0':
+                        self.assertNotIn(f'\n  * {value}\n', content)
+                    self.assertFalse(marker.exists())
+            self.environment[name] = '0'
+
     def test_generation_structure_versions_and_executable_paths(self):
         content = self.successful_document(self.run_generation())
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
-            'DEVOPS.md — Template', "Système d'exploitation",
-            'Docker, pour tests nécessitant des droits root',
-            'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
+            'DEVOPS.md — Template', "Système d'exploitation", 'Matériel',
+            'Conteneur Docker, pour tests nécessitant des droits root',
+            'OpenSSH & SSHPASS', 'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
             'Python', 'Python - Dépendances du projet - Source de vérité `pyproject.toml`',
             'Python - Gestionnaire de paquets', 'Prompts',
             'Tests navigateurs extérieurs en mode headless',
         ])
-        self.assertEqual(re.findall(r'^## (.+)$', content, re.M), ['Chromium', 'Firefox'])
+        self.assertEqual(re.findall(r'^## (.+)$', content, re.M), ['TPM', 'Chromium', 'Firefox'])
         for title, version, binary in (('Chromium', '134.0.6998.88', 'chromium'),
                                        ('Firefox', '140.0.4esr', 'firefox')):
             self.assertIn(f'## {title}\n\n  * {version}\n  * {self.host_bin / binary}\n'
                           '  * Mode headless : --headless\n', content)
         self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
-        self.assertIn('Version : 0.6', content)
+        self.assertIn('Version : 0.7', content)
         self.assert_prompts_section(content)
         for title, version, path in (
-            ('Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
+            ('Conteneur Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
             ('Git', '2.47.9', self.host_bin / 'git'),
             ('Go', '1.25.3', self.home / 'go/current/bin/go'),
@@ -207,10 +477,12 @@ ENV_DEVOPS_USER="$1"
             ('Python - Gestionnaire de paquets', '25.3.7', self.home / 'python/current/bin/pip3'),
         ):
             self.assertIn(f'# {title}\n\n  * {version}\n  * {path}\n', content)
-        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+        self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * 29.1.2\n  * {self.host_bin / "docker"}\n'
-                      '  * /var/run/docker.sock\n  * debian:stable-slim\n\n\n'
-                      '# Docker-Compose\n', content)
+                      '  * /var/run/docker.sock\n  * debian:stable-slim\n'
+                      f'  * {CONTAINER_TEST_AUTHORIZATION}\n\n\n'
+                      '# OpenSSH & SSHPASS\n', content)
+        self.assert_test_container_sections(content, True, False)
         self.assertEqual(content.count('/var/run/docker.sock'), 1)
         self.assertEqual(content.count('debian:stable-slim'), 1)
         self.assertIn('  * venv: disponible', content)
@@ -225,10 +497,192 @@ ENV_DEVOPS_USER="$1"
         self.assertNotIn('test-only-user', content)
         self.assertNotIn('test-only-database', content)
 
+    def configure_tpm(self, name='tpmrm0', major='2'):
+        device = self.tpm_devices / name
+        device.symlink_to('/dev/null')
+        index = name.removeprefix('tpm').removeprefix('rm')
+        sysfs = self.tpm_sysfs / f'tpm{index}'
+        sysfs.mkdir(exist_ok=True)
+        (sysfs / 'tpm_version_major').write_text(major + '\n')
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_FAMILY_INDICATOR:\n  raw: 0x322E3000\n  value: "2.0"\n'
+            'TPM2_PT_MANUFACTURER:\n  raw: 0x49465800\n  value: "IFX"\n'
+            'TPM2_PT_REVISION:\n  raw: 0xA4\n  value: 1.64\n'
+            'TPM2_PT_FIRMWARE_VERSION_1:\n  raw: 0x70000\n')
+        Path(self.environment['TEST_TPM_PCRS']).write_text(
+            'selected-pcrs:\n  - sha1: [ 0, 7, 23 ]\n  - sha256: [ 0, 7, 23 ]\n')
+        self.executable(self.host_bin / 'tpm2_getcap', r'''
+[ "$#" -eq 3 ] && [ "$1" = -T ] || exit 9
+case "$2" in "device:$TEST_TPM_DEVICES/"*) ;; *) exit 9 ;; esac
+printf '%s|%s\n' "$2" "$3" >> "$TEST_TPM_LOG"
+if [ "${TEST_TPM_FAILURE:-}" = "$3" ]; then
+    printf 'sortie-non-publiable\n'
+    printf 'erreur-non-publiable\n' >&2
+    exit 1
+fi
+if [ "${TEST_TPM_TIMEOUT:-}" = "$3" ]; then exec sleep 30; fi
+case "$3" in
+    properties-fixed) cat "$TEST_TPM_PROPERTIES" ;;
+    pcrs) cat "$TEST_TPM_PCRS" ;;
+    *) exit 9 ;;
+esac
+''')
+        return device
+
+    def test_tpm_properties_and_allocated_pcr_banks_use_explicit_local_transport(self):
+        device = self.configure_tpm()
+        self.environment['TPM2TOOLS_TCTI'] = 'mssim:host=invalid.example.test'
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# Matériel\n\n## TPM\n\n'
+                      f'  * Chemin : {device}\n'
+                      '  * Version : 2.0\n  * Fabricant : IFX\n'
+                      '  * Identifiant fournisseur : 0x49465800\n'
+                      '  * Révision de spécification : 1.64\n'
+                      '  * Registres PCR : sha1: [0, 7, 23] ; sha256: [0, 7, 23]\n', content)
+        self.assertEqual(self.tpm_log.read_text().splitlines(),
+                         [f'device:{device}|properties-fixed', f'device:{device}|pcrs'])
+        self.assertNotIn('0x70000', content)
+        self.assertEqual(content.count('# Matériel\n'), 1)
+
+    def test_tpm_resource_manager_priority_and_matching_sysfs_index(self):
+        raw = self.configure_tpm('tpm0', '1')
+        manager = self.configure_tpm('tpmrm3', '2')
+        (self.tpm_devices / 'tpmrm0-extra').symlink_to('/dev/null')
+        (self.tpm_devices / 'tpmrm0').write_text('fichier ordinaire, pas un TPM')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {manager}\n  * Version : 2.0\n', content)
+        self.assertNotIn(f'Chemin : {raw}', content)
+        (self.tpm_devices / 'tpmrm0').unlink()
+        preferred = self.configure_tpm('tpmrm0', '2')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {preferred}\n', content)
+
+    def test_tpm_raw_device_fallback_and_version_from_capability_without_sysfs(self):
+        device = self.configure_tpm('tpm4')
+        shutil.rmtree(self.tpm_sysfs / 'tpm4')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n  * Version : 2.0\n', content)
+
+    def test_tpm_absence_reports_all_fields_without_probing(self):
+        content = self.successful_document(self.run_generation())
+        section = content.split('## TPM\n', 1)[1].split('\n# Conteneur Docker', 1)[0]
+        self.assertEqual(section.count('aucun périphérique TPM visible'), 6)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_missing_tool_preserves_path_and_sysfs_version(self):
+        device = self.configure_tpm()
+        (self.host_bin / 'tpm2_getcap').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n  * Version : 2.0\n', content)
+        self.assertEqual(content.count('tpm2_getcap absent'), 4)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_access_denied_preserves_path_and_does_not_probe(self):
+        device = self.configure_tpm()
+        content = self.successful_document(self.run_generation(source_replacements=(
+            ('[[ ! -r "${device}" || ! -w "${device}" ]]', '[[ 1 == 1 ]]'),)))
+        self.assertIn(f'Chemin : {device}\n  * Version : 2.0\n', content)
+        self.assertEqual(content.count('accès au périphérique refusé'), 4)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_12_is_explicit_without_tpm2_queries(self):
+        device = self.configure_tpm('tpm0', '1')
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n  * Version : 1.2\n', content)
+        self.assertEqual(content.count('sonde réservée au TPM 2'), 4)
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_tpm_partial_and_duplicate_properties_preserve_other_fields(self):
+        self.configure_tpm()
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_MANUFACTURER:\n  raw: 0x49465800\n  value: "IFX"\n'
+            'TPM2_PT_REVISION:\n  value: 1.64\n'
+            'TPM2_PT_REVISION:\n  value: 1.65\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Fabricant : IFX\n', content)
+        self.assertIn('Révision de spécification : non vérifiable\n', content)
+        self.assertIn('Registres PCR : sha1:', content)
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_MANUFACTURER:\n  value: "IFX"\n  value: "AMD"\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Fabricant : non vérifiable\n', content)
+        self.assertIn('Identifiant fournisseur : non vérifiable\n', content)
+
+    def test_tpm_malformed_properties_are_neither_published_nor_executed(self):
+        self.configure_tpm(major='non-reconnu')
+        marker = self.fixture / 'tpm-marker'
+        Path(self.environment['TEST_TPM_PROPERTIES']).write_text(
+            'TPM2_PT_FAMILY_INDICATOR:\n  value: "mauvaise-famille"\n'
+            f'TPM2_PT_MANUFACTURER:\n  raw: $(touch {marker})\n  value: "[injection](https://invalid.test)"\n'
+            'TPM2_PT_REVISION:\n  value: version-invalide\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Version : non vérifiable\n', content)
+        self.assertIn('Fabricant : non vérifiable\n', content)
+        self.assertIn('Révision de spécification : non vérifiable\n', content)
+        self.assertNotIn('injection', content)
+        self.assertNotIn('touch', content)
+        self.assertFalse(marker.exists())
+
+    def test_tpm_failed_capability_keeps_other_capability_and_hides_raw_errors(self):
+        self.configure_tpm()
+        for capability in ('properties-fixed', 'pcrs'):
+            with self.subTest(capability=capability):
+                self.environment['TEST_TPM_FAILURE'] = capability
+                content = self.successful_document(self.run_generation())
+                field = 'Fabricant' if capability == 'properties-fixed' else 'Registres PCR'
+                self.assertIn(f'{field} : non vérifiable (sonde échouée)', content)
+                self.assertIn('Registres PCR : sha1:' if capability == 'properties-fixed'
+                              else 'Fabricant : IFX', content)
+                self.assertNotIn('non-publiable', content)
+
+    def test_tpm_timeout_is_bounded_and_generation_continues(self):
+        self.configure_tpm()
+        self.environment['TEST_TPM_TIMEOUT'] = 'properties-fixed'
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation())
+        self.assertLess(time.monotonic() - started, 12)
+        self.assertIn('Fabricant : non vérifiable (sonde expirée)', content)
+        self.assertIn('Registres PCR : sha1:', content)
+
+    def test_tpm_malformed_pcr_banks_remain_unknown(self):
+        self.configure_tpm()
+        for output in ('', 'selected-pcrs:\n', 'selected-pcrs:\n  - sha256: [ 0, 999 ]\n',
+                       'selected-pcrs:\n  - sha256: [ 0, 0 ]\n',
+                       'selected-pcrs:\n  - sha256: [ 0 ]\n  - sha256: [ 7 ]\n',
+                       'selected-pcrs:\n  - sha256: [ 0,,7 ]\n',
+                       'selected-pcrs:\n  - sha256: [ $(false) ]\n'):
+            with self.subTest(output=output):
+                Path(self.environment['TEST_TPM_PCRS']).write_text(output)
+                content = self.successful_document(self.run_generation())
+                self.assertIn('Registres PCR : non vérifiable\n', content)
+                self.assertIn('Fabricant : IFX\n', content)
+
+    def test_tpm_large_responses_are_not_published(self):
+        self.configure_tpm()
+        for key in ('TEST_TPM_PROPERTIES', 'TEST_TPM_PCRS'):
+            Path(self.environment[key]).write_text('sortie-trop-grande' * 5000)
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Fabricant : non vérifiable\n', content)
+        self.assertIn('Registres PCR : non vérifiable\n', content)
+        self.assertNotIn('sortie-trop-grande', content)
+
+    def test_tpm_paths_with_spaces_and_second_probe_timeout(self):
+        self.tpm_devices = self.fixture / 'périphériques avec espaces'
+        self.tpm_devices.mkdir()
+        self.environment['TEST_TPM_DEVICES'] = str(self.tpm_devices)
+        device = self.configure_tpm()
+        self.environment['TEST_TPM_TIMEOUT'] = 'pcrs'
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Chemin : {device}\n', content)
+        self.assertIn('Fabricant : IFX\n', content)
+        self.assertIn('Registres PCR : non vérifiable (sonde expirée)', content)
+        self.assertEqual(self.tpm_log.read_text().splitlines(),
+                         [f'device:{device}|properties-fixed', f'device:{device}|pcrs'])
+
     def test_report_provenance_utc_and_capture_before_probes(self):
         self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
         content = self.successful_document(self.run_generation())
-        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.6\n', content)
+        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.7\n', content)
         expected = (
             'Généré automatiquement par Debian Installeur Unifié (DIU).',
             'Début du relevé (UTC) : 2026-10-09T06:30:00Z',
@@ -438,6 +892,172 @@ ENV_DEVOPS_USER="$1"
         self.assertIn('# Python\n\n  * indisponible (binaire absent)', content)
         self.assertIn('venv: indisponible', content)
 
+    def test_prepare_all_devops_tools_before_inventory_and_versions(self):
+        tools = ('go/current/bin/go', 'node/current/bin/node', 'node/current/bin/npm',
+                 '.opencode/bin/opencode', '.local/npm/bin/openspec',
+                 'python/current/bin/python3', 'python/current/bin/pip3')
+        owners = {}
+        for relative in tools:
+            path = self.home / relative
+            path.chmod(0o640)
+            owners[relative] = (path.stat().st_uid, path.stat().st_gid)
+        # Le collecteur JavaScript doit déjà disposer de son Python DevOps.
+        extra = r'''
+projects_template_devops_javascript() {
+    for relative in go/current/bin/go node/current/bin/node node/current/bin/npm \
+        .opencode/bin/opencode .local/npm/bin/openspec \
+        python/current/bin/python3 python/current/bin/pip3; do
+        [[ -x "${TEST_DEVOPS_HOME}/${relative}" ]] || return 1
+    done
+    printf '## Dépendances JavaScript du projet\n\n  * préparation vérifiée\n\034'
+}
+'''
+        content = self.successful_document(self.run_generation(extra))
+        self.assertIn('préparation vérifiée', content)
+        self.assertIn('# OpenCode\n\n  * 1.2.8', content)
+        self.assertIn('# Node\n\n  * 24.3.1', content)
+        self.assertIn('# NPM\n\n  * 11.5.2', content)
+        self.assertIn('# OpenSpec\n\n  * 1.3.9', content)
+        self.assertIn('# Go\n\n  * 1.25.3', content)
+        self.assertIn('# Python\n\n  * 3.13.9', content)
+        self.assertIn('# Python - Gestionnaire de paquets\n\n  * 25.3.7', content)
+        for relative in tools:
+            with self.subTest(tool=relative):
+                observed = (self.home / relative).stat()
+                self.assertEqual(observed.st_mode & 0o777, 0o751)
+                self.assertEqual((observed.st_uid, observed.st_gid), owners[relative])
+
+    def test_preparation_does_not_touch_host_or_unlisted_files(self):
+        unrelated = self.home / 'other-tool'
+        self.executable(unrelated, "printf 'other\\n'")
+        unrelated.chmod(0o640)
+        paths = [unrelated, *self.host_bin.iterdir()]
+        before = {path: (path.read_bytes(), path.stat()) for path in paths}
+        self.successful_document(self.run_generation())
+        for path, (data, observed) in before.items():
+            with self.subTest(path=path.name):
+                self.assertEqual(path.read_bytes(), data)
+                self.assertEqual(path.stat().st_mode, observed.st_mode)
+                self.assertEqual(path.stat().st_ctime_ns, observed.st_ctime_ns)
+
+    def test_preparation_is_idempotent_without_reapplying_chmod(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.chmod(0o664)
+        first = self.successful_document(self.run_generation())
+        prepared = tool.stat()
+        second = self.successful_document(self.run_generation())
+        self.assertEqual(first, second)
+        self.assertEqual(tool.stat().st_ctime_ns, prepared.st_ctime_ns)
+        self.assertEqual(tool.stat().st_mode & 0o777, 0o775)
+
+    def test_internal_binary_and_current_directory_symlinks_are_preserved(self):
+        tool = self.home / '.opencode/bin/opencode'
+        target = self.home / '.opencode/releases/opencode'
+        target.parent.mkdir()
+        tool.rename(target)
+        target.chmod(0o644)
+        tool.symlink_to('../releases/opencode')
+        current = self.home / 'node/current'
+        installed = self.home / 'node/version-fixture'
+        current.rename(installed)
+        current.symlink_to('version-fixture')
+        (installed / 'bin/node').chmod(0o644)
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# OpenCode\n\n  * 1.2.8', content)
+        self.assertIn('# Node\n\n  * 24.3.1', content)
+        self.assertTrue(tool.is_symlink())
+        self.assertTrue(current.is_symlink())
+        self.assertEqual(target.stat().st_mode & 0o777, 0o755)
+        self.assertEqual((installed / 'bin/node').stat().st_mode & 0o777, 0o755)
+
+    def test_external_symlink_fails_without_changing_target_or_document(self):
+        target = self.host_bin / 'git'
+        target.chmod(0o640)
+        tool = self.home / '.opencode/bin/opencode'
+        tool.unlink()
+        tool.symlink_to(target)
+        self.document.write_text('document précédent\n', encoding='utf-8')
+        before = target.stat()
+        result = self.run_generation()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('hors du domicile : .opencode/bin/opencode', result.stderr)
+        self.assertEqual(target.stat().st_mode, before.st_mode)
+        self.assertEqual(target.stat().st_ctime_ns, before.st_ctime_ns)
+        self.assertEqual(self.document.read_text(), 'document précédent\n')
+        self.assertFalse(self.query_log.exists())
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_nonregular_tool_fails_without_changing_its_mode(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.unlink()
+        tool.mkdir(mode=0o700)
+        before = tool.stat().st_mode
+        result = self.run_generation()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('fichier ordinaire : .opencode/bin/opencode', result.stderr)
+        self.assertEqual(tool.stat().st_mode, before)
+        self.assertFalse(self.document.exists())
+
+    def test_missing_and_dangling_internal_tools_are_not_created(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.unlink()
+        tool.symlink_to('missing-opencode')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('# OpenCode\n\n  * indisponible (binaire absent)', content)
+        self.assertTrue(tool.is_symlink())
+        self.assertFalse(tool.exists())
+
+    def test_chmod_failure_preserves_document_and_previously_prepared_modes(self):
+        go = self.home / 'go/current/bin/go'
+        opencode = self.home / '.opencode/bin/opencode'
+        go.chmod(0o640)
+        opencode.chmod(0o640)
+        self.document.write_text('document précédent\n', encoding='utf-8')
+        result = self.run_generation(r'''
+chmod() {
+    if [[ "$*" == *'/.opencode/bin/opencode' ]]; then
+        return 1
+    fi
+    command chmod "$@"
+}
+''')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Impossible de rendre le binaire DevOps exécutable', result.stderr)
+        self.assertEqual(self.document.read_text(), 'document précédent\n')
+        self.assertEqual(go.stat().st_mode & 0o777, 0o751)
+        self.assertEqual(opencode.stat().st_mode & 0o777, 0o640)
+        self.assertFalse(self.query_log.exists())
+        self.assertFalse(self.tpm_log.exists())
+
+    def test_resolution_and_mode_failures_stop_before_inventory(self):
+        for extra in ('readlink() { return 1; }',
+                      'stat() { return 1; }',
+                      "stat() { printf 'invalide\\n'; }"):
+            with self.subTest(extra=extra):
+                self.document.write_text('document précédent\n', encoding='utf-8')
+                result = self.run_generation(extra)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.document.read_text(), 'document précédent\n')
+                self.assertFalse(self.query_log.exists())
+                self.assertFalse(self.tpm_log.exists())
+
+    def test_direct_version_distinguishes_nonexecutable_from_missing(self):
+        tool = self.home / '.opencode/bin/opencode'
+        tool.chmod(0o640)
+        before = tool.stat()
+        result = self.run_generation(r'''
+projects_template_devops_version user "$TEST_DEVOPS_HOME" \
+    "$TEST_DEVOPS_HOME/.opencode/bin/opencode" --version
+projects_template_devops_version user "$TEST_DEVOPS_HOME" \
+    "$TEST_DEVOPS_HOME/missing" --version
+exit
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [
+            'indisponible (binaire non exécutable)', 'indisponible (binaire absent)'])
+        self.assertEqual(tool.stat().st_mode, before.st_mode)
+        self.assertEqual(tool.stat().st_ctime_ns, before.st_ctime_ns)
+
     def test_failed_probe_and_venv_are_explicit(self):
         self.executable(self.home / '.opencode/bin/opencode', 'exit 7')
         self.executable(self.host_bin / 'docker', 'exit 7')
@@ -445,14 +1065,16 @@ ENV_DEVOPS_USER="$1"
         content = self.successful_document(self.run_generation())
         self.assertIn('# OpenCode\n\n  * indisponible (sonde échouée)', content)
         self.assertIn('venv: indisponible', content)
-        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+        self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * indisponible (sonde échouée)\n  * {self.host_bin / "docker"}\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
+        self.assert_test_container_sections(content, True, False)
         (self.host_bin / 'docker').unlink()
         content = self.successful_document(self.run_generation())
-        self.assertIn('# Docker, pour tests nécessitant des droits root\n\n'
+        self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       '  * indisponible (binaire absent)\n  * binaire introuvable\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
+        self.assert_test_container_sections(content, True, False)
 
     def test_node_and_pip_scripts_use_devops_interpreters_despite_their_shebangs(self):
         for relative in ('node/current/bin/npm', '.local/npm/bin/openspec',
@@ -507,6 +1129,416 @@ ENV_DEVOPS_USER="$1"
     def dependency_manifest(self, dependencies):
         (self.template / "pyproject.toml").write_text(
             "[project]\ndependencies = " + json.dumps(dependencies) + "\n", encoding="utf-8")
+
+    def cython_manifest(self, requirement='Cython'):
+        manifest = self.template / 'pyproject.toml'
+        manifest.write_text('[project]\ndependencies = []\n\n[build-system]\nrequires = '
+                            + json.dumps(['setuptools', requirement]) + '\n', encoding='utf-8')
+        return manifest
+
+    def compilation_inventory(self, source_replacements=()):
+        source = MODULE.read_text(encoding='utf-8')
+        for before, after in source_replacements:
+            self.assertEqual(source.count(before), 1)
+            source = source.replace(before, after)
+        return subprocess.run(
+            ['bash', '-Eeuo', 'pipefail', '-c', source + '\n'
+             'projects_template_devops_dependencies "$1" "$2" "$3" compilation\n',
+             'bash', str(self.home), str(self.template), str(self.home / 'python/current/bin/python3')],
+            text=True, capture_output=True,
+            env=dict(self.environment, ENV_DEVOPS_USER=getpass.getuser()), timeout=20, check=False)
+
+    def test_cython_declared_version_paths_and_section_order(self):
+        environment, interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        self.add_distribution(self.metadata, 'Cython', '9.9')
+        for requirement in ('Cython', 'cython>=3.0', 'CYTHON==3.3.0',
+                            'Cython>=3; python_version >= "3.12"'):
+            with self.subTest(requirement=requirement):
+                manifest = self.cython_manifest(requirement)
+                initial = manifest.read_bytes()
+                content = self.successful_document(self.run_generation())
+                self.assertEqual(content.count('# Python - Outils de compilation\n'), 1)
+                self.assertIn('  * Cython : 3.3.0\n', content)
+                self.assertIn(f'    * Interpréteur : {interpreter}\n', content)
+                self.assertIn(f'    * Environnement : {environment}\n', content)
+                self.assertIn(f'    * Installation : {location.resolve()}\n', content)
+                self.assertIn('    * Déclaration : ' + requirement.replace('cython>=', 'cython >=').replace(
+                    'CYTHON==', 'CYTHON ==').replace('Cython>=', 'Cython >=') + '\n', content)
+                self.assertIn('    * Source : pyproject.toml — [build-system].requires\n', content)
+                self.assertLess(content.index('# Python - Gestionnaire de paquets\n'),
+                                content.index('# Python - Outils de compilation\n'))
+                self.assertLess(content.index('# Python - Outils de compilation\n'),
+                                content.index('# Prompts\n'))
+                self.assertEqual(manifest.read_bytes(), initial)
+                self.assertIn('Version : 0.7\n', content)
+                self.assertNotIn('Cython : 9.9', content)
+
+    def test_cython_undeclared_never_discovers_or_probes_environments(self):
+        self.project_venv('.venv', {'Cython': '3.3.0'})
+        manifests = (None, '[project]\ndependencies = []\n',
+                     '[project]\ndependencies = ["Cython"]\n',
+                     '# Cython\n[build-system]\nrequires = ["setuptools"]\n',
+                     '[build-system]\nrequires = ["Cython-tools", "my-Cython"]\n',
+                     '[project.optional-dependencies]\nbuild = ["Cython"]\n')
+        discovery = 'def discover_environments(project_root, deadline):\n'
+        replacements = ((discovery, discovery + '    raise RuntimeError("unexpected-discovery")\n'),)
+        for text in manifests:
+            with self.subTest(manifest=text):
+                manifest = self.template / 'pyproject.toml'
+                if text is None:
+                    manifest.unlink(missing_ok=True)
+                else:
+                    manifest.write_text(text, encoding='utf-8')
+                result = self.compilation_inventory(replacements)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, '')
+        content = self.successful_document(self.run_generation())
+        self.assertNotIn('# Python - Outils de compilation\n', content)
+
+    def test_cython_absence_is_scoped_to_verified_project_venvs(self):
+        self.cython_manifest()
+        environments = [self.project_venv(path, {})[0] for path in ('.venv', 'backend/build-env')]
+        self.add_distribution(self.metadata, 'Cython', '9.9')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : non installé\n', content)
+        self.assertNotIn('Cython : 9.9', content)
+        for environment in environments:
+            self.assertIn(f'    * Environnement vérifié : {environment}\n', content)
+        self.assertNotIn('Python DevOps (repli)', content)
+
+    def test_cython_without_project_venv_is_not_verifiable(self):
+        self.cython_manifest()
+        self.add_distribution(self.metadata, 'Cython', '9.9')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : installation non vérifiable\n', content)
+        self.assertIn('Diagnostic : aucun venv du projet détecté', content)
+        self.assertNotIn('Cython : non installé', content)
+
+    def test_cython_invalid_manifest_never_emits_compilation_section(self):
+        for manifest in ('[build-system\n', '[build-system]\nrequires = "Cython"\n',
+                         '[build-system]\nrequires = [1]\n', 'build-system = 1\n'):
+            with self.subTest(manifest=manifest):
+                (self.template / 'pyproject.toml').write_text(manifest, encoding='utf-8')
+                content = self.successful_document(self.run_generation())
+                self.assertIn('Outils de compilation Python : déclaration non vérifiable', content)
+                self.assertNotIn('# Python - Outils de compilation\n', content)
+                self.assertNotIn('Cython : non installé', content)
+
+    def test_cython_build_only_manifest_without_devops_python(self):
+        (self.template / 'pyproject.toml').write_text(
+            '[build-system]\nrequires = ["Cython"]\n', encoding='utf-8')
+        environment, interpreter, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        (self.home / 'python/current/bin/python3').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertIn(f'    * Interpréteur : {interpreter}\n', content)
+        self.assertIn(f'    * Environnement : {environment}\n', content)
+
+    def test_cython_priority_and_paths_with_spaces(self):
+        self.cython_manifest()
+        preferred, _interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        nested, nested_python, _location = self.project_venv('backend/build env', {'Cython': '3.2.0'})
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'    * Environnement : {preferred}\n', content)
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        for distribution in location.glob('*.dist-info'):
+            shutil.rmtree(distribution)
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.2.0\n', content)
+        self.assertIn(f'    * Environnement : {nested}\n', content)
+        self.assertIn(f'    * Interpréteur : {nested_python}\n', content)
+
+    def test_cython_metadata_probe_never_imports_cython_or_pth(self):
+        self.cython_manifest()
+        _environment, _interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        marker = self.fixture / 'cython-code-executed'
+        payload = f'import pathlib; pathlib.Path({str(marker)!r}).touch()\n'
+        (location / 'cython.py').write_text(payload, encoding='utf-8')
+        (location / 'Cython').mkdir()
+        (location / 'Cython/__init__.py').write_text(payload, encoding='utf-8')
+        (location / 'cython.pth').write_text(payload, encoding='utf-8')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertFalse(marker.exists())
+
+    def test_cython_failed_or_ambiguous_probe_never_proves_absence(self):
+        self.cython_manifest()
+        _environment, interpreter, location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        self.add_distribution(location, 'Cython', '3.2.0')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : installation non vérifiable\n', content)
+        interpreter.unlink()
+        self.executable(interpreter, "printf 'private-cython-probe\\n' >&2\nexit 7")
+        result = self.run_generation()
+        content = self.successful_document(result)
+        self.assertIn('  * Cython : installation non vérifiable\n', content)
+        self.assertNotIn('Cython : non installé', content)
+        self.assertNotIn('private-cython-probe', content + result.stdout + result.stderr)
+
+    def test_cython_search_budget_exhaustion_never_proves_absence(self):
+        self.cython_manifest()
+        before = 'SEARCH_BUDGET = 12.0\nPROBE_TIMEOUT = 3.0'
+        result = self.compilation_inventory(((before, 'SEARCH_BUDGET = -1.0\nPROBE_TIMEOUT = 3.0'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Cython : installation non vérifiable', result.stdout)
+        self.assertNotIn('Cython : non installé', result.stdout)
+
+    def test_cython_probe_timeout_terminates_descendants(self):
+        self.cython_manifest()
+        environment = self.template / '.venv'
+        (environment / 'bin').mkdir(parents=True)
+        (environment / 'pyvenv.cfg').write_text('home = fixture\n')
+        pid_file = self.fixture / 'cython-child.pid'
+        self.executable(environment / 'bin/python3',
+                        f"/usr/bin/sleep 10 &\nprintf '%s\\n' \"$!\" > '{pid_file}'\nwait")
+        started = time.monotonic()
+        content = self.successful_document(self.run_generation())
+        self.assertLess(time.monotonic() - started, 8)
+        self.assertIn('Cython : installation non vérifiable', content)
+        status = Path(f'/proc/{int(pid_file.read_text())}/stat')
+        self.assertTrue(not status.exists() or status.read_text().split()[2] == 'Z')
+
+    def test_cython_direct_reference_is_redacted(self):
+        self.cython_manifest('Cython @ https://example.test/private-reference')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Déclaration : Cython (référence directe déclarée dans pyproject.toml)', content)
+        self.assertNotIn('private-reference', content)
+
+    def test_cython_batch_only_documents_declaring_project(self):
+        root = self.fixture / 'projects with spaces'
+        declaring = self.configured_project(root, 'native-app', {'PROJECT_TYPE': 'PYTHON'})
+        other = self.configured_project(root, 'web-app', {'PROJECT_TYPE': 'PYTHON'})
+        original_template = self.template
+        try:
+            self.template = declaring
+            self.cython_manifest()
+            environment, _interpreter, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        finally:
+            self.template = original_template
+        result = self.run_generation(projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        content = (declaring / 'DEVOPS.md').read_text()
+        self.assertEqual(content.count('# Python - Outils de compilation\n'), 1)
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertIn(f'    * Environnement : {environment}\n', content)
+        self.assertNotIn('# Python - Outils de compilation\n', (other / 'DEVOPS.md').read_text())
+
+    def test_cython_collector_failure_discards_partial_output(self):
+        self.cython_manifest()
+        content = self.successful_document(self.run_generation(r'''
+eval "$(declare -f projects_template_devops_dependencies | sed '1s/projects_template_devops_dependencies/saved_dependencies/')"
+projects_template_devops_dependencies() {
+    if [[ "${4:-}" == compilation ]]; then printf 'private-cython-output'; return 7; fi
+    saved_dependencies "$@"
+}
+'''))
+        self.assertIn('Outils de compilation Python : déclaration ou installation non vérifiable', content)
+        self.assertNotIn('private-cython-output', content)
+        self.assertIn('# Prompts\n', content)
+
+    def compilation_manifest(self, requirements):
+        manifest = self.template / 'pyproject.toml'
+        manifest.write_text('[project]\ndependencies = []\n\n[build-system]\nrequires = '
+                            + json.dumps(requirements)
+                            + '\nbuild-backend = "setuptools.build_meta"\n', encoding='utf-8')
+        return manifest
+
+    def test_nuitka_declared_version_extras_and_provenance(self):
+        environment, interpreter, location = self.project_venv('.venv', {'Nuitka': '2.7.1'})
+        self.add_distribution(self.metadata, 'Nuitka', '9.9')
+        for requirement, declaration in (
+                ('Nuitka', 'Nuitka'), ('nuitka>=2', 'nuitka >=2'),
+                ('NUITKA==2.7.1', 'NUITKA ==2.7.1'),
+                ('Nuitka[build-wheel]', 'Nuitka [build-wheel]'),
+                ('Nuitka>=2; python_version >= "3.12"', 'Nuitka >=2; python_version >= "3.12"')):
+            with self.subTest(requirement=requirement):
+                manifest = self.compilation_manifest(['setuptools', requirement])
+                before = manifest.read_bytes()
+                content = self.successful_document(self.run_generation())
+                self.assertEqual(content.count('# Python - Outils de compilation\n'), 1)
+                self.assertIn('  * Nuitka : 2.7.1\n', content)
+                self.assertIn(f'    * Déclaration : {declaration}\n', content)
+                self.assertIn('    * Source : pyproject.toml — [build-system].requires\n', content)
+                self.assertIn(f'    * Interpréteur : {interpreter}\n', content)
+                self.assertIn(f'    * Environnement : {environment}\n', content)
+                self.assertIn(f'    * Installation : {location.resolve()}\n', content)
+                self.assertNotIn('  * Cython :', content)
+                self.assertNotIn('Nuitka : 9.9', content)
+                self.assertEqual(before, manifest.read_bytes())
+
+    def test_nuitka_four_declaration_combinations_share_one_section(self):
+        self.project_venv('.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+        for requirements in ([], ['Cython'], ['Nuitka'], ['Nuitka', 'Cython']):
+            with self.subTest(requirements=requirements):
+                self.compilation_manifest(requirements)
+                content = self.successful_document(self.run_generation())
+                self.assertEqual(content.count('# Python - Outils de compilation\n'), bool(requirements))
+                for tool in ('Cython', 'Nuitka'):
+                    self.assertEqual(f'  * {tool} :' in content, tool in requirements)
+                if requirements:
+                    self.assertLess(content.index('# Python - Gestionnaire de paquets\n'),
+                                    content.index('# Python - Outils de compilation\n'))
+                    self.assertLess(content.index('# Python - Outils de compilation\n'),
+                                    content.index('# Prompts\n'))
+                if len(requirements) == 2:
+                    self.assertLess(content.index('  * Cython :'), content.index('  * Nuitka :'))
+
+    def test_nuitka_undeclared_never_discovers_and_is_not_requested_in_probes(self):
+        self.project_venv('.venv', {'Nuitka': '2.7.1', 'Cython': '3.3.0'})
+        discovery = 'def discover_environments(project_root, deadline):\n'
+        for text in ('[project]\ndependencies = ["Nuitka"]\n',
+                     '# Nuitka\n[build-system]\nrequires = ["setuptools", "nuitka-tools"]\n',
+                     '[tool.nuitka]\nshow-scons = true\n',
+                     '[project.optional-dependencies]\nbuild = ["Nuitka"]\n'):
+            with self.subTest(manifest=text):
+                (self.template / 'pyproject.toml').write_text(text)
+                result = self.compilation_inventory((
+                    (discovery, discovery + '    raise RuntimeError("unexpected-discovery")\n'),))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, '')
+        self.compilation_manifest(['Cython'])
+        wanted = 'wanted = set(json.loads(sys.argv[2]))\n'
+        result = self.compilation_inventory(((wanted, wanted + 'assert wanted == {"cython"}\n'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Cython : 3.3.0', result.stdout)
+        self.assertNotIn('Nuitka :', result.stdout)
+        self.compilation_manifest(['Nuitka'])
+        result = self.compilation_inventory(((wanted, wanted + 'assert wanted == {"nuitka"}\n'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Nuitka : 2.7.1', result.stdout)
+        self.assertNotIn('Cython :', result.stdout)
+
+    def test_nuitka_absence_and_cython_version_are_independent_of_global_packages(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        environment, _interpreter, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        self.add_distribution(self.metadata, 'Nuitka', '9.9')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('  * Cython : 3.3.0\n', content)
+        self.assertIn('  * Nuitka : non installé\n', content)
+        self.assertIn(f'    * Environnement vérifié : {environment}\n', content)
+        self.assertNotIn('Nuitka : 9.9', content)
+        self.assertNotIn('Python DevOps (repli)', content)
+
+    def test_nuitka_shared_discovery_and_probe_run_once_for_both_names(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        self.project_venv('.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+        log = self.fixture / 'compiler-searches'
+        discovery = 'def discover_environments(project_root, deadline):\n'
+        wanted = 'wanted = set(json.loads(sys.argv[2]))\n'
+        result = self.compilation_inventory((
+            (discovery, discovery + f'    with Path({str(log)!r}).open("a") as stream: '
+             'stream.write("discover\\n")\n'),
+            (wanted, wanted + 'assert wanted == {"cython", "nuitka"}\n'
+             + f'with Path({str(log)!r}).open("a") as stream: stream.write("probe\\n")\n')))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Cython : 3.3.0', result.stdout)
+        self.assertIn('Nuitka : 2.7.1', result.stdout)
+        self.assertEqual(log.read_text().splitlines(), ['discover', 'probe'])
+
+    def test_nuitka_ambiguous_metadata_does_not_contaminate_cython_and_reciprocally(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        _environment, _interpreter, location = self.project_venv(
+            '.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+        duplicate = self.add_distribution(location, 'Nuitka', '2.7.2')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Cython : 3.3.0\n', content)
+        self.assertIn('Nuitka : installation non vérifiable\n', content)
+        shutil.rmtree(duplicate)
+        self.add_distribution(location, 'Cython', '3.2.0')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Nuitka : 2.7.1\n', content)
+        self.assertIn('Cython : installation non vérifiable\n', content)
+
+    def test_nuitka_distinct_venvs_spaces_priority_and_no_import_or_pth(self):
+        self.compilation_manifest(['Cython', 'Nuitka'])
+        cython_env, _python, _location = self.project_venv('.venv', {'Cython': '3.3.0'})
+        nuitka_env, nuitka_python, location = self.project_venv('backend/build env', {'Nuitka': '2.7.1'})
+        self.project_venv('z-build', {'Nuitka': '2.6.0'})
+        marker = self.fixture / 'nuitka-code-executed'
+        payload = f'import pathlib; pathlib.Path({str(marker)!r}).touch()\n'
+        (location / 'nuitka').mkdir()
+        (location / 'nuitka/__init__.py').write_text(payload)
+        (location / 'nuitka.pth').write_text(payload)
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'  * Cython : 3.3.0\n    * Interpréteur : {cython_env}/bin/python3\n', content)
+        self.assertIn(f'  * Nuitka : 2.7.1\n    * Interpréteur : {nuitka_python}\n'
+                      f'    * Environnement : {nuitka_env}\n', content)
+        self.assertNotIn('Nuitka : 2.6.0', content)
+        self.assertFalse(marker.exists())
+
+    def test_nuitka_no_venv_or_failed_probe_remains_unknown(self):
+        self.compilation_manifest(['Nuitka'])
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Nuitka : installation non vérifiable\n', content)
+        self.assertIn('aucun venv du projet détecté', content)
+        environment = self.template / '.venv'
+        (environment / 'bin').mkdir(parents=True)
+        (environment / 'pyvenv.cfg').write_text('home = fixture\n')
+        self.executable(environment / 'bin/python3', "printf 'private-nuitka-probe\\n' >&2\nexit 7")
+        result = self.run_generation()
+        content = self.successful_document(result)
+        self.assertIn('Nuitka : installation non vérifiable\n', content)
+        self.assertNotIn('Nuitka : non installé', content)
+        self.assertNotIn('private-nuitka-probe', content + result.stdout + result.stderr)
+
+    def test_nuitka_budget_and_probe_timeout_preserve_unknown_and_stop_descendants(self):
+        self.compilation_manifest(['Nuitka'])
+        before = 'SEARCH_BUDGET = 12.0\nPROBE_TIMEOUT = 3.0'
+        result = self.compilation_inventory(((before, 'SEARCH_BUDGET = -1.0\nPROBE_TIMEOUT = 3.0'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Nuitka : installation non vérifiable', result.stdout)
+        environment = self.template / '.venv'
+        (environment / 'bin').mkdir(parents=True)
+        (environment / 'pyvenv.cfg').write_text('home = fixture\n')
+        pid_file = self.fixture / 'nuitka-child.pid'
+        self.executable(environment / 'bin/python3',
+                        f"/usr/bin/sleep 10 &\nprintf '%s\\n' \"$!\" > '{pid_file}'\nwait")
+        result = self.compilation_inventory(((before, 'SEARCH_BUDGET = 12.0\nPROBE_TIMEOUT = 0.1'),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Nuitka : installation non vérifiable', result.stdout)
+        status = Path(f'/proc/{int(pid_file.read_text())}/stat')
+        self.assertTrue(not status.exists() or status.read_text().split()[2] == 'Z')
+
+    def test_nuitka_build_only_manifest_without_devops_python(self):
+        (self.template / 'pyproject.toml').write_text('[build-system]\nrequires = ["Nuitka"]\n')
+        _environment, interpreter, _location = self.project_venv('.venv', {'Nuitka': '2.7.1'})
+        (self.home / 'python/current/bin/python3').unlink()
+        content = self.successful_document(self.run_generation())
+        self.assertIn(f'Nuitka : 2.7.1\n    * Interpréteur : {interpreter}\n', content)
+
+    def test_nuitka_direct_reference_is_redacted_and_bad_manifest_is_not_absence(self):
+        self.compilation_manifest(['Nuitka @ https://example.test/private-nuitka-reference'])
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Déclaration : Nuitka (référence directe déclarée dans pyproject.toml)', content)
+        self.assertNotIn('private-nuitka-reference', content)
+        (self.template / 'pyproject.toml').write_text('[build-system]\nrequires = "Nuitka"\n')
+        content = self.successful_document(self.run_generation())
+        self.assertIn('Outils de compilation Python : déclaration non vérifiable', content)
+        self.assertNotIn('# Python - Outils de compilation\n', content)
+        self.assertNotIn('Nuitka : non installé', content)
+
+    def test_nuitka_batch_only_documents_declared_compilers(self):
+        root = self.fixture / 'projects with spaces'
+        original_template = self.template
+        for project, requirements in (('cython-app', ['Cython']), ('nuitka-app', ['Nuitka']),
+                                      ('both-app', ['Nuitka', 'Cython']), ('plain-app', [])):
+            path = self.configured_project(root, project, {'PROJECT_TYPE': 'PYTHON'})
+            try:
+                self.template = path
+                self.compilation_manifest(requirements)
+                self.project_venv('.venv', {'Cython': '3.3.0', 'Nuitka': '2.7.1'})
+            finally:
+                self.template = original_template
+        result = self.run_generation(projects_root=root, batch=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for project, tools in (('cython-app', ['Cython']), ('nuitka-app', ['Nuitka']),
+                               ('both-app', ['Cython', 'Nuitka']), ('plain-app', [])):
+            content = (root / project / 'DEVOPS.md').read_text()
+            self.assertEqual(content.count('# Python - Outils de compilation\n'), bool(tools))
+            for tool in ('Cython', 'Nuitka'):
+                self.assertEqual(f'  * {tool} :' in content, tool in tools)
+            if tools:
+                self.assertIn(f'Environnement : {root / project}/.venv\n', content)
 
     def test_project_venv_matches_pixs_dependencies_and_effective_paths(self):
         packages = {"Django": "6.1.1", "psycopg": "3.3.6",
@@ -1237,6 +2269,12 @@ projects_template_devops_javascript() {
 
     def test_render_or_replace_failure_preserves_document_and_cleans_temporary_file(self):
         for extra in ('projects_template_devops_render() { printf partial; return 1; }',
+                      'projects_template_devops_test_authorization() { printf partial; return 1; }',
+                      'ENV_DEVOPS_TESTS_DOCKER=0\nENV_DEVOPS_TESTS_LXC=1\n'
+                      'projects_template_devops_test_authorization() { printf partial; return 1; }',
+                      'ENV_DEVOPS_TESTS_DOCKER=0\nENV_DEVOPS_TESTS_LXC=1\n'
+                      'printf() { if [[ "$1" == *"Binaires et bibliothèques installés"* ]]; '
+                      'then return 1; fi; builtin printf "$@"; }',
                       'mv() { return 1; }'):
             with self.subTest(extra=extra):
                 self.document.write_text('document conservé\n', encoding='utf-8')
@@ -1364,6 +2402,8 @@ projects_template_devops_javascript() {
         self.assertIn('# DEVOPS.md — Projet & essai', (path / 'DEVOPS.md').read_text())
 
     def test_create_project_runs_real_generation_after_copy_and_rights(self):
+        self.environment['ENV_DEVOPS_TESTS_LXC'] = '1'
+        self.configure_tpm()
         projects_source = (ROOT / 'modules/projects/projects.sh').read_text()
         projects_source = projects_source.replace(
             'local template_path="/home/${DEVOPS_USER}/datas/template"',
@@ -1371,7 +2411,8 @@ projects_template_devops_javascript() {
         (self.template / 'README.md').write_text('# Template\n')
         self.javascript_manifest('frontend/package.json', dependencies={'creation-fixture': '1.0.0'})
         # Un modèle Python ne doit pas transmettre son manifeste à un projet Node.
-        (self.template / 'pyproject.toml').write_text('[project]\nname="existing"\ndependencies=[]\n')
+        (self.template / 'pyproject.toml').write_text(
+            '[project]\nname="existing"\ndependencies=[]\n[build-system]\nrequires=["Cython", "Nuitka"]\n')
         extra = projects_source + r'''
 check_devops_user() { return 0; }
 install() { mkdir -p "${!#}"; }
@@ -1428,16 +2469,25 @@ exit $?
                     self.assertEqual(result.returncode, 0, result.stderr)
                     content = (target / 'DEVOPS.md').read_text()
                     self.assertIn(f'# DEVOPS.md — {project}', content)
+                    self.assert_test_container_sections(content, True, True)
                     self.assertEqual(content.count('## Dépendances JavaScript du projet\n'), 1)
                     self.assertIn('creation-fixture : déclarée 1.0.0', content)
-                    self.assertIn('Version : 0.6\n', content)
+                    self.assertIn('Version : 0.7\n', content)
+                    self.assertIn('  * hvp1.pixs.fr\n', content)
                     self.assert_prompts_section(content)
                     self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n', content)
                     self.assertEqual(content.count('Généré automatiquement par Debian Installeur Unifié (DIU).'), 1)
                     self.assertIn('# Tests navigateurs extérieurs en mode headless\n', content)
                     self.assertIn('## Chromium\n\n  * 134.0.6998.88', content)
                     self.assertIn('## Firefox\n\n  * 140.0.4esr', content)
+                    self.assertEqual(content.count('# Matériel\n'), 1)
+                    self.assertIn('Fabricant : IFX\n', content)
                     self.assertEqual((target / 'pyproject.toml').exists(), project_type == 'PYTHON')
+                    self.assertEqual('# Python - Outils de compilation\n' in content,
+                                     project == 'python-app')
+                    if project == 'python-app':
+                        self.assertIn('Cython : installation non vérifiable', content)
+                        self.assertIn('Nuitka : installation non vérifiable', content)
                     if project == 'python-minimal':
                         self.assertEqual(tomllib.loads((target / 'pyproject.toml').read_text())['project'],
                                          {'name': project, 'version': '0.0.0', 'dependencies': []})
@@ -1609,6 +2659,8 @@ projects_template_devops() {
         self.assertIn(f'0 sélectionné(s), 0 réussi(s), {ignored} ignoré(s), 0 échoué(s)', result.stdout)
 
     def test_batch_generates_real_documents_and_preserves_them_on_repeat(self):
+        self.environment['ENV_DEVOPS_TESTS_LXC'] = '1'
+        self.configure_tpm()
         root = self.fixture / 'projects'
         before = {}
         for project, project_type in (('template', 'NODE'), ('all', 'NODE'), ('python-app', 'PYTHON')):
@@ -1625,7 +2677,9 @@ projects_template_devops() {
             for project in ('template', 'all', 'python-app'):
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
-                self.assertIn(b'Version : 0.6\n', content)
+                self.assertIn(b'Version : 0.7\n', content)
+                self.assert_test_container_sections(content.decode('utf-8'), True, True)
+                self.assertIn(b'  * hvp1.pixs.fr\n', content)
                 self.assert_prompts_section(content.decode('utf-8'))
                 self.assertEqual(content.count('## Dépendances JavaScript du projet\n'.encode()), 1)
                 self.assertIn(b'batch-fixture : d\xc3\xa9clar\xc3\xa9e 1.0.0', content)
@@ -1636,6 +2690,8 @@ projects_template_devops() {
                 self.assertIn('# Tests navigateurs extérieurs en mode headless\n'.encode(), content)
                 self.assertIn(b'## Chromium\n\n  * 134.0.6998.88', content)
                 self.assertIn(b'## Firefox\n\n  * 140.0.4esr', content)
+                self.assertEqual(content.count('# Matériel\n'.encode()), 1)
+                self.assertIn(b'Fabricant : IFX\n', content)
                 if iteration:
                     self.assertEqual(content, before[project])
                 before[project] = content
@@ -1698,7 +2754,8 @@ class ProjectsTemplateDevopsRuntimeTests(unittest.TestCase):
 
     def test_prompts_paths_follow_configured_user_with_separate_projects_root(self):
         # Conserver le calcul réel du domicile et le rendu. Isoler seulement
-        # les identités et les sondes ; toutes les écritures restent dans la fixture.
+        # les identités, la préparation des outils et les sondes : le domicile
+        # calculé sert ici aux assertions de chemins, jamais à une mutation réelle.
         script = r'''
 source "$1"
 ENV_DEVOPS_USER="$2"
@@ -1714,6 +2771,7 @@ print_error() { printf '%s\n' "$*" >&2; }
 print_success() { :; }
 projects_template_devops_python_manifest() { :; }
 projects_template_devops_timestamp() { printf '2026-10-19T06:30:00Z\n'; }
+projects_template_devops_prepare_executables() { :; }
 projects_template_devops_host_binary() { return 1; }
 projects_template_devops_version() { printf 'indisponible\n'; }
 projects_template_devops_user_run() { return 1; }
@@ -1740,7 +2798,7 @@ projects_template_devops application
                 self.assertIn(f'# Prompts\n\n  * Dossier des prompts : /home/{user}/datas/prompts\n'
                               f'  * Index des prompts : /home/{user}/datas/prompts/INDEX.md\n', content)
                 self.assertNotIn(str(projects_root / 'prompts'), content)
-                self.assertIn('Version : 0.6\n', content)
+                self.assertIn('Version : 0.7\n', content)
 
     def test_real_go_version_from_inaccessible_caller_directory(self):
         if os.geteuid() == 0:

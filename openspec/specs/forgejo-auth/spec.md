@@ -97,22 +97,36 @@ AND aucune opération Git n'est tentée
 
 ### Requirement: Validation des permissions du fichier token
 
-Le provider SHALL vérifier que les permissions du fichier token sont
-exactement `600` avant de l'utiliser.
-
-Le provider ne SHALL jamais corriger silencieusement les permissions.
+Le provider SHALL accepter exactement `600` ou `660` pour le token et le
+username locaux avant lecture, dans tous les parcours Git et API existants.
+Il SHALL NOT modifier les permissions des fichiers existants. Les autres
+modes SHALL être refusés. Les créations restent en `600` et les fichiers
+secrets temporaires SHALL conserver leur protection existante.
 
 #### Scenario: Permissions valides
 
-WHEN les permissions de `config/forgejo.token` sont exactement 600
+WHEN les permissions de `config/forgejo.token` sont exactement 600 ou 660
 THEN le provider utilise le token
+AND les permissions et le contenu du fichier restent inchangés
 
 #### Scenario: Permissions invalides
 
-WHEN les permissions de `config/forgejo.token` ne sont pas 600
+WHEN les permissions de `config/forgejo.token` ne sont ni 600 ni 660
 THEN le provider retourne une erreur de sécurité explicite
 AND le token n'est pas lu
 AND aucune opération Git n'est tentée
+
+#### Scenario: Username partagé
+
+WHEN les permissions de `config/forgejo.username` sont exactement 660
+THEN le provider lit le username sans changer son contenu ni ses permissions
+AND le mode 600 reste accepté
+
+#### Scenario: Username avec permissions invalides
+
+WHEN les permissions de `config/forgejo.username` ne sont ni 600 ni 660
+THEN le provider retourne une erreur avant lecture du username
+AND aucun identifiant n'est affiché
 
 ### Requirement: Validation du contenu du token
 
@@ -201,7 +215,7 @@ AND la fonction retourne le code 1
 #### Scenario: Push avec permissions invalides
 
 WHEN `forgejo_push()` est exécutée
-AND `config/forgejo.token` existe mais ses permissions ne sont pas 600
+AND `config/forgejo.token` existe mais ses permissions ne sont ni 600 ni 660
 THEN une erreur de sécurité explicite est affichée
 AND aucun `git push` n'est exécuté
 AND la fonction retourne le code 1
@@ -333,4 +347,3 @@ hors contexte, le contrat d'erreur SHALL rester inchangé.
 - **WHEN** la vérification du dépôt rencontre une indisponibilité reconnue dans le contexte de push tolérant
 - **THEN** la publication publique suit git-provider-availability sans création ni push
 - **AND THEN** les clones et releases directes conservent leur contrat d'erreur hors de ce contexte
-
