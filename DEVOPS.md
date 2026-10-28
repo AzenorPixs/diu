@@ -3,7 +3,7 @@
 Version : 0.7
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-28T07:56:59Z
+Début du relevé (UTC) : 2026-10-28T09:20:33Z
 Environnement d'exécution DIU : PHYSICAL
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -78,7 +78,6 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
   * 2.2.0
   * /home/devops/.opencode/bin/opencode
-  * La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env
 
 
 # OpenSpec
