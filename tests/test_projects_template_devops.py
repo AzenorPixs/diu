@@ -462,6 +462,11 @@ ssh() { container_forbidden; }
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
         self.assertIn('Version : 0.7', content)
         self.assert_prompts_section(content)
+        opencode_source = "La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env"
+        self.assertIn('# OpenCode\n\n  * 1.2.8\n'
+                      f'  * {self.home / ".opencode/bin/opencode"}\n'
+                      f'  * {opencode_source}\n\n\n# OpenSpec\n', content)
+        self.assertEqual(content.count(opencode_source), 1)
         for title, version, path in (
             ('Conteneur Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
