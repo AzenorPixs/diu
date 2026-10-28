@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de `DEVOPS.md` : ajout après le chemin OpenCode de la puce
+  « La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env ».
+  Indication statique, sans lecture supplémentaire de configuration ni affichage
+  du mot de passe. Format `0.7`, sondes et parcours conservés ; application à la
+  prochaine génération normale des documents existants.
+
 - Installation OpenCode DevOps : recherche de la dernière release stable V2 sur
   GitHub et comparaison numérique avec la version installée. DIU utilise
   `https://opencode.ai/v2/install` pour mettre à jour uniquement un binaire
