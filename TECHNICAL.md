@@ -87,6 +87,18 @@ antérieures. La sélection de la dernière version de `NODEJS_SERIES` et le
 diagnostic de série absente sont conservés. La spécification de référence est
 `openspec/specs/devops-nodejs-download/spec.md`.
 
+Lorsque `OPENCODE=1`, le bloc DevOps recherche sur les pages des releases
+GitHub la dernière version stable OpenCode V2. Les tags préliminaires et les
+autres versions majeures sont exclus. Curl conserve TLS et est borné à 10
+secondes de connexion et 60 secondes de transfert. Une version installée
+valide est comparée numériquement ; l'installateur officiel
+`https://opencode.ai/v2/install` reçoit la version exacte avec `--version` et
+`--no-modify-path` uniquement si le binaire est absent ou plus ancien. Une
+version égale ou supérieure est conservée. Une erreur réseau, une release V2
+absente ou une version locale illisible bloque l'installation avec un
+diagnostic explicite. La référence est
+`openspec/specs/devops-opencode/spec.md`.
+
 ## Contextes, utilisateurs et chemins
 
 | Élément | Valeur ou convention | Rôle |

@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Installation OpenCode DevOps : recherche de la dernière release stable V2 sur
+  GitHub et comparaison numérique avec la version installée. DIU utilise
+  `https://opencode.ai/v2/install` pour mettre à jour uniquement un binaire
+  absent ou plus ancien ; une version égale ou supérieure est conservée.
+  L'activation `OPENCODE=1`, le chemin DevOps et l'absence de modification du
+  PATH restent inchangés.
+
 - Génération de `DEVOPS.md` : ajout de Nuitka déclaré dans
   `[build-system].requires`, avec contraintes et extras éventuels, dans la
   rubrique commune « Python - Outils de compilation ». Seuls les outils déclarés

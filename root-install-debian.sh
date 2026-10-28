@@ -4390,8 +4390,8 @@ EOF
 
 		OPENCODE_USER=$DEVOPS_USER
 		INSTALL_DIR="/home/${OPENCODE_USER}/.opencode/bin"
-		API="https://api.github.com/repos/anomalyco/opencode/releases/latest"
-		INSTALLER="https://opencode.ai/install"
+		API="https://api.github.com/repos/anomalyco/opencode/releases?per_page=100&page="
+		INSTALLER="https://opencode.ai/v2/install"
 
 		if [ -f "${INSTALL_DIR}/opencode" ]; then
 			chmod +x "${INSTALL_DIR}/opencode"
@@ -4399,23 +4399,51 @@ EOF
 
 		# Version installée
 		if [ -x "${INSTALL_DIR}/opencode" ]; then
-			INSTALLED=$("${INSTALL_DIR}/opencode" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+			if ! INSTALLED_OUTPUT=$("${INSTALL_DIR}/opencode" --version 2>/dev/null); then
+				echo "❌ OpenCode : impossible de lire la version installée, mise à jour annulée." >&2
+				exit 1
+			fi
+			if ! INSTALLED=$(printf '%s\n' "$INSTALLED_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sed -n '1p') ||
+				[[ ! "$INSTALLED" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+				echo "❌ OpenCode : version installée illisible, mise à jour annulée." >&2
+				exit 1
+			fi
 		else
 			INSTALLED=""
 		fi
 
-		# Récupération de la dernière version disponible
-		LATEST=$(curl -fsSL "$API" | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+		# Récupération de la dernière release stable V2
+		LATEST=""
+		RELEASE_PAGE=1
+		while [[ -z "$LATEST" ]]; do
+			RELEASE_URL="${API}${RELEASE_PAGE}"
+			if RELEASES=$(curl -fsSL --connect-timeout 10 --max-time 60 "$RELEASE_URL"); then
+				LATEST=$(printf '%s\n' "$RELEASES" | sed -nE 's/^[[:space:]]*"tag_name":[[:space:]]*"v(2\.[0-9]+\.[0-9]+)",?$/\1/p' | sort -V | tail -n 1)
+			else
+				CURL_STATUS=$?
+				echo "❌ OpenCode : échec de lecture des releases GitHub (curl=${CURL_STATUS})." >&2
+				exit "$CURL_STATUS"
+			fi
 
-		if [[ "$INSTALLED" != "$LATEST" ]]; then
+			if [[ -z "$LATEST" ]]; then
+				if [[ "$RELEASES" == "[]" ]]; then
+					echo "❌ OpenCode : aucune release stable V2 trouvée sur GitHub." >&2
+					exit 1
+				fi
+				RELEASE_PAGE=$((RELEASE_PAGE + 1))
+			fi
+		done
+
+		if [[ -z "$INSTALLED" ]] ||
+			[[ "$(printf '%s\n%s\n' "$INSTALLED" "$LATEST" | sort -V | tail -n 1)" != "$INSTALLED" ]]; then
 
 			echo "🔧 INSTALL/UPGRADE OPENCODE"
-			su - "${OPENCODE_USER}" -c "curl -fsSL ${INSTALLER} | bash -s -- --no-modify-path"
+			su - "${OPENCODE_USER}" -c "curl -fsSL ${INSTALLER} | bash -s -- --version ${LATEST} --no-modify-path"
 			chmod +x "${INSTALL_DIR}/opencode"
 
 		else
 
-			echo "OPENCODE OK ✅ ($LATEST)"
+			echo "OPENCODE OK ✅ ($INSTALLED)"
 
 		fi
 

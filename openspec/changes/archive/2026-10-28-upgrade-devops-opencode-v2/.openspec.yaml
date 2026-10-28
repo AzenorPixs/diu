@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-28
+goal: Installer OpenCode V2 à jour sans réinstaller une version égale ou plus
+  récente.
