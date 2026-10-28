@@ -9,6 +9,7 @@ La génération de DEVOPS.md ne précise pas la provenance de la variable du mot
 - Ajouter après le chemin du binaire la puce exacte : « La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env ».
 - Émettre ce texte statique sans consulter la variable ni lire project.env pour cet ajout.
 - Conserver le format 0.7, les versions sondées, les chemins et les inventaires existants.
+- Répartir les huit exigences canoniques dépassant 500 caractères en blocs plus courts, sans changer leur texte normatif ni leurs scénarios existants, afin de rétablir la validation stricte.
 
 ## Capabilities
 
