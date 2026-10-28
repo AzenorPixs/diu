@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Synchronisation des projets : copie initiale de `DEVELOPMENT_MAP.md` depuis
+  le modèle uniquement si son entrée destination est absente, en mode unitaire
+  ou groupé. La copie reçoit la personnalisation Markdown et le propriétaire
+  prévus ; toute entrée existante reste intacte. Une source requise absente ou
+  non régulière bloque les copies dans ce projet, sans arrêter le parcours groupé.
+
 - Génération de `DEVOPS.md` : ajout après le chemin OpenCode de la puce
   « La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env ».
   Indication statique, sans lecture supplémentaire de configuration ni affichage
