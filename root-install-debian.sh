@@ -6841,8 +6841,8 @@ then
 
 	    echo ""
 	    echo "# Commande OPENCODE #"
-	    cat <<'EOF'
-alias oc='OPENCODE_PASSWORD="$(python3 -c '\''import shlex; print(shlex.split(next(l.split("=",1)[1] for l in open("project.env") if l.startswith("OPENCODE_PASSWORD=")), comments=True)[0])'\'')" bash -c '\'': "${OPENCODE_PASSWORD:?Mot de passe absent}"; opencode serve --hostname 0.0.0.0 --port 4096 >/dev/null & p=$!; trap "kill $p 2>/dev/null" EXIT; until curl -fsS -u "opencode:$OPENCODE_PASSWORD" http://127.0.0.1:4096/api/info >/dev/null 2>&1; do kill -0 "$p" 2>/dev/null || exit 1; sleep 0.2; done; opencode --server http://127.0.0.1:4096'\'''
+		cat <<'EOF'
+alias oc='if [ ! -f project.env ] || [ ! -r project.env ]; then echo "oc : project.env absent ou illisible, démarrage de la TUI seule."; opencode --standalone; else OPENCODE_PASSWORD="$(python3 -c '\''import shlex; print(shlex.split(next(l.split("=",1)[1] for l in open("project.env") if l.startswith("OPENCODE_PASSWORD=")), comments=True)[0])'\'')" bash -c '\'': "${OPENCODE_PASSWORD:?Mot de passe absent}"; opencode serve --hostname 0.0.0.0 --port 4096 >/dev/null & p=$!; trap "kill $p 2>/dev/null" EXIT; until curl -fsS -u "opencode:$OPENCODE_PASSWORD" http://127.0.0.1:4096/api/info >/dev/null 2>&1; do kill -0 "$p" 2>/dev/null || exit 1; sleep 0.2; done; opencode --server http://127.0.0.1:4096'\''; fi'
 EOF
 	    echo "alias ocv='opencode --version'"
 	} >> /root/.zshrc
