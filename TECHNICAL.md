@@ -313,6 +313,14 @@ déjà prévus, avec leur borne de 15 secondes. Cette préparation s'applique au
 parcours individuel, groupé et final de création.
 
 `projects_template_devops_render` produit la version documentaire `0.7`.
+La rubrique OpenCode ajoute immédiatement après le chemin du binaire la puce
+« La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env »,
+avant les dépendances OpenCode éventuelles. Cette indication est statique :
+elle ne lit pas la variable ni le fichier pour cet ajout et ne prouve pas
+que le mot de passe est défini ou que l'API est accessible. Les parcours
+individuel, groupé et de création partagent ce rendu ; les documents existants
+l'adoptent à leur prochaine génération normale.
+
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
 la classification fournie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
