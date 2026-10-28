@@ -1110,8 +1110,18 @@ décide séparément pour chaque projet et poursuit après échec avec un résul
 global non nul. Les commandes `template openspec`, `template devops` et
 `template all` restent indépendantes de cette copie documentaire.
 
-`rid projects sync` synchronise uniquement `AGENTS.md`, `.gitignore`
-et le protocole conditionnel décrit ci-dessus. En mode unitaire ou groupé,
+`rid projects sync` synchronise `AGENTS.md`, `.gitignore`
+et le protocole conditionnel décrit ci-dessus. Il copie également
+`DEVELOPMENT_MAP.md` depuis le modèle seulement si aucune entrée de ce nom
+n'existe à la racine du projet, indépendamment du mode de pilotage. Cette
+nouvelle copie est personnalisée et reçoit le propriétaire prévu. Une entrée
+existante, même un répertoire ou un lien symbolique pendant, reste intacte
+(contenu, droits, propriétaire et date de modification). La source n'est
+exigée comme fichier régulier que si une copie est nécessaire ; sinon,
+son absence est sans effet. Une source requise absente ou non régulière
+provoque un échec avant toute copie dans ce projet. `sync all` applique cette
+décision par projet et poursuit après les échecs avec un code global non nul.
+En mode unitaire ou groupé,
 `PROMPTS/` n'est plus exigé dans le modèle et reste exclu de la synchronisation :
 une destination existante est préservée, y compris ses droits et son propriétaire,
 et une destination absente n'est pas créée. Les ressources

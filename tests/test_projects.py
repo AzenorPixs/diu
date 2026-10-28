@@ -390,6 +390,7 @@ clone_project source destination
             (template_path / 'PROMPTS' / 'nested').mkdir(parents=True)
             project_path.mkdir(parents=True)
             (template_path / 'AGENTS.md').write_text('Template template\n', encoding='utf-8')
+            (template_path / 'DEVELOPMENT_MAP.md').write_text('Template template\n', encoding='utf-8')
             (template_path / 'DEVOPS.md').write_text('Template\n', encoding='utf-8')
             (template_path / '.gitignore').write_text('template\n', encoding='utf-8')
             (template_path / 'PROMPTS' / 'nested' / 'INDEX.md').write_text(
@@ -473,7 +474,7 @@ sync_project projet-test
                             projects_root = temporary_path / 'datas'
                             template_path = projects_root / 'template'
                             template_path.mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore'):
+                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text(
                                     'Template template\n', encoding='utf-8')
                             source = template_path / 'PROMPTS'
@@ -568,7 +569,7 @@ sync_project projet-test
             template_path = projects_root / 'template'
 
             (template_path / 'PROMPTS').mkdir(parents=True)
-            for filename in ('AGENTS.md', '.gitignore'):
+            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                 (template_path / filename).write_text('source\n', encoding='utf-8')
 
             for project_id in ('first', 'second'):
@@ -617,7 +618,7 @@ sync_project_all
                             template_path = projects_root / 'template'
                             project_path = projects_root / 'projet-test'
                             (template_path / 'PROMPTS').mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore'):
+                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text('Template template\n',
                                                                       encoding='utf-8')
                             if source_present:
@@ -730,7 +731,7 @@ sync_project_all
                             template_path = projects_root / 'template'
                             project_path = projects_root / 'projet-test'
                             (template_path / 'PROMPTS').mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore'):
+                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text(
                                     'Template template\n', encoding='utf-8')
                             project_path.mkdir()
@@ -802,7 +803,7 @@ fi
                     temporary_path = Path(temporary_directory)
                     template_path = temporary_path / 'datas' / 'template'
                     (template_path / 'PROMPTS').mkdir(parents=True)
-                    for filename in ('AGENTS.md', '.gitignore'):
+                    for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                         (template_path / filename).write_text('source\n', encoding='utf-8')
                     broker_path = temporary_path / '.opencode' / 'broker'
                     if destination_present:
