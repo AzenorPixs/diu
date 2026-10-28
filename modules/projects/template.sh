@@ -224,6 +224,9 @@ projects_template_devops_section() {
         printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}" || return 1
         projects_template_devops_test_authorization || return 1
+    elif [[ "${title}" == OpenCode ]]; then
+        printf "# %s\n\n  * %s\n  * %s\n  * La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env\n\n\n" \
+            "${title}" "${version}" "${binary:-binaire introuvable}"
     else
         printf '# %s\n\n  * %s\n  * %s\n\n\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}"
