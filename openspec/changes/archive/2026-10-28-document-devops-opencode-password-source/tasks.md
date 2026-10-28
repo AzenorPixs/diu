@@ -9,7 +9,8 @@
 
 ## 3. Validation finale
 
-- [ ] 3.1 Exécuter toute la suite isolée de génération DEVOPS.md et valider strictement le change ; examiner la cohérence documentaire du périmètre avant archivage.
+- [x] 3.1 Exécuter toute la suite isolée de génération DEVOPS.md et valider strictement le change ; examiner la cohérence documentaire du périmètre avant archivage.
 
 Suite réussie : 152 tests dont 2 ignorés (Go réel absent). Delta strict valide.
-Clôture suspendue au contrôle strict du canon existant : voir [le bilan de validation](BLOCKERS.md).
+Les huit exigences longues ont été remises en forme sans changement du texte normatif.
+Validation stricte canonique rétablie ; résolution tracée dans [le rapport d’archive](STATISTIQUES.md).

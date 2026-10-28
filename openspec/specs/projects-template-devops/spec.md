@@ -12,16 +12,9 @@ serveur PostgreSQL configuré, avec un manifeste minimal conditionnel pour Pytho
 ### Requirement: Commande de génération du modèle DevOps
 
 DIU SHALL fournir `projects_template_devops`, appelée par la commande
-`rid projects template devops <ID PROJECT>`, avec un identifiant obligatoire.
-La CLI SHALL exiger le sélecteur devops avant l'identifiant et SHALL rejeter
-les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide.
-La fonction SHALL générer ou actualiser
-`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`. La racine SHALL utiliser
-DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon /home/${ENV_DEVOPS_USER}/datas.
-La fonction SHALL valider le nom d'utilisateur et l'identifiant de projet,
-SHALL refuser les chemins, les identifiants . et .. et les liens symboliques
-du dossier cible, et SHALL NOT créer le dossier du projet. L'ancienne syntaxe
-sans identifiant SHALL être rejetée avec la nouvelle utilisation.
+`rid projects template devops <ID PROJECT>`, avec un identifiant obligatoire. La CLI SHALL exiger le sélecteur devops avant l'identifiant et SHALL rejeter
+les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide. La fonction SHALL générer ou actualiser
+`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`.
 
 #### Scenario: Dossier absent
 
@@ -49,6 +42,19 @@ sans identifiant SHALL être rejetée avec la nouvelle utilisation.
 
 - **WHEN** la commande utilise template devops devops ou template devops openspec
 - **THEN** seule la génération DevOps du projet désigné est appelée
+
+### Requirement: Validation et racine du projet ciblé
+
+La racine SHALL utiliser
+DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon /home/${ENV_DEVOPS_USER}/datas. La fonction SHALL valider le nom d'utilisateur et l'identifiant de projet,
+SHALL refuser les chemins, les identifiants . et .. et les liens symboliques
+du dossier cible, et SHALL NOT créer le dossier du projet. L'ancienne syntaxe
+sans identifiant SHALL être rejetée avec la nouvelle utilisation.
+
+#### Scenario: Application des règles de validation et racine du projet ciblé
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
 
 ### Requirement: Structure et version documentaire
 
@@ -81,13 +87,7 @@ hôte Docker-Compose, Git, OpenSSL et PostgreSQL Client. Docker SHALL être
 relevé uniquement si ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`. DIU SHALL
 relever Go, Node, NPM, OpenCode, OpenSpec, Python et pip depuis les binaires
 situés dans `/home/${ENV_DEVOPS_USER}`, sous cet utilisateur. DIU SHALL NOT
-remplacer un outil DevOps manquant par un outil hôte. NPM et OpenSpec SHALL
-utiliser le Node DevOps et pip SHALL utiliser le Python DevOps, sans dépendre
-des shebangs des scripts. Les sondes DevOps SHALL être exécutées depuis le
-domicile de cet utilisateur sans changer le répertoire de l'appelant, y
-compris lorsque son répertoire courant lui est inaccessible après changement
-d'utilisateur. Une sonde absente, échouée ou sans version reconnue
-SHALL être indiquée explicitement, sans conserver une version ancienne.
+remplacer un outil DevOps manquant par un outil hôte.
 
 #### Scenario: Versions hôte différentes
 
@@ -105,6 +105,21 @@ SHALL être indiquée explicitement, sans conserver une version ancienne.
 - **WHEN** la génération est lancée depuis un dossier inaccessible à l'utilisateur DevOps, par exemple /root
 - **THEN** les sondes, notamment go version, sont exécutées depuis son domicile accessible
 - **AND THEN** la version Go disponible est relevée et le répertoire courant de l'appelant est préservé
+
+### Requirement: Interpréteurs et contexte des sondes DevOps
+
+NPM et OpenSpec SHALL
+utiliser le Node DevOps et pip SHALL utiliser le Python DevOps, sans dépendre
+des shebangs des scripts. Les sondes DevOps SHALL être exécutées depuis le
+domicile de cet utilisateur sans changer le répertoire de l'appelant, y
+compris lorsque son répertoire courant lui est inaccessible après changement
+d'utilisateur. Une sonde absente, échouée ou sans version reconnue
+SHALL être indiquée explicitement, sans conserver une version ancienne.
+
+#### Scenario: Application des règles de interpréteurs et contexte des sondes devops
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
 
 ### Requirement: Python et dépendances déclarées
 
@@ -124,17 +139,8 @@ La rubrique Python SHALL indiquer venv et ensurepip en troisième ligne ; la rub
 
 DIU SHALL déterminer l'adresse du serveur depuis les affectations littérales
 PG_HOST ou PG_SERVER et PG_PORT du project.env du projet ciblé, et vérifier sa version avec
-`SHOW server_version`. Les paramètres de connexion SHALL rester locaux.
-Les caractères spéciaux des valeurs citées, notamment PG_PASSWORD, SHALL
-être conservés littéralement, sans expansion de variable ou de commande.
-Lorsque PG_PORT est absent, DIU SHALL utiliser le port standard 5432.
-DIU SHALL NOT exécuter le contenu de project.env, publier les identifiants ou
-mots de passe, demander un mot de passe interactif, ni modifier le serveur.
-Une configuration absente ou invalide, un client manquant ou un serveur
-inaccessible SHALL être indiqué explicitement. Les sondes SHALL être bornées.
-Le diagnostic de configuration SHALL distinguer un fichier illisible, une
-affectation non littérale, une adresse absente ou invalide et un port invalide,
-en utilisant uniquement des libellés fixes et les noms de variables reconnus.
+`SHOW server_version`. Les paramètres de connexion SHALL rester locaux. Les caractères spéciaux des valeurs citées, notamment PG_PASSWORD, SHALL
+être conservés littéralement, sans expansion de variable ou de commande. Lorsque PG_PORT est absent, DIU SHALL utiliser le port standard 5432.
 
 #### Scenario: Serveur distant disponible
 
@@ -161,6 +167,28 @@ en utilisant uniquement des libellés fixes et les noms de variables reconnus.
 - **THEN** ses deux dernières lignes sont « Les variables PostgreSQL sont chargées depuis project.env » puis « PG_HOST PG_PORT PG_DATABASE PG_USERNAME PG_PASSWORD »
 - **AND THEN** chacune est une puce Markdown et ne contient aucune valeur sensible
 
+### Requirement: Sécurité et indisponibilité PostgreSQL
+
+DIU SHALL NOT exécuter le contenu de project.env, publier les identifiants ou
+mots de passe, demander un mot de passe interactif, ni modifier le serveur. Une configuration absente ou invalide, un client manquant ou un serveur
+inaccessible SHALL être indiqué explicitement. Les sondes SHALL être bornées.
+
+#### Scenario: Application des règles de sécurité et indisponibilité postgresql
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
+
+### Requirement: Diagnostics de configuration PostgreSQL
+
+Le diagnostic de configuration SHALL distinguer un fichier illisible, une
+affectation non littérale, une adresse absente ou invalide et un port invalide,
+en utilisant uniquement des libellés fixes et les noms de variables reconnus.
+
+#### Scenario: Application des règles de diagnostics de configuration postgresql
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
+
 ### Requirement: Écriture limitée et robuste
 
 DIU SHALL limiter ses écritures à DEVOPS.md, ses temporaires et au manifeste Python conditionnel du projet, en UTF-8/LF, sauf préparation des exécutables DevOps connus. Tout échec SHALL être signalé par un code non nul et préserver l'existant. L'actualisation SHALL conserver droits et propriétaire. Synchronisation et préparation des créations SHALL rester inchangées ; les créations SHALL finir par la génération DevOps. À observations identiques, le contenu SHALL être identique hors horodatage.
@@ -179,16 +207,10 @@ DIU SHALL limiter ses écritures à DEVOPS.md, ses temporaires et au manifeste P
 ### Requirement: Manifeste Python conditionnel
 
 Lorsque pyproject.toml est absent, DIU SHALL le créer uniquement si
-l'affectation littérale PROJECT_TYPE dans project.env vaut exactement PYTHON.
-Le manifeste SHALL contenir [project], le nom normalisé à partir de l'identifiant
+l'affectation littérale PROJECT_TYPE dans project.env vaut exactement PYTHON. Le manifeste SHALL contenir [project], le nom normalisé à partir de l'identifiant
 (remplacement des caractères autres que lettres ASCII, chiffres, point, tiret et
 underscore par un tiret, retrait des séparateurs aux extrémités et repli sur
 project si le nom est vide), version = "0.0.0" et dependencies = [].
-Un pyproject.toml existant SHALL être conservé sans modification. La lecture
-de PROJECT_TYPE SHALL NOT exécuter project.env ni exposer ses valeurs.
-Une configuration absente ou sans PROJECT_TYPE SHALL NOT créer de manifeste.
-Un échec de création du manifeste SHALL être signalé avec un code non nul.
-Si l'écriture documentaire échoue ensuite, le manifeste créé SHALL être conservé.
 
 #### Scenario: Projet Python sans manifeste
 
@@ -206,6 +228,16 @@ Si l'écriture documentaire échoue ensuite, le manifeste créé SHALL être con
 - **WHEN** pyproject.toml existe, quel que soit PROJECT_TYPE
 - **THEN** son contenu, sa propriété et ses droits sont conservés
 
+### Requirement: Préservation et erreurs du manifeste conditionnel
+
+Un pyproject.toml existant SHALL être conservé sans modification. La lecture
+de PROJECT_TYPE SHALL NOT exécuter project.env ni exposer ses valeurs. Une configuration absente ou sans PROJECT_TYPE SHALL NOT créer de manifeste. Un échec de création du manifeste SHALL être signalé avec un code non nul. Si l'écriture documentaire échoue ensuite, le manifeste créé SHALL être conservé.
+
+#### Scenario: Application des règles de préservation et erreurs du manifeste conditionnel
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
+
 ### Requirement: Génération finale lors de la création
 
 Après la préparation, la personnalisation et l'attribution des droits du
@@ -213,9 +245,7 @@ projet, create_project SHALL appeler projects_template_openspec puis
 projects_template_devops avec l'identifiant du nouveau projet avant son message
 final de succès. La copie SHALL exclure le pyproject.toml racine du modèle si
 PROJECT_TYPE est différent de PYTHON ou absent ; un projet Python MAY conserver
-le manifeste copié. Si une opération finale échoue, create_project SHALL rendre
-un code non nul, signaler cet échec et conserver le projet déjà préparé. Un
-échec OpenSpec SHALL empêcher l'appel DevOps et le message final de succès.
+le manifeste copié.
 
 #### Scenario: Création réussie
 
@@ -240,19 +270,23 @@ un code non nul, signaler cet échec et conserver le projet déjà préparé. Un
 - **THEN** la création signale l'échec sans message final de succès
 - **AND THEN** le dossier préparé est conservé
 
+### Requirement: Échecs des opérations finales de création
+
+Si une opération finale échoue, create_project SHALL rendre
+un code non nul, signaler cet échec et conserver le projet déjà préparé. Un
+échec OpenSpec SHALL empêcher l'appel DevOps et le message final de succès.
+
+#### Scenario: Application des règles de échecs des opérations finales de création
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
+
 ### Requirement: Génération DevOps de tous les projets configurés
 
-DIU SHALL exposer rid projects template devops all et projects_template_devops_all.
-La fonction SHALL utiliser DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
-et parcourir uniquement ses dossiers directs, y compris les dossiers cachés.
-Elle SHALL sélectionner les project.env ordinaires dont les affectations
+DIU SHALL exposer rid projects template devops all et projects_template_devops_all. La fonction SHALL utiliser DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
+et parcourir uniquement ses dossiers directs, y compris les dossiers cachés. Elle SHALL sélectionner les project.env ordinaires dont les affectations
 littérales PROJECT_ID, PROJECT_NAME, PROJECT_TYPE, PROJECT_DOCKERED et
-PROJECT_DEBIAN_PACKAGE sont toutes non vides. PROJECT_ID SHALL correspondre
-au nom du dossier. Les valeurs 0 et No SHALL être acceptées comme renseignées.
-La sélection SHALL NOT exécuter project.env, utiliser des valeurs héritées
-du shell ou afficher des valeurs de configuration. Les dossiers et fichiers
-project.env symboliques SHALL être ignorés. Les projets incomplets, absents,
-illisibles ou invalides SHALL être signalés puis ignorés.
+PROJECT_DEBIAN_PACKAGE sont toutes non vides.
 
 #### Scenario: Projets complets
 
@@ -285,6 +319,19 @@ illisibles ou invalides SHALL être signalés puis ignorés.
 - **WHEN** l'utilisateur exécute rid projects template all devops
 - **THEN** la CLI rend un code non nul sans génération
 
+### Requirement: Éligibilité et isolation des configurations groupées
+
+PROJECT_ID SHALL correspondre
+au nom du dossier. Les valeurs 0 et No SHALL être acceptées comme renseignées. La sélection SHALL NOT exécuter project.env, utiliser des valeurs héritées
+du shell ou afficher des valeurs de configuration. Les dossiers et fichiers
+project.env symboliques SHALL être ignorés. Les projets incomplets, absents,
+illisibles ou invalides SHALL être signalés puis ignorés.
+
+#### Scenario: Application des règles de éligibilité et isolation des configurations groupées
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
+
 ### Requirement: Bilan et poursuite du traitement groupé
 
 La fonction SHALL conserver le comportement de génération individuelle et
@@ -293,8 +340,7 @@ afficher les nombres de projets sélectionnés, réussis, ignorés et échoués,
 et rendre un code non nul si une génération échoue. Sans projet éligible,
 elle SHALL afficher un message et rendre un succès. Une racine absente,
 un utilisateur DevOps invalide ou un Python système absent SHALL provoquer
-une erreur avant génération. La commande SHALL refuser les arguments
-supplémentaires et les opérations inconnues.
+une erreur avant génération.
 
 #### Scenario: Échec puis réussite
 
@@ -312,6 +358,16 @@ supplémentaires et les opérations inconnues.
 - **WHEN** la racine configurée n'existe pas
 - **THEN** la commande échoue sans créer de dossier ou de document
 
+### Requirement: Arguments du traitement groupé
+
+La commande SHALL refuser les arguments
+supplémentaires et les opérations inconnues.
+
+#### Scenario: Application des règles de arguments du traitement groupé
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
+
 ### Requirement: Navigateurs externes hôte pour le mode headless
 
 DIU SHALL détecter Chromium et Firefox sur l'hôte de génération à partir du
@@ -319,20 +375,6 @@ PATH système fixe utilisé par projects_template_devops_host_binary, sans utili
 le PATH DevOps ni des caches de frameworks de test. La recherche SHALL retenir
 le premier exécutable disponible parmi chromium puis chromium-browser pour
 Chromium, et firefox puis firefox-esr pour Firefox.
-
-Chaque sous-rubrique SHALL indiquer la version relevée avec --version, puis
-le chemin de l'exécutable détecté et la ligne « Mode headless : --headless ».
-La section SHALL préciser que la détection de version ne vérifie pas le
-fonctionnement du mode headless. Les sondes SHALL être limitées à 15 secondes
-et SHALL conserver les arguments et les chemins contenant des espaces.
-
-Un navigateur absent SHALL être indiqué par « indisponible (binaire absent) »
-et « binaire introuvable ». Une sonde échouée ou sans version reconnue SHALL
-être indiquée explicitement avec le chemin détecté, sans afficher les erreurs
-brutes ni conserver une ancienne version. DIU SHALL NOT sélectionner une
-autre variante après l'échec de la sonde du premier exécutable détecté.
-Ces indisponibilités SHALL NOT empêcher la génération du document.
-La détection SHALL NOT installer de logiciel ni démarrer un test de navigation.
 
 #### Scenario: Navigateurs hôte disponibles
 
@@ -367,6 +409,31 @@ La détection SHALL NOT installer de logiciel ni démarrer un test de navigation
 - **WHEN** une génération individuelle, groupée ou finale de création appelle projects_template_devops
 - **THEN** le document produit inclut la même section finale actualisée sans doublon
 - **AND THEN** les garanties existantes d'idempotence, de droits et de préservation du document en cas d'échec d'écriture restent applicables
+
+### Requirement: Présentation et bornes des sondes navigateur
+
+Chaque sous-rubrique SHALL indiquer la version relevée avec --version, puis
+le chemin de l'exécutable détecté et la ligne « Mode headless : --headless ». La section SHALL préciser que la détection de version ne vérifie pas le
+fonctionnement du mode headless. Les sondes SHALL être limitées à 15 secondes
+et SHALL conserver les arguments et les chemins contenant des espaces. Un navigateur absent SHALL être indiqué par « indisponible (binaire absent) »
+et « binaire introuvable ».
+
+#### Scenario: Application des règles de présentation et bornes des sondes navigateur
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
+
+### Requirement: Indisponibilité et détection passive des navigateurs hôte
+
+Une sonde échouée ou sans version reconnue SHALL
+être indiquée explicitement avec le chemin détecté, sans afficher les erreurs
+brutes ni conserver une ancienne version. DIU SHALL NOT sélectionner une
+autre variante après l'échec de la sonde du premier exécutable détecté. Ces indisponibilités SHALL NOT empêcher la génération du document. La détection SHALL NOT installer de logiciel ni démarrer un test de navigation.
+
+#### Scenario: Application des règles de indisponibilité et détection passive des navigateurs hôte
+
+- **WHEN** la génération DevOps traite ce contexte
+- **THEN** les règles de cette exigence sont appliquées
 
 ### Requirement: Horodatage UTC du début du relevé
 
@@ -1143,3 +1210,24 @@ DIU SHALL produire une seule rubrique Python - Outils de compilation après pip 
 - **WHEN** une génération individuelle, groupée ou finale de création traite un projet déclarant un ou deux outils
 - **THEN** les observations égales produisent le même inventaire, avec une seule découverte et les sondes nécessaires aux noms encore recherchés
 - **AND** les bornes de 3 secondes par sonde et 12 secondes de recherche/sondes, les diagnostics sans sortie rejetée et les dépendances d’exécution restent conservés
+
+### Requirement: Source documentaire du mot de passe API OpenCode
+
+La rubrique OpenCode MUST ajouter une seule puce statique `La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env` immédiatement après le chemin du binaire, avant les dépendances éventuelles. Cet ajout MUST NOT lire project.env ou consulter la variable. Le rendu commun MUST conserver les sondes et le format 0.7.
+
+#### Scenario: Génération avec ou sans configuration API
+
+- **WHEN** le rendu commun génère la rubrique OpenCode, que la variable soit présente ou absente
+- **THEN** la puce exacte apparaît une seule fois immédiatement après le chemin du binaire
+- **AND THEN** aucun mot de passe n'est lu ou affiché pour produire cette indication
+
+#### Scenario: Dépendances OpenCode déclarées
+
+- **WHEN** le projet possède des dépendances OpenCode affichables
+- **THEN** la puce de provenance précède leur sous-section
+- **AND THEN** les versions, chemins, inventaires et autres rubriques conservent leur comportement
+
+#### Scenario: Parcours de génération
+
+- **WHEN** la génération est individuelle, groupée ou finale lors d'une création
+- **THEN** le rendu commun conserve la version 0.7 et l'ordre des autres rubriques
