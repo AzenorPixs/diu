@@ -1,4 +1,4 @@
-# Proposition : séparation de la configuration des projets et de Git local
+# PRJ01 — Proposition : séparation de la configuration des projets et de Git local
 
 ## Contexte
 

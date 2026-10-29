@@ -1,12 +1,52 @@
 #!/usr/bin/env bash
 # Fonctions de construction du paquet Debian DIU
 
+# Retourne la version unique de HEAD, ou une sortie vide sans tag.
+diu_package_version_from_head() {
+    local project_path="${1:-}" tags="" tag="" candidate="" version=""
+    if [[ ! -e "${project_path}/.git" ]]; then
+        return 0
+    fi
+    if ! tags="$(runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" tag --points-at HEAD)"; then
+        print_error "Impossible de consulter les tags du projet source."
+        return 1
+    fi
+    while IFS= read -r tag; do
+        [[ -n "${tag}" ]] || continue
+        candidate="${tag#v}"
+        if ! dpkg --validate-version "${candidate}" >/dev/null 2>&1; then
+            print_error "Un tag de HEAD ne définit pas une version Debian valide."
+            return 1
+        fi
+        if [[ -n "${version}" && "${version}" != "${candidate}" ]]; then
+            print_error "Plusieurs versions distinctes sont associées à HEAD."
+            return 1
+        fi
+        version="${candidate}"
+    done <<< "${tags}"
+    printf '%s' "${version}"
+}
+
+# Sans tag, la release conserve la version du paquet existant.
+diu_release_version_matches() {
+    local project_path="${1:-}" package_version="${2:-}" version=""
+    if ! dpkg --validate-version "${package_version}" >/dev/null 2>&1; then
+        print_error "Version du paquet Debian invalide."
+        return 1
+    fi
+    version="$(diu_package_version_from_head "${project_path}")" || return 1
+    if [[ -n "${version}" && "${version}" != "${package_version}" ]]; then
+        print_error "Le tag Git et la version du paquet Debian sont incohérents."
+        return 1
+    fi
+    printf '%s' "${version}"
+}
+
 build_deb_diu() {
-    local project_id="diu"
+    local project_id="${1-diu}"
     local project_path=""
     local staging_dir=""
     local build_dir=""
-    local git_tag=""
     local package_version=""
     local diu_maintainer=""
     local package_name=""
@@ -16,12 +56,24 @@ build_deb_diu() {
     # Validation du paramètre
     # ----------------------------------------------------------
 
-    if [[ -z "${project_id}" ]]; then
-        print_error "Usage : build_deb <project_id>"
+    if [[ $# -gt 1 || ! "${project_id}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
+        "${project_id}" == . || "${project_id}" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
+        print_error "Usage : build_deb_diu [project_id]"
         return 1
     fi
-
     project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    if [[ -L "${project_path}" || ! -d "${project_path}" ]]; then
+        print_error "Projet source DIU absent ou symbolique."
+        return 1
+    fi
+    local projects_root_real="" project_real=""
+    projects_root_real="$(realpath -e -- "${DEVOPS_PROJECTS_ROOT}")" || return 1
+    project_real="$(realpath -e -- "${project_path}")" || return 1
+    if [[ "$(dirname -- "${project_real}")" != "${projects_root_real}" ]]; then
+        print_error "Projet source hors de la racine autorisée."
+        return 1
+    fi
+    project_path="${project_real}"
 
     # ----------------------------------------------------------
     # Vérification des prérequis
@@ -48,7 +100,6 @@ build_deb_diu() {
 
     local missing=()
     [[ ! -f "${project_path}/root-install-debian.sh" ]] && missing+=("root-install-debian.sh")
-    [[ ! -d "${project_path}/deb" ]] && missing+=("deb/")
     [[ ! -d "${project_path}/lib" ]] && missing+=("lib/")
     [[ ! -d "${project_path}/modules" ]] && missing+=("modules/")
 
@@ -61,30 +112,20 @@ build_deb_diu() {
     # Génération des métadonnées du paquet
     # ----------------------------------------------------------
 
-    git_tag="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" \
-            tag --points-at HEAD 2>/dev/null |
-            head -n 1
-    )"
-
-    if [[ -n "${git_tag}" ]]; then
-
-        package_version="${git_tag#v}"
-
-        print_info \
-            "Version du paquet déduite du tag Git : ${git_tag}"
-
-    else
-
-        package_version="$(date +'%Y.%m.%d.%H.%M')"
-
-        print_info \
-            "Aucun tag Git associé au dernier commit."
-
-        print_info \
-            "Version du paquet générée automatiquement : ${package_version}"
+    if ! package_version="$(diu_package_version_from_head "${project_path}")"; then
+        return 1
     fi
+    if [[ -z "${package_version}" ]]; then
+        if ! package_version="$(date +'%Y.%m.%d.%H.%M')"; then
+            print_error "Impossible de déterminer la version du paquet."
+            return 1
+        fi
+    fi
+    if ! dpkg --validate-version "${package_version}" >/dev/null 2>&1; then
+        print_error "Version du paquet Debian invalide."
+        return 1
+    fi
+    print_info "Version du paquet : ${package_version}"
 
     diu_maintainer="Anthony DEMARD <postmaster@pixs.fr>"
 
@@ -126,6 +167,13 @@ build_deb_diu() {
     # ----------------------------------------------------------
     # Copie de la liste blanche
     # ----------------------------------------------------------
+
+    # Le contrôle Debian ne doit pas hériter du bit setgid du répertoire parent.
+    if ! chmod 00755 "${staging_dir}/DEBIAN"; then
+        print_error "Impossible de préparer les permissions du contrôle Debian."
+        rm -rf "${staging_dir}"
+        return 1
+    fi
 
     if ! cp "${project_path}/root-install-debian.sh" "${staging_dir}/root/diu/"; then
         print_error "Échec de la copie de root-install-debian.sh."

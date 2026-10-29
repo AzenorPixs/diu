@@ -1,4 +1,4 @@
-# Installation des prérequis système
+# SYS07 — Installation des prérequis système
 
 Ajouter au module `system` une fonction idempotente d'installation des
 prérequis système obligatoires. Elle est appelée après l'actualisation des

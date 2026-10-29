@@ -1,3 +1,5 @@
+# ARC02 — Correction des diagnostics ShellCheck du point d’entrée
+
 ## Why
 Le script principal produit 631 diagnostics ShellCheck qui empêchent sa validation globale et la clôture de la migration SYSTEM_TIME_ZONE.
 

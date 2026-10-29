@@ -2,6 +2,7 @@
 """Tests des chemins d'aide rid exécutables sans configuration de production."""
 from pathlib import Path
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -1069,6 +1070,39 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertEqual(result.returncode, 2)
         self.assertIn("Action inconnue pour la classe 'softwares' : inconnue", result.stdout)
         self.assertIn('rid softwares help', result.stdout)
+
+
+
+class GitCloneArgumentTests(unittest.TestCase):
+    def run_clone_start(self, failure='0'):
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix='.clone-arguments-') as directory:
+            source = ENTRYPOINT.parent / 'modules/projects/git.sh'
+            match = re.search(r'^git_init_clone\(\) \{\n.*?^\}', source.read_text(), re.M|re.S)
+            self.assertIsNotNone(match)
+            script = match.group() + r'''
+print_error() { printf '%s\n' "$*" >&2; }
+mkdir() { printf 'ARG:<%s>\n' "$@"; return "$MKDIR_FAILURE"; }
+check_devops_user() { printf 'CHECKUSER\n'; return 1; }
+DEVOPS_PROJECTS_ROOT="$1/root with spaces[*]"
+git_init_clone 'project with spaces[*]'
+'''
+            return subprocess.run(
+                ['bash', '-c', script, 'fixture', directory],
+                env={**os.environ, 'MKDIR_FAILURE': failure},
+                text=True, capture_output=True, check=False), directory
+
+    def test_clone_directory_is_one_literal_argument(self):
+        result, directory = self.run_clone_start()
+        arguments = [line for line in result.stdout.splitlines() if line.startswith('ARG:')]
+        self.assertEqual(arguments, ['ARG:<-p>', 'ARG:<-->',
+                                    f'ARG:<{directory}/root with spaces[*]/project with spaces[*]>'])
+        self.assertIn('CHECKUSER', result.stdout)
+
+    def test_directory_creation_failure_stops_before_user_check(self):
+        result, _ = self.run_clone_start('7')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('CHECKUSER', result.stdout)
+        self.assertIn('Impossible de créer', result.stderr)
 
 
 if __name__ == '__main__':

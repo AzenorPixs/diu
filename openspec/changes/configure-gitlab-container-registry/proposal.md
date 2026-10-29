@@ -1,3 +1,5 @@
+# ART11 — Configuration explicite du registre de conteneurs GitLab
+
 ## Why
 
 La publication Docker GitLab dérive actuellement son registre de l'URL Git du

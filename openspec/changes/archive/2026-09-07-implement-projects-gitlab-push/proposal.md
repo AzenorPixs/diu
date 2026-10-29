@@ -1,4 +1,4 @@
-# Proposition : publication des projets vers GitLab
+# GIT10 — Proposition : publication des projets vers GitLab
 
 ## Contexte
 

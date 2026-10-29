@@ -1,4 +1,4 @@
-# Proposition : installation de ChatGPT Desktop par APT
+# SW07 — Proposition : installation de ChatGPT Desktop par APT
 
 ## Why
 

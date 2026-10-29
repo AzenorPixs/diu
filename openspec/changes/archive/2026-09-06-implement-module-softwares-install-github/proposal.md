@@ -1,4 +1,4 @@
-# Proposition : moteur d'installation des logiciels depuis GitHub
+# SW08 — Proposition : moteur d'installation des logiciels depuis GitHub
 
 ## Pourquoi
 

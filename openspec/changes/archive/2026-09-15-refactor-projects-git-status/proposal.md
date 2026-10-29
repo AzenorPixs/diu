@@ -1,3 +1,5 @@
+# GIT20 — Statut Git dans le contexte projects git
+
 ## Why
 
 La commande de statut Git d'un projet utilise l'abréviation isolée `gits`,

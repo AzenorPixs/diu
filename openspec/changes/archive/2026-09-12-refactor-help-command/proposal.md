@@ -1,3 +1,5 @@
+# CLI02 — Unification de l’aide contextuelle
+
 ## Why
 
 L'aide de `rid` est aujourd'hui répartie entre des sorties précoces, une aide

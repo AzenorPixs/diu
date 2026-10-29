@@ -1,4 +1,4 @@
-# Proposal: Mise à jour groupée des paquets Debian
+# SW03 — Proposal: Mise à jour groupée des paquets Debian
 
 ## Why
 

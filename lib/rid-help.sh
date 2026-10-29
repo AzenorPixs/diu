@@ -7,6 +7,17 @@ rid_help_line() {
 rid_display_help_context() {
     local context="${1:-}" subcontext="${2:-}" leaf="${3:-}" target="${4:-}"
 
+    if [[ "$context:$subcontext" == projects:deb ]]; then
+        if [[ $# -gt 3 || ( -n "$leaf" && ( ! "$leaf" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
+            "$leaf" == . || "$leaf" == .. ) ) ]]; then
+            rid_display_command_error projects deb
+            return 2
+        fi
+        rid_help_line 'rid projects deb [ID PROJECT]' 'Construit le paquet DIU depuis ce projet source ; défaut : diu.'
+        rid_help_line 'rid proj deb <ID PROJECT>' 'Alias du packaging DIU avec source explicite.'
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == system:drivers ]]; then
         if [[ $# -gt 4 || ( -n "$target" && "$target" != displaylink ) ]]; then
             rid_display_command_error system drivers
@@ -284,7 +295,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects ocro <ID PROJECT>' 'Ouvre le projet en lecture seule.'
             rid_help_line 'rid projects ocrw <ID PROJECT>' 'Ouvre le projet en lecture-écriture.'
             rid_help_line 'rid projects ocsh <ID PROJECT>' 'Ouvre un shell dans le projet.'
-            rid_help_line 'rid projects deb <ID PROJECT>' 'Construit le paquet Debian.'
+            rid_help_line 'rid projects deb [ID PROJECT]' 'Construit le paquet DIU ; source par défaut : diu.'
             rid_help_line 'rid projects cicddiu' 'Lance la CI/CD du projet DIU.'
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
             ;;

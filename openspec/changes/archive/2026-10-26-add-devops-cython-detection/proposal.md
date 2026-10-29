@@ -1,3 +1,5 @@
+# DEV16 — Détection déclarative de Cython
+
 ## Why
 
 Cython déclaré comme outil de compilation n’apparaît pas dans DEVOPS.md : le générateur ne lit que les dépendances d’exécution. Le développeur a validé une détection préalable dans pyproject.toml, suivie seulement en cas de déclaration d’une vérification locale.

@@ -23,14 +23,8 @@ définis par les modules concernés.
 
 ### Requirement: Intégration de la mise à jour générale des projets
 
-L'appel projects_update de rid update SHALL exécuter la même mise à jour
-générale des modèles que rid projects update, une seule fois à sa position
-existante dans l'ordre des modules. Un échec projects SHALL être conservé
-dans le résultat global même si softwares_update réussit. Après cet échec,
-softwares_update SHALL être appelé à sa position prévue. Lorsque projects
-réussit, le retour final de softwares_update SHALL être conservé. Les
-parcours rid update diu et les moteurs logiciels explicites SHALL rester
-inchangés. Cette évolution SHALL NOT ajouter d'autre opération projects.
+rid update SHALL appeler une seule fois la mise à jour générale des projets à sa place existante et conserver l’ordre, la poursuite et la propagation des erreurs détaillés ci-dessous.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Ordre conservé
 
@@ -47,3 +41,18 @@ inchangés. Cette évolution SHALL NOT ajouter d'autre opération projects.
 
 - **WHEN** projects_update réussit et softwares_update échoue
 - **THEN** rid update conserve le code non nul de softwares
+
+#### Scenario: Ordre et résultat de la mise à jour globale
+
+- **WHEN** rid update intègre la mise à jour générale des projets
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+L'appel projects_update de rid update SHALL exécuter la même mise à jour
+générale des modèles que rid projects update, une seule fois à sa position
+existante dans l'ordre des modules. Un échec projects SHALL être conservé
+dans le résultat global même si softwares_update réussit. Après cet échec,
+softwares_update SHALL être appelé à sa position prévue. Lorsque projects
+réussit, le retour final de softwares_update SHALL être conservé. Les
+parcours rid update diu et les moteurs logiciels explicites SHALL rester
+inchangés. Cette évolution SHALL NOT ajouter d'autre opération projects.
+

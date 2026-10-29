@@ -1,3 +1,5 @@
+# SYS11 — Détection de l’environnement Debian
+
 ## Why
 
 DEBIAN_TYPE est une configuration historique manuelle. Le DIU doit identifier

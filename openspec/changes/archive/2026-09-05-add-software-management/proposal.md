@@ -1,4 +1,4 @@
-# Proposal: Gestion des logiciels et mise à jour universelle
+# SW01 — Proposal: Gestion des logiciels et mise à jour universelle
 
 ## Why
 

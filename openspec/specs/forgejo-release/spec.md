@@ -102,17 +102,20 @@ La séquence obligatoire de la phase Git SHALL être :
 
 **Politique d'accès au token :**
 
-Le bootstrap automatique du token SHALL être déclenché **uniquement**
-lorsque le fichier `config/forgejo.token` est absent.
+Le setup explicite SHALL être proposé uniquement lorsque la paire locale
+est absente ou incomplète, après contrôle des fichiers déjà présents.
+Il SHALL obtenir le consentement avant écriture et préserver la moitié existante.
 
-Lorsque le fichier existe, toute anomalie (permissions invalides, contenu
-vide, token refusé par Forgejo) SHALL provoquer un échec en mode
-fail-closed sans tentative de bootstrap.
+Les fichiers déjà présents SHALL être contrôlés localement avant setup.
+Une paire complète refusée, un fichier vide ou un mode invalide SHALL
+provoquer un échec sans setup. Une paire partielle dont le fichier restant
+est localement valide SHALL pouvoir être complétée après consentement,
+sans remplacement ; la validation distante SHALL précéder la publication.
 
-| État du fichier                          | Comportement                                      |
+| État local pertinent                    | Comportement                                      |
 |------------------------------------------|---------------------------------------------------|
-| Absent                                   | Bootstrap automatique possible                    |
-| Présent, permissions 600 ou 660, contenu valide | Utilisation directe                               |
+| Paire absente ou incomplète               | Setup explicite après consentement                    |
+| Paire complète, modes 600 ou 660, contenus valides | Utilisation directe                               |
 | Présent, permissions autres que 600 ou 660               | Fail-closed, erreur explicite, aucun bootstrap    |
 | Présent, contenu vide                    | Fail-closed, erreur explicite, aucun bootstrap    |
 | Présent, token refusé par Forgejo        | Fail-closed, erreur explicite, aucun bootstrap    |
@@ -120,7 +123,7 @@ fail-closed sans tentative de bootstrap.
 Dans tous les cas, aucun fallback silencieux vers Username/Password
 interactif ne SHALL être introduit.
 
-Le bootstrap du token reste la responsabilité de `publish_release()`.
+Le setup reste la responsabilité du parcours de release via forgejo_credentials_setup.
 Le provider `forgejo-auth` ne relance jamais de bootstrap.
 
 Les vérifications Git obligatoires sont :
@@ -246,6 +249,11 @@ AND origin/main n'existe pas
 THEN la fonction affiche un message d'erreur explicite
 AND aucun tag ni Release n'est créé
 AND la fonction retourne le code 1
+
+#### Scenario: Release avec username absent
+
+- **WHEN** le token est valide mais le username est absent et le setup est accepté
+- **THEN** le parcours complète seulement le username et conserve le token existant
 
 ### Requirement: Déduction de l'URL Forgejo
 
@@ -380,6 +388,22 @@ AND la fonction retourne le code 1
 
 ### Requirement: Création de la Release
 
+La fonction SHALL créer la Release Forgejo par API REST avec le tag ciblant exactement HEAD déjà vérifié, les métadonnées et l’artefact décrits ci-dessous.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
+
+#### Scenario: Release créée avec succès
+
+WHEN toutes les vérifications préalables passent
+AND le tag et la Release n'existent pas
+THEN la fonction crée le tag v<VERSION> pointant sur HEAD via l'API
+AND la fonction crée la Release avec le tag, le titre et les notes
+AND la fonction récupère l'identifiant de la Release créée
+
+#### Scenario: Identité du commit et métadonnées de la Release
+
+- **WHEN** la fonction crée une Release Forgejo
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
 La fonction SHALL créer une Release Forgejo via l'API REST.
 
 Le tag `v<VERSION>` SHALL cibler exactement le commit HEAD. HEAD ayant
@@ -404,14 +428,6 @@ La Release utilisera :
 - Tag : `v<VERSION>` ciblant exactement HEAD
 - Titre : `DIU <VERSION>`
 - Notes de Release : version, SHA du commit HEAD, message du dernier commit
-
-#### Scenario: Release créée avec succès
-
-WHEN toutes les vérifications préalables passent
-AND le tag et la Release n'existent pas
-THEN la fonction crée le tag v<VERSION> pointant sur HEAD via l'API
-AND la fonction crée la Release avec le tag, le titre et les notes
-AND la fonction récupère l'identifiant de la Release créée
 
 ### Requirement: Upload du paquet comme asset
 
@@ -507,3 +523,12 @@ La fonction ne SHALL :
 WHEN une Release pour la version demandée existe déjà
 THEN la fonction retourne une erreur
 AND aucune modification n'est effectuée
+### Requirement: Sélection cohérente de la version de release
+
+La release SHALL appliquer la même sélection des versions de tags de HEAD que le builder. Sans tag, elle SHALL conserver la version du paquet, sans nouvel horodatage. La version retenue SHALL égaler celle du paquet ; sinon la publication SHALL être refusée. Le tag de release SHALL être v<VERSION>.
+
+#### Scenario: Release et paquet concordants
+
+- **WHEN** une release est préparée
+- **THEN** une version ambiguë, invalide ou différente du paquet arrête la publication ; aucun tag existant n’est déplacé
+

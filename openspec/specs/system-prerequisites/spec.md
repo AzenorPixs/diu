@@ -9,16 +9,8 @@ la mise à jour des dépôts, de manière ordonnée et idempotente.
 
 ### Requirement: Liste obligatoire
 
-Le module `system` SHALL conserver le socle commun suivant :
-`aptitude`, `apache2-utils`, `apt-transport-https`, `bash-completion`,
-`bind9-dnsutils`, `ca-certificates`, `curl`, `dirmngr`, `ethtool`, `extrepo`,
-`git`, `gnupg`, `gpg`, `inetutils-telnet`, `iptables`, `jq`, `lshw`,
-`libpq5`, `libsecret-tools`, `lsb-release`, `man-db`, `manpages-fr`, `net-tools`, `netcat-traditional`,
-`nicstat`, `openssl`, `pciutils`, `postgresql-client`, `python3-pytest`, `ripgrep`, `shellcheck`,
-`sudo`, `tcpdump`, `traceroute`, `tree`, `util-linux`, `wget`.
-
-La liste effective SHALL être ce socle complété uniquement par les paquets de
-la famille définie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
+Le module system SHALL conserver exactement le socle commun de paquets détaillé ci-dessous. La liste effective SHALL compléter ce seul socle par les paquets de la famille définie par SYSTEM_DEBIAN_ENVIRONNEMENT.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Liste des prérequis
 
@@ -34,6 +26,22 @@ la famille définie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
 
 - **WHEN** `python3-pytest` n'est pas installé
 - **THEN** la fonction d'installation l'annonce et l'installe
+
+#### Scenario: Socle exact et complément des prérequis système
+
+- **WHEN** le module system constitue la liste effective des prérequis
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Le module `system` SHALL conserver le socle commun suivant :
+`aptitude`, `apache2-utils`, `apt-transport-https`, `bash-completion`,
+`bind9-dnsutils`, `ca-certificates`, `curl`, `dirmngr`, `ethtool`, `extrepo`,
+`git`, `gnupg`, `gpg`, `inetutils-telnet`, `iptables`, `jq`, `lshw`,
+`libpq5`, `libsecret-tools`, `lsb-release`, `man-db`, `manpages-fr`, `net-tools`, `netcat-traditional`,
+`nicstat`, `openssl`, `pciutils`, `postgresql-client`, `python3-pytest`, `ripgrep`, `shellcheck`,
+`sudo`, `tcpdump`, `traceroute`, `tree`, `util-linux`, `wget`.
+
+La liste effective SHALL être ce socle complété uniquement par les paquets de
+la famille définie par `SYSTEM_DEBIAN_ENVIRONNEMENT`.
 
 ### Requirement: Installation ordonnée et silencieuse
 
