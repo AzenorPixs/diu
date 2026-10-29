@@ -173,8 +173,7 @@ AND le cœur exécute `git push` sous DEVOPS_USER
 
 ### Requirement: Authentification Forgejo de forgejo_push()
 
-La fonction `forgejo_push()` SHALL utiliser `forgejo-auth`/`git-auth` pour
-exécuter le push HTTPS authentifié.
+Les transports Forgejo SHALL utiliser forgejo-auth/git-auth avec une paire déjà préparée. Ils SHALL vérifier les identifiants et SHALL échouer sans interaction, écriture persistante ni bootstrap si la paire est absente ou invalide. Le setup explicite relève de l'orchestration avant leur appel.
 
 #### Scenario: Push avec token valide
 
@@ -204,13 +203,8 @@ AND la création dépend de la configuration push-to-create du serveur
 
 #### Scenario: Push sans token
 
-WHEN `forgejo_push()` est exécutée
-AND `config/forgejo.token` est absent
-THEN une erreur explicite est affichée indiquant l'absence du token
-AND aucun `git push` n'est exécuté
-AND aucun bootstrap automatique de token n'est lancé par `forgejo_push()`
-AND aucune invite Username/Password n'est affichée
-AND la fonction retourne le code 1
+- **WHEN** le transport Forgejo est appelé sans token préparé
+- **THEN** il échoue sans fetch ni push, sans invite et sans création de fichiers
 
 #### Scenario: Push avec permissions invalides
 
@@ -265,22 +259,12 @@ AND il ne contient aucune référence à `publish_release`
 
 ### Requirement: Non-responsabilité du bootstrap automatique
 
-Le provider `forgejo-auth` ne SHALL jamais créer automatiquement un token
-Forgejo.
-
-Le bootstrap automatique reste la responsabilité de l'orchestrateur
-(`publish_release()` dans ce change).
-
-Lorsqu'une fonction autre que `publish_release()` utilise `forgejo-auth` et
-que le token est absent, le provider SHALL retourner une erreur sans tenter
-de bootstrap.
+Le provider et ses transports SHALL rester sans interaction ni création, suppression ou remplacement d'identifiants persistants. Les parcours de push et de release SHALL préparer une paire incomplète par forgejo_credentials_setup après consentement explicite. Une paire existante invalide SHALL être conservée et rejetée.
 
 #### Scenario: Appel depuis forgejo_push() sans token
 
-WHEN `forgejo-auth` est appelé depuis `forgejo_push()`
-AND `config/forgejo.token` est absent
-THEN le provider retourne une erreur
-AND aucun bootstrap n'est tenté
+- **WHEN** le provider est appelé depuis le parcours de push sans paire préparée
+- **THEN** le provider échoue sans tenter de setup et sans mutation
 
 #### Scenario: Appel depuis publish_release() avec bootstrap
 
@@ -288,6 +272,11 @@ WHEN `forgejo-auth` est appelé depuis `publish_release()`
 AND le token a été préalablement bootstrapé par `publish_release()`
 THEN le provider utilise le token existant
 AND le provider ne relance pas de bootstrap
+
+#### Scenario: Paire refusée conservée
+
+- **WHEN** une paire existante est refusée par Forgejo avec HTTP 401 ou 403
+- **THEN** le parcours échoue sans suppression, remplacement ni demande de nouveau token
 
 ### Requirement: Création du dépôt Forgejo absent
 

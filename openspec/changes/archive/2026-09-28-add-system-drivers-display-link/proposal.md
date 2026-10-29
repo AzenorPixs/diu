@@ -1,3 +1,5 @@
+# SYS12 — Détection statique de DisplayLink
+
 ## Why
 
 DISPLAY_LINK est une variable historique manuelle. Son remplacement doit suivre

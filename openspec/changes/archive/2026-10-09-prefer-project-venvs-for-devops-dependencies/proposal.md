@@ -1,3 +1,5 @@
+# DEV08 — Priorité aux environnements Python des projets
+
 ## Why
 
 Les dépendances de DEVOPS.md sont recherchées uniquement dans le Python DevOps. Une distribution installée dans un venv du projet peut donc être présentée comme non installée et son emplacement réel reste invisible.

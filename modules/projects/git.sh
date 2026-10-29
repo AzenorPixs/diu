@@ -2858,7 +2858,7 @@ _git_push_provider() {
                 forgejo_credential_remote_name="origin"
             fi
 
-            if ! _forgejo_ensure_credentials \
+            if ! forgejo_credentials_prepare \
                 "${project_path}" "${forgejo_credential_remote_name}"; then
                 print_error \
                     "Impossible d'initialiser les credentials Forgejo."
@@ -5221,6 +5221,7 @@ projects_gitlab_release_debian() {
     local release_http_code=""
     local upload_http_code=""
     local link_http_code=""
+    local link_response=""
     local gitlab_username=""
     local gitlab_token=""
     local local_api_url=""
@@ -5503,11 +5504,15 @@ projects_gitlab_release_debian() {
             '{name:$name,url:$url,link_type:$link_type}'
     )"
 
-    _gitlab_release_api POST "${local_api_url}/releases/${git_tag}/assets/links" "${link_payload}" >/dev/null || {
-        local_api_url="${local_api_url}"
+    if ! link_response="$(_gitlab_release_api POST "${local_api_url}/releases/${git_tag}/assets/links" "${link_payload}")"; then
         print_error "Échec de création du lien d'asset GitLab."
         return 1
-    }
+    fi
+    link_http_code="${link_response##*$'\n'}"
+    if [[ ! "${link_http_code}" =~ ^2[0-9][0-9]$ ]]; then
+        print_error "Échec HTTP de création du lien d'asset GitLab."
+        return 1
+    fi
 
     print_success "Paquet Debian publié sur la Release GitLab ${git_tag}."
     return 0
@@ -7217,7 +7222,10 @@ git_init_clone() {
     local confirmation=""
 
     # Crée le dissier du projet
-    mkdir -p ${project_path}
+    if ! mkdir -p -- "${project_path}"; then
+        print_error "Impossible de créer le répertoire du projet à cloner."
+        return 1
+    fi
 
     # Vérification des paramètres
     if [[ -z "${project_id}" ]]; then
@@ -8036,3 +8044,177 @@ ASKPASS_EOF
 
     return $?
 }
+
+# Prépare les identifiants dans l’orchestration avant les transports.
+forgejo_credentials_prepare() {
+    local project_path="${1:-}" remote_name="${2:-origin}" credentials_rc=0
+    _forgejo_ensure_credentials "${project_path}" "${remote_name}" || credentials_rc=$?
+    case "${credentials_rc}" in
+        0) return 0 ;;
+        3) forgejo_credentials_setup "${project_path}" "${remote_name}" ;;
+        *) return "${credentials_rc}" ;;
+    esac
+}
+
+# Le sous-shell isole le nettoyage et les données sensibles du parcours appelant.
+forgejo_credentials_setup() (
+    local project_path="${1:-}" remote_name="${2:-origin}"
+    local consent="" choice="" staging="" config_created=0 committed=0
+    # Résolution et validation consomment ces variables par portée dynamique Bash.
+    # shellcheck disable=SC2034
+    local forgejo_host="" forgejo_base="" forgejo_owner="" forgejo_repo=""
+    local forgejo_username="" forgejo_token="" password="" escaped_password=""
+    local http_code="" response="" credentials_rc=0 kind="" destination=""
+    local -a installed=()
+    umask 077
+    _forgejo_ensure_credentials "${project_path}" "${remote_name}" || credentials_rc=$?
+    case "${credentials_rc}" in
+        0) return 0 ;;
+        3) ;;
+        *) return "${credentials_rc}" ;;
+    esac
+    if ! read -r -p "Initialiser les identifiants Forgejo manquants ? [oui/non] : " consent; then
+        print_error "Initialisation Forgejo annulée : entrée terminée."
+        return 1
+    fi
+    case "${consent}" in
+        oui|o|yes|y) ;;
+        *) print_error "Initialisation Forgejo refusée."; return 1 ;;
+    esac
+    if [[ -L "${project_path}/config" ||
+        ( -e "${project_path}/config" && ! -d "${project_path}/config" ) ]]; then
+        print_error "Répertoire de configuration Forgejo invalide."
+        return 1
+    fi
+    _forgejo_resolve_remote "${project_path}" "${remote_name}" || return 1
+    staging="$(mktemp -d "${project_path}/.forgejo-credentials.XXXXXX")" || return 1
+    trap '
+        if [[ "${committed}" != 1 ]]; then
+            for kind in "${installed[@]}"; do
+                if [[ "${staging}/config/forgejo.${kind}" -ef "${project_path}/config/forgejo.${kind}" ]]; then
+                    rm -f -- "${project_path}/config/forgejo.${kind}"
+                fi
+            done
+            if [[ "${config_created}" == 1 ]]; then
+                rmdir -- "${project_path}/config" 2>/dev/null || true
+            fi
+        fi
+        rm -rf -- "${staging}"
+        unset password escaped_password forgejo_token
+    ' EXIT
+    chmod 00700 "${staging}" || return 1
+    mkdir -m 700 "${staging}/config" || return 1
+    chmod 00700 "${staging}/config" || return 1
+    for kind in username token; do
+        if [[ -e "${project_path}/config/forgejo.${kind}" ]]; then
+            cp -p -- "${project_path}/config/forgejo.${kind}" "${staging}/config/" || return 1
+        fi
+    done
+    if [[ -f "${staging}/config/forgejo.username" ]]; then
+        _forgejo_read_username "${staging}" || return 1
+    else
+        read -r -p "Identifiant Forgejo : " forgejo_username || return 1
+        if [[ ! "${forgejo_username}" =~ ^[A-Za-z0-9_.@-]+$ ]]; then
+            print_error "Identifiant Forgejo vide ou invalide."
+            return 1
+        fi
+        printf '%s' "${forgejo_username}" > "${staging}/config/forgejo.username" || return 1
+    fi
+    if [[ ! -f "${staging}/config/forgejo.token" ]]; then
+        printf '%s\n' "1) Saisir un token existant" "2) Créer un token via l’API Forgejo"
+        read -r -p "Votre choix [1-2] : " choice || return 1
+        case "${choice}" in
+            1)
+                read -r -s -p "Token Forgejo : " forgejo_token || return 1
+                printf '\n'
+                ;;
+            2)
+                read -r -s -p "Mot de passe Forgejo : " password || return 1
+                printf '\n'
+                if [[ -z "${password}" ]]; then
+                    print_error "Mot de passe Forgejo vide."
+                    return 1
+                fi
+                escaped_password="${password//\\/\\\\}"
+                escaped_password="${escaped_password//\"/\\\"}"
+                printf 'machine %s\nlogin "%s"\npassword "%s"\n' \
+                    "${forgejo_host}" "${forgejo_username}" "${escaped_password}" \
+                    > "${staging}/netrc" || return 1
+                unset password escaped_password
+                if ! http_code="$(_forgejo_curl -sS -o /dev/null -w '%{http_code}' \
+                    --netrc-file "${staging}/netrc" "${forgejo_base}/api/v1/user")"; then
+                    print_error "Échec de l’authentification HTTP Forgejo."
+                    return 1
+                fi
+                if declare -F projects_git_note_unavailable >/dev/null &&
+                    projects_git_note_unavailable http "${http_code}"; then
+                    return 1
+                fi
+                if [[ "${http_code}" != 200 ]]; then
+                    print_error "Authentification HTTP Forgejo refusée."
+                    return 1
+                fi
+                if ! response="$(_forgejo_curl -sS -w '\n%{http_code}' \
+                    --netrc-file "${staging}/netrc" -X POST \
+                    -H 'Content-Type: application/json' \
+                    -d '{"name":"diu-publish","scopes":["write:repository","write:package"]}' \
+                    "${forgejo_base}/api/v1/users/${forgejo_username}/tokens")"; then
+                    print_error "Échec de création du token Forgejo."
+                    return 1
+                fi
+                http_code="${response##*$'\n'}"
+                if declare -F projects_git_note_unavailable >/dev/null &&
+                    projects_git_note_unavailable http "${http_code}"; then
+                    return 1
+                fi
+                if [[ "${http_code}" != 200 && "${http_code}" != 201 ]]; then
+                    print_error "Création du token Forgejo refusée."
+                    return 1
+                fi
+                if ! forgejo_token="$(printf '%s' "${response%$'\n'*}" |
+                    jq -er '(.sha1 // .token) | select(type == "string" and length > 0)' 2>/dev/null)"; then
+                    print_error "Réponse de création Forgejo invalide."
+                    return 1
+                fi
+                unset response
+                ;;
+            *) print_error "Choix Forgejo invalide."; return 1 ;;
+        esac
+        if [[ -z "${forgejo_token}" ]]; then
+            print_error "Token Forgejo vide."
+            return 1
+        fi
+        printf '%s' "${forgejo_token}" > "${staging}/config/forgejo.token" || return 1
+    fi
+    if ! _forgejo_validate_credentials "${project_path}" "${remote_name}" "${staging}"; then
+        print_error "La paire candidate Forgejo n’a pas été validée."
+        return 1
+    fi
+    if [[ ! -e "${project_path}/config" ]]; then
+        mkdir -m 700 "${project_path}/config" || return 1
+        config_created=1
+        chmod 00700 "${project_path}/config" || return 1
+    fi
+    for kind in username token; do
+        destination="${project_path}/config/forgejo.${kind}"
+        if [[ -e "${destination}" || -L "${destination}" ]]; then
+            if [[ -L "${destination}" ]] ||
+                ! cmp -s -- "${destination}" "${staging}/config/forgejo.${kind}" ||
+                [[ "$(stat -c %a "${destination}")" != "$(stat -c %a "${staging}/config/forgejo.${kind}")" ]]; then
+                print_error "Les identifiants Forgejo ont changé pendant le setup."
+                return 1
+            fi
+        else
+            if [[ -z "${DEVOPS_USER:-}" || -z "${DEVOPS_GROUP:-}" ]]; then
+                print_error "Compte DevOps absent pour la persistance Forgejo."
+                return 1
+            fi
+            chmod 600 "${staging}/config/forgejo.${kind}" || return 1
+            chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${staging}/config/forgejo.${kind}" || return 1
+            ln -- "${staging}/config/forgejo.${kind}" "${destination}" || return 1
+            installed+=("${kind}")
+        fi
+    done
+    committed=1
+    print_success "Identifiants Forgejo préparés et validés."
+)

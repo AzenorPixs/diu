@@ -4,6 +4,29 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Régressions : isolation des configurations Git de test, fixtures globales
+  alignées sur U1, référence Zsh Z1 avec inventaire explicite et contrôle APT
+  indépendant de l’ordre de démarrage du pipeline.
+- Release Debian GitLab : vérification du statut HTTP de création du lien
+  d’asset ; les refus HTTP et erreurs de transport empêchent le faux succès.
+- Modules projects : chemins de clonage protégés et échecs mkdir explicites ;
+  annotations ShellCheck locales pour les usages indirects et marqueurs Debian.
+
+- Forgejo : provider sans interaction, setup explicitement confirmé avant les
+  transports, validation candidate et préservation des identifiants existants
+  lors des refus et erreurs. Les fichiers manquants sont publiés seulement
+  après validation, avec nettoyage des publications partielles.
+- Packaging DIU : source paramétrable via projects deb, alias proj deb,
+  cache deb/ non requis et sélection unique d’une version Debian depuis HEAD,
+  avec horodatage de repli sans tag. La release applique la même sélection.
+  Le contrôle Debian du staging n’hérite plus du bit setgid du répertoire parent.
+
+- Synchronisation des projets : copie initiale de `DEVELOPMENT_MAP.md` depuis
+  le modèle uniquement si son entrée destination est absente, en mode unitaire
+  ou groupé. La copie reçoit la personnalisation Markdown et le propriétaire
+  prévus ; toute entrée existante reste intacte. Une source requise absente ou
+  non régulière bloque les copies dans ce projet, sans arrêter le parcours groupé.
+
 - Génération de `DEVOPS.md` : ajout après le chemin OpenCode de la puce
   « La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env ».
   Indication statique, sans lecture supplémentaire de configuration ni affichage

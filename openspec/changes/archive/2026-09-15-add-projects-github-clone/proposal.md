@@ -1,3 +1,5 @@
+# GIT16 — Clonage des projets depuis GitHub
+
 ## Why
 
 Le DIU ne permet pas de créer un projet puis d'y fusionner un dépôt GitHub

@@ -1,3 +1,5 @@
+# ENV07 — Désactivation de la gestion Psycopg par le DIU
+
 ## Why
 
 Psycopg relève désormais des dépendances des projets et non du DIU. Le bloc

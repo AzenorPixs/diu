@@ -18,6 +18,20 @@ L'affichage réseau et l'appel du parcours historique SHALL être préservés.
 
 ### Requirement: Informations Debian
 
+system_info_debian dans modules/system/infos.sh SHALL répondre à rid system infos debian et afficher les blocs et variables dans l’ordre exact décrit ci-dessous.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
+
+#### Scenario: Valeurs affichées
+- **WHEN** rid system infos debian est appelée
+- **THEN** chaque variable est affichée sous la forme NOM=valeur dans l'ordre défini
+- **AND** une variable absente affiche UNSET et une valeur vide reste vide
+- **AND** aucune autre variable de configuration n'est exposée
+
+#### Scenario: Ordre exact des informations Debian
+
+- **WHEN** system_info_debian affiche les informations Debian
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
 system_info_debian dans modules/system/infos.sh SHALL répondre à rid system
 infos debian. L'affichage SHALL suivre cet ordre exact :
 
@@ -29,22 +43,10 @@ infos debian. L'affichage SHALL suivre cet ordre exact :
   SYSTEM_APT_PROXMOX, SYSTEM_APT_VSCODE, SYSTEM_APT_WAZUH, SYSTEM_APT_WEBMIN.
 - SYSTEM FLATPAK : SYSTEM_FLATPAK.
 
-#### Scenario: Valeurs affichées
-- **WHEN** rid system infos debian est appelée
-- **THEN** chaque variable est affichée sous la forme NOM=valeur dans l'ordre défini
-- **AND** une variable absente affiche UNSET et une valeur vide reste vide
-- **AND** aucune autre variable de configuration n'est exposée
-
 ### Requirement: Agrégation des informations
 
-system_info SHALL afficher le titre SYSTEM puis appeler system_info_debian,
-system_info_drivers et system_info_network dans cet ordre, via rid system infos. La fonction infos de
-modules/diu/infos.sh SHALL répondre à rid infos et appeler les informations des
-modules desktop, diu, environnements, ia, projects, softwares et system dans
-cet ordre. Les commandes rid <module> infos SHALL être disponibles. Les modules
-sans contenu SHALL afficher au moins leur titre. Leurs fonctions SHALL être
-placées dans modules/<module>/infos.sh, avec environments pour environnements.
-Les agrégateurs SHALL appeler directement les fonctions, sans récursion.
+Les agrégateurs et commandes infos SHALL respecter les titres, modules, emplacements et ordres d’appel décrits ci-dessous, avec des appels directs sans récursion.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Informations globales
 - **WHEN** rid infos est appelée
@@ -59,6 +61,20 @@ Les agrégateurs SHALL appeler directement les fonctions, sans récursion.
 #### Scenario: Échec partiel
 - **WHEN** une sous-fonction d'un agrégateur échoue
 - **THEN** les autres sous-fonctions sont appelées et l'agrégateur retourne un statut non nul
+
+#### Scenario: Composition et ordre des agrégateurs infos
+
+- **WHEN** un agrégateur ou une commande infos de module est exécuté
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+system_info SHALL afficher le titre SYSTEM puis appeler system_info_debian,
+system_info_drivers et system_info_network dans cet ordre, via rid system infos. La fonction infos de
+modules/diu/infos.sh SHALL répondre à rid infos et appeler les informations des
+modules desktop, diu, environnements, ia, projects, softwares et system dans
+cet ordre. Les commandes rid <module> infos SHALL être disponibles. Les modules
+sans contenu SHALL afficher au moins leur titre. Leurs fonctions SHALL être
+placées dans modules/<module>/infos.sh, avec environments pour environnements.
+Les agrégateurs SHALL appeler directement les fonctions, sans récursion.
 
 ### Requirement: Routage strict
 

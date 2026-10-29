@@ -2,8 +2,7 @@
 
 ### Requirement: Authentification Forgejo de forgejo_push()
 
-La fonction `forgejo_push()` SHALL utiliser `forgejo-auth`/`git-auth` pour
-exécuter le push HTTPS authentifié.
+Les transports Forgejo SHALL utiliser forgejo-auth/git-auth avec une paire déjà préparée. Ils SHALL vérifier les identifiants et SHALL échouer sans interaction, écriture persistante ni bootstrap si la paire est absente ou invalide. Le setup explicite relève de l'orchestration avant leur appel.
 
 #### Scenario: Push avec token valide
 
@@ -33,20 +32,15 @@ AND la création dépend de la configuration push-to-create du serveur
 
 #### Scenario: Push sans token
 
-WHEN `forgejo_push()` est exécutée
-AND `config/forgejo.token` est absent
-THEN une erreur explicite est affichée indiquant l'absence du token
-AND aucun `git fetch` ni `git push` n'est exécuté
-AND aucun bootstrap automatique de token n'est lancé par `forgejo_push()`
-AND aucune invite Username/Password n'est affichée
-AND la fonction retourne le code 1
+- **WHEN** le transport Forgejo est appelé sans token préparé
+- **THEN** il échoue sans fetch ni push, sans invite et sans création de fichiers
 
 #### Scenario: Push avec permissions invalides
 
 WHEN `forgejo_push()` est exécutée
 AND `config/forgejo.token` existe mais ses permissions ne sont ni 600 ni 660
 THEN une erreur de sécurité explicite est affichée
-AND aucun `git fetch` ni `git push` n'est exécuté
+AND aucun `git push` n'est exécuté
 AND la fonction retourne le code 1
 
 #### Scenario: Push avec token vide
@@ -54,6 +48,9 @@ AND la fonction retourne le code 1
 WHEN `forgejo_push()` est exécutée
 AND `config/forgejo.token` existe mais est vide
 THEN une erreur explicite est affichée
-AND aucun `git fetch` ni `git push` n'est exécuté
+AND aucun `git push` n'est exécuté
 AND la fonction retourne le code 1
+
+Aucun fallback vers l'ancien comportement interactif Username/Password
+ne SHALL être introduit.
 

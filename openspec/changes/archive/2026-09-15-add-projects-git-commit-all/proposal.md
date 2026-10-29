@@ -1,3 +1,5 @@
+# GIT15 — Commit Git groupé des projets
+
 ## Why
 
 Le DIU permet de créer un commit Git pour un projet, mais ne propose pas

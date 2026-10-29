@@ -1,3 +1,5 @@
+# SYS04 — Nettoyage de la variable Debian historique
+
 ## Why
 
 Terminer la migration vers SYSTEM_DEBIAN_RELEASE et retirer la déclaration historique de variables.sh de manière idempotente.

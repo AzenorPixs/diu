@@ -28,13 +28,9 @@ autres parties du bloc.
 - **AND** les éventuelles règles déjà installées ne sont pas révoquées
 
 ### Requirement: Sélection des comptes humains locaux
-DIU SHALL lire `/etc/passwd` et sélectionner les comptes dont l'UID numérique
-est compris entre UID_MIN et UID_MAX inclus de `/etc/login.defs`. Les bornes
-SHALL être numériques, positives et ordonnées. Les comptes sélectionnés
-SHALL posséder un shell existant et exécutable. DIU SHALL NOT sélectionner
-root, les shells vides, nologin ou false, ni les comptes configurés dans
-ENV_DEVOPS_USER, ENV_DOCKER_USER et ENV_IA_USER. DIU SHALL signaler une erreur
-de lecture ou des bornes invalides et retourner un statut non nul.
+
+DIU SHALL sélectionner les comptes humains locaux selon les bornes UID et le shell, appliquer les exclusions définies et échouer explicitement si les sources ou les bornes sont invalides.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Compte humain dans la plage
 - **WHEN** un compte local satisfait les critères de sélection
@@ -49,17 +45,23 @@ de lecture ou des bornes invalides et retourner un statut non nul.
 - **THEN** la génération échoue avec un diagnostic
 - **AND** le fragment précédemment installé est préservé
 
+#### Scenario: Critères exacts de sélection des comptes humains
+
+- **WHEN** DIU sélectionne les comptes humains locaux pour sudoers
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+DIU SHALL lire `/etc/passwd` et sélectionner les comptes dont l'UID numérique
+est compris entre UID_MIN et UID_MAX inclus de `/etc/login.defs`. Les bornes
+SHALL être numériques, positives et ordonnées. Les comptes sélectionnés
+SHALL posséder un shell existant et exécutable. DIU SHALL NOT sélectionner
+root, les shells vides, nologin ou false, ni les comptes configurés dans
+ENV_DEVOPS_USER, ENV_DOCKER_USER et ENV_IA_USER. DIU SHALL signaler une erreur
+de lecture ou des bornes invalides et retourner un statut non nul.
+
 ### Requirement: Politique sudoers limitée au compte DevOps
-DIU SHALL gérer uniquement `/etc/sudoers.d/99-diu-devops`. Pour chaque compte
-sélectionné, DIU SHALL produire `compte ALL=(ENV_DEVOPS_USER) NOPASSWD: ALL`,
-avec substitution des noms réels. DIU SHALL NOT accorder par cette règle un
-droit direct comme root ou un autre utilisateur, ni modifier PAM pour su.
-Une sélection vide SHALL produire un fragment commenté sans règle.
-Les noms SHALL commencer par un caractère alphanumérique ou un underscore,
-continuer par des caractères alphanumériques, underscores, points ou tirets,
-et MAY se terminer par un dollar. Tout autre nom cible ou sélectionné SHALL
-provoquer une erreur sans remplacement, afin de ne pas interpréter un nom
-comme une liste ou une expression sudoers.
+
+DIU SHALL limiter le fragment géré et les règles au compte DevOps, traiter la sélection vide et refuser les noms incompatibles avec la syntaxe sudoers.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Exécution comme DevOps
 - **WHEN** la règle générée est appliquée par sudo sans règle contradictoire ultérieure
@@ -73,14 +75,26 @@ comme une liste ou une expression sudoers.
 - **WHEN** un nom cible ou sélectionné contient un caractère non autorisé
 - **THEN** la génération échoue avec un diagnostic et préserve le fragment précédent
 
+#### Scenario: Règles et noms admissibles du fragment DevOps
+
+- **WHEN** DIU prépare le contenu de la politique sudoers DevOps
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+DIU SHALL gérer uniquement `/etc/sudoers.d/99-diu-devops`. Pour chaque compte
+sélectionné, DIU SHALL produire `compte ALL=(ENV_DEVOPS_USER) NOPASSWD: ALL`,
+avec substitution des noms réels. DIU SHALL NOT accorder par cette règle un
+droit direct comme root ou un autre utilisateur, ni modifier PAM pour su.
+Une sélection vide SHALL produire un fragment commenté sans règle.
+Les noms SHALL commencer par un caractère alphanumérique ou un underscore,
+continuer par des caractères alphanumériques, underscores, points ou tirets,
+et MAY se terminer par un dollar. Tout autre nom cible ou sélectionné SHALL
+provoquer une erreur sans remplacement, afin de ne pas interpréter un nom
+comme une liste ou une expression sudoers.
+
 ### Requirement: Publication validée et reproductible
-DIU SHALL préparer un candidat caché dans le répertoire sudoers, valider sa
-syntaxe avec `visudo -cf`, appliquer `root:root` et `0440`, puis publier par
-remplacement atomique du fragment géré. DIU SHALL préserver le fragment
-précédent en cas d'échec avant publication et nettoyer le candidat avec un
-diagnostic et un statut non nul. DIU SHALL NOT modifier les autres fragments.
-Une répétition avec les mêmes entrées SHALL produire le même contenu sans
-doublon. Aucun nouvel outil ou paquet SHALL être installé par cette fonction.
+
+DIU SHALL valider puis publier atomiquement le fragment sudoers avec les attributs requis, préserver le précédent avant publication en cas d’échec et garantir une réexécution sans doublon.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Publication réussie
 - **WHEN** la préparation, la validation, les permissions et le remplacement réussissent
@@ -94,6 +108,19 @@ doublon. Aucun nouvel outil ou paquet SHALL être installé par cette fonction.
 #### Scenario: Réexécution
 - **WHEN** la génération est répétée avec les mêmes comptes et configuration
 - **THEN** le fragment généré est identique et ne contient aucun doublon
+
+#### Scenario: Validation et publication du fragment sudoers
+
+- **WHEN** DIU prépare ou publie le fragment sudoers DevOps, avec succès ou échec
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+DIU SHALL préparer un candidat caché dans le répertoire sudoers, valider sa
+syntaxe avec `visudo -cf`, appliquer `root:root` et `0440`, puis publier par
+remplacement atomique du fragment géré. DIU SHALL préserver le fragment
+précédent en cas d'échec avant publication et nettoyer le candidat avec un
+diagnostic et un statut non nul. DIU SHALL NOT modifier les autres fragments.
+Une répétition avec les mêmes entrées SHALL produire le même contenu sans
+doublon. Aucun nouvel outil ou paquet SHALL être installé par cette fonction.
 
 ### Requirement: Compte rendu des autorisations publiées
 Après publication réussie, DIU SHALL afficher `Sudoers DevOps configuré pour

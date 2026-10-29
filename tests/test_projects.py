@@ -390,6 +390,7 @@ clone_project source destination
             (template_path / 'PROMPTS' / 'nested').mkdir(parents=True)
             project_path.mkdir(parents=True)
             (template_path / 'AGENTS.md').write_text('Template template\n', encoding='utf-8')
+            (template_path / 'DEVELOPMENT_MAP.md').write_text('Template template\n', encoding='utf-8')
             (template_path / 'DEVOPS.md').write_text('Template\n', encoding='utf-8')
             (template_path / '.gitignore').write_text('template\n', encoding='utf-8')
             (template_path / 'PROMPTS' / 'nested' / 'INDEX.md').write_text(
@@ -473,7 +474,7 @@ sync_project projet-test
                             projects_root = temporary_path / 'datas'
                             template_path = projects_root / 'template'
                             template_path.mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore'):
+                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text(
                                     'Template template\n', encoding='utf-8')
                             source = template_path / 'PROMPTS'
@@ -568,7 +569,7 @@ sync_project projet-test
             template_path = projects_root / 'template'
 
             (template_path / 'PROMPTS').mkdir(parents=True)
-            for filename in ('AGENTS.md', '.gitignore'):
+            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                 (template_path / filename).write_text('source\n', encoding='utf-8')
 
             for project_id in ('first', 'second'):
@@ -617,7 +618,7 @@ sync_project_all
                             template_path = projects_root / 'template'
                             project_path = projects_root / 'projet-test'
                             (template_path / 'PROMPTS').mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore'):
+                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text('Template template\n',
                                                                       encoding='utf-8')
                             if source_present:
@@ -730,7 +731,7 @@ sync_project_all
                             template_path = projects_root / 'template'
                             project_path = projects_root / 'projet-test'
                             (template_path / 'PROMPTS').mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore'):
+                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text(
                                     'Template template\n', encoding='utf-8')
                             project_path.mkdir()
@@ -802,7 +803,7 @@ fi
                     temporary_path = Path(temporary_directory)
                     template_path = temporary_path / 'datas' / 'template'
                     (template_path / 'PROMPTS').mkdir(parents=True)
-                    for filename in ('AGENTS.md', '.gitignore'):
+                    for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                         (template_path / filename).write_text('source\n', encoding='utf-8')
                     broker_path = temporary_path / '.opencode' / 'broker'
                     if destination_present:
@@ -1425,6 +1426,78 @@ _gitlab_registry_is_valid git.ec-nantes.fr:5050 || exit 1
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+
+class GitlabDebianLinkTests(unittest.TestCase):
+    def run_release(self, http_code='201', transport_code='0'):
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix='.gitlab-link-fixture-') as directory:
+            base = Path(directory)
+            project = base / 'project'
+            (project / 'dist').mkdir(parents=True)
+            (project / 'dist/project_1.0_all.deb').write_bytes(b'synthetic-debian-fixture')
+            (project / 'project.env').write_text(
+                'PROJECT_ID=project\nPROJECT_NAME=Fixture\nPROJECT_TYPE=BASH\n'
+                'PROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=Yes\n'
+                'REMOTE_GITLAB_BASE_URL=https://gitlab.example.test\n'
+                'REMOTE_GITLAB_OWNER=owner\nREMOTE_GITLAB_REPOSITORY=project\n'
+                'REMOTE_GITLAB_NAME=origin\nREMOTE_GITLAB_BRANCH=main\n'
+                'REMOTE_GITLAB_SSL_VERIFY=Yes\n')
+            script = r'''
+set -Eeuo pipefail
+source "$1/modules/projects/git.sh"
+print_info() { :; }
+print_success() { printf 'SUCCES:%s\n' "$*"; }
+print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
+DEVOPS_USER=fixture
+DEVOPS_PROJECTS_ROOT="$2"
+runuser() { printf 'v1.0\n'; }
+_gitlab_ensure_credentials() { return 0; }
+_gitlab_read_username() { gitlab_username=fixture-user; }
+_gitlab_read_token() { gitlab_token=fixture-token; }
+curl() {
+    case "$*" in
+        *'/assets/links'*)
+            printf 'LINK\n' >> "$CALLS"
+            [[ "$LINK_TRANSPORT" == 0 ]] || return "$LINK_TRANSPORT"
+            printf '{"message":"fixture-response-private"}\n%s' "$LINK_HTTP"
+            ;;
+        *'/uploads'*) printf '{"url":"/uploads/fixture/project.deb"}\n201' ;;
+        *'/releases/'*) printf '{}\n200' ;;
+        *) return 89 ;;
+    esac
+}
+projects_gitlab_release_debian project
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'fixture', str(ROOT), str(base)],
+                env={**os.environ, 'TMPDIR': str(base), 'CALLS': str(base/'calls'),
+                     'LINK_HTTP': http_code, 'LINK_TRANSPORT': transport_code},
+                text=True, capture_output=True, check=False)
+            self.assertNotIn('fixture-token', result.stdout + result.stderr)
+            self.assertNotIn('fixture-response-private', result.stdout + result.stderr)
+            self.assertEqual((base/'calls').read_text(), 'LINK\n')
+            return result
+
+    def test_success_is_announced_only_for_http_success(self):
+        for code in ('200', '201', '204'):
+            with self.subTest(code=code):
+                result = self.run_release(code)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('Paquet Debian publié', result.stdout)
+
+    def test_http_errors_and_malformed_responses_cannot_announce_success(self):
+        for code in ('400', '401', '403', '409', '500', '000', 'malformed'):
+            with self.subTest(code=code):
+                result = self.run_release(code)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Échec HTTP', result.stderr)
+                self.assertNotIn('Paquet Debian publié', result.stdout)
+
+    def test_transport_error_is_propagated_without_success(self):
+        result = self.run_release(transport_code='7')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('Paquet Debian publié', result.stdout)
 
 
 if __name__ == '__main__':

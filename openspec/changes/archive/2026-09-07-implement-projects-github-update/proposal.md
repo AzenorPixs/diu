@@ -1,4 +1,4 @@
-# Proposition : mise à jour de la configuration GitHub
+# GIT09 — Proposition : mise à jour de la configuration GitHub
 
 ## Contexte
 

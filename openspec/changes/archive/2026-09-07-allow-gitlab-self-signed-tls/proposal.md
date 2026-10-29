@@ -1,4 +1,4 @@
-# Proposition : prise en charge des certificats GitLab autosignés
+# GIT04 — Proposition : prise en charge des certificats GitLab autosignés
 
 ## Contexte
 

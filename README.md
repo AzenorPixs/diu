@@ -28,6 +28,13 @@ variable absente ou vide, il n'est pas copié et une version destination
 existante reste intacte. Pour `Yes`, son absence dans le modèle provoque une
 erreur avant la copie des ressources du modèle.
 
+`rid projects sync <ID PROJECT>` (y compris `sync all`) initialise aussi
+`DEVELOPMENT_MAP.md` depuis le modèle, avec la personnalisation Markdown,
+uniquement si cette entrée est absente du projet. Toute version existante
+reste intacte, indépendamment du mode de pilotage. Si la copie est nécessaire,
+une source absente ou non régulière provoque une erreur avant les copies du
+modèle dans ce projet ; le parcours groupé poursuit les autres projets.
+
 La création exclut le `.git` à la racine du modèle : son dépôt Git n'est pas
 transféré au nouveau projet. Les autres fichiers cachés, dont `.gitignore`,
 restent copiés selon les règles existantes. Cette exclusion ne concerne pas
