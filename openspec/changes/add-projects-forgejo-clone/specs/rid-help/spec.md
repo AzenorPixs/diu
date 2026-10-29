@@ -2,25 +2,8 @@
 
 ### Requirement: Aide de l'initialisation Git des projets
 
-L'aide `rid projects help` SHALL présenter
-`rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`,
-`rid projects git init <ID PROJECT>`, `rid projects git commit all`,
-`rid projects forgejo clone <ID PROJECT>`,
-`rid projects forgejo push all`, `rid projects sync <ID PROJECT>`,
-`rid projects sync all` et `rid projects git analyse <ID PROJECTS>`. L'aide
-`rid projects clone help` SHALL présenter la commande de clonage avec une
-description concise. L'aide `rid projects git commit help` SHALL présenter
-`rid projects git commit all` avec une description. L'aide
-`rid projects sync help` SHALL présenter les syntaxes unitaire et groupée
-avec une description concise. L'aide `rid projects forgejo help` SHALL
-présenter `clone` et `push all` en complément des commandes unitaires. L'aide
-`rid projects forgejo clone help` SHALL présenter la syntaxe de clonage avec
-une description concise. L'aide
-`rid projects forgejo push help` SHALL présenter les syntaxes unitaire et
-groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
-`analyse`, `init` et `update`. Aucune de ces aides SHALL présenter
-`rid projects giti <ID PROJECT>`, `rid projects gitu <ID PROJECT>` ni
-`rid projects gita <ID PROJECT>`.
+Les aides des opérations Git et projets SHALL présenter les commandes et descriptions détaillées ci-dessous, conserver les syntaxes groupées et exclure les anciens alias indiqués.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Aide du contexte projects
 
@@ -83,3 +66,29 @@ groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
 
 - **WHEN** l'utilisateur exécute `rid projects forgejo clone help`
 - **THEN** l'aide affiche `rid projects forgejo clone <ID PROJECT>`
+
+#### Scenario: Commandes et descriptions des aides Git et projets
+
+- **WHEN** une aide des opérations Git ou projets visées par cette exigence est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+L'aide `rid projects help` SHALL présenter
+`rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`,
+`rid projects git init <ID PROJECT>`, `rid projects git commit all`,
+`rid projects forgejo clone <ID PROJECT>`,
+`rid projects forgejo push all`, `rid projects sync <ID PROJECT>`,
+`rid projects sync all` et `rid projects git analyse <ID PROJECTS>`. L'aide
+`rid projects clone help` SHALL présenter la commande de clonage avec une
+description concise. L'aide `rid projects git commit help` SHALL présenter
+`rid projects git commit all` avec une description. L'aide
+`rid projects sync help` SHALL présenter les syntaxes unitaire et groupée
+avec une description concise. L'aide `rid projects forgejo help` SHALL
+présenter `clone` et `push all` en complément des commandes unitaires. L'aide
+`rid projects forgejo clone help` SHALL présenter la syntaxe de clonage avec
+une description concise. L'aide
+`rid projects forgejo push help` SHALL présenter les syntaxes unitaire et
+groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
+`analyse`, `init` et `update`. Aucune de ces aides SHALL présenter
+`rid projects giti <ID PROJECT>`, `rid projects gitu <ID PROJECT>` ni
+`rid projects gita <ID PROJECT>`.
+

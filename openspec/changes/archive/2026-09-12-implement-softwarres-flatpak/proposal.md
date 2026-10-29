@@ -1,3 +1,5 @@
+# SW12 — Gestion des applications Flatpak
+
 ## Why
 
 Le moteur Flatpak du module `system` prépare uniquement le client et Flathub ;

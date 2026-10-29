@@ -1,3 +1,5 @@
+# PRJ12 — Déclaration du mode de codage des projets
+
 ## Why
 
 Les projets DIU ne déclarent pas leur mode de développement. Les fonctions

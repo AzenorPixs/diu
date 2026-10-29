@@ -1,3 +1,5 @@
+# DEV06 — Provenance et horodatage du relevé DevOps
+
 ## Why
 
 DEVOPS.md est régénéré sans origine explicite, horodatage ni classification de son contexte. Un inventaire actuel peut être confondu avec une qualification historique ou avec un autre environnement Python.

@@ -13,6 +13,7 @@ print_error() { printf 'ERROR %s\n' "$*"; }
 print_info() { printf 'INFO %s\n' "$*"; }
 print_success() { printf 'OK %s\n' "$*"; }
 print_title() { printf '%s\n' "$*"; }
+source "$ROOT/modules/softwares/software.sh"
 source "$ROOT/modules/softwares/flatpak.sh"
 source "$ROOT/modules/softwares/apt.sh"
 source "$ROOT/modules/diu/update-all.sh"
@@ -135,7 +136,11 @@ manage_softwares_action update
         result, calls = self.run_shell(r'''
 software_apt_update_all() { :; }
 software_github_update_all() { :; }
-update_diu() { :; }
+system_update() { :; }
+diu_update() { :; }
+environments_update() { :; }
+ia_update() { :; }
+projects_update() { :; }
 update_all
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

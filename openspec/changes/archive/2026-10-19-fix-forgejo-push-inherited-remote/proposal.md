@@ -1,3 +1,5 @@
+# GIT24 — Correction des remotes Forgejo hérités
+
 ## Why
 
 Après copie d'un projet ou changement de destination, le remote Forgejo peut

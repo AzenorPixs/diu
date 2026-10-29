@@ -146,8 +146,10 @@ class RootShellCheckTests(unittest.TestCase):
 
     def test_literal_zsh_functions(self):
         blocks = re.findall(r"^\s*cat <<'EOF'\n(.*?)^EOF\n", self.source, re.M | re.S)
-        # Les 14 corps générés, y compris les deux blocs de données, restent littéraux.
-        self.assertEqual(len(blocks), 14)
+        # Z1 : 14 fonctions et un bloc de données adoptés ; leurs corps restent littéraux.
+        self.assertEqual(len(blocks), 15)
+        names = [name for block in blocks for name in re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(\)\s*\{", block, re.M)]
+        self.assertEqual(names, ZSH_FUNCTION_NAMES)
         self.assertEqual(hashlib.sha256(''.join(blocks).encode()).hexdigest(), ZSH_FUNCTIONS_HASH)
 
 
@@ -159,14 +161,15 @@ GENERATED_HASHES = {
     '/etc/rsyslog.d/3-sso.conf': '84dd2f9501c6764da4b2c508e5f084c0226ed6c65799427b1878d63f65e1d734',
     '/etc/rsyslog.d/4-suricata.conf': 'e510eac867c69edab88b36c71c0a2475f01436dcc742d29afb25c19e4fc49ca5',
     '/etc/rsyslog.d/default.conf': '80d05fd5ca87bf8e95d6781ad550db1f19c33c64fde225d5694db075d1256d98',
-    '/root/.zshrc': 'd15e57e0a4e3245c93f03f583485a192492d60a43f4a0e532177187f2a1e3c98',
+    '/root/.zshrc': 'a7fc4d33f1b03c51044a7a5e631c8a22dc63d2b9269ddf6944319176b7cb1d68',
     '/etc/rc.local': '9075a7a5e32efc18e6d89237740c866bc232beff9b38910f04b419c85f14b06d',
     '/root/fwon.sh': '8d142776193a2040ad9c0372132edbb8ac9795fbe9b69c0989711a4800f95eaa',
     '/root/fwoff.sh': 'd1111481c8e99f8521ffa30c44adf55ff40577e661288f41a9467e48b47a636a',
     '/etc/profile.d/proxy.sh': '8c23b11df309423cdea3dca81b790e645de71c3e1c8e9764c28e6b13214732a0',
     '/etc/environment': '376126bb503e5f715a756e053e3337b064a5ace20e44c7285b7a6467bcaaffed',
 }
-ZSH_FUNCTIONS_HASH = '486063261236f528ce012cca85a581f4dc02a9305670fe21584ea6eaa2470a4f'
+ZSH_FUNCTION_NAMES = ['sc', 'ai', 'aid', 'aidc', 'aig', 'aiod', 'aiodc', 'aiog', 'aiok', 'aiol', 'aiom5', 'aiom7', 'aioq', 'aip']
+ZSH_FUNCTIONS_HASH = '223b009ec4b473332aa78284b5d27dc7cb30f3df7ae026a1baf435f8fc35a71c'
 
 if __name__ == '__main__':
     unittest.main()

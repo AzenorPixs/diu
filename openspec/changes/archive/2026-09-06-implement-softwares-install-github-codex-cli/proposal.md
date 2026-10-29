@@ -1,4 +1,4 @@
-# Proposition : installer Codex CLI depuis GitHub
+# SW10 — Proposition : installer Codex CLI depuis GitHub
 
 ## Why
 

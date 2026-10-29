@@ -1,3 +1,5 @@
+# DEV17 — Détection déclarative de Nuitka
+
 ## Why
 
 L’inventaire conditionnel Cython est livré. Le développeur demande et valide sa réciproque pour Nuitka, déclaré dans pyproject.toml, avec une rubrique commune et les mêmes garanties de sondage.

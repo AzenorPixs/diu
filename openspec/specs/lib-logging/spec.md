@@ -22,6 +22,22 @@ THEN le fichier `lib/logging.sh` existe dans le répertoire `lib/`
 
 ### Requirement: Fonction print_title
 
+Le fichier lib/logging.sh SHALL fournir print_title avec sa variable locale et le format exact de sortie standard décrit ci-dessous.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
+
+#### Scenario: Affichage d'un titre
+
+WHEN `print_title` est appelée avec un argument
+THEN cinq lignes sont affichées sur la sortie standard
+AND la première et la dernière lignes sont vides
+AND les deuxième et quatrième lignes contiennent exactement 58 caractères `=`
+AND la troisième ligne contient un espace suivi du titre
+
+#### Scenario: Format exact de print_title
+
+- **WHEN** print_title affiche un titre
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
 Le fichier `lib/logging.sh` SHALL contenir la fonction `print_title`.
 
 La fonction SHALL déclarer une variable locale `title` initialisée avec `$1`.
@@ -34,14 +50,6 @@ cet ordre :
 3. Un espace suivi de la valeur de `${title}`
 4. La chaîne `==========================================================` (58 caractères `=`)
 5. Une ligne vide (`echo ""`)
-
-#### Scenario: Affichage d'un titre
-
-WHEN `print_title` est appelée avec un argument
-THEN cinq lignes sont affichées sur la sortie standard
-AND la première et la dernière lignes sont vides
-AND les deuxième et quatrième lignes contiennent exactement 58 caractères `=`
-AND la troisième ligne contient un espace suivi du titre
 
 ### Requirement: Fonction print_info
 

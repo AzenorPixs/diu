@@ -1,3 +1,5 @@
+# GIT12 — Création contrôlée des dépôts GitHub
+
 ## Why
 
 Un premier push GitHub échoue lorsque le dépôt distant n'a pas été créé au

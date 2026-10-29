@@ -1,4 +1,4 @@
-# Proposal: Moteur des dépôts Debian non officiels
+# SYS16 — Proposal: Moteur des dépôts Debian non officiels
 
 Le module `system` doit remplacer les déclarations de dépôts tiers dispersées
 dans le script monolithique par un moteur idempotent unique. Il choisit le

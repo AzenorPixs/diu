@@ -23,13 +23,8 @@ un échec.
 
 ### Requirement: Diagnostic contextualisé de l'échec de téléchargement
 
-Si curl échoue, DIU SHALL conserver le diagnostic curl sur stderr, SHALL
-afficher sur stderr un seul diagnostic DIU identifiant Node.js, l'URL et le
-code curl, puis SHALL quitter avec ce même code. DIU SHALL NOT attribuer cet
-échec à `tail -n 1`, SHALL NOT produire de rapport générique ERR supplémentaire
-pour cet échec et SHALL NOT afficher le contenu téléchargé. La sélection de
-version et les mutations du bloc Node.js SHALL NOT être exécutées après cet
-échec. Les étapes déjà réalisées avant ce bloc ne sont pas annulées.
+Après un échec curl, DIU SHALL conserver le diagnostic et le code d’origine, ajouter un seul diagnostic contextualisé et arrêter ce bloc sans sélection ni mutation supplémentaire.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Certificat ne correspondant pas à l'hôte
 - **WHEN** curl retourne le code 60 pour l'index Node.js
@@ -46,6 +41,19 @@ version et les mutations du bloc Node.js SHALL NOT être exécutées après cet
 - **WHEN** curl produit un contenu partiel puis retourne un code non nul
 - **THEN** DIU quitte avec ce code sans sélectionner de version ni afficher
   le contenu partiel
+
+#### Scenario: Diagnostic et arrêt après échec curl
+
+- **WHEN** le téléchargement de l’index Node.js échoue
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Si curl échoue, DIU SHALL conserver le diagnostic curl sur stderr, SHALL
+afficher sur stderr un seul diagnostic DIU identifiant Node.js, l'URL et le
+code curl, puis SHALL quitter avec ce même code. DIU SHALL NOT attribuer cet
+échec à `tail -n 1`, SHALL NOT produire de rapport générique ERR supplémentaire
+pour cet échec et SHALL NOT afficher le contenu téléchargé. La sélection de
+version et les mutations du bloc Node.js SHALL NOT être exécutées après cet
+échec. Les étapes déjà réalisées avant ce bloc ne sont pas annulées.
 
 ### Requirement: Préservation de la sélection de version
 

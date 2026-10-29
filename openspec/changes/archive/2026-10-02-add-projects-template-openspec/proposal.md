@@ -1,3 +1,5 @@
+# PRJ07 — Préparation OpenSpec des projets
+
 ## Why
 
 La préparation des projets ne fournit pas de commande dédiée à l'initialisation

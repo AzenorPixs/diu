@@ -1,3 +1,5 @@
+# SW05 — Persistance de l’état APT ChatGPT
+
 ## Why
 
 Les recettes APT de ChatGPT modifient `SOFTWARES_APT_CHATGPT` dans le

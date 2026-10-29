@@ -81,6 +81,14 @@ sync_project() {
         return 1
     fi
 
+    if [[ ! -e "${project_path}/DEVELOPMENT_MAP.md" && ! -L "${project_path}/DEVELOPMENT_MAP.md" ]]; then
+        if [[ ! -f "${template_path}/DEVELOPMENT_MAP.md" ]]; then
+            print_error 'Le fichier modèle DEVELOPMENT_MAP.md est introuvable ou non régulier.'
+            return 1
+        fi
+        template_files+=(DEVELOPMENT_MAP.md)
+    fi
+
     if [[ "${project_orchestrated_coding}" == Yes ]]; then
         if [[ ! -f "${template_path}/ORCHESTRATED_CODING.md" ]]; then
             print_error 'Le fichier modèle ORCHESTRATED_CODING.md est introuvable ou non régulier.'
@@ -118,6 +126,10 @@ sync_project() {
     done < <(find "${staging_path}" -type f -name '*.md' -print0)
 
     for template_file in "${template_files[@]}"; do
+        if [[ "${template_file}" == DEVELOPMENT_MAP.md ]] &&
+            [[ -e "${project_path}/${template_file}" || -L "${project_path}/${template_file}" ]]; then
+            continue
+        fi
         if ! cp -a -- "${staging_path}/${template_file}" "${project_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de synchroniser le fichier : ${template_file}"

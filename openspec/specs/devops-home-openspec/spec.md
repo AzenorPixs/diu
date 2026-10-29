@@ -29,13 +29,8 @@ projets. Le bloc désactivé SHALL NOT lancer cette préparation.
 
 ### Requirement: Sélection init ou update
 
-Le shell enfant SHALL exécuter `openspec update` lorsque le dossier openspec
-existe dans le domicile, indépendamment de OPENCODE. En son absence, il SHALL
-exécuter `openspec init --tools opencode --profile custom` si OPENCODE=1 et
-`openspec init --profile custom` si OPENCODE=0. Une valeur OPENCODE absente ou
-différente SHALL empêcher l'initialisation avec diagnostic et code non nul.
-Les chemins et valeurs interpolés SHALL être transmis littéralement au shell
-enfant, sans interprétation de leur contenu comme commande.
+Le shell enfant SHALL sélectionner update ou init selon la présence du dossier OpenSpec et la valeur OPENCODE, refuser un choix invalide et transmettre littéralement les chemins et valeurs.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Initialisation avec OpenCode
 
@@ -56,6 +51,19 @@ enfant, sans interprétation de leur contenu comme commande.
 
 - **WHEN** le dossier openspec est absent et OPENCODE est absent ou différent de 0 et 1
 - **THEN** aucun appel OpenSpec n'est exécuté et un diagnostic avec code non nul est produit
+
+#### Scenario: Choix OpenSpec et transmission littérale
+
+- **WHEN** le shell enfant choisit la commande OpenSpec du domicile DevOps
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Le shell enfant SHALL exécuter `openspec update` lorsque le dossier openspec
+existe dans le domicile, indépendamment de OPENCODE. En son absence, il SHALL
+exécuter `openspec init --tools opencode --profile custom` si OPENCODE=1 et
+`openspec init --profile custom` si OPENCODE=0. Une valeur OPENCODE absente ou
+différente SHALL empêcher l'initialisation avec diagnostic et code non nul.
+Les chemins et valeurs interpolés SHALL être transmis littéralement au shell
+enfant, sans interprétation de leur contenu comme commande.
 
 ### Requirement: Gestion des erreurs de préparation
 

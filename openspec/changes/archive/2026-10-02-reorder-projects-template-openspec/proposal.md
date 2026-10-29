@@ -1,3 +1,5 @@
+# PRJ10 — Réorganisation de la syntaxe template openspec
+
 ## Why
 
 Le développeur demande de placer openspec avant l'identifiant de projet et a

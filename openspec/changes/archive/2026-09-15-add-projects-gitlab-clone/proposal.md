@@ -1,3 +1,5 @@
+# GIT17 — Clonage des projets depuis GitLab
+
 ## Why
 
 Le DIU ne permet pas encore de créer un projet depuis son modèle puis de

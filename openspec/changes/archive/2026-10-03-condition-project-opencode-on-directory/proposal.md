@@ -1,3 +1,5 @@
+# PRJ11 — Initialisation OpenCode conditionnée au dossier du projet
+
 ## Why
 
 `projects_template_openspec` initialise actuellement l'intégration OpenCode

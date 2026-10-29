@@ -1,4 +1,4 @@
-# Proposition : configuration différentielle GitLab
+# GIT11 — Proposition : configuration différentielle GitLab
 
 ## Contexte
 

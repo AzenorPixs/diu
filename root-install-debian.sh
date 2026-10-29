@@ -17,6 +17,23 @@ BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/rid-help.sh"
 
+# Alias limité au packaging ; les autres classes restent inchangées.
+if [[ "${1:-}" == proj && "${2:-}" == deb ]]; then
+    if [[ $# -lt 3 ]]; then
+        printf '%s\n' 'Usage : rid proj deb <ID PROJECT>' >&2
+        exit 2
+    fi
+    shift
+    set -- projects "$@"
+fi
+if [[ "${1:-}:${2:-}" == projects:deb && "${!#}" != help && "${!#}" != "?" ]]; then
+    if [[ $# -gt 3 || ( $# -eq 3 && ( ! "${3}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
+        "${3}" == . || "${3}" == .. ) ) ]]; then
+        printf '%s\n' 'Usage : rid projects deb [ID PROJECT]' >&2
+        exit 2
+    fi
+fi
+
 if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
     rid_display_help_context
     exit 0
@@ -1737,7 +1754,11 @@ manage_project_action() {
             ;;
 
         deb)
-            build_deb_diu
+            if [[ $# -gt 2 ]]; then
+                print_error "Usage : rid projects deb [ID PROJECT]"
+                return 2
+            fi
+            build_deb_diu "${project_id:-diu}"
             ;;
 
         *)

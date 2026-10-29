@@ -1,3 +1,5 @@
+# ART08 — Résumé des opérations CI/CD
+
 ## Why
 
 Le flux `rid projects cicd <ID PROJECT>` affiche les détails de chaque étape,

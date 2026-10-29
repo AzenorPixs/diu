@@ -1,3 +1,5 @@
+# GIT14 — Initialisation Git dans le contexte projects git
+
 ## Why
 
 La commande publique d'initialisation Git utilise actuellement l'abréviation

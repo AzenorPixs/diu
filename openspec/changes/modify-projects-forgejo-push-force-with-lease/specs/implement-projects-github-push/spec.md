@@ -2,18 +2,12 @@
 
 ### Requirement: commande de publication GitHub
 
-Le système MUST exposer la commande `rid projects github push <ID PROJECT>`.
-
-Le système DOIT exposer la commande `rid projects github push <ID PROJECT>`.
-
-Avant de publier une branche vers GitHub, le système MUST récupérer les
-références du remote GitHub configuré en utilisant le mécanisme authentifié
-existant. Il MUST arrêter la publication sans pousser de branche si cette
-récupération échoue.
-
-La publication de branche GitHub MUST utiliser `--force-with-lease`. Elle
-MUST préserver le push de tags GitHub existant et ne MUST NOT modifier les
-parcours Forgejo ou GitLab.
+Le système MUST exposer `rid projects github push <ID PROJECT>`. Avant le
+push de branche, il MUST récupérer les références GitHub avec
+l'authentification existante et MUST arrêter si le fetch échoue, sauf
+indisponibilité reconnue selon `git-provider-availability`. Le push de branche
+MUST utiliser `--force-with-lease`, préserver le push de tags et conserver les
+parcours Forgejo et GitLab.
 
 #### Scenario: publication du dépôt local
 
@@ -30,7 +24,7 @@ parcours Forgejo ou GitLab.
 
 #### Scenario: récupération GitHub en échec
 
-- **WHEN** la récupération des références du remote GitHub échoue
+- **WHEN** la récupération des références du remote GitHub échoue hors indisponibilité reconnue
 - **THEN** la commande échoue explicitement
 - **THEN** aucune branche GitHub n'est poussée
 

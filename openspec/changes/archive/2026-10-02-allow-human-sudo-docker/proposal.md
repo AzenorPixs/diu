@@ -1,4 +1,4 @@
-# Why
+# ENV02 — Why
 
 L'environnement Docker doit offrir aux comptes humains locaux le même accès
 sudo sans mot de passe que l'environnement DevOps, avec `ENV_DOCKER_USER`

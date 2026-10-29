@@ -1,4 +1,4 @@
-# Proposal: Extraire les fonctions de journalisation vers lib/logging.sh
+# ARC01 — Proposal: Extraire les fonctions de journalisation vers lib/logging.sh
 
 ## Problem
 

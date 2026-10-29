@@ -23,14 +23,8 @@ fois pour chaque projet sélectionné.
 
 ### Requirement: sélection non interactive des projets Forgejo
 
-`forgejo_push_all()` MUST sélectionner uniquement un répertoire contenant un
-fichier `project.env` où `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`,
-`PROJECT_DOCKERED`, `REMOTE_FORGEJO_BASE_URL`, `REMOTE_FORGEJO_OWNER`,
-`REMOTE_FORGEJO_REPOSITORY`, `REMOTE_FORGEJO_NAME`,
-`REMOTE_FORGEJO_BRANCH` et `REMOTE_FORGEJO_SSL_VERIFY` sont définis.
-`PROJECT_ID` MUST correspondre au nom du répertoire. Un répertoire non
-conforme MUST être annoncé et ignoré ; DIU MUST NOT appeler un assistant de
-mise à jour de configuration pour ce répertoire.
+forgejo_push_all() MUST sélectionner uniquement les projets conformes aux critères détaillés ci-dessous, annoncer et ignorer les autres, sans assistant de configuration.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: configuration Forgejo absente ou incomplète
 
@@ -39,6 +33,20 @@ mise à jour de configuration pour ce répertoire.
 - **THEN** DIU l'ignore avec un diagnostic
 - **AND THEN** aucun push ni assistant de configuration n'est exécuté pour ce
   répertoire
+
+#### Scenario: Critères complets de sélection Forgejo groupée
+
+- **WHEN** forgejo_push_all sélectionne les projets à publier
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+`forgejo_push_all()` MUST sélectionner uniquement un répertoire contenant un
+fichier `project.env` où `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`,
+`PROJECT_DOCKERED`, `REMOTE_FORGEJO_BASE_URL`, `REMOTE_FORGEJO_OWNER`,
+`REMOTE_FORGEJO_REPOSITORY`, `REMOTE_FORGEJO_NAME`,
+`REMOTE_FORGEJO_BRANCH` et `REMOTE_FORGEJO_SSL_VERIFY` sont définis.
+`PROJECT_ID` MUST correspondre au nom du répertoire. Un répertoire non
+conforme MUST être annoncé et ignoré ; DIU MUST NOT appeler un assistant de
+mise à jour de configuration pour ce répertoire.
 
 ### Requirement: poursuite après un échec de push Forgejo
 

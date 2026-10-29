@@ -274,7 +274,7 @@ git_with_token "$DEVOPS_PROJECTS_ROOT/project" fixture-user fixture-token push g
                 script = HARNESS.replace('_forgejo_ensure_credentials() { return 0; }', '')
                 script = script.replace('"${PUSH_PROVIDER}_push" project',
                                         f'export BOOTSTRAP_PHASE={phase}\n'
-                                        '"${PUSH_PROVIDER}_push" project <<< $\'2\\nfixture-user\\nfixture-password\\n\'')
+                                        '"${PUSH_PROVIDER}_push" project <<< $\'oui\\nfixture-user\\n2\\nfixture-password\\n\'')
                 result, calls = self.run_push('forgejo', phase='api', http_code=503, script=script)
                 self.assert_unavailable(result)
                 self.assertNotIn(' push ', calls)

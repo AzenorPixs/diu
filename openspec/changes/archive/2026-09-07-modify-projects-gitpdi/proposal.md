@@ -1,4 +1,4 @@
-# Proposition : publication Forgejo unifiée des projets
+# ART06 — Proposition : publication Forgejo unifiée des projets
 
 ## Contexte
 

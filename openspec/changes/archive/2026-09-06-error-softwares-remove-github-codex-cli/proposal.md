@@ -1,3 +1,5 @@
+# SW06 — Persistance de l’état et mise à jour de Codex CLI absent
+
 ## Why
 
 La recette GitHub de Codex CLI modifie la variable d'état dans le processus

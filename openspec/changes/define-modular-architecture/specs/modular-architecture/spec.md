@@ -1,7 +1,5 @@
 # Specification: modular-architecture
 
-Architecture cible modulaire du DIU.
-
 ## Purpose
 
 Définir la structure de répertoires cible du DIU et le rôle général de ses

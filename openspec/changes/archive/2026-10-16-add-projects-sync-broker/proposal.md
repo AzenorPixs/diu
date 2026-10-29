@@ -1,3 +1,5 @@
+# PRJ15 — Limitation de la synchronisation aux ressources autorisées
+
 ## Why
 
 La synchronisation des projets écrase actuellement les commandes, la

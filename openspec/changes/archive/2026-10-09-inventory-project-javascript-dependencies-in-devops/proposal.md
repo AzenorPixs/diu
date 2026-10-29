@@ -1,3 +1,5 @@
+# DEV07 — Inventaire des dépendances JavaScript
+
 ## Why
 
 Le relevé DevOps ignore les dépendances JavaScript propres aux projets. Pixs possède un frontend et un manifeste OpenCode distincts ; les versions des outils Node/npm/OpenCode ne décrivent pas ces paquets.

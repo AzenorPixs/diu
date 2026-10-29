@@ -1,3 +1,5 @@
+# GIT25 — Gestion ciblée de safe.directory
+
 ## Why
 
 Les dépôts partagés appartiennent au compte DevOps alors que les outils de

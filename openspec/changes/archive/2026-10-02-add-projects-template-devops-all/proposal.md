@@ -1,3 +1,5 @@
+# DEV02 — Génération DevOps groupée
+
 ## Why
 
 La génération DevOps par projet existe, mais nécessite une commande pour

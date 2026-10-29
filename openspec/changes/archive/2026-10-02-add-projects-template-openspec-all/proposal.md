@@ -1,3 +1,5 @@
+# PRJ08 — Préparation OpenSpec groupée
+
 ## Why
 
 Le développeur demande le traitement groupé OpenSpec réciproque à DevOps all,

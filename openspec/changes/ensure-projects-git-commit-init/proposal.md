@@ -1,3 +1,5 @@
+# GIT28 — Initialisation Git avant le commit des projets
+
 ## Why
 
 Les commandes de commit échouent actuellement lorsqu'un projet configuré ne

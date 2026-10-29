@@ -1,3 +1,5 @@
+# PRJ04 — Synchronisation groupée des projets
+
 ## Why
 
 La synchronisation unitaire impose de répéter une commande pour chaque projet

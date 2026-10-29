@@ -1,4 +1,4 @@
-# Proposal: Définir l'architecture cible modulaire du DIU
+# ARC03 — Proposal: Définir l'architecture cible modulaire du DIU
 
 ## Problem
 
@@ -7,6 +7,8 @@ Le DIU actuel concentre l'ensemble de ses fonctions dans un script monolithique
 Cette structure ne permet pas une séparation claire des domaines fonctionnels.
 
 ## Proposed Change
+
+Architecture cible modulaire du DIU.
 
 Formaliser l'architecture cible modulaire du DIU telle qu'elle est décidée par le
 développeur, sans modifier le code existant. Ce changement constitue une spécification

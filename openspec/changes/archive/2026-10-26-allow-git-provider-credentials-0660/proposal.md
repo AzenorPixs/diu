@@ -1,4 +1,4 @@
-# Proposal
+# GIT26 — Proposal
 
 ## Why
 

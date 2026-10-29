@@ -33,19 +33,8 @@ rejetée comme indisponible.
 
 ### Requirement: complétion de la configuration
 
-La fonction MUST charger la configuration de `<projet>/project.env`.
-
-Si une variable générale parmi `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`,
-`PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` est absente, vide ou
-incohérente avec `<ID PROJECT>`, la fonction MUST appeler
-`update_projects <ID PROJECT>`, recharger `project.env` et revérifier la
-configuration avant toute publication.
-
-Si une variable Forgejo parmi `REMOTE_FORGEJO_BASE_URL`,
-`REMOTE_FORGEJO_OWNER`, `REMOTE_FORGEJO_REPOSITORY`, `REMOTE_FORGEJO_NAME`,
-`REMOTE_FORGEJO_BRANCH` et `REMOTE_FORGEJO_SSL_VERIFY` est absente ou vide,
-la fonction MUST appeler `forgejo_update <ID PROJECT>`, recharger
-`project.env` et revérifier la configuration avant toute publication.
+La fonction MUST charger project.env, compléter séparément les blocs général et Forgejo qui le nécessitent, puis recharger et revérifier la configuration avant publication.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: configuration générale incomplète
 
@@ -60,6 +49,25 @@ la fonction MUST appeler `forgejo_update <ID PROJECT>`, recharger
 - QUAND la release est demandée
 - ALORS `forgejo_update <ID PROJECT>` est appelée
 - ET la publication attend la configuration complète
+
+#### Scenario: Complétion et rechargement des blocs de configuration
+
+- **WHEN** la fonction prépare la configuration avant une publication Forgejo
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+La fonction MUST charger la configuration de `<projet>/project.env`.
+
+Si une variable générale parmi `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`,
+`PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` est absente, vide ou
+incohérente avec `<ID PROJECT>`, la fonction MUST appeler
+`update_projects <ID PROJECT>`, recharger `project.env` et revérifier la
+configuration avant toute publication.
+
+Si une variable Forgejo parmi `REMOTE_FORGEJO_BASE_URL`,
+`REMOTE_FORGEJO_OWNER`, `REMOTE_FORGEJO_REPOSITORY`, `REMOTE_FORGEJO_NAME`,
+`REMOTE_FORGEJO_BRANCH` et `REMOTE_FORGEJO_SSL_VERIFY` est absente ou vide,
+la fonction MUST appeler `forgejo_update <ID PROJECT>`, recharger
+`project.env` et revérifier la configuration avant toute publication.
 
 ### Requirement: publication Docker conditionnelle
 
@@ -88,16 +96,8 @@ Lorsque `PROJECT_DOCKERED` n'est pas activé, aucune commande Docker ne doit
 
 ### Requirement: publication Debian conditionnelle
 
-Lorsque `PROJECT_DEBIAN_PACKAGE` vaut exactement `Yes`, `YES` ou `1`, la
-fonction MUST vérifier que `<projet>/dist/` existe et contient exactement un
-fichier paquet Debian `.deb` généré pour le projet.
-
-La fonction MUST échouer si `dist/` est absent, vide de paquet valide ou
-contient plusieurs paquets `.deb`, en indiquant les éléments responsables.
-Le paquet unique MUST être validé avant sa publication Forgejo.
-
-Lorsque `PROJECT_DEBIAN_PACKAGE` n'est pas activé, aucune lecture de `dist/`
-ni publication Debian ne doit être effectuée.
+La publication Debian MUST être conditionnée à PROJECT_DEBIAN_PACKAGE. Lorsqu’elle est activée, la fonction MUST valider l’unique paquet du projet et refuser les cas invalides décrits ci-dessous.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: paquet unique
 
@@ -121,6 +121,22 @@ ni publication Debian ne doit être effectuée.
 - QUAND la release est exécutée
 - ALORS une erreur liste les paquets trouvés
 - ET aucune publication Debian n'est tentée
+
+#### Scenario: Sélection et validation du paquet Debian à publier
+
+- **WHEN** la fonction traite la publication Debian conditionnelle
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Lorsque `PROJECT_DEBIAN_PACKAGE` vaut exactement `Yes`, `YES` ou `1`, la
+fonction MUST vérifier que `<projet>/dist/` existe et contient exactement un
+fichier paquet Debian `.deb` généré pour le projet.
+
+La fonction MUST échouer si `dist/` est absent, vide de paquet valide ou
+contient plusieurs paquets `.deb`, en indiquant les éléments responsables.
+Le paquet unique MUST être validé avant sa publication Forgejo.
+
+Lorsque `PROJECT_DEBIAN_PACKAGE` n'est pas activé, aucune lecture de `dist/`
+ni publication Debian ne doit être effectuée.
 
 ### Requirement: aucun artefact activé
 

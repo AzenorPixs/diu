@@ -1,3 +1,5 @@
+# ENV04 — Préparation OpenSpec du domicile DevOps
+
 ## Why
 
 Le bloc OPENSPEC=1 installe l'outil et son profil custom, mais ne prépare pas

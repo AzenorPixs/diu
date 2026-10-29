@@ -1,3 +1,5 @@
+# PRJ14 — Exclusion du dépôt Git lors de la copie du modèle
+
 ## Why
 
 Un modèle de projet peut contenir son propre répertoire `.git`. Le recopier

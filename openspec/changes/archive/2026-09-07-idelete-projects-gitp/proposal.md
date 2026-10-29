@@ -1,4 +1,4 @@
-# Proposal: Retrait du parcours Git distant générique
+# GIT05 — Proposal: Retrait du parcours Git distant générique
 
 Le projet DIU conserve un parcours historique de publication générique et un
 orchestrateur `git_push()` qui sélectionne le fournisseur distant à partir de

@@ -1,4 +1,4 @@
-# Proposition : refactoriser l'analyse Git des projets
+# GIT18 — Proposition : refactoriser l'analyse Git des projets
 
 ## Pourquoi
 

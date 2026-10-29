@@ -60,22 +60,8 @@ routage ne SHALL appeler l'ancienne fonction d'usage global.
 
 ### Requirement: Aide de l'initialisation Git des projets
 
-L'aide `rid projects help` SHALL présenter
-`rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`,
-`rid projects git init <ID PROJECT>`, `rid projects git commit all`,
-`rid projects forgejo push all`, `rid projects sync <ID PROJECT>`,
-`rid projects sync all` et `rid projects git analyse <ID PROJECTS>`. L'aide
-`rid projects clone help` SHALL présenter la commande de clonage avec une
-description concise. L'aide `rid projects git commit help` SHALL présenter
-`rid projects git commit all` avec une description. L'aide
-`rid projects sync help` SHALL présenter les syntaxes unitaire et groupée
-avec une description concise. L'aide `rid projects forgejo help` SHALL
-présenter `push all` en complément des commandes unitaires. L'aide
-`rid projects forgejo push help` SHALL présenter les syntaxes unitaire et
-groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
-`analyse`, `init` et `update`. Aucune de ces aides SHALL présenter
-`rid projects giti <ID PROJECT>`, `rid projects gitu <ID PROJECT>` ni
-`rid projects gita <ID PROJECT>`.
+Les aides des opérations Git et projets SHALL présenter les commandes et descriptions détaillées ci-dessous, conserver les syntaxes groupées et exclure les anciens alias indiqués.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Aide du contexte projects
 
@@ -126,6 +112,28 @@ groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
 - **WHEN** l'utilisateur exécute `rid projects clone help`
 - **THEN** l'aide affiche
   `rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`
+
+#### Scenario: Commandes et descriptions des aides Git et projets
+
+- **WHEN** une aide des opérations Git ou projets visées par cette exigence est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+L'aide `rid projects help` SHALL présenter
+`rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`,
+`rid projects git init <ID PROJECT>`, `rid projects git commit all`,
+`rid projects forgejo push all`, `rid projects sync <ID PROJECT>`,
+`rid projects sync all` et `rid projects git analyse <ID PROJECTS>`. L'aide
+`rid projects clone help` SHALL présenter la commande de clonage avec une
+description concise. L'aide `rid projects git commit help` SHALL présenter
+`rid projects git commit all` avec une description. L'aide
+`rid projects sync help` SHALL présenter les syntaxes unitaire et groupée
+avec une description concise. L'aide `rid projects forgejo help` SHALL
+présenter `push all` en complément des commandes unitaires. L'aide
+`rid projects forgejo push help` SHALL présenter les syntaxes unitaire et
+groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
+`analyse`, `init` et `update`. Aucune de ces aides SHALL présenter
+`rid projects giti <ID PROJECT>`, `rid projects gitu <ID PROJECT>` ni
+`rid projects gita <ID PROJECT>`.
 
 ### Requirement: Aide de la commande de commit Git des projets
 
@@ -201,13 +209,8 @@ L'aide SHALL exposer les commandes rid system drivers install displaylink et rid
 
 ### Requirement: Aide de génération du modèle DevOps
 
-L'aide rid projects help SHALL présenter rid projects template devops <ID PROJECT>
-et rid projects template devops all. Les aides du contexte template, du
-sélecteur devops et de la commande terminale SHALL fonctionner avec help et ?,
-avant tout chargement de configuration et sans génération. Les arguments
-surnuméraires, les chemins, les sélecteurs inconnus et les anciens contextes
-par projet sans sélecteur SHALL être rejetés avec une aide contextuelle.
-L'aide create SHALL préciser la génération finale de DEVOPS.md.
+Les aides template devops SHALL présenter les syntaxes individuelle et groupée, fonctionner avant le bootstrap sans génération et traiter les arguments invalides selon les scénarios.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Aide intermédiaire ou terminale
 
@@ -235,20 +238,23 @@ L'aide create SHALL préciser la génération finale de DEVOPS.md.
 - **WHEN** l'utilisateur demande projects help, projects template help ou projects template devops help
 - **THEN** l'aide présente les commandes individuelle et all
 
+#### Scenario: Contrat détaillé des aides template devops
+
+- **WHEN** une aide liée à la génération DevOps est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+L'aide rid projects help SHALL présenter rid projects template devops <ID PROJECT>
+et rid projects template devops all. Les aides du contexte template, du
+sélecteur devops et de la commande terminale SHALL fonctionner avec help et ?,
+avant tout chargement de configuration et sans génération. Les arguments
+surnuméraires, les chemins, les sélecteurs inconnus et les anciens contextes
+par projet sans sélecteur SHALL être rejetés avec une aide contextuelle.
+L'aide create SHALL préciser la génération finale de DEVOPS.md.
+
 ### Requirement: Aide du template OpenSpec
 
-Les aides projects et projects template SHALL présenter
-`rid projects template openspec <ID PROJECT>` avec le libellé
-« Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT> »
-et `rid projects template openspec all` pour tous les projets configurés.
-Les aides `projects template openspec` et `projects template openspec <ID PROJECT>`
-SHALL fonctionner avec help et ? avant tout chargement de configuration et
-sans mutation. L'aide spécifique individuelle SHALL expliquer init avec le
-profil custom, le choix OPENCODE et update pour un dossier OpenSpec existant.
-L'aide create SHALL préciser OpenSpec avant DevOps. Les aides DevOps SHALL
-être conservées. Les arguments surnuméraires ou invalides et l'ancienne
-syntaxe terminale qui ne correspond pas déjà à une commande valide SHALL
-être rejetés avec une aide contextuelle.
+Les aides template openspec SHALL présenter les commandes et descriptions prévues, fonctionner sans mutation avant le bootstrap et conserver les autres aides et les règles de refus.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Découverte et aide terminale
 
@@ -275,17 +281,28 @@ syntaxe terminale qui ne correspond pas déjà à une commande valide SHALL
 - **WHEN** help ou ? suit projects, projects template ou projects template openspec
 - **THEN** l'aide présente la commande openspec all pour tous les projets configurés
 
-### Requirement: Aide de tous les modèles pour tous les projets
+#### Scenario: Contrat détaillé des aides template openspec
+
+- **WHEN** une aide liée au template OpenSpec est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
 Les aides projects et projects template SHALL présenter
-`rid projects template all all`. Les contextes projects template all et
-projects template all all SHALL fonctionner avec help et ? avant tout
-chargement de configuration et sans traitement. L'aide SHALL expliquer
-les deux all, les cinq variables requises, OpenSpec puis DevOps en dernier
-pour chaque projet, la poursuite sur les autres projets après échec et le
-bilan. Elle SHALL préciser qu'un échec OpenSpec empêche DevOps sur ce projet.
-Les cibles individuelles après all et arguments supplémentaires SHALL être
-rejetés avec une aide contextuelle. Les aides existantes SHALL être conservées.
+`rid projects template openspec <ID PROJECT>` avec le libellé
+« Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT> »
+et `rid projects template openspec all` pour tous les projets configurés.
+Les aides `projects template openspec` et `projects template openspec <ID PROJECT>`
+SHALL fonctionner avec help et ? avant tout chargement de configuration et
+sans mutation. L'aide spécifique individuelle SHALL expliquer init avec le
+profil custom, le choix OPENCODE et update pour un dossier OpenSpec existant.
+L'aide create SHALL préciser OpenSpec avant DevOps. Les aides DevOps SHALL
+être conservées. Les arguments surnuméraires ou invalides et l'ancienne
+syntaxe terminale qui ne correspond pas déjà à une commande valide SHALL
+être rejetés avec une aide contextuelle.
+
+### Requirement: Aide de tous les modèles pour tous les projets
+
+Les aides template all all SHALL expliquer le traitement complet et fonctionner sans bootstrap ni mutation, en conservant les autres aides et les refus d’arguments prévus.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Découverte
 
@@ -302,17 +319,25 @@ rejetés avec une aide contextuelle. Les aides existantes SHALL être conservée
 - **WHEN** un projet individuel suit all ou un argument supplémentaire suit all all avant help
 - **THEN** l'aide rend un code non nul avec le contexte template all sans charger de configuration
 
+#### Scenario: Contrat détaillé des aides template all all
+
+- **WHEN** une aide du traitement de tous les modèles est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Les aides projects et projects template SHALL présenter
+`rid projects template all all`. Les contextes projects template all et
+projects template all all SHALL fonctionner avec help et ? avant tout
+chargement de configuration et sans traitement. L'aide SHALL expliquer
+les deux all, les cinq variables requises, OpenSpec puis DevOps en dernier
+pour chaque projet, la poursuite sur les autres projets après échec et le
+bilan. Elle SHALL préciser qu'un échec OpenSpec empêche DevOps sur ce projet.
+Les cibles individuelles après all et arguments supplémentaires SHALL être
+rejetés avec une aide contextuelle. Les aides existantes SHALL être conservées.
+
 ### Requirement: Aide de la mise à jour générale des projets
 
-L'aide projects SHALL présenter rid projects update et conserver rid projects
-update <ID PROJECT>. Les contextes projects update et projects update
-<ID PROJECT> SHALL fonctionner avec help et ? avant tout chargement de
-configuration et sans opération. L'aide générale SHALL indiquer tous les
-modèles de tous les projets configurés, OpenSpec puis DevOps en dernier.
-L'aide ciblée SHALL expliquer la mise à jour des variables du seul projet.
-L'aide rid update SHALL indiquer l'inclusion de la mise à jour générale des
-projets. Les arguments d'aide supplémentaires SHALL être refusés avec un
-diagnostic contextuel et les aides existantes SHALL être préservées.
+Les aides projects update SHALL distinguer les parcours général et ciblé, fonctionner sans opération avant le bootstrap et préserver les autres aides avec leurs refus d’arguments.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Découverte et contexte général
 
@@ -334,6 +359,21 @@ diagnostic contextuel et les aides existantes SHALL être préservées.
 - **WHEN** un argument supplémentaire suit l'identifiant avant help
 - **THEN** l'aide rend un code non nul sans configuration ni écriture
 
+#### Scenario: Contrat détaillé des aides projects update
+
+- **WHEN** une aide de mise à jour des projets est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+L'aide projects SHALL présenter rid projects update et conserver rid projects
+update <ID PROJECT>. Les contextes projects update et projects update
+<ID PROJECT> SHALL fonctionner avec help et ? avant tout chargement de
+configuration et sans opération. L'aide générale SHALL indiquer tous les
+modèles de tous les projets configurés, OpenSpec puis DevOps en dernier.
+L'aide ciblée SHALL expliquer la mise à jour des variables du seul projet.
+L'aide rid update SHALL indiquer l'inclusion de la mise à jour générale des
+projets. Les arguments d'aide supplémentaires SHALL être refusés avec un
+diagnostic contextuel et les aides existantes SHALL être préservées.
+
 ### Requirement: Aide des exceptions système Git
 
 L'aide des commandes `rid projects git init`, `update` et `status` MUST
@@ -345,3 +385,12 @@ l'affichage de son état. Les signatures des commandes MUST rester inchangées.
 - **WHEN** l'aide projects, projects git ou projects git status est demandée
 - **THEN** les descriptions concernées mentionnent safe.directory système
 - **AND** les commandes conservent leurs arguments publics existants
+### Requirement: Aide du packaging Debian DIU
+
+Les aides SHALL présenter rid projects deb [ID PROJECT] et rid proj deb <ID PROJECT>, le défaut diu et la nature DIU des sources. help et ? SHALL fonctionner avant le bootstrap, sans construction ni configuration.
+
+#### Scenario: Aide packaging sans effet
+
+- **WHEN** une aide des deux syntaxes est demandée
+- **THEN** elle explique la source et le défaut sans appeler le builder
+

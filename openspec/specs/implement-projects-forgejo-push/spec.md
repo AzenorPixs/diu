@@ -108,13 +108,7 @@ REMOTE_FORGEJO_SSL_VERIFY="No"
 
 ### Requirement: identifiants Forgejo
 
-`forgejo_push()` MUST utiliser `config/forgejo.username` et
-`config/forgejo.token` (mode `600` ou `660`, jamais journalisés). Le token MUST passer
-à Git uniquement par `git_with_token`. Si un fichier manque, le push MUST
-appeler `forgejo_credentials_setup()` avant `forgejo-auth`. Ce setup MUST
-obtenir une confirmation explicite avant toute écriture puis demander les
-données interactivement. Le provider MUST rester strict : aucune création,
-erreur si identifiants absents ou invalides.
+Le push MUST préparer les identifiants avant les transports. Une paire absente ou incomplète MUST passer par forgejo_credentials_setup avec consentement explicite avant écriture. Les fichiers valides en 600 ou 660 MUST être préservés. Toute paire invalide MUST être rejetée sans remplacement. Le token MUST rester hors des arguments, URL et sorties.
 
 #### Scenario: identifiants absents
 
@@ -149,6 +143,26 @@ erreur si identifiants absents ou invalides.
 - **AND** leurs contenus et leurs permissions restent inchangés
 - **AND** les autres modes sont refusés avant lecture sans affichage des identifiants
 - **AND** la protection des secrets temporaires reste inchangée
+
+#### Scenario: Fin d’entrée avant consentement
+
+- **WHEN** la confirmation est refusée ou l'entrée se termine
+- **THEN** aucun fichier n'est créé, modifié ou supprimé ; aucun transport n'est exécuté
+
+#### Scenario: Paire partielle préservée
+
+- **WHEN** une moitié valide existe et le setup est accepté
+- **THEN** seul le fichier manquant est publié après validation candidate ; la moitié existante conserve son contenu et son mode
+
+#### Scenario: Échec du setup
+
+- **WHEN** la validation candidate ou la persistance échoue
+- **THEN** les fichiers préexistants restent intacts ; les nouveaux fichiers partiels et temporaires sont nettoyés ; aucun push n’est exécuté
+
+#### Scenario: Choix explicite du mode
+
+- **WHEN** le setup doit fournir un token absent
+- **THEN** il propose saisie ou création API après consentement ; un échec ne publie aucun identifiant
 
 ### Requirement: remote Forgejo HTTPS
 

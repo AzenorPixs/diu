@@ -1,4 +1,4 @@
-# Proposition : création automatique du remote GitLab
+# GIT02 — Proposition : création automatique du remote GitLab
 
 ## Contexte
 

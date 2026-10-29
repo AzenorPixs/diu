@@ -1,4 +1,4 @@
-# Proposal
+# GIT22 — Proposal
 
 ## Why
 

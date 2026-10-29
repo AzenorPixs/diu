@@ -39,7 +39,11 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
         return subprocess.run(
             ['bash', '-Eeuo', 'pipefail', '-c', PRELUDE + script, 'bash',
              str(self.path), *map(str, arguments)],
-            env=dict(os.environ, TEST_ROOT=str(ROOT)), input=input_text,
+            env={**{k: v for k, v in os.environ.items() if not k.startswith('GIT_')},
+                 'TEST_ROOT': str(ROOT), 'HOME': str(self.path),
+                 'GIT_CONFIG_SYSTEM': str(self.path / 'system.gitconfig'),
+                 'GIT_CONFIG_GLOBAL': str(self.path / 'global.gitconfig')},
+            input=input_text,
             text=True, capture_output=True, timeout=15, check=False,
         )
 

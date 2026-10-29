@@ -107,35 +107,8 @@ antérieures.
 
 ### Requirement: Configuration et compatibilité des dépôts tiers
 
-Le DIU SHALL déclarer les onze variables statiques `SYSTEM_APT_CROWDSEC`,
-`SYSTEM_APT_DOCKER`, `SYSTEM_APT_LEMONLDAP`, `SYSTEM_APT_MONGODB`,
-`SYSTEM_APT_NODEJS`, `SYSTEM_APT_NVIDIA`, `SYSTEM_APT_PROXMOX`,
-`SYSTEM_APT_VSCODE`, `SYSTEM_APT_WAZUH`, `SYSTEM_APT_WEBMIN` et
-`SYSTEM_APT_CGPT` dans le scope `system`. Leur valeur absente SHALL être
-déduite des sources APT existantes, puis persistée dans `system.env`.
-Une valeur déjà initialisée MUST NOT être remplacée par la détection ou les
-variables historiques.
-
-En l'absence d'une source détectée et d'une valeur initialisée, le DIU SHALL
-préserver l'activation historique de CrowdSec (`CROWDSEC_BOUNCER=1`), de
-LemonLDAP (`LEMONLDAP=1`), de MongoDB (`MONGODB=1` avec une version reconnue)
-et de Wazuh (`WAZUH_SERVER=1` et `WAZUH_SERVER_UPGRADE=1`). Les autres valeurs
-absentes SHALL rester désactivées lorsqu'aucune source n'est détectée.
-
-Pour MongoDB, les branches `4` à `8` SHALL rester disponibles ; la branche
-historique `4` SHALL utiliser la clé et la suite `4.4`. Les sources historiques
-`4.4` SHALL être détectées comme branche `4`. La suite Debian de MongoDB SHALL
-rester `bullseye` pour Bullseye et `bookworm` pour Bookworm et les versions
-ultérieures, conformément au choix existant pour ces dernières.
-L'installation `apt mongodb` SHALL conserver une branche déjà configurée de
-`4` à `8`, ou choisir `8` si aucune branche valide n'est configurée.
-Les formes `mongodb-4` à `mongodb-8` SHALL sélectionner la branche demandée.
-
-Pour Wazuh, `0` SHALL désactiver le dépôt et `4` SHALL activer la branche 4.
-La valeur historique `1` SHALL rester acceptée comme activation de cette
-branche. Les valeurs `1` et `4` SHALL être transmises au moteur commun sous
-forme d'activation `1`, sans modifier la valeur persistée. Toute autre valeur
-SHALL provoquer un diagnostic et un retour non nul.
+DIU SHALL conserver les onze variables de dépôts tiers, leur initialisation et leur priorité persistante, ainsi que les compatibilités historiques et les règles MongoDB et Wazuh détaillées ci-dessous.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Activation historique sans source présente
 
@@ -172,6 +145,41 @@ SHALL provoquer un diagnostic et un retour non nul.
 - **WHEN** `SYSTEM_APT_WAZUH` possède une autre valeur
 - **THEN** la configuration des dépôts retourne un code non nul et un diagnostic explicite
 
+#### Scenario: Initialisation et compatibilité des configurations de dépôts tiers
+
+- **WHEN** DIU initialise ou applique la configuration d’un dépôt tiers
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Le DIU SHALL déclarer les onze variables statiques `SYSTEM_APT_CROWDSEC`,
+`SYSTEM_APT_DOCKER`, `SYSTEM_APT_LEMONLDAP`, `SYSTEM_APT_MONGODB`,
+`SYSTEM_APT_NODEJS`, `SYSTEM_APT_NVIDIA`, `SYSTEM_APT_PROXMOX`,
+`SYSTEM_APT_VSCODE`, `SYSTEM_APT_WAZUH`, `SYSTEM_APT_WEBMIN` et
+`SYSTEM_APT_CGPT` dans le scope `system`. Leur valeur absente SHALL être
+déduite des sources APT existantes, puis persistée dans `system.env`.
+Une valeur déjà initialisée MUST NOT être remplacée par la détection ou les
+variables historiques.
+
+En l'absence d'une source détectée et d'une valeur initialisée, le DIU SHALL
+préserver l'activation historique de CrowdSec (`CROWDSEC_BOUNCER=1`), de
+LemonLDAP (`LEMONLDAP=1`), de MongoDB (`MONGODB=1` avec une version reconnue)
+et de Wazuh (`WAZUH_SERVER=1` et `WAZUH_SERVER_UPGRADE=1`). Les autres valeurs
+absentes SHALL rester désactivées lorsqu'aucune source n'est détectée.
+
+Pour MongoDB, les branches `4` à `8` SHALL rester disponibles ; la branche
+historique `4` SHALL utiliser la clé et la suite `4.4`. Les sources historiques
+`4.4` SHALL être détectées comme branche `4`. La suite Debian de MongoDB SHALL
+rester `bullseye` pour Bullseye et `bookworm` pour Bookworm et les versions
+ultérieures, conformément au choix existant pour ces dernières.
+L'installation `apt mongodb` SHALL conserver une branche déjà configurée de
+`4` à `8`, ou choisir `8` si aucune branche valide n'est configurée.
+Les formes `mongodb-4` à `mongodb-8` SHALL sélectionner la branche demandée.
+
+Pour Wazuh, `0` SHALL désactiver le dépôt et `4` SHALL activer la branche 4.
+La valeur historique `1` SHALL rester acceptée comme activation de cette
+branche. Les valeurs `1` et `4` SHALL être transmises au moteur commun sous
+forme d'activation `1`, sans modifier la valeur persistée. Toute autre valeur
+SHALL provoquer un diagnostic et un retour non nul.
+
 ### Requirement: Configuration unique dans le monolithe
 
 Le bloc APT du monolithe SHALL déléguer les dépôts tiers déjà gérés à
@@ -189,19 +197,8 @@ son contrôle par `DIU_APT_REPOSITORY_FD`.
 
 ### Requirement: Réutilisation des trousseaux APT disponibles
 
-Pour un dépôt tiers activé, `system_apt_repository_engine` SHALL réutiliser
-`/usr/share/keyrings/<name>-archive-keyring.gpg` lorsqu'il s'agit d'un fichier
-lisible et non vide. Il MUST NOT télécharger ni reconvertir cette clé dans ce
-cas et SHALL préserver son contenu tout en régénérant les sources APT.
-Si le trousseau est absent, vide ou illisible, le moteur SHALL conserver
-l'installation par téléchargement et conversion, sauf pour CrowdSec lorsqu'un
-trousseau historique lisible et non vide est disponible sous le nom
-`crowdsec-crowdsec-archive-keyring.gpg` dans le même répertoire : il SHALL
-alors copier ce trousseau vers le nom géré sans téléchargement.
-Un échec de téléchargement
-ou de conversion SHALL produire un diagnostic et un retour non nul, sans
-désactiver la vérification TLS. Ces règles SHALL s'appliquer aux deux formats
-APT sans modifier le comportement de désactivation du dépôt.
+system_apt_repository_engine SHALL réutiliser les trousseaux disponibles selon les règles ci-dessous, installer une clé seulement lorsque nécessaire et propager les échecs en conservant TLS.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Trousseau déjà disponible avec réseau défaillant
 
@@ -234,6 +231,25 @@ APT sans modifier le comportement de désactivation du dépôt.
 - **AND** le téléchargement ou la conversion échoue
 - **THEN** le moteur signale l'échec et retourne un code non nul
 - **AND** la configuration APT du dépôt n'est pas réécrite
+
+#### Scenario: Réutilisation et installation contrôlée des trousseaux
+
+- **WHEN** le moteur traite la clé d’un dépôt tiers activé
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Pour un dépôt tiers activé, `system_apt_repository_engine` SHALL réutiliser
+`/usr/share/keyrings/<name>-archive-keyring.gpg` lorsqu'il s'agit d'un fichier
+lisible et non vide. Il MUST NOT télécharger ni reconvertir cette clé dans ce
+cas et SHALL préserver son contenu tout en régénérant les sources APT.
+Si le trousseau est absent, vide ou illisible, le moteur SHALL conserver
+l'installation par téléchargement et conversion, sauf pour CrowdSec lorsqu'un
+trousseau historique lisible et non vide est disponible sous le nom
+`crowdsec-crowdsec-archive-keyring.gpg` dans le même répertoire : il SHALL
+alors copier ce trousseau vers le nom géré sans téléchargement.
+Un échec de téléchargement
+ou de conversion SHALL produire un diagnostic et un retour non nul, sans
+désactiver la vérification TLS. Ces règles SHALL s'appliquer aux deux formats
+APT sans modifier le comportement de désactivation du dépôt.
 
 ### Requirement: Dépôts NVIDIA sans composant APT
 

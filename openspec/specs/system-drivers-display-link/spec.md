@@ -64,7 +64,9 @@ Le module system SHALL exposer system_drivers_install_displaylink et system_driv
 - **THEN** le routeur retourne 2 sans opération système
 
 ### Requirement: Installation contrôlée
-L'installation SHALL être autorisée seulement en PHYSICAL ou PROXMOX, indépendamment de la valeur statique. Elle SHALL installer ou réparer displaylink-driver, evdi-dkms, dkms et libevdi-dev avec les headers du noyau courant. Elle SHALL vérifier les paquets configurés, la bibliothèque libevdi.so accessible, DKMS installé pour le noyau courant, le module chargé et le service actif avant de persister puis exporter 1. Un module déjà chargé obsolète SHALL être rechargé ou signalé en erreur. Aucun écran connecté SHALL être requis. Une installation saine SHALL ne pas réinstaller les paquets ni redémarrer inutilement le service.
+
+L’installation DisplayLink SHALL respecter les environnements admis, préparer ses dépendances et vérifier le fonctionnement avant de persister l’état, sans écran requis ni réinstallation inutile.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Environnement interdit
 - **WHEN** l'environnement n'est ni PHYSICAL ni PROXMOX
@@ -79,8 +81,17 @@ L'installation SHALL être autorisée seulement en PHYSICAL ou PROXMOX, indépen
 - **THEN** la commande retourne un échec explicite, sans nouvelle valeur exportée ou fausse réussite
 - **AND** les mutations système déjà effectuées ne sont pas présentées comme annulées
 
+#### Scenario: Conditions et contrôles de l’installation DisplayLink
+
+- **WHEN** une installation ou réparation DisplayLink est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+L'installation SHALL être autorisée seulement en PHYSICAL ou PROXMOX, indépendamment de la valeur statique. Elle SHALL installer ou réparer displaylink-driver, evdi-dkms, dkms et libevdi-dev avec les headers du noyau courant. Elle SHALL vérifier les paquets configurés, la bibliothèque libevdi.so accessible, DKMS installé pour le noyau courant, le module chargé et le service actif avant de persister puis exporter 1. Un module déjà chargé obsolète SHALL être rechargé ou signalé en erreur. Aucun écran connecté SHALL être requis. Une installation saine SHALL ne pas réinstaller les paquets ni redémarrer inutilement le service.
+
 ### Requirement: EVDI pour Linux 7
-Pour un noyau 7.x, EVDI SHALL être au minimum 1.15.1. Une version suffisante installée ou disponible dans les dépôts configurés SHALL être préférée. Sinon le paquet officiel Debian evdi-dkms_1.15.1+dfsg-1_all.deb SHALL être téléchargé en HTTPS et validé par SHA256 fixé ainsi que ses métadonnées avant APT. Aucun dépôt testing ou sid SHALL être ajouté. Les headers SHALL correspondre au noyau Debian ou Proxmox. La compatibilité SHALL être établie par compilation et chargement, sans garantie générale pour les futurs 7.x.
+
+Pour Linux 7.x, EVDI SHALL respecter la version minimale, les choix de provenance, les vérifications et les limites de compatibilité décrits ci-dessous, sans ajouter de dépôt testing ou sid.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Dépôt trop ancien
 - **WHEN** le noyau est 7.x et ni la version installée ni le candidat APT ne suffisent
@@ -90,8 +101,17 @@ Pour un noyau 7.x, EVDI SHALL être au minimum 1.15.1. Une version suffisante in
 - **WHEN** le téléchargement, le hash ou les métadonnées échouent
 - **THEN** APT n'est pas exécuté et la valeur statique est préservée
 
+#### Scenario: Provenance et validation EVDI pour Linux 7
+
+- **WHEN** DIU prépare EVDI pour un noyau Linux 7.x
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Pour un noyau 7.x, EVDI SHALL être au minimum 1.15.1. Une version suffisante installée ou disponible dans les dépôts configurés SHALL être préférée. Sinon le paquet officiel Debian evdi-dkms_1.15.1+dfsg-1_all.deb SHALL être téléchargé en HTTPS et validé par SHA256 fixé ainsi que ses métadonnées avant APT. Aucun dépôt testing ou sid SHALL être ajouté. Les headers SHALL correspondre au noyau Debian ou Proxmox. La compatibilité SHALL être établie par compilation et chargement, sans garantie générale pour les futurs 7.x.
+
 ### Requirement: Désinstallation contrôlée
-La suppression SHALL être disponible dans tous les environnements. Elle SHALL arrêter le service si présent, supprimer uniquement displaylink-driver et evdi-dkms sans autoremove, puis vérifier leur absence et le déchargement du module avant de persister et exporter 0. DKMS, headers et bibliothèques partagées SHALL être conservés. Un état déjà absent SHALL réussir sans transaction APT. Les erreurs de découverte SHALL être distinguées de l'absence. Une erreur SHALL préserver la valeur statique antérieure.
+
+La suppression DisplayLink SHALL respecter les contrôles et la conservation des dépendances décrits ci-dessous, réussir sans transaction si déjà absent et préserver l’état antérieur en cas d’erreur.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Suppression réussie
 - **WHEN** les deux paquets sont supprimés et le module déchargé
@@ -104,3 +124,11 @@ La suppression SHALL être disponible dans tous les environnements. Elle SHALL a
 #### Scenario: Échec de suppression
 - **WHEN** le service ne peut être arrêté, APT échoue, un paquet reste présent ou le module reste chargé
 - **THEN** la commande échoue et ne persiste pas 0
+
+#### Scenario: Suppression DisplayLink et préservation de l’état
+
+- **WHEN** une désinstallation DisplayLink est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+La suppression SHALL être disponible dans tous les environnements. Elle SHALL arrêter le service si présent, supprimer uniquement displaylink-driver et evdi-dkms sans autoremove, puis vérifier leur absence et le déchargement du module avant de persister et exporter 0. DKMS, headers et bibliothèques partagées SHALL être conservés. Un état déjà absent SHALL réussir sans transaction APT. Les erreurs de découverte SHALL être distinguées de l'absence. Une erreur SHALL préserver la valeur statique antérieure.
+
