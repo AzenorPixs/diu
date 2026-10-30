@@ -9,14 +9,8 @@ interactive des variables d'un projet ciblé.
 
 ### Requirement: Mise à jour générale des modèles des projets
 
-DIU SHALL exposer rid projects update sans identifiant et projects_update
-sans argument. La fonction SHALL appeler projects_template_all_all une seule
-fois, sans lancer un nouveau processus CLI ni modifier la configuration.
-Elle SHALL conserver le traitement all all : mêmes projets éligibles selon
-project.env, OpenSpec avant DevOps en dernier pour chaque projet, poursuite
-après échec, fichiers conservés et bilan. Elle SHALL transmettre le code de
-retour de ce traitement et refuser tout argument avant son appel.
-Elle SHALL NOT ajouter synchronisation, configuration Git ou fournisseurs.
+DIU SHALL exposer la mise à jour générale des projets sans identifiant, déléguer une seule fois au traitement des modèles et préserver sa sélection, son ordre, son bilan et son résultat.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Mise à jour générale
 
@@ -37,6 +31,20 @@ Elle SHALL NOT ajouter synchronisation, configuration Git ou fournisseurs.
 
 - **WHEN** projects_update reçoit un argument
 - **THEN** elle rend un diagnostic et un code non nul avant appel de modèle
+
+#### Scenario: Délégation de la mise à jour générale des projets
+
+- **WHEN** projects_update ou rid projects update sans identifiant est demandé
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+DIU SHALL exposer rid projects update sans identifiant et projects_update
+sans argument. La fonction SHALL appeler projects_template_all_all une seule
+fois, sans lancer un nouveau processus CLI ni modifier la configuration.
+Elle SHALL conserver le traitement all all : mêmes projets éligibles selon
+project.env, OpenSpec avant DevOps en dernier pour chaque projet, poursuite
+après échec, fichiers conservés et bilan. Elle SHALL transmettre le code de
+retour de ce traitement et refuser tout argument avant son appel.
+Elle SHALL NOT ajouter synchronisation, configuration Git ou fournisseurs.
 
 ### Requirement: Préservation de la mise à jour ciblée
 

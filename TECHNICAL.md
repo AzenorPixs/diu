@@ -1313,6 +1313,23 @@ installés avec les droits de `DEVOPS_USER:DEVOPS_GROUP`. Les fichiers secrets
 temporaires Git et curl restent en `600` et les répertoires temporaires privés
 en `700`, avec nettoyage après utilisation, y compris en cas d'échec.
 
+Le provider Forgejo est strict : ses transports ne demandent aucune saisie et
+ne créent, suppriment ou remplacent aucun identifiant. Les parcours de push et
+de release appellent forgejo_credentials_prepare avant ces transports.
+Une paire absente ou incomplète passe par forgejo_credentials_setup uniquement
+après consentement explicite. Un refus, une fin d’entrée, un fichier invalide
+ou un token refusé ne déclenche aucun remplacement implicite.
+
+Le setup accepte la saisie d’un token ou sa création API explicitement choisie.
+Il valide une paire candidate dans un staging privé avant de publier seulement
+les fichiers manquants. Les fichiers existants conservent leur contenu et leur
+mode ; un échec de publication retire uniquement les nouveaux fichiers créés
+par ce setup. Les temporaires sont nettoyés à la sortie. Le statut interne 3
+de _forgejo_ensure_credentials désigne une paire incomplète pour l’orchestration ;
+les transports exposent une erreur sans interaction. Aucun secret n’est ajouté
+aux arguments des exécutables, URL ou diagnostics. Les tests sont isolés dans
+tests/test_forgejo_credential_bootstrap.py.
+
 Les modules `lib/forgejo-auth.sh`, `lib/gitlab-auth.sh` et
 `lib/github-auth.sh` résolvent le remote HTTPS, vérifient les identifiants et
 délèguent les opérations Git au cœur commun. Le token ne doit apparaître ni
@@ -1351,12 +1368,20 @@ serveur. Les tests locaux sont dans `tests/test_projects_forgejo_push.py`.
 La release du paquet DIU vers Forgejo est un parcours distinct. Il vérifie le
 paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'API
 Forgejo pour créer ou alimenter une release sans remplacer une release
-existante. Les détails du build du paquet restent dans `BUILD.md`.
+existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
 `update_diu` consulte publiquement la dernière release Forgejo du paquet DIU,
 compare les versions Debian, télécharge l'artefact attendu, vérifie son nom et
 sa version, puis l'installe avec `dpkg`. Ce parcours public n'utilise pas les
 identifiants Forgejo/Git.
+
+### Validation HTTP du lien d’asset Debian GitLab
+
+projects_gitlab_release_debian vérifie séparément le succès du transport et
+le statut HTTP final de création du lien d’asset. Une réponse hors 2xx ou
+inexploitable arrête la publication sans message de succès. Le corps de réponse
+n’est pas journalisé et aucun réessai ou effacement distant n’est ajouté.
+Les tests de tests/test_projects.py utilisent uniquement des transports simulés.
 
 ## Orchestration des mises à jour
 
@@ -1419,6 +1444,22 @@ sur les projets sont exécutées sous `DEVOPS_USER` afin de préserver le
 propriétaire et l'environnement du dépôt.
 
 ## Validation technique
+
+Les fixtures de mise à jour globale suivent le contrat U1 : system, diu,
+environments, ia, projects puis softwares. Elles simulent et journalisent
+les frontières des modules ; les wrappers DIU/IA sont contrôlés séparément.
+La configuration Git système des tests est redirigée vers des fichiers de
+fixture, sans droit supplémentaire ni modification de /etc/gitconfig.
+
+La référence Z1 du générateur Zsh est adoptée avec son inventaire de 14 fonctions
+et un bloc de données littéral. Les empreintes sont contrôlées sans modifier
+le générateur. Le pipeline APT est vérifié par nombre d’appels, contenu transmis
+et préservation des trousseaux ; l’ordre de démarrage curl/gpg n’est pas imposé.
+
+Les annotations ShellCheck locales distinguent les usages indirects Bash
+(portée dynamique de forgejo_username) et les marqueurs littéraux de dpkg-deb
+(Package et Version). Aucune désactivation globale n’est appliquée.
+
 
 Les tests isolés sont regroupés dans `tests/test_*.py`. Ils couvrent notamment
 la configuration et les variables système, les dépôts APT et les prérequis,

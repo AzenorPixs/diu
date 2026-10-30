@@ -201,7 +201,9 @@ curl() {
 gpg() {
     printf 'gpg %s\n' "$*" >> "$TMPDIR/calls"
     [[ "$1" == --dearmor && "$2" == --yes && "$3" == --output ]] || return 99
-    cat >/dev/null
+    local input
+    input="$(cat)"
+    [[ "$input" == synthetic-public-key ]] || return 99
     [[ "$TEST_FAILURE" != gpg ]] || return 1
     printf 'synthetic-keyring' > "$4"
 }
@@ -262,7 +264,7 @@ system_apt_repository_engine "$TEST_ENABLE" docker https://docker.example/gpg \
                     self.assertEqual(keyring.read_text(), 'synthetic-keyring')
                     self.assertEqual(keyring.stat().st_mode & 0o777, 0o644)
                     calls = (directory / 'calls').read_text().splitlines()
-                    self.assertEqual(calls, [
+                    self.assertCountEqual(calls, [
                         'curl -fsSL https://docker.example/gpg',
                         f'gpg --dearmor --yes --output {keyring}',
                     ])

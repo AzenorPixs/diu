@@ -1,4 +1,4 @@
-# Proposition: publication GitLab des projets DIU
+# ART04 — Proposition: publication GitLab des projets DIU
 
 Le projet DIU permet déjà de publier un dépôt GitLab (`rid projects gitlab push`) et
 une release Forgejo (`rid projects forgejo release`), mais ne permet pas encore de

@@ -56,14 +56,8 @@ SHALL pas persister l'état `1`.
 
 ### Requirement: Commandes ciblées Flatpak
 
-Le DIU SHALL accepter `rid system install flatpak`, `rid system remove
-flatpak` et `rid system update flatpak`. L'installation SHALL persister `1`
-uniquement après l'installation et la configuration de Flathub réussies ; la
-suppression SHALL persister `0` uniquement après succès. La mise à jour SHALL
-cibler uniquement le paquet Debian installé et SHALL ne jamais exécuter
-`flatpak update`; son absence SHALL être signalée sans installation implicite.
-Les commandes et leurs parents SHALL être accessibles par le mécanisme d'aide
-existant.
+DIU SHALL exposer les commandes Flatpak ciblées, persister l’état après succès seulement, limiter l’update au paquet Debian installé et fournir les aides prévues.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Installation ciblée
 
@@ -79,3 +73,18 @@ existant.
 
 - **WHEN** l'aide de la commande Flatpak ou de son parent system est demandée
 - **THEN** elle décrit les commandes install, remove et update Flatpak
+
+#### Scenario: Actions Flatpak ciblées et persistance
+
+- **WHEN** une installation, suppression, mise à jour ciblée ou aide Flatpak est demandée
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Le DIU SHALL accepter `rid system install flatpak`, `rid system remove
+flatpak` et `rid system update flatpak`. L'installation SHALL persister `1`
+uniquement après l'installation et la configuration de Flathub réussies ; la
+suppression SHALL persister `0` uniquement après succès. La mise à jour SHALL
+cibler uniquement le paquet Debian installé et SHALL ne jamais exécuter
+`flatpak update`; son absence SHALL être signalée sans installation implicite.
+Les commandes et leurs parents SHALL être accessibles par le mécanisme d'aide
+existant.
+

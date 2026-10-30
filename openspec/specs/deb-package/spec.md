@@ -19,17 +19,23 @@ THEN le paquet généré porte le nom `diu` dans son en-tête
 
 ### Requirement: Version du paquet
 
-Le paquet Debian produit SHALL posséder une version au format
-`YYYY.MM.DD.HH.MM` générée automatiquement au moment de la construction
-à partir de l'heure locale de la machine de build.
+La version SHALL être l'unique version Debian valide déduite des tags de HEAD, en retirant un préfixe v éventuel. Sans métadonnées Git ou sans tag, elle SHALL être l'horodatage local YYYY.MM.DD.HH.MM. Un tag inexploitable ou plusieurs versions distinctes SHALL provoquer un échec. Une erreur de consultation Git SHALL NOT être traitée comme une absence de tag.
 
 #### Scenario: Version générée
 
-WHEN le paquet est construit
-THEN le champ `Version:` du fichier `control` contient une valeur au
-format `YYYY.MM.DD.HH.MM`
-AND le nom du fichier `.deb` contient la même valeur
+WHEN aucun tag de HEAD n'est disponible
+THEN le champ Version et le nom du paquet utilisent le même horodatage local YYYY.MM.DD.HH.MM
 AND la version est affichée lors de la construction
+
+#### Scenario: Version issue du tag
+
+- **WHEN** HEAD possède v1.2.3 ou 1.2.3 comme unique version valide
+- **THEN** le paquet utilise 1.2.3 ; des variantes équivalentes ne créent pas d’ambiguïté
+
+#### Scenario: Versions de tags ambiguës
+
+- **WHEN** HEAD possède plusieurs versions distinctes ou un tag inexploitable
+- **THEN** le build échoue avant publication et préserve dist/
 
 ### Requirement: Déploiement sous /root/diu
 
@@ -86,21 +92,8 @@ THEN un éventuel `/root/diu/variables.sh` déjà présent n'est pas remplacé
 
 ### Requirement: Emplacement de production du paquet
 
-Le paquet Debian produit SHALL être généré dans le répertoire `dist/` à la
-racine du projet. Le répertoire `dist/` ne SHALL pas lui-même être embarqué
-dans le paquet.
-
-Le nouveau paquet SHALL être construit dans un emplacement temporaire avant
-d'être publié dans `dist/`. Les anciens paquets `diu_*_all.deb` SHALL être
-supprimés de `dist/` uniquement après la publication réussie du nouveau paquet,
-en excluant explicitement le nouveau paquet de cette suppression.
-
-En cas d'échec de la construction ou de la publication, les anciens paquets
-SHALL rester intacts dans `dist/`.
-
-Le nettoyage SHALL cibler uniquement les artefacts Debian du DIU
-(`diu_*_all.deb`) et ne SHALL pas supprimer les autres fichiers éventuellement
-présents dans `dist/`.
+Le paquet Debian SHALL être produit dans dist/ sans embarquer ce répertoire. La construction temporaire, la publication et la rotation SHALL préserver le dernier paquet valide et les fichiers étrangers au DIU.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Génération dans dist/
 
@@ -133,6 +126,27 @@ WHEN la construction du nouveau paquet est en cours
 THEN les anciens paquets restent disponibles dans `dist/`
 AND le nouveau paquet n'est publié dans `dist/` qu'après succès de
   `dpkg-deb`
+
+#### Scenario: Production et rotation sûres des paquets
+
+- **WHEN** un paquet Debian du DIU est construit ou publié, avec succès ou échec
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+Le paquet Debian produit SHALL être généré dans le répertoire `dist/` à la
+racine du projet. Le répertoire `dist/` ne SHALL pas lui-même être embarqué
+dans le paquet.
+
+Le nouveau paquet SHALL être construit dans un emplacement temporaire avant
+d'être publié dans `dist/`. Les anciens paquets `diu_*_all.deb` SHALL être
+supprimés de `dist/` uniquement après la publication réussie du nouveau paquet,
+en excluant explicitement le nouveau paquet de cette suppression.
+
+En cas d'échec de la construction ou de la publication, les anciens paquets
+SHALL rester intacts dans `dist/`.
+
+Le nettoyage SHALL cibler uniquement les artefacts Debian du DIU
+(`diu_*_all.deb`) et ne SHALL pas supprimer les autres fichiers éventuellement
+présents dans `dist/`.
 
 ### Requirement: Rôle du répertoire deb/
 
@@ -205,12 +219,7 @@ AND le DIU se termine avec le code 1
 
 ### Requirement: Commande rid proj deb
 
-Le DIU SHALL accepter la commande `rid proj deb <project_id>` pour déclencher
-la construction du paquet DIU à partir du projet cible identifié par
-`<project_id>`.
-
-Le `<project_id>` permet de localiser le projet source sous
-`$DEVOPS_PROJECTS_ROOT`.
+DIU SHALL accepter rid proj deb <project_id> et rid projects deb [project_id]. Sans identifiant, projects SHALL cibler diu. L'identifiant SHALL sélectionner un enfant direct de DEVOPS_PROJECTS_ROOT contenant les sources DIU requises, sans chemin ni lien symbolique. Le paquet SHALL rester nommé diu. Les arguments supplémentaires SHALL être refusés.
 
 #### Scenario: Construction depuis la commande rid
 
@@ -225,3 +234,18 @@ AND le DIU construit le paquet Debian dans `dist/` du projet
 WHEN l'utilisateur exécute `rid proj deb projetinexistant`
 THEN un message d'erreur indique que le projet n'existe pas
 AND le DIU se termine avec le code 1
+#### Scenario: Projet par défaut
+
+- **WHEN** rid projects deb est demandé
+- **THEN** le projet diu est construit sans modifier cicddiu
+
+#### Scenario: Cache deb absent
+
+- **WHEN** le projet contient le script principal, lib/ et modules/ mais pas deb/
+- **THEN** la construction est permise sans lire ni créer ce cache
+
+#### Scenario: Identifiant ou chemin invalide
+
+- **WHEN** l'identifiant est vide, un chemin, un lien symbolique ou sort de la racine
+- **THEN** la commande échoue sans écriture ni construction
+

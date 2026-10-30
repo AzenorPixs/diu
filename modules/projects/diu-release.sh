@@ -24,6 +24,8 @@ publish_release_debian() {
     local package_name=""
     local package_version=""
 
+    # Ancre locale consommée par _forgejo_read_username via la portée dynamique Bash.
+    # shellcheck disable=SC2034
     local forgejo_username=""
     local forgejo_token=""
 
@@ -485,6 +487,8 @@ publish_release_debian() {
 
     print_title "Étape 4/11 — Vérification des métadonnées Debian"
 
+    # Les marqueurs sont interprétés par dpkg-deb, pas par Bash.
+    # shellcheck disable=SC2016
     package_name="$(
         dpkg-deb \
             --show \
@@ -493,6 +497,8 @@ publish_release_debian() {
             2>/dev/null
     )"
 
+    # Expansion différée volontaire du marqueur Debian Version.
+    # shellcheck disable=SC2016
     package_version="$(
         dpkg-deb \
             --show \
@@ -532,47 +538,14 @@ publish_release_debian() {
     # Recherche d'un tag sur le dernier commit Git
     # ----------------------------------------------------------
 
-    local_git_tag="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" \
-            tag --points-at HEAD 2>/dev/null |
-            head -n 1
-    )"
-
+    if ! local_git_tag="$(diu_release_version_matches "${project_path}" "${deb_version}")"; then
+        return 1
+    fi
+    tag_name="v${deb_version}"
     if [[ -n "${local_git_tag}" ]]; then
-
-        tag_name="${local_git_tag}"
         tag_source="git"
-
-        print_info \
-            "Tag associé au dernier commit Git : ${tag_name}"
-
-        # Vérification de cohérence avec la version Debian
-        if [[ "${tag_name#v}" != "${deb_version}" ]]; then
-
-            print_error \
-                "Le tag Git et la version du paquet Debian sont incohérents."
-
-            printf '%-22s : %s\n' \
-                "Tag Git" "${tag_name}"
-
-            printf '%-22s : %s\n' \
-                "Version Debian" "${deb_version}"
-
-            return 1
-        fi
-
     else
-
-        # Comportement historique
-        tag_name="v${deb_version}"
         tag_source="debian"
-
-        print_info \
-            "Aucun tag associé au dernier commit Git."
-
-        print_info \
-            "Tag généré depuis la version Debian : ${tag_name}"
     fi
 
     # ==========================================================
@@ -596,7 +569,7 @@ publish_release_debian() {
 
     print_title "Étape 6/11 — Authentification Forgejo"
 
-    if ! _forgejo_ensure_credentials "${project_path}"; then
+    if ! forgejo_credentials_prepare "${project_path}" "${remote_name}"; then
         print_error \
             "Impossible d'obtenir des credentials Forgejo valides."
         return 1

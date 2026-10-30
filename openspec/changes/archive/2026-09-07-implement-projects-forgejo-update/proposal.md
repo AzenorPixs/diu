@@ -1,4 +1,4 @@
-# Proposition : mise à jour de la configuration Forgejo
+# GIT07 — Proposition : mise à jour de la configuration Forgejo
 
 ## Contexte
 

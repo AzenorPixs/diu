@@ -1,3 +1,5 @@
+# ART02 — Publication des releases Forgejo
+
 ## Why
 
 Le DIU ne possède aucun moyen automatisé de publier une Release Forgejo
