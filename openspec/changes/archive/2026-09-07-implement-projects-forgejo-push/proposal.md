@@ -1,4 +1,4 @@
-# Proposition : publication des projets vers Forgejo
+# GIT06 — Proposition : publication des projets vers Forgejo
 
 ## Contexte
 

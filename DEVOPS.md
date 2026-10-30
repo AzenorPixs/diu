@@ -3,7 +3,7 @@
 Version : 0.7
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-28T13:08:21Z
+Début du relevé (UTC) : 2026-10-29T06:42:37Z
 Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -94,7 +94,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 2.2.0
+  * 2.2.1
   * /home/devops/.opencode/bin/opencode
   * La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env
 
@@ -155,13 +155,13 @@ La détection ne vérifie pas le fonctionnement du mode headless.
 
 ## Chromium
 
-  * 156.0.8078.47
+  * 156.0.8078.73
   * /usr/bin/chromium
   * Mode headless : --headless
 
 
 ## Firefox
 
-  * 153.5.1esr
+  * 153.6.0esr
   * /usr/bin/firefox
   * Mode headless : --headless

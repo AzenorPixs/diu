@@ -1,3 +1,5 @@
+# GIT13 — Publication Forgejo groupée
+
 ## Why
 
 Le DIU sait publier un dépôt local vers Forgejo projet par projet, mais ne

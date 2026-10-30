@@ -1,3 +1,5 @@
+# DEV04 — Réorganisation de la syntaxe template devops
+
 ## Why
 
 Le développeur demande la même position du sélecteur pour DevOps et OpenSpec,

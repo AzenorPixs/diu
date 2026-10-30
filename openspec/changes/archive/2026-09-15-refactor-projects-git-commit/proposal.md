@@ -1,4 +1,4 @@
-# Why
+# GIT19 — Why
 
 La commande publique de commit Git d'un projet utilise l'abréviation isolée
 `gitc`, alors que les autres opérations Git sont regroupées sous

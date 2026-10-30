@@ -1,4 +1,4 @@
-# Proposition : publication des projets vers GitHub
+# GIT08 — Proposition : publication des projets vers GitHub
 
 ## Contexte
 

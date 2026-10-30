@@ -1,4 +1,4 @@
-# Proposal: Réappliquer les composants Debian avant une mise à jour globale
+# SYS06 — Proposal: Réappliquer les composants Debian avant une mise à jour globale
 
 ## Why
 

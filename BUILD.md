@@ -37,12 +37,10 @@ Le répertoire d'installation en production est :
 /root/diu
 ```
 
-La fonction de construction travaille sur le projet `diu`, dont le chemin est
-dérivé de :
-
-```text
-${DEVOPS_PROJECTS_ROOT}/diu
-```
+La fonction build_deb_diu accepte un identifiant de projet source optionnel,
+par défaut diu. Elle sélectionne cet enfant direct de DEVOPS_PROJECTS_ROOT,
+refuse un identifiant invalide, un lien symbolique ou une sortie de la racine.
+Le projet doit contenir les sources de production DIU ; le nom du paquet reste diu.
 
 Pour le flux `cicddiu`, `DEVOPS_PROJECTS_ROOT` doit valoir
 `/home/devops/datas`.
@@ -90,10 +88,10 @@ Elle peut également être déclenchée directement avec :
 rid projects deb
 ```
 
-Cette commande construit actuellement le projet `diu`. Le routeur ne transmet
-pas d'identifiant à `build_deb_diu`, même si l'aide présente un paramètre de
-projet. La syntaxe et la cible prévues par OpenSpec restent à réconcilier,
-comme indiqué dans les écarts ci-dessous.
+La commande directe est rid projects deb [ID PROJECT], avec diu par défaut.
+L’alias rid proj deb <ID PROJECT> exige une source explicite. L’aide des deux
+syntaxes est disponible avant le bootstrap ; les arguments supplémentaires
+sont refusés. Les appels sans argument de cicddiu restent compatibles.
 
 ## Version du paquet
 
@@ -116,16 +114,18 @@ commit : 2026.09.03.17.25
 tag    : v2026.09.03.17.25
 ```
 
-Le commit et le tag sont créés avant la phase de construction. Au démarrage du
-build, `build_deb_diu` recherche un tag Git pointant sur `HEAD` :
+Le commit et le tag du flux cicddiu restent créés avant le build. La politique
+V2 retient l’unique version Debian valide portée par les tags de HEAD, après
+retrait du préfixe v éventuel. Les tags équivalents v1.2.3 et 1.2.3 désignent une
+seule version. Un tag inexploitable, plusieurs versions distinctes ou un échec
+de consultation Git provoquent un arrêt explicite avant publication.
 
-- si un tag est trouvé, le préfixe `v` est retiré et la valeur restante devient
-  la version du paquet ;
-- si aucun tag ne pointe sur `HEAD`, un horodatage local au format
-  `YYYY.MM.DD.HH.MM` est généré comme valeur de repli.
-
-Dans le flux normal `cicddiu`, le paquet, le commit et le tag utilisent donc la
-même version horodatée.
+Sans métadonnées Git à la racine du projet source ou sans tag de HEAD, le
+builder utilise l’heure locale YYYY.MM.DD.HH.MM. Il distingue l’absence de tag
+d’une erreur de lecture. La release utilise la même sélection et exige son
+égalité avec la version du paquet. Sans tag, elle conserve cette version du
+paquet sans générer un nouvel horodatage ; son tag est v<VERSION>.
+Les versions issues de tags ne sont donc pas limitées au format calendaire.
 
 ## Prérequis
 
@@ -135,9 +135,10 @@ Avant toute construction, `build_deb_diu` vérifie :
 - la prise en charge de l'option `--root-owner-group` ;
 - l'existence du projet `${DEVOPS_PROJECTS_ROOT}/diu` ;
 - la présence de `root-install-debian.sh` ;
-- la présence de `deb/` ;
 - la présence de `lib/` ;
 - la présence de `modules/`.
+
+deb/ est un cache runtime sans rôle dans le build : son absence est admise.
 
 Un prérequis absent provoque l'arrêt de la construction avec un message
 d'erreur et un code de retour non nul.
@@ -226,6 +227,9 @@ Ce contrôle constitue une barrière de sécurité complémentaire à la liste
 blanche. Aucun paquet ne doit être construit lorsqu'un élément interdit est
 détecté.
 
+Le répertoire de contrôle DEBIAN est préparé en mode exact 0755, sans hériter
+du bit setgid du répertoire parent. Cette modification concerne seulement le staging.
+
 ## Métadonnées Debian
 
 Le fichier `<staging>/DEBIAN/control` est généré pendant la construction avec
@@ -311,25 +315,14 @@ Les vérifications minimales portent sur :
 - l'absence des configurations locales, sources de développement, secrets,
   caches et fichiers temporaires.
 
-## Écarts actuellement identifiés
+## Réconciliation du 28 octobre 2026
 
-Les écarts suivants existent entre l'implémentation observée et la
-spécification OpenSpec `deb-package` :
+Le plan ACSM-DIU-BOOTSTRAP-PACKAGING-20261028-R1 adopte C1 et V2 :
+source paramétrable avec compatibilité CLI, suppression du prérequis deb/,
+et préférence normative pour une version de tag valide. Les contrats et le
+code sont réconciliés dans reconcile-diu-deb-packaging-contract, conservé actif.
 
-- l'implémentation exige la présence de `deb/`, alors que ce répertoire n'est
-  ni lu ni copié et ne figure pas parmi les prérequis définis par la
-  spécification ;
-- la spécification décrit `rid proj deb <project_id>`, tandis que le filtre
-  CLI actuel accepte la classe `projects` et rejette `proj`. Le dispatch
-  et `build_deb_diu` ciblent le projet `diu` sans utiliser de paramètre
-  `project_id`, contrairement à la cible paramétrable annoncée par l'aide ;
-- la spécification décrit une version générée au moment du build, tandis que
-  l'implémentation préfère un tag pointant sur `HEAD` et utilise l'horodatage
-  uniquement en l'absence de tag. Dans le flux `cicddiu`, le tag par défaut est
-  lui-même généré à partir de l'horodatage attendu.
-
-La spécification actuelle et l'implémentation excluent toutes deux `config/`
-du paquet ; cet élément ne constitue pas un écart.
-
-Ce document constate ces écarts sans modifier les exigences OpenSpec. Leur
-correction ou leur validation nécessite une évolution explicitement autorisée.
+Les tests tests/test_diu_packaging.py utilisent des sources fictives, un paquet
+Debian réel de fixture, des transports simulés et un dépôt Git local isolé.
+Ils couvrent contenu, versions, aides, refus, rotation et préservation après
+échec. Ils n’installent aucun paquet sur la machine et ne publient rien.
