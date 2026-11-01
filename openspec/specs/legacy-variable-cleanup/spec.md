@@ -7,25 +7,25 @@ Retirer de manière idempotente les déclarations historiques de distribution, d
 
 ### Requirement: Nettoyage de la configuration historique
 
-Le DIU SHALL appeler `config_cleanup` de
-`modules/system/variables-cleanup.sh` avant de sourcer
-`/root/diu/variables.sh`. La fonction SHALL supprimer les affectations simples
-de `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`
-et `PROXY`, sans exposer leur valeur ni altérer les autres lignes. Pour
-`PROXY`, elle SHALL migrer `0` ou `1` vers `SYSTEM_PROXY` si ce nom est absent.
-Elle SHALL accepter un chemin optionnel ; le défaut est
-`/root/diu/variables.sh`.
+Le DIU SHALL appeler `config_cleanup` avant de sourcer
+`/root/diu/variables.sh`. Cette fonction SHALL supprimer les affectations
+simples des variables historiques documentées sans exposer leurs valeurs ni
+modifier les autres lignes. Elle SHALL migrer les littéraux `0` ou `1` de
+`PROXY` et `DRIVERS_NVIDIA` vers leurs nouveaux noms système lorsqu’ils ne
+sont pas déjà déclarés. Elle SHALL accepter un chemin optionnel ; son défaut
+est `/root/diu/variables.sh`.
 
 #### Scenario: Anciennes déclarations présentes
 
 - **WHEN** le fichier contient une ou plusieurs affectations de
-  `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`
-  ou `PROXY`
+  `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
+  `PROXY` ou `DRIVERS_NVIDIA`
 - **THEN** les affectations historiques SHALL être supprimées avant le
   chargement
-- **AND** si `PROXY` est affectée uniquement par des valeurs littérales
-  `0` ou `1`, sa dernière valeur SHALL être persistée dans `SYSTEM_PROXY`
-  avant sa suppression, sauf si `system.env` déclare déjà `SYSTEM_PROXY`
+- **AND** les dernières valeurs littérales `PROXY=0|1` et
+  `DRIVERS_NVIDIA=0|1` SHALL être persistées sous leurs nouveaux noms
+  respectifs lorsqu’aucune déclaration correspondante n’existe dans
+  `system.env`
 - **AND** les nouveaux noms, noms voisins, commentaires et autres variables
   SHALL être conservés
 
@@ -37,8 +37,9 @@ Elle SHALL accepter un chemin optionnel ; le défaut est
 
 #### Scenario: Erreur de lecture ou écriture
 
-- **WHEN** une lecture ou suppression échoue, ou qu’une affectation `PROXY`
-  ne respecte pas le format littéral simple `0` ou `1`
+- **WHEN** une lecture ou suppression échoue, ou une affectation historique
+  `PROXY` ou `DRIVERS_NVIDIA` ne respecte pas le format littéral simple `0`
+  ou `1`
 - **THEN** le nettoyage SHALL retourner un code non nul avec un diagnostic
   sur stderr sans contenu de configuration
 - **AND** le démarrage SHALL NOT poursuivre le chargement de la configuration

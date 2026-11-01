@@ -688,13 +688,15 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA` et
-`PROXY`, avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
+`PROXY` et `DRIVERS_NVIDIA`, avec `export` facultatif et espaces initiaux
+éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
-Pour `PROXY`, le nettoyage transfère la dernière valeur littérale `0` ou `1`
-vers `SYSTEM_PROXY` dans `system.env`, sauf si `SYSTEM_PROXY` y est déjà
-déclarée. Toute autre forme bloque le chargement sans modifier le fichier.
+Pour `PROXY` et `DRIVERS_NVIDIA`, le nettoyage transfère la dernière valeur
+littérale `0` ou `1` vers leur nouveau nom système respectif dans `system.env`,
+sauf si ce nouveau nom y est déjà déclaré. Toute autre forme bloque le
+chargement sans modifier le fichier.
 
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
 isolés. Elle est idempotente : l'absence du fichier ou des affectations
@@ -704,10 +706,11 @@ d'écriture bloque le chargement suivant.
 
 Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
-`SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA` et `SYSTEM_PROXY`. À l’exception de la
-migration littérale de `PROXY` décrite ci-dessus, les valeurs historiques ne
-sont pas transférées. Le nettoyage intervient à la prochaine exécution du
-DIU, sans sauvegarde automatique des autres anciennes affectations supprimées.
+`SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY` et
+`SYSTEM_DRIVERS_NVIDIA`. À l’exception des migrations littérales de `PROXY` et
+`DRIVERS_NVIDIA` décrites ci-dessus, les valeurs historiques ne sont pas
+transférées. Le nettoyage intervient à la prochaine exécution du DIU, sans
+sauvegarde automatique des autres anciennes affectations supprimées.
 
 ### Déclarations unitaires
 
@@ -765,6 +768,19 @@ exécute le traitement CA existant seulement lorsque `SYSTEM_PROXY_CA` vaut
 `1`. L’ancienne affectation `PROXY_CA` est supprimée avant le chargement de
 `variables.sh`, sans transfert ; une ancienne activation doit être reportée
 explicitement à `SYSTEM_PROXY_CA=1` dans `system.env`.
+
+### Option pilote NVIDIA système
+
+`modules/diu/variables/system/system_drivers_nvidia.sh` déclare
+`SYSTEM_DRIVERS_NVIDIA` avec `STATIC`, `ENABLE`, scope `system` et valeur
+initiale `0`. Une valeur absente est persistée dans
+`/root/diu/config/system.env`, puis exportée ; une valeur existante est
+conservée. Le point d’entrée exécute les traitements NVIDIA existants
+uniquement lorsque `SYSTEM_DRIVERS_NVIDIA` vaut `1`. Ces traitements peuvent
+installer des prérequis, configurer DKMS et les modules noyau, et activer le
+runtime NVIDIA de Docker. Une ancienne affectation simple `DRIVERS_NVIDIA=0`
+ou `1` est migrée par le nettoyage historique ; une forme ambiguë bloque le
+chargement sans afficher son contenu.
 
 ### Indicateurs de tests DevOps
 
