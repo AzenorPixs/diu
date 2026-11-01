@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciels APT : migration du contrôle `APACHE2` vers
+  `SOFTWARES_APT_APACHE2`, déclaré en `STATIC`, `ENABLE`, scope `softwares`,
+  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
+  exactement vers `softwares.env` sauf si la nouvelle variable y est déjà
+  configurée.
+
 - Variables système : migration de `NO_SLEEP` vers `SYSTEM_NO_SLEEP`, déclaré
   en `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
