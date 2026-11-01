@@ -374,7 +374,10 @@ Un indicateur absent, vide ou différent de `1` omet la rubrique et sa sonde Doc
 Le générateur ne vérifie ni la présence ni l'accès au socket ou à l'image,
 ne télécharge ni ne lance de conteneur et ne modifie aucune permission.
 Le tag `debian:stable-slim` suit Debian stable sans figer une version ou un
-digest. Docker-Compose et les autres rubriques et sondes restent indépendants.
+digest. La puce fixe Accès TPM OK suit l'image et précède l'autorisation
+commune ; elle décrit le contexte de test configuré, sans détection dynamique
+ni qualification d'un autre hôte. Docker-Compose et les autres rubriques et
+sondes restent indépendants.
 
 La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » est générée
 uniquement si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`, indépendamment de Docker.
@@ -387,7 +390,7 @@ Les trois parcours de génération partagent ce rendu au format `0.7`.
 
 Chaque rubrique de conteneur activée contient la même puce d'autorisation :
 « Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
-Docker et LXC contiennent chacun cinq puces. L’autorisation est la dernière pour
+Docker contient six puces et LXC cinq. L’autorisation est la dernière pour
 Docker et la quatrième pour LXC. LXC se termine par la puce exacte :
 « Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
 La fonction commune `projects_template_devops_test_authorization` émet l’autorisation.

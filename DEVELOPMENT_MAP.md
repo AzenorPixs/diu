@@ -6,7 +6,7 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
-Couverture : **128 changes, 11 actifs et 117 archivés** : 125 lots codés répartis en neuf familles et trois changes actifs provisoires sans code. Les 125 codes sont attestés dans les titres des propositions et dans le [registre](openspec/BATCH_CODES.md). Le squelette initial, limité au titre conservé, est complété sous validation explicite des trois volets du plan.
+Couverture : **129 changes, 11 actifs et 118 archivés** : 125 lots codés répartis en neuf familles, trois changes actifs provisoires et un change archivé sans code. Les 125 codes sont attestés dans les titres des propositions et dans le [registre](openspec/BATCH_CODES.md). Le squelette initial, limité au titre conservé, est complété sous validation explicite des trois volets du plan.
 
 Sources : [règles](AGENTS.md), [projet](PROJECT.md), [technique](TECHNICAL.md), [construction](BUILD.md), [environnement](DEVOPS.md), [configuration OpenSpec](openspec/config.yaml), propositions, deltas, tâches et preuves liées ci-dessous. Sources de vérité et preuves applicables prévalent sur cette synthèse.
 
@@ -302,8 +302,8 @@ flowchart TB
 
 ### Changes actifs provisoires — code non attribué
 
-Le regroupement GIT/ART exprime la responsabilité des propositions. Il n’attribue
-aucun code et ne crée aucune dépendance entre les trois changes. Voir leurs
+Les regroupements GIT/ART expriment la responsabilité des propositions. Ils n’attribuent
+aucun code et ne créent aucune dépendance entre les trois changes actifs. Voir leurs
 entrées distinctes dans le registre ci-dessous.
 
 ```mermaid
@@ -465,6 +465,12 @@ Plan validé : ACSM-DIU-BOOTSTRAP-PACKAGING-20261028-R1, B1/C1/V2. État de code
 | [reconcile-forgejo-credential-bootstrap](openspec/changes/reconcile-forgejo-credential-bootstrap/) | GIT | 5/5 | RÉALISABLE : clôture documentaire sous autorisation | forgejo-auth, implement-projects-forgejo-push, forgejo-release | [proposition](openspec/changes/reconcile-forgejo-credential-bootstrap/proposal.md), [tâches et réserves](openspec/changes/reconcile-forgejo-credential-bootstrap/tasks.md) |
 | [reconcile-diu-deb-packaging-contract](openspec/changes/reconcile-diu-deb-packaging-contract/) | ART | 6/6 | RÉALISABLE : clôture documentaire sous autorisation | deb-package, rid-help, forgejo-release | [proposition](openspec/changes/reconcile-diu-deb-packaging-contract/proposal.md), [tâches et réserves](openspec/changes/reconcile-diu-deb-packaging-contract/tasks.md) |
 | [fix-gitlab-release-asset-link-validation](openspec/changes/fix-gitlab-release-asset-link-validation/) | ART | 6/6 | RÉALISABLE : clôture documentaire sous autorisation | implement-projects-gitlab-release | [proposition](openspec/changes/fix-gitlab-release-asset-link-validation/proposal.md), [tâches et preuves](openspec/changes/fix-gitlab-release-asset-link-validation/tasks.md) |
+
+### Changes archivés sans code attribué
+
+| Identifiant et dossier | Ensemble | Tâches | État et preuves | Capacités | Sources |
+|---|---|---:|---|---|---|
+| [add-devops-docker-tpm-access](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/) | DEV | 5/5 | ARCHIVÉ ; validations ciblées et rendu confirmés le 2026-11-01 | projects-template-devops | [proposition](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/STATISTICS.md) |
 
 ### Capacités et rattachement des 125 changes codés
 
