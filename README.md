@@ -184,9 +184,11 @@ adoptent ce rendu à leur prochaine génération normale, au format `0.7`.
 La rubrique « Conteneur Docker, pour tests nécessitant des droits root » apparaît
 uniquement si `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`. Elle indique la
 version détectée, le binaire, puis `/var/run/docker.sock` et l'image
-`debian:stable-slim`. Ces deux références restent affichées si Docker est
+`debian:stable-slim`. Ces références et la puce Accès TPM OK restent affichées
 indisponible, sans vérification du socket ni téléchargement ou lancement
-de l'image. Le tag suit Debian stable ; aucune version Debian n'est figée.
+de l'image. La puce Accès TPM OK décrit le contexte de test configuré ; elle
+ne constitue pas une sonde ni une qualification d'un autre hôte. Le tag suit
+Debian stable ; aucune version Debian n'est figée.
 Sinon, cette rubrique et sa sonde Docker sont omises ; Docker-Compose reste présent.
 
 La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » apparaît
@@ -203,7 +205,7 @@ Les deux rubriques activées contiennent l'autorisation commune :
 « Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
 Cette consigne explicite l'autorisation des tests pour les deux types d'agents.
 Elle ne désactive pas les contrôles techniques de permissions imposés par les
-outils ou leur plateforme. Docker et LXC comportent chacun cinq puces.
+outils ou leur plateforme. Docker comporte six puces et LXC cinq.
 L’autorisation est dernière pour Docker et quatrième pour LXC. LXC se termine par :
 « Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
 Une rubrique désactivée n’émet aucune puce d’autorisation ni de conservation

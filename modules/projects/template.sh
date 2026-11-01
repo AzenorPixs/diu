@@ -221,7 +221,7 @@ projects_template_devops_test_authorization() {
 projects_template_devops_section() {
     local title="$1" version="$2" binary="$3"
     if [[ "${title}" == Docker ]]; then
-        printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n' \
+        printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n  * Accès TPM OK\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}" || return 1
         projects_template_devops_test_authorization || return 1
     elif [[ "${title}" == OpenCode ]]; then

@@ -735,36 +735,35 @@ prompts ou son index. Leur absence SHALL NOT empêcher la génération.
 ### Requirement: Références Docker des tests nécessitant des droits root
 
 La rubrique Docker SHALL porter le titre exact
-`Conteneur Docker, pour tests nécessitant des droits root`. Elle SHALL contenir cinq
-puces, dans cet ordre : version détectée ou diagnostic existant, chemin du
-binaire ou diagnostic existant, `/var/run/docker.sock`, `debian:stable-slim`, puis la puce commune d’autorisation.
-Le socket et l’image SHALL rester des références documentaires fixes.
+`Conteneur Docker, pour tests nécessitant des droits root`. Lorsque
+`ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`, elle SHALL contenir six puces
+dans cet ordre : version, binaire, `/var/run/docker.sock`,
+`debian:stable-slim`, `Accès TPM OK`, autorisation commune. Les trois
+dernières références sont fixes et documentaires.
 
 #### Scenario: Docker disponible
 
-- **GIVEN** ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`
-- **WHEN** la version et le binaire Docker sont détectés
-- **THEN** la rubrique porte le titre exact et les cinq puces dans l'ordre prévu
-- **AND THEN** les deux références apparaissent chacune une seule fois
-
-#### Scenario: Docker indisponible
-
-- **GIVEN** ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`
-- **WHEN** le binaire Docker est absent ou sa sonde échoue
-- **THEN** les diagnostics existants sont conservés dans les premières puces
-- **AND THEN** le socket et l'image restent indiqués sans nouvelle sonde ou action Docker
-
-#### Scenario: Portée documentaire des références
-
-- **WHEN** les références Docker sont ajoutées au document
-- **THEN** le générateur ne sonde pas le socket, ne télécharge ni ne lance l'image et ne modifie aucune permission
-- **AND THEN** leur présence ne constitue pas une preuve de disponibilité ou de fonctionnement
+- **WHEN** `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`
+- **THEN** la rubrique porte le titre exact et les six puces dans l'ordre prévu
+- **AND** le socket, l'image et la mention TPM apparaissent une seule fois
 
 #### Scenario: Docker désactivé
 
-- **WHEN** ENV_DEVOPS_TESTS_DOCKER est absent, vide, égal à `0` ou différent de `1`
-- **THEN** la rubrique Docker, ses cinq puces et sa sonde sont omises
-- **AND** Docker-Compose et les autres rubriques restent présents
+- **WHEN** `ENV_DEVOPS_TESTS_DOCKER` est absent, vide ou différent de `1`
+- **THEN** la rubrique Docker, ses six puces et sa sonde sont omises
+
+#### Scenario: Docker indisponible
+
+- **GIVEN** `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`
+- **WHEN** le binaire Docker est absent ou sa sonde échoue
+- **THEN** les diagnostics existants sont conservés dans les premières puces
+- **AND** le socket, l'image et la mention TPM restent indiqués sans nouvelle sonde ou action Docker
+
+#### Scenario: Portée documentaire des références
+
+- **WHEN** la rubrique Docker est générée
+- **THEN** le générateur ne sonde pas le socket, ne télécharge ni ne lance l'image, ne modifie aucune permission, n’effectue aucune nouvelle sonde TPM et ne transmet aucun périphérique
+- **AND** la mention TPM ne prouve pas l’accès sur un autre hôte
 
 ### Requirement: Structure de l'inventaire matériel TPM
 

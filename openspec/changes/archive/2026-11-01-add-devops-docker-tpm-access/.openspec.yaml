@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-01
+goal: Ajouter la mention Accès TPM OK à la rubrique Docker générée, après
+  confirmation de l’accès par passage du périphérique TPM.

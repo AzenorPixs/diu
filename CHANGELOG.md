@@ -4,6 +4,43 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration du drapeau `FILES2RAM` vers
+  `SYSTEM_FILES2RAM`, déclaré en `STATIC`, `ENABLE`, scope `system`, défaut
+  `0`. Une ancienne valeur littérale `0` ou `1` est migrée sauf si la nouvelle
+  variable est déjà configurée; la valeur `1` conserve les effets existants.
+
+- Variables système : migration de `FSTAB` et `FSTAB_CONFIG1` à
+  `FSTAB_CONFIG5` vers les six déclarations `SYSTEM_FSTAB*`, en `STATIC`,
+  `ENABLE`, scope `system`; défauts `0` et `NONE`. Les anciennes valeurs
+  littérales sont transférées sauf si la nouvelle variable existe déjà;
+  les syntaxes shell ambiguës bloquent le nettoyage.
+
+- FSTAB système : ajout de `SYSTEM_FSTAB_CONFIG6`, en `STATIC`, `ENABLE`,
+  scope `system`, défaut `NONE`. Lorsque le drapeau est activé, l’entrée est
+  ajoutée après la cinquième; l’affectation littérale historique est migrée si
+  la nouvelle déclaration est absente.
+
+- Variables système : migration du drapeau `DRIVERS_NVIDIA` vers
+  `SYSTEM_DRIVERS_NVIDIA`, déclarée en `STATIC`, `ENABLE`, scope `system`,
+  défaut `0`. Les anciennes valeurs littérales `0` ou `1` sont migrées sauf
+  si la nouvelle variable est déjà configurée ; les déclarations ambiguës
+  bloquent le nettoyage.
+
+- Variables système : migration du drapeau `PROXY` vers `SYSTEM_PROXY`,
+  déclarée en `STATIC`, `ENABLE`, scope `system`, défaut `0`. Les valeurs
+  historiques simples `0` ou `1` sont migrées sauf si `SYSTEM_PROXY` est déjà
+  configurée ; les déclarations ambiguës bloquent le nettoyage.
+
+- Variables système : migration de `PROXY_CA` vers `SYSTEM_PROXY_CA`, déclarée
+  en `STATIC`, `ENABLE`, scope `system`, défaut `0`. Le traitement CA existant
+  reste actif uniquement pour la valeur `1` ; la valeur historique n’est pas
+  transférée.
+
+- Génération de DEVOPS.md : ajout de la puce « Accès TPM OK » après l'image
+  debian:stable-slim dans la rubrique Docker activée. Mention documentaire
+  fixe, sans sonde ni changement d'infrastructure ; la rubrique passe à six
+  puces et les autres comportements restent inchangés.
+
 - Régressions : isolation des configurations Git de test, fixtures globales
   alignées sur U1, référence Zsh Z1 avec inventaire explicite et contrôle APT
   indépendant de l’ordre de démarrage du pipeline.

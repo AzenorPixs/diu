@@ -374,7 +374,10 @@ Un indicateur absent, vide ou différent de `1` omet la rubrique et sa sonde Doc
 Le générateur ne vérifie ni la présence ni l'accès au socket ou à l'image,
 ne télécharge ni ne lance de conteneur et ne modifie aucune permission.
 Le tag `debian:stable-slim` suit Debian stable sans figer une version ou un
-digest. Docker-Compose et les autres rubriques et sondes restent indépendants.
+digest. La puce fixe Accès TPM OK suit l'image et précède l'autorisation
+commune ; elle décrit le contexte de test configuré, sans détection dynamique
+ni qualification d'un autre hôte. Docker-Compose et les autres rubriques et
+sondes restent indépendants.
 
 La rubrique « Conteneur LXC, pour tests nécessitant des droits root accessible en SSH » est générée
 uniquement si `ENV_DEVOPS_TESTS_LXC` vaut exactement `1`, indépendamment de Docker.
@@ -387,7 +390,7 @@ Les trois parcours de génération partagent ce rendu au format `0.7`.
 
 Chaque rubrique de conteneur activée contient la même puce d'autorisation :
 « Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
-Docker et LXC contiennent chacun cinq puces. L’autorisation est la dernière pour
+Docker contient six puces et LXC cinq. L’autorisation est la dernière pour
 Docker et la quatrième pour LXC. LXC se termine par la puce exacte :
 « Binaires et bibliothèques installés pour les tests ne sont pas à désinstaller après tests. »
 La fonction commune `projects_template_devops_test_authorization` émet l’autorisation.
@@ -685,18 +688,33 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK` et `TIME_ZONE`, avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
+`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM` et `FSTAB_CONFIG1` à
+`FSTAB_CONFIG6`,
+avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
-La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
-isolés. Elle est idempotente : l'absence du fichier ou l'absence de la ligne à
-supprimer est un succès sans réécriture. Toute erreur de lecture ou d'écriture
-bloque le chargement suivant.
+Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB` et `FILES2RAM`, le nettoyage transfère la dernière
+valeur littérale `0` ou `1` vers leur nouveau nom système dans `system.env`.
+Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
+littérale simple, y compris une valeur entre guillemets. Une déclaration
+nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
+shell bloque le chargement sans modifier les fichiers.
 
-Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE` et
-`SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK` et `SYSTEM_TIME_ZONE`. Les valeurs historiques ne sont pas transférées.
-Le nettoyage intervient à la prochaine exécution du DIU, sans sauvegarde
-automatique des anciennes affectations supprimées.
+La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
+isolés. Elle est idempotente : l'absence du fichier ou des affectations
+historiques est un succès sans réécriture. Une migration valide persiste
+`SYSTEM_PROXY` avant de supprimer `PROXY`. Toute erreur de lecture ou
+d'écriture bloque le chargement suivant.
+
+Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
+`SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
+`SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
+`SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM` et
+`SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
+ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
+intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
+autres anciennes affectations supprimées.
 
 ### Déclarations unitaires
 
@@ -733,6 +751,66 @@ invalide.
 
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
+
+### Option proxy système
+
+`modules/diu/variables/system/system_proxy.sh` déclare `SYSTEM_PROXY` avec
+`STATIC`, `ENABLE`, scope `system` et valeur initiale `0`. Une valeur absente
+est persistée dans `/root/diu/config/system.env`, puis exportée ; une valeur
+existante, même vide, est conservée. Le point d’entrée exécute les traitements
+proxy système et Java existants seulement lorsque `SYSTEM_PROXY` vaut `1`.
+La migration de `PROXY` vers `SYSTEM_PROXY` est effectuée par le nettoyage
+historique. Les variables `PROXY_HTTP` et `PROXY_HTTP_HOST` gardent leur rôle.
+
+### Option proxy CA système
+
+`modules/diu/variables/system/system_proxy_ca.sh` déclare
+`SYSTEM_PROXY_CA` avec `STATIC`, `ENABLE`, scope `system` et valeur initiale
+`0`. Une valeur absente est persistée dans `/root/diu/config/system.env`, puis
+exportée ; une valeur existante, même vide, est conservée. Le point d’entrée
+exécute le traitement CA existant seulement lorsque `SYSTEM_PROXY_CA` vaut
+`1`. L’ancienne affectation `PROXY_CA` est supprimée avant le chargement de
+`variables.sh`, sans transfert ; une ancienne activation doit être reportée
+explicitement à `SYSTEM_PROXY_CA=1` dans `system.env`.
+
+### Option pilote NVIDIA système
+
+`modules/diu/variables/system/system_drivers_nvidia.sh` déclare
+`SYSTEM_DRIVERS_NVIDIA` avec `STATIC`, `ENABLE`, scope `system` et valeur
+initiale `0`. Une valeur absente est persistée dans
+`/root/diu/config/system.env`, puis exportée ; une valeur existante est
+conservée. Le point d’entrée exécute les traitements NVIDIA existants
+uniquement lorsque `SYSTEM_DRIVERS_NVIDIA` vaut `1`. Ces traitements peuvent
+installer des prérequis, configurer DKMS et les modules noyau, et activer le
+runtime NVIDIA de Docker. Une ancienne affectation simple `DRIVERS_NVIDIA=0`
+ou `1` est migrée par le nettoyage historique ; une forme ambiguë bloque le
+chargement sans afficher son contenu.
+
+### Options FSTAB système
+
+`modules/diu/variables/system/system_fstab.sh` déclare `SYSTEM_FSTAB` avec
+`STATIC`, `ENABLE`, scope `system` et valeur initiale `0`. Les six fichiers
+`system_fstab_config1.sh` à `system_fstab_config6.sh` déclarent
+`SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6` avec `STATIC`, `ENABLE`, scope
+`system` et valeur initiale `NONE`. Les valeurs absentes sont persistées dans
+`/root/diu/config/system.env`, puis exportées; les valeurs existantes sont
+préservées. `SYSTEM_FSTAB=1` active les écritures FSTAB explicites existantes;
+`SYSTEM_FSTAB_CONFIG6` suit `SYSTEM_FSTAB_CONFIG5`, et `SYSTEM_FSTAB_CONFIG1`
+reste aussi consommée par FILES2RAM. La migration des
+anciennes affectations littérales est effectuée avant de sourcer
+`variables.sh`; les syntaxes nécessitant une interprétation shell bloquent le
+nettoyage.
+
+### Option FILES2RAM système
+
+`modules/diu/variables/system/system_files2ram.sh` déclare
+`SYSTEM_FILES2RAM` avec `STATIC`, `ENABLE`, scope `system` et valeur initiale
+`0`. Une valeur absente est persistée dans `/root/diu/config/system.env`, puis
+exportée; une valeur existante est préservée. Le point d’entrée exécute le
+traitement FILES2RAM existant seulement lorsque `SYSTEM_FILES2RAM` vaut `1`.
+Celui-ci peut supprimer `/var/log/*` lors de sa première activation si
+`/etc/tmpfiles.d/var2log.conf` n’existe pas; l’ancienne valeur littérale est
+migrée avant l’exécution et une syntaxe ambiguë bloque le nettoyage.
 
 ### Indicateurs de tests DevOps
 
