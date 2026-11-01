@@ -8,24 +8,22 @@ Retirer de manière idempotente les déclarations historiques de distribution, d
 ### Requirement: Nettoyage de la configuration historique
 
 Le DIU SHALL appeler `config_cleanup` avant de sourcer
-`/root/diu/variables.sh`. Cette fonction SHALL supprimer les affectations
-simples des variables historiques documentées sans exposer leurs valeurs ni
-modifier les autres lignes. Elle SHALL migrer les littéraux `0` ou `1` de
-`PROXY` et `DRIVERS_NVIDIA` vers leurs nouveaux noms système lorsqu’ils ne
-sont pas déjà déclarés. Elle SHALL accepter un chemin optionnel ; son défaut
-est `/root/diu/variables.sh`.
+`/root/diu/variables.sh`. La fonction SHALL supprimer les affectations simples
+des variables historiques listées dans le scénario et préserver les autres
+lignes. Elle SHALL migrer leurs littéraux acceptés vers les nouveaux noms
+système si ceux-ci ne sont pas déjà déclarés. Elle SHALL accepter un chemin
+optionnel ; son défaut est `/root/diu/variables.sh`.
 
 #### Scenario: Anciennes déclarations présentes
 
 - **WHEN** le fichier contient une ou plusieurs affectations de
   `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-  `PROXY` ou `DRIVERS_NVIDIA`
+  `PROXY`, `DRIVERS_NVIDIA`, `FSTAB` ou `FSTAB_CONFIG1` à `FSTAB_CONFIG5`
 - **THEN** les affectations historiques SHALL être supprimées avant le
   chargement
-- **AND** les dernières valeurs littérales `PROXY=0|1` et
-  `DRIVERS_NVIDIA=0|1` SHALL être persistées sous leurs nouveaux noms
-  respectifs lorsqu’aucune déclaration correspondante n’existe dans
-  `system.env`
+- **AND** leurs dernières valeurs simples littérales SHALL être persistées
+  sous leurs nouveaux noms si aucune déclaration correspondante n’existe
+  dans `system.env`
 - **AND** les nouveaux noms, noms voisins, commentaires et autres variables
   SHALL être conservés
 
@@ -38,8 +36,7 @@ est `/root/diu/variables.sh`.
 #### Scenario: Erreur de lecture ou écriture
 
 - **WHEN** une lecture ou suppression échoue, ou une affectation historique
-  `PROXY` ou `DRIVERS_NVIDIA` ne respecte pas le format littéral simple `0`
-  ou `1`
+  n’est pas un littéral simple accepté
 - **THEN** le nettoyage SHALL retourner un code non nul avec un diagnostic
   sur stderr sans contenu de configuration
 - **AND** le démarrage SHALL NOT poursuivre le chargement de la configuration

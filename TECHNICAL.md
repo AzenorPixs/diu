@@ -689,14 +689,16 @@ dans `BUILD.md`.
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-`PROXY` et `DRIVERS_NVIDIA`, avec `export` facultatif et espaces initiaux
-éventuels.
+`PROXY`, `DRIVERS_NVIDIA`, `FSTAB` et `FSTAB_CONFIG1` à `FSTAB_CONFIG5`,
+avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
-Pour `PROXY` et `DRIVERS_NVIDIA`, le nettoyage transfère la dernière valeur
-littérale `0` ou `1` vers leur nouveau nom système respectif dans `system.env`,
-sauf si ce nouveau nom y est déjà déclaré. Toute autre forme bloque le
-chargement sans modifier le fichier.
+Pour `PROXY`, `DRIVERS_NVIDIA` et `FSTAB`, le nettoyage transfère la dernière
+valeur littérale `0` ou `1` vers leur nouveau nom système dans `system.env`.
+Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG5`, il transfère la dernière valeur
+littérale simple, y compris une valeur entre guillemets. Une déclaration
+nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
+shell bloque le chargement sans modifier les fichiers.
 
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
 isolés. Elle est idempotente : l'absence du fichier ou des affectations
@@ -706,11 +708,12 @@ d'écriture bloque le chargement suivant.
 
 Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
-`SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY` et
-`SYSTEM_DRIVERS_NVIDIA`. À l’exception des migrations littérales de `PROXY` et
-`DRIVERS_NVIDIA` décrites ci-dessus, les valeurs historiques ne sont pas
-transférées. Le nettoyage intervient à la prochaine exécution du DIU, sans
-sauvegarde automatique des autres anciennes affectations supprimées.
+`SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
+`SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB` et `SYSTEM_FSTAB_CONFIG1` à
+`SYSTEM_FSTAB_CONFIG5`. À l’exception des migrations littérales documentées
+ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
+intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
+autres anciennes affectations supprimées.
 
 ### Déclarations unitaires
 
@@ -781,6 +784,20 @@ installer des prérequis, configurer DKMS et les modules noyau, et activer le
 runtime NVIDIA de Docker. Une ancienne affectation simple `DRIVERS_NVIDIA=0`
 ou `1` est migrée par le nettoyage historique ; une forme ambiguë bloque le
 chargement sans afficher son contenu.
+
+### Options FSTAB système
+
+`modules/diu/variables/system/system_fstab.sh` déclare `SYSTEM_FSTAB` avec
+`STATIC`, `ENABLE`, scope `system` et valeur initiale `0`. Les cinq fichiers
+`system_fstab_config1.sh` à `system_fstab_config5.sh` déclarent
+`SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG5` avec `STATIC`, `ENABLE`, scope
+`system` et valeur initiale `NONE`. Les valeurs absentes sont persistées dans
+`/root/diu/config/system.env`, puis exportées; les valeurs existantes sont
+préservées. `SYSTEM_FSTAB=1` active les écritures FSTAB explicites existantes;
+`SYSTEM_FSTAB_CONFIG1` reste aussi consommée par FILES2RAM. La migration des
+anciennes affectations littérales est effectuée avant de sourcer
+`variables.sh`; les syntaxes nécessitant une interprétation shell bloquent le
+nettoyage.
 
 ### Indicateurs de tests DevOps
 

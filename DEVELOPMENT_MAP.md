@@ -6,7 +6,7 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
-Couverture : **132 changes, 11 actifs et 121 archivés** : 125 lots codés répartis en neuf familles, trois changes actifs provisoires et quatre changes archivés sans code. Les 125 codes sont attestés dans les titres des propositions et dans le [registre](openspec/BATCH_CODES.md). Le squelette initial, limité au titre conservé, est complété sous validation explicite des trois volets du plan.
+Couverture : **133 changes, 11 actifs et 122 archivés** : 125 lots codés répartis en neuf familles, trois changes actifs provisoires et cinq changes archivés sans code. Les 125 codes sont attestés dans les titres des propositions et dans le [registre](openspec/BATCH_CODES.md). Le squelette initial, limité au titre conservé, est complété sous validation explicite des trois volets du plan.
 
 Sources : [règles](AGENTS.md), [projet](PROJECT.md), [technique](TECHNICAL.md), [construction](BUILD.md), [environnement](DEVOPS.md), [configuration OpenSpec](openspec/config.yaml), propositions, deltas, tâches et preuves liées ci-dessous. Sources de vérité et preuves applicables prévalent sur cette synthèse.
 
@@ -475,6 +475,7 @@ Plan validé : ACSM-DIU-BOOTSTRAP-PACKAGING-20261028-R1, B1/C1/V2. État de code
 | [add-system-proxy-ca](openspec/changes/archive/2026-11-01-add-system-proxy-ca/) | SYS | 10/10 | ARCHIVÉ ; tests unitaires et validation globale réussis ; installation LXC de la version mise à jour en attente du changement de version hôte | system-proxy-ca, legacy-variable-cleanup | [proposition](openspec/changes/archive/2026-11-01-add-system-proxy-ca/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-system-proxy-ca/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-system-proxy-ca/STATISTICS.md) |
 | [add-system-proxy-variable](openspec/changes/archive/2026-11-01-add-system-proxy-variable/) | SYS | 8/8 | ARCHIVÉ ; validation OpenSpec, 679 tests, ShellCheck et syntaxe Bash réussis ; intégration CISMP après nouvelle version hôte en attente | system-proxy, legacy-variable-cleanup | [proposition](openspec/changes/archive/2026-11-01-add-system-proxy-variable/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-system-proxy-variable/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-system-proxy-variable/STATISTICS.md) |
 | [add-system-drivers-nvidia-variable](openspec/changes/archive/2026-11-01-add-system-drivers-nvidia-variable/) | SYS | 8/8 | ARCHIVÉ ; validation OpenSpec, 686 tests, ShellCheck et syntaxe Bash réussis ; livraison/runtime avec la prochaine version du paquet en attente | system-drivers-nvidia, legacy-variable-cleanup | [proposition](openspec/changes/archive/2026-11-01-add-system-drivers-nvidia-variable/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-system-drivers-nvidia-variable/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-system-drivers-nvidia-variable/STATISTICS.md) |
+| [add-system-fstab-configuration](openspec/changes/archive/2026-11-01-add-system-fstab-configuration/) | SYS | 8/8 | ARCHIVÉ ; validation OpenSpec, 694 tests, ShellCheck et syntaxe Bash réussis ; livraison/runtime avec la prochaine version du paquet en attente | system-fstab, legacy-variable-cleanup | [proposition](openspec/changes/archive/2026-11-01-add-system-fstab-configuration/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-system-fstab-configuration/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-system-fstab-configuration/STATISTICS.md) |
 
 ### Capacités et rattachement des 125 changes codés
 
@@ -773,6 +774,6 @@ Mermaid : syntaxe élémentaire flowchart, identifiants et références contrôl
 - **Fait documenté** : écrit dans un artefact ; **fait vérifié** : contrôle actuel explicitement nommé ; **hypothèse** : interprétation exclue des décisions automatiques.
 - Rectangle bleu ACTIF ou gris ARCHIVÉ : lot identifié aussi textuellement. Rectangle à bord discontinu : contrat ou service interne/externe, sans code de lot.
 - Familles : regroupements de responsabilités justifiés par les cadrages et artefacts ; aucune dépendance implicite.
-- Repère « code non attribué » : entrée provisoire, ni code ni réservation ; sept dans le relevé actuel (trois actives et quatre archivées), avec style discontinu et libellé textuel.
+- Repère « code non attribué » : entrée provisoire, ni code ni réservation ; huit dans le relevé actuel (trois actives et cinq archivées), avec style discontinu et libellé textuel.
 - Ratios documentaires, validations, intégration, qualification, livraison et activation restent distincts.
 - **A → B signifie que A dépend de B.** Flèches directes étiquetées ; aucune relation transitive déduite.

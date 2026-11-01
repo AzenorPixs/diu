@@ -2285,43 +2285,43 @@ fi
 
 ### FSTAB ###
 
-if [ "$FSTAB" -eq 1 ]
+if [[ "${SYSTEM_FSTAB:-0}" == "1" ]]
 then
 
 	echo ""
 	echo "🔧 CONFIGURATION FSTAB"
-	if [ "$FSTAB_CONFIG1" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG1-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG1}" > /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG1-}" > /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG2" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG2-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG2}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG2-}" >> /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG3" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG3-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG3}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG3-}" >> /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG4" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG4-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG4}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG4-}" >> /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG5" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG5-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG5}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG5-}" >> /etc/fstab
 
 	fi
 
@@ -2423,7 +2423,7 @@ then
 	then
 
 		echo "🔧 CONFIGURATION FSTAB"
-		if [ "$FSTAB_CONFIG1" = "NONE" ]
+		if [[ "${SYSTEM_FSTAB_CONFIG1-NONE}" == "NONE" ]]
 		then
 
 			# echo "tmpfs			/var/log			tmpfs			rw,nosuid,nodev,noexec,noatime,nodiratime,mode=1755				0 0" > /etc/fstab
@@ -2439,7 +2439,7 @@ then
 	else
 
 					echo "🔧 CONFIGURATION FSTAB"
-		if [ "$FSTAB_CONFIG1" = "NONE" ]
+		if [[ "${SYSTEM_FSTAB_CONFIG1-NONE}" == "NONE" ]]
 		then
 
 			# echo "tmpfs			/var/log			tmpfs			rw,nosuid,nodev,noexec,noatime,nodiratime,mode=1755				0 0" > /etc/fstab

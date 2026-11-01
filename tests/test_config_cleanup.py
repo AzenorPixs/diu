@@ -123,6 +123,64 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotIn('NVIDIA_ENABLED', result.stderr)
             self.assertEqual(result.stdout, '')
 
+    def test_fstab_values_migrate_as_literals(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('FSTAB=1\n'
+                            'export FSTAB_CONFIG1="UUID=abc /data ext4 defaults 0 2"\n'
+                            "FSTAB_CONFIG2='tmpfs /var/log tmpfs rw,nosuid 0 0' # comment\n"
+                            'FSTAB_CONFIG3=NONE\n'
+                            'export FSTAB_CONFIG4=""\n'
+                            'FSTAB_CONFIG5=UUID=abc # comment\n'
+                            '# FSTAB_CONFIG1=comment\nFSTAB_CONFIG_EXTRA=keep\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(),
+                             '# FSTAB_CONFIG1=comment\nFSTAB_CONFIG_EXTRA=keep\nOTHER=keep\n')
+            self.assertEqual(result.stdout, '')
+            loaded = subprocess.run(
+                ['bash', '-c', 'source "$SYSTEM_CONFIG"; printf "%s\\n" '
+                 '"$SYSTEM_FSTAB" "$SYSTEM_FSTAB_CONFIG1" "$SYSTEM_FSTAB_CONFIG2" '
+                 '"$SYSTEM_FSTAB_CONFIG3" "$SYSTEM_FSTAB_CONFIG4" "$SYSTEM_FSTAB_CONFIG5"'],
+                env=dict(os.environ, SYSTEM_CONFIG=str(system_config)),
+                text=True, capture_output=True)
+            self.assertEqual(loaded.returncode, 0, loaded.stderr)
+            self.assertEqual(loaded.stdout.splitlines(), [
+                '1', 'UUID=abc /data ext4 defaults 0 2',
+                'tmpfs /var/log tmpfs rw,nosuid 0 0', 'NONE', '', 'UUID=abc'])
+
+    def test_fstab_new_values_precede_legacy_values(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('FSTAB=1\nFSTAB_CONFIG1="old row"\nFSTAB_CONFIG2="new row"\n')
+            system_config.write_text('export SYSTEM_FSTAB=0\nexport SYSTEM_FSTAB_CONFIG1=existing\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            loaded = subprocess.run(
+                ['bash', '-c', 'source "$SYSTEM_CONFIG"; printf "%s\\n" '
+                 '"$SYSTEM_FSTAB" "$SYSTEM_FSTAB_CONFIG1" "$SYSTEM_FSTAB_CONFIG2"'],
+                env=dict(os.environ, SYSTEM_CONFIG=str(system_config)),
+                text=True, capture_output=True)
+            self.assertEqual(loaded.returncode, 0, loaded.stderr)
+            self.assertEqual(loaded.stdout.splitlines(), ['0', 'existing', 'new row'])
+
+    def test_ambiguous_fstab_values_are_not_executed_or_removed(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'FSTAB=1\nFSTAB_CONFIG1="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse((Path(directory) / 'system.env').exists())
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
     def test_missing_file(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'missing.sh'
