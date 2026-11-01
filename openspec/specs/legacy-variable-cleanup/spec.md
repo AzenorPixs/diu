@@ -18,7 +18,8 @@ SHALL accepter un chemin optionnel, par défaut `/root/diu/variables.sh`.
 
 - **WHEN** le fichier contient une ou plusieurs affectations de
   `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-  `PROXY`, `DRIVERS_NVIDIA`, `FSTAB` ou `FSTAB_CONFIG1` à `FSTAB_CONFIG6`
+  `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM` ou `FSTAB_CONFIG1` à
+  `FSTAB_CONFIG6`
 - **THEN** les affectations historiques SHALL être supprimées avant le
   chargement
 - **AND** leurs dernières valeurs simples littérales SHALL être persistées

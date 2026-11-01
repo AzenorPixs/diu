@@ -2337,7 +2337,7 @@ fi
 
 ### FILE2RAM ###
 
-if [ "$FILES2RAM" -eq 1 ]
+if [[ "${SYSTEM_FILES2RAM:-0}" == "1" ]]
 then
 
 	echo ""

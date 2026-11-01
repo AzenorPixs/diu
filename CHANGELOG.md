@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration du drapeau `FILES2RAM` vers
+  `SYSTEM_FILES2RAM`, déclaré en `STATIC`, `ENABLE`, scope `system`, défaut
+  `0`. Une ancienne valeur littérale `0` ou `1` est migrée sauf si la nouvelle
+  variable est déjà configurée; la valeur `1` conserve les effets existants.
+
 - Variables système : migration de `FSTAB` et `FSTAB_CONFIG1` à
   `FSTAB_CONFIG5` vers les six déclarations `SYSTEM_FSTAB*`, en `STATIC`,
   `ENABLE`, scope `system`; défauts `0` et `NONE`. Les anciennes valeurs
