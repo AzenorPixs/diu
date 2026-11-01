@@ -19,7 +19,8 @@ SHALL accepter un chemin optionnel, par défaut `/root/diu/variables.sh`.
 - **WHEN** le fichier contient une ou plusieurs affectations de
   `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
   `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
-  `LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP` ou
+  `LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP`,
+  `CROWDSEC_AGENT` ou
   `FSTAB_CONFIG1` à `FSTAB_CONFIG6`
 - **THEN** les affectations historiques SHALL être supprimées avant le
   chargement
@@ -316,6 +317,46 @@ Le point d’entrée SHALL utiliser `SOFTWARES_APT_APACHE2` à la place de
 - **WHEN** le DIU décide d’installer Apache2
 - **THEN** il consulte `SOFTWARES_APT_APACHE2` et conserve le comportement APT
   existant
+
+### Requirement: Migration de CROWDSEC_AGENT
+
+Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
+dernière valeur littérale simple `0` ou `1` de `CROWDSEC_AGENT` vers
+`SYSTEM_CROWDSEC_AGENT` si ce nouveau nom n’est pas déjà déclaré dans
+`system.env`. Une affectation nécessitant une interprétation shell SHALL
+bloquer le nettoyage sans modifier les fichiers.
+
+#### Scenario: Ancienne valeur CROWDSEC_AGENT littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
+  `CROWDSEC_AGENT`
+- **THEN** la dernière valeur SHALL être transférée exactement vers
+  `SYSTEM_CROWDSEC_AGENT` si aucune valeur nouvelle n’existe
+- **AND** les anciennes affectations SHALL être supprimées
+
+#### Scenario: Nouvelle valeur CROWDSEC_AGENT déjà configurée
+
+- **WHEN** `system.env` déclare déjà `SYSTEM_CROWDSEC_AGENT`
+- **THEN** sa valeur SHALL rester prioritaire et ne pas être réécrite
+
+#### Scenario: Ancienne valeur CROWDSEC_AGENT ambiguë
+
+- **WHEN** une affectation `CROWDSEC_AGENT` nécessite une interprétation shell
+  ou ne vaut pas littéralement `0` ou `1`
+- **THEN** le nettoyage SHALL échouer sans supprimer l’affectation ni modifier
+  `system.env`
+- **AND** SHALL NOT afficher son contenu
+
+### Requirement: Consommateur CrowdSec migré
+
+Le point d’entrée SHALL utiliser `SYSTEM_CROWDSEC_AGENT` à la place de
+`CROWDSEC_AGENT` pour activer l’installation de l’agent.
+
+#### Scenario: Utilisation du nouveau nom
+
+- **WHEN** le DIU décide d’installer l’agent CrowdSec
+- **THEN** il consulte `SYSTEM_CROWDSEC_AGENT` et conserve le comportement
+  d’installation existant
 
 ### Requirement: Migration de GRUB_CONFIG
 

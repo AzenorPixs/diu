@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration de `CROWDSEC_AGENT` vers
+  `SYSTEM_CROWDSEC_AGENT`, déclaré en `STATIC`, `ENABLE`, scope `system`,
+  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
+  exactement sauf si le nouveau nom est déjà configuré.
+
 - Logiciels APT : migration du contrôle `APACHE2` vers
   `SOFTWARES_APT_APACHE2`, déclaré en `STATIC`, `ENABLE`, scope `softwares`,
   défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée

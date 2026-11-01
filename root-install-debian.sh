@@ -3519,7 +3519,7 @@ then
 
 fi
 
-if [ "$CROWDSEC_AGENT" -eq 1 ]
+if [[ "${SYSTEM_CROWDSEC_AGENT:-0}" == "1" ]]
 then
 
 	echo ""
