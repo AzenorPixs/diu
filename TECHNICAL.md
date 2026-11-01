@@ -688,20 +688,26 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE` et `PROXY_CA`,
-avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA` et
+`PROXY`, avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
+Pour `PROXY`, le nettoyage transfère la dernière valeur littérale `0` ou `1`
+vers `SYSTEM_PROXY` dans `system.env`, sauf si `SYSTEM_PROXY` y est déjà
+déclarée. Toute autre forme bloque le chargement sans modifier le fichier.
+
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
-isolés. Elle est idempotente : l'absence du fichier ou l'absence de la ligne à
-supprimer est un succès sans réécriture. Toute erreur de lecture ou d'écriture
-bloque le chargement suivant.
+isolés. Elle est idempotente : l'absence du fichier ou des affectations
+historiques est un succès sans réécriture. Une migration valide persiste
+`SYSTEM_PROXY` avant de supprimer `PROXY`. Toute erreur de lecture ou
+d'écriture bloque le chargement suivant.
 
 Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
-`SYSTEM_TIME_ZONE` et `SYSTEM_PROXY_CA`. Les valeurs historiques ne sont pas transférées.
-Le nettoyage intervient à la prochaine exécution du DIU, sans sauvegarde
-automatique des anciennes affectations supprimées.
+`SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA` et `SYSTEM_PROXY`. À l’exception de la
+migration littérale de `PROXY` décrite ci-dessus, les valeurs historiques ne
+sont pas transférées. Le nettoyage intervient à la prochaine exécution du
+DIU, sans sauvegarde automatique des autres anciennes affectations supprimées.
 
 ### Déclarations unitaires
 
@@ -738,6 +744,16 @@ invalide.
 
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
+
+### Option proxy système
+
+`modules/diu/variables/system/system_proxy.sh` déclare `SYSTEM_PROXY` avec
+`STATIC`, `ENABLE`, scope `system` et valeur initiale `0`. Une valeur absente
+est persistée dans `/root/diu/config/system.env`, puis exportée ; une valeur
+existante, même vide, est conservée. Le point d’entrée exécute les traitements
+proxy système et Java existants seulement lorsque `SYSTEM_PROXY` vaut `1`.
+La migration de `PROXY` vers `SYSTEM_PROXY` est effectuée par le nettoyage
+historique. Les variables `PROXY_HTTP` et `PROXY_HTTP_HOST` gardent leur rôle.
 
 ### Option proxy CA système
 

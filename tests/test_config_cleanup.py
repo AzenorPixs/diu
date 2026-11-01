@@ -13,8 +13,9 @@ class ConfigCleanupTests(unittest.TestCase):
     def run_cleanup(self, path, prelude=""):
         return subprocess.run(
             ["bash", "-c", 'set -Eeuo pipefail\nsource "$ROOT/modules/system/variables-cleanup.sh"\n'
-             + prelude + '\nconfig_cleanup "$TARGET"'],
-            env=dict(os.environ, ROOT=str(ROOT), TARGET=str(path)),
+             + prelude + '\nconfig_cleanup "$TARGET" "$SYSTEM_CONFIG"'],
+            env=dict(os.environ, ROOT=str(ROOT), TARGET=str(path),
+                     SYSTEM_CONFIG=str(path.parent / 'system.env')),
             text=True, capture_output=True)
 
     def test_cleanup_and_idempotence(self):
@@ -38,17 +39,53 @@ class ConfigCleanupTests(unittest.TestCase):
                             '\texport\tDISPLAY_LINK=1 # comment\n'
                             'PROXY_CA=0\n export PROXY_CA="1"\n'
                             '\texport\tPROXY_CA=1 # comment\n' + preserved)
+            with path.open('a') as stream:
+                stream.write('PROXY=0\n export PROXY=1 # legacy\nPROXY_HTTP=1\n')
             path.chmod(0o640)
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(path.read_text(), preserved)
+            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\n')
+            self.assertEqual((Path(directory) / 'system.env').read_text(),
+                             'export SYSTEM_PROXY=1\n')
             self.assertEqual(path.stat().st_mode & 0o777, 0o640)
             before = path.stat()
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(path.read_text(), preserved)
+            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\n')
             self.assertEqual(path.stat().st_mtime_ns, before.st_mtime_ns)
             self.assertEqual(path.stat().st_ino, before.st_ino)
+            self.assertEqual(result.stdout, '')
+
+    def test_proxy_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('PROXY=0\nexport PROXY=1\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_PROXY=1\n')
+            before = system_config.stat()
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.stat().st_mtime_ns, before.st_mtime_ns)
+
+            path.write_text('PROXY=0\n')
+            system_config.write_text('export SYSTEM_PROXY=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_PROXY=1\n')
+
+    def test_ambiguous_proxy_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('export PROXY="${PROXY_ENABLED}"\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), 'export PROXY="${PROXY_ENABLED}"\nOTHER=keep\n')
+            self.assertFalse((Path(directory) / 'system.env').exists())
+            self.assertNotIn('PROXY_ENABLED', result.stderr)
             self.assertEqual(result.stdout, '')
 
     def test_missing_file(self):
