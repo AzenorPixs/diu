@@ -2467,7 +2467,7 @@ fi
 
 ### GRUB ###
 
-if [ "$GRUB_CONFIG" -eq 1 ]
+if [[ "${SYSTEM_GRUB_CONFIG:-0}" == "1" ]]
 then
 
 	echo ""
@@ -2481,9 +2481,8 @@ fi
 ### KERNEL ###
 
 echo "🔧 CONFIGURE SYSCTL (KERNEL)"
-# IPv6 est une entrée de la configuration historique chargée au démarrage.
-# shellcheck disable=SC2154
-if [ "$IPv6" -eq 1 ]
+# SYSTEM_IPV6 est initialisée depuis sysctl si aucune valeur n'est configurée.
+if [[ "${SYSTEM_IPV6:-0}" == "1" ]]
 then
 
 	if [ -e /etc/sysctl.d/70-disable-ipv6.conf ]

@@ -21,7 +21,7 @@ normalisation définitive des sous-lots attend une attribution validée ACL.
 
 - [x] 3.1 Mettre à jour le changelog et le cadrage technique ; vérifier les
       autres documents concernés.
-- [ ] 3.2 Exécuter les tests ciblés, la suite DIU applicable, les contrôles
+- [x] 3.2 Exécuter les tests ciblés, la suite DIU applicable, les contrôles
       shell, OpenSpec et UTF-8/LF.
 
 ## Sous-lots normalisés
@@ -31,5 +31,5 @@ provisoires des unités ; aucune séquence `SL` définitive n’est attribuée.
 
 ## Validation finale
 
-- [ ] 4.1 Vérifier l’intégration, la cohérence documentaire et les critères
+- [x] 4.1 Vérifier l’intégration, la cohérence documentaire et les critères
       d’acceptation sur les dernières sources.
