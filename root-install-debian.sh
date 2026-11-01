@@ -1851,7 +1851,7 @@ then
 
 fi
 
-if [ "$PROXY" -eq 1 ]
+if [[ "${SYSTEM_PROXY:-0}" == "1" ]]
 then
 
 	echo "🔧 CONFIGURE PROXY HTTP FOR APT"
@@ -5644,7 +5644,7 @@ then
 		ln -s -f /usr/lib/jvm/java-17-openjdk-amd64/lib/server /usr/lib/jvm/java-17-openjdk-amd64/lib/amd64/
 
 		# CONFIGURE OPENJDK PROXY
-		if [ "$PROXY" -eq 1 ]
+		if [[ "${SYSTEM_PROXY:-0}" == "1" ]]
 		then
 
 			sed -i "s%.*java.net.useSystemProxies=.*%java.net.useSystemProxies=true%" /etc/java-17-openjdk/net.properties

@@ -6,7 +6,7 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
-Couverture : **130 changes, 11 actifs et 119 archivés** : 125 lots codés répartis en neuf familles, trois changes actifs provisoires et deux changes archivés sans code. Les 125 codes sont attestés dans les titres des propositions et dans le [registre](openspec/BATCH_CODES.md). Le squelette initial, limité au titre conservé, est complété sous validation explicite des trois volets du plan.
+Couverture : **131 changes, 11 actifs et 120 archivés** : 125 lots codés répartis en neuf familles, trois changes actifs provisoires et trois changes archivés sans code. Les 125 codes sont attestés dans les titres des propositions et dans le [registre](openspec/BATCH_CODES.md). Le squelette initial, limité au titre conservé, est complété sous validation explicite des trois volets du plan.
 
 Sources : [règles](AGENTS.md), [projet](PROJECT.md), [technique](TECHNICAL.md), [construction](BUILD.md), [environnement](DEVOPS.md), [configuration OpenSpec](openspec/config.yaml), propositions, deltas, tâches et preuves liées ci-dessous. Sources de vérité et preuves applicables prévalent sur cette synthèse.
 
@@ -303,7 +303,7 @@ flowchart TB
 ### Changes actifs provisoires — code non attribué
 
 Les regroupements GIT/ART expriment la responsabilité des propositions. Ils n’attribuent
-aucun code et ne créent aucune dépendance entre les trois changes actifs. Voir leurs
+aucun code et ne créent aucune dépendance entre les changes actifs. Voir leurs
 entrées distinctes dans le registre ci-dessous.
 
 ```mermaid
@@ -472,6 +472,7 @@ Plan validé : ACSM-DIU-BOOTSTRAP-PACKAGING-20261028-R1, B1/C1/V2. État de code
 |---|---|---:|---|---|---|
 | [add-devops-docker-tpm-access](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/) | DEV | 5/5 | ARCHIVÉ ; validations ciblées et rendu confirmés le 2026-11-01 | projects-template-devops | [proposition](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-devops-docker-tpm-access/STATISTICS.md) |
 | [add-system-proxy-ca](openspec/changes/archive/2026-11-01-add-system-proxy-ca/) | SYS | 10/10 | ARCHIVÉ ; tests unitaires et validation globale réussis ; installation LXC de la version mise à jour en attente du changement de version hôte | system-proxy-ca, legacy-variable-cleanup | [proposition](openspec/changes/archive/2026-11-01-add-system-proxy-ca/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-system-proxy-ca/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-system-proxy-ca/STATISTICS.md) |
+| [add-system-proxy-variable](openspec/changes/archive/2026-11-01-add-system-proxy-variable/) | SYS | 8/8 | ARCHIVÉ ; validation OpenSpec, 679 tests, ShellCheck et syntaxe Bash réussis ; intégration CISMP après nouvelle version hôte en attente | system-proxy, legacy-variable-cleanup | [proposition](openspec/changes/archive/2026-11-01-add-system-proxy-variable/proposal.md), [tâches](openspec/changes/archive/2026-11-01-add-system-proxy-variable/tasks.md), [STATISTICS.md](openspec/changes/archive/2026-11-01-add-system-proxy-variable/STATISTICS.md) |
 
 ### Capacités et rattachement des 125 changes codés
 
@@ -770,6 +771,6 @@ Mermaid : syntaxe élémentaire flowchart, identifiants et références contrôl
 - **Fait documenté** : écrit dans un artefact ; **fait vérifié** : contrôle actuel explicitement nommé ; **hypothèse** : interprétation exclue des décisions automatiques.
 - Rectangle bleu ACTIF ou gris ARCHIVÉ : lot identifié aussi textuellement. Rectangle à bord discontinu : contrat ou service interne/externe, sans code de lot.
 - Familles : regroupements de responsabilités justifiés par les cadrages et artefacts ; aucune dépendance implicite.
-- Repère « code non attribué » : entrée provisoire, ni code ni réservation ; trois dans le relevé actuel, avec style discontinu et libellé textuel.
+- Repère « code non attribué » : entrée provisoire, ni code ni réservation ; six dans le relevé actuel (trois actives et trois archivées), avec style discontinu et libellé textuel.
 - Ratios documentaires, validations, intégration, qualification, livraison et activation restent distincts.
 - **A → B signifie que A dépend de B.** Flèches directes étiquetées ; aucune relation transitive déduite.
