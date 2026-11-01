@@ -12,7 +12,7 @@ VARIABLES = (
     'SYSTEM_DEBIAN_ENVIRONNEMENT SYSTEM_DEBIAN_RELEASE SYSTEM_TIME_ZONE '
     'SYSTEM_APT_DEBIAN_UPDATES SYSTEM_APT_DEBIAN_SOURCES SYSTEM_APT_DEBIAN_BACKPORT '
     'SYSTEM_APT_DEBIAN_CONTRIB SYSTEM_APT_DEBIAN_NONFRFEE '
-    'SYSTEM_APT_CGPT SYSTEM_APT_CROWDSEC SYSTEM_APT_DOCKER SYSTEM_APT_LEMONLDAP '
+    'SYSTEM_APT_CGPT SYSTEM_APT_DOCKER SYSTEM_APT_LEMONLDAP '
     'SYSTEM_APT_MONGODB SYSTEM_APT_NODEJS SYSTEM_APT_NVIDIA SYSTEM_APT_PROXMOX '
     'SYSTEM_APT_VSCODE SYSTEM_APT_WAZUH SYSTEM_APT_WEBMIN SYSTEM_FLATPAK'
 ).split()
@@ -29,7 +29,7 @@ def function_from(path, name):
 class ModuleInfosTests(unittest.TestCase):
     def run_shell(self, code, arguments=()):
         env = {k: v for k, v in os.environ.items()
-               if not k.startswith(('SYSTEM_', 'INTERFACE_ETHERNET'))}
+               if not k.startswith(('SYSTEM_', 'SOFTWARES_APT_CROWDSEC', 'INTERFACE_ETHERNET'))}
         imports = ''.join(f'source "{ROOT}/modules/{m}/infos.sh"\n' for m in MODULES)
         return subprocess.run(['bash', '-c', 'set -Eeuo pipefail\n' + imports + code,
                                'bash', *arguments], env=env, capture_output=True, text=True)
@@ -53,6 +53,17 @@ class ModuleInfosTests(unittest.TestCase):
         r = self.run_shell('SYSTEM_TIME_ZONE=""\nsystem_info_debian')
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('SYSTEM_TIME_ZONE=\n', r.stdout)
+
+    def test_crowdsec_settings_are_reported_in_software_scope(self):
+        r = self.run_shell('SOFTWARES_APT_CROWDSEC=1\n'
+                           'SOFTWARES_APT_CROWDSEC_AGENT=0\n'
+                           'SOFTWARES_APT_CROWDSEC_BOUNCER=1\nsoftwares_infos')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual([line for line in r.stdout.splitlines() if '=' in line], [
+            'SOFTWARES_APT_CROWDSEC=1',
+            'SOFTWARES_APT_CROWDSEC_AGENT=0',
+            'SOFTWARES_APT_CROWDSEC_BOUNCER=1',
+        ])
 
     def test_drivers_without_version_query(self):
         for value in (None, '', '0', 'UNSET'):

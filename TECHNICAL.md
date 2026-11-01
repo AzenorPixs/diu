@@ -691,7 +691,8 @@ Le point d'entrée appelle cette fonction avant de sourcer
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
 `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
 `LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP`,
-`CROWDSEC_AGENT`, `APACHE2` et
+`CROWDSEC_AGENT`, `SYSTEM_CROWDSEC_AGENT`, `CROWDSEC_BOUNCER`,
+`CROWDSEC_BOUNCER_API_KEY`, `SYSTEM_APT_CROWDSEC`, `APACHE2` et
 `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
@@ -704,8 +705,11 @@ simple, sans l’évaluer. `NO_SLEEP` suit également la migration littérale
 `0|1` sans évaluation.
 `APACHE2` est migrée séparément vers `SOFTWARES_APT_APACHE2` dans
 `softwares.env`, avec validation littérale et priorité au nouveau nom.
-`CROWDSEC_AGENT` est migrée vers `SYSTEM_CROWDSEC_AGENT` dans `system.env`
-avec la même validation littérale.
+Les réglages `CROWDSEC_AGENT`, `SYSTEM_CROWDSEC_AGENT`,
+`CROWDSEC_BOUNCER`, `SYSTEM_APT_CROWDSEC` et `CROWDSEC_BOUNCER_API_KEY` sont
+migrés vers les noms logiciels dédiés dans `softwares.env`. Les valeurs 0/1
+sont transférées littéralement; la clé API est copiée sans affichage ni
+évaluation et le fichier reçoit le mode `0600`.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
 littérale simple, y compris une valeur entre guillemets. Une déclaration
 nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
@@ -722,8 +726,7 @@ Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
 `SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM`,
 `SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6`, `SYSTEM_LOG_ROTATE`,
-`SYSTEM_JOURNALD_MAX_USE`, `SYSTEM_JOURNALD_KEEP_FREE`, `SYSTEM_NO_SLEEP`,
-`SYSTEM_CROWDSEC_AGENT` et
+`SYSTEM_JOURNALD_MAX_USE`, `SYSTEM_JOURNALD_KEEP_FREE`, `SYSTEM_NO_SLEEP` et
 `SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
@@ -891,14 +894,16 @@ prioritaire. `SYSTEM_NO_SLEEP=1` crée `nosleep.conf` avec les paramètres
 existants qui désactivent suspend et hibernation. Une valeur `0` ignore ce
 bloc et ne supprime pas un fichier `nosleep.conf` déjà présent.
 
-### Agent CrowdSec système
+### CrowdSec dans le scope logiciels
 
-`modules/diu/variables/system/system_crowdsec_agent.sh` déclare
-`SYSTEM_CROWDSEC_AGENT` en `STATIC`, `ENABLE`, scope `system`, défaut `0`.
-L’ancienne valeur simple `CROWDSEC_AGENT=0|1` est migrée exactement vers
-`system.env`; une déclaration nouvelle existante garde la priorité. Une valeur
-`1` conserve le parcours existant d’installation/configuration de CrowdSec et
-du bouncer.
+Les interrupteurs `SOFTWARES_APT_CROWDSEC`,
+`SOFTWARES_APT_CROWDSEC_AGENT` et `SOFTWARES_APT_CROWDSEC_BOUNCER` sont
+déclarés dans le scope `softwares`. Le dépôt CrowdSec est configuré par APT;
+les paquets `crowdsec` et `crowdsec-firewall-bouncer-iptables` sont installés
+par APT. La clé `SOFTWARES_CROWDSEC_BOUNCER_API_KEY` est aussi stockée dans
+`softwares.env`, qui est protégé en mode `0600` dès qu'il contient la clé.
+L’application à la configuration YAML ne transmet pas la valeur dans les
+arguments d’un processus enfant ni dans la sortie.
 
 ### Contrôle de la stack Docker Traefik / Dockhand
 

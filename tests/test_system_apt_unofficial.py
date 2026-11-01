@@ -8,7 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 VARIABLES = (
-    'CROWDSEC', 'DOCKER', 'LEMONLDAP', 'MONGODB', 'NODEJS', 'NVIDIA',
+    'DOCKER', 'LEMONLDAP', 'MONGODB', 'NODEJS', 'NVIDIA',
     'PROXMOX', 'VSCODE', 'WAZUH', 'WEBMIN', 'CGPT',
 )
 REPOSITORIES = (
@@ -30,10 +30,19 @@ class UnofficialAptTests(unittest.TestCase):
             'variable_config_file="$TEST_CONFIG"')
         declaration = declaration.replace('/etc/apt/sources.list.d', '"$TEST_SOURCES"')
         declaration = declaration.replace('/etc/apt/sources.list', '"$TMPDIR/sources.list"')
+        crowdsec = (ROOT / 'modules/diu/variables/softwares/software_apt_crowdsec.sh').read_text()
+        crowdsec = crowdsec.replace(
+            'variable_config_file="/root/diu/config/${scope}.env"',
+            'variable_config_file="$TEST_SOFTWARES_CONFIG"')
+        crowdsec = crowdsec.replace('/etc/apt/sources.list.d', '"$TEST_SOURCES"')
+        crowdsec = crowdsec.replace('/etc/apt/sources.list', '"$TMPDIR/sources.list"')
+        declaration += '\n' + crowdsec
         (directory / 'declaration.sh').write_text(declaration)
         module = (ROOT / 'modules/system/apt.sh').read_text().replace(
             'variable_config_file="/root/diu/config/system.env"',
-            'variable_config_file="$TEST_CONFIG"')
+            'variable_config_file="$TEST_CONFIG"').replace(
+            'variable_config_file="/root/diu/config/softwares.env"',
+            'variable_config_file="$TEST_SOFTWARES_CONFIG"')
         (directory / 'apt.sh').write_text(module)
         return directory
 
@@ -61,6 +70,7 @@ system_apt_debian_configure() { system_apt_configure_unofficial; }
 '''
         env = dict(PATH=os.defpath, ROOT=str(ROOT), TMPDIR=str(directory),
                    TEST_CONFIG=str(directory / 'config.txt'),
+                   TEST_SOFTWARES_CONFIG=str(directory / 'softwares.txt'),
                    TEST_SOURCES=str(directory / 'sources'), TEST_MODERN='1',
                    TEST_FAILURE='', SYSTEM_DEBIAN_RELEASE='trixie')
         env.update({name: str(value) for name, value in values.items()})
@@ -82,6 +92,8 @@ source "$TMPDIR/declaration.sh"
             self.assert_success(result)
             self.assertEqual((directory / 'config.txt').read_text().splitlines(),
                              [f'export SYSTEM_APT_{name}=0' for name in VARIABLES])
+            self.assertEqual((directory / 'softwares.txt').read_text().splitlines(),
+                             ['export SOFTWARES_APT_CROWDSEC=0'])
 
     def test_each_existing_repository_is_detected(self):
         patterns = dict(
@@ -98,12 +110,14 @@ source "$TMPDIR/declaration.sh"
                 result = self.run_shell(directory, 'source "$TMPDIR/declaration.sh"')
                 self.assert_success(result)
                 expected = 4 if name in ('MONGODB', 'WAZUH') else 1
-                self.assertIn(f'export SYSTEM_APT_{name}={expected}',
-                              (directory / 'config.txt').read_text().splitlines())
+                config = directory / ('softwares.txt' if name == 'CROWDSEC' else 'config.txt')
+                variable = 'SOFTWARES_APT_CROWDSEC' if name == 'CROWDSEC' else f'SYSTEM_APT_{name}'
+                self.assertIn(f'export {variable}={expected}', config.read_text().splitlines())
 
     def test_legacy_activation_fallback(self):
         cases = [
-            ({'CROWDSEC_BOUNCER': 1}, 'CROWDSEC', 1),
+            ({'SOFTWARES_APT_CROWDSEC_AGENT': 1}, 'CROWDSEC', 1),
+            ({'SOFTWARES_APT_CROWDSEC_BOUNCER': 1}, 'CROWDSEC', 1),
             ({'LEMONLDAP': 1}, 'LEMONLDAP', 1),
             ({'WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 4),
             ({'WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 0}, 'WAZUH', 0),
@@ -118,8 +132,9 @@ source "$TMPDIR/declaration.sh"
                 directory = self.prepare(tmp)
                 result = self.run_shell(directory, 'source "$TMPDIR/declaration.sh"', **values)
                 self.assert_success(result)
-                self.assertIn(f'export SYSTEM_APT_{name}={expected}',
-                              (directory / 'config.txt').read_text().splitlines())
+                config = directory / ('softwares.txt' if name == 'CROWDSEC' else 'config.txt')
+                variable = 'SOFTWARES_APT_CROWDSEC' if name == 'CROWDSEC' else f'SYSTEM_APT_{name}'
+                self.assertIn(f'export {variable}={expected}', config.read_text().splitlines())
 
     def test_persisted_values_take_priority_over_detection_and_legacy(self):
         for value in (0, 1, 4):
@@ -198,6 +213,7 @@ if system_apt_configure_unofficial; then exit 99; else exit "$?"; fi
                 for name in REPOSITORIES:
                     (directory / f'keyrings/{name}-archive-keyring.gpg').write_text('existing-keyring')
                 values = {f'SYSTEM_APT_{name}': 1 for name in VARIABLES}
+                values['SOFTWARES_APT_CROWDSEC'] = 1
                 values.update(SYSTEM_APT_MONGODB=8, SYSTEM_APT_WAZUH=4, TEST_MODERN=modern,
                               TEST_FAILURE='curl')
                 result = self.run_shell(directory, 'system_apt_configure_unofficial', **values)
@@ -223,14 +239,15 @@ manage_system_action install apt {requested}
 manage_system_action install apt {requested}
 ''')
                 self.assert_success(result)
-                config = (directory / 'config.txt').read_text().splitlines()
-                variable = f'SYSTEM_APT_{requested.upper()}'
+                config_file = directory / ('softwares.txt' if requested == 'crowdsec' else 'config.txt')
+                config = config_file.read_text().splitlines()
+                variable = 'SOFTWARES_APT_CROWDSEC' if requested == 'crowdsec' else f'SYSTEM_APT_{requested.upper()}'
                 value = 8 if requested == 'mongodb' else 1
                 self.assertEqual(config, [f'export {variable}={value}'])
                 self.assertTrue(list((directory / 'sources').iterdir()))
                 result = self.run_shell(directory, f'manage_system_action remove apt {requested}')
                 self.assert_success(result)
-                self.assertEqual((directory / 'config.txt').read_text().splitlines(),
+                self.assertEqual(config_file.read_text().splitlines(),
                                  [f'export {variable}=0'])
                 self.assertEqual(list((directory / 'sources').iterdir()), [])
 
@@ -251,7 +268,7 @@ manage_system_action install apt {requested}
             historical = directory / 'keyrings/crowdsec-crowdsec-archive-keyring.gpg'
             historical.write_text('historical-synthetic-keyring')
             result = self.run_shell(directory, 'system_apt_configure_unofficial',
-                                    SYSTEM_APT_CROWDSEC=1, TEST_FAILURE='curl')
+                                    SOFTWARES_APT_CROWDSEC=1, TEST_FAILURE='curl')
             self.assert_success(result)
             self.assertEqual((directory / 'keyrings/crowdsec-archive-keyring.gpg').read_text(),
                              historical.read_text())
@@ -311,7 +328,7 @@ if system_apt_configure_unofficial; then exit 99; else exit "$?"; fi
             result = self.run_shell(directory, r'''
 install() { if [[ "$1" == -m ]]; then return 1; else command install "$@"; fi; }
 if system_apt_configure_unofficial; then exit 99; else exit "$?"; fi
-''', SYSTEM_APT_CROWDSEC=1, TEST_FAILURE='curl')
+''', SOFTWARES_APT_CROWDSEC=1, TEST_FAILURE='curl')
             self.assertEqual(result.returncode, 1)
             self.assertIn('Impossible d\'installer la clé GPG historique', result.stderr)
             self.assertEqual(historical.read_text(), 'historical-synthetic-keyring')

@@ -4,10 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
-- Variables système : migration de `CROWDSEC_AGENT` vers
-  `SYSTEM_CROWDSEC_AGENT`, déclaré en `STATIC`, `ENABLE`, scope `system`,
-  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
-  exactement sauf si le nouveau nom est déjà configuré.
+- CrowdSec : déplacement du dépôt APT, des interrupteurs agent/bouncer et de
+  la clé API vers le scope `softwares`. Les valeurs historiques sont migrées
+  sans modification; la clé est transférée sans affichage, et `softwares.env`
+  reçoit le mode `0600` lorsqu'elle la contient. Les paquets continuent d'être
+  installés par APT.
 
 - Logiciels APT : migration du contrôle `APACHE2` vers
   `SOFTWARES_APT_APACHE2`, déclaré en `STATIC`, `ENABLE`, scope `softwares`,
