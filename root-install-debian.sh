@@ -1840,7 +1840,7 @@ dispatch_arguments "$@"
 
 ###  PROXY ###
 
-if [ "$PROXY_CA" -eq 1 ]
+if [[ "${SYSTEM_PROXY_CA:-0}" == "1" ]]
 then
 
 	echo "🔧 Configure CA"
@@ -1851,7 +1851,7 @@ then
 
 fi
 
-if [ "$PROXY" -eq 1 ]
+if [[ "${SYSTEM_PROXY:-0}" == "1" ]]
 then
 
 	echo "🔧 CONFIGURE PROXY HTTP FOR APT"
@@ -2099,7 +2099,7 @@ fi
 
 ### DRIVERS ###
 
-if [ "$DRIVERS_NVIDIA" -eq 1 ]
+if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 then
 
 	# https://wiki.debian.org/NvidiaGraphicsDrivers
@@ -2285,43 +2285,50 @@ fi
 
 ### FSTAB ###
 
-if [ "$FSTAB" -eq 1 ]
+if [[ "${SYSTEM_FSTAB:-0}" == "1" ]]
 then
 
 	echo ""
 	echo "🔧 CONFIGURATION FSTAB"
-	if [ "$FSTAB_CONFIG1" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG1-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG1}" > /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG1-}" > /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG2" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG2-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG2}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG2-}" >> /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG3" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG3-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG3}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG3-}" >> /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG4" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG4-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG4}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG4-}" >> /etc/fstab
 
 	fi
 
-	if [ "$FSTAB_CONFIG5" != "NONE" ]
+	if [[ "${SYSTEM_FSTAB_CONFIG5-NONE}" != "NONE" ]]
 	then
 
-		echo "${FSTAB_CONFIG5}" >> /etc/fstab
+		echo "${SYSTEM_FSTAB_CONFIG5-}" >> /etc/fstab
+
+	fi
+
+	if [[ "${SYSTEM_FSTAB_CONFIG6-NONE}" != "NONE" ]]
+	then
+
+		echo "${SYSTEM_FSTAB_CONFIG6-}" >> /etc/fstab
 
 	fi
 
@@ -2330,7 +2337,7 @@ fi
 
 ### FILE2RAM ###
 
-if [ "$FILES2RAM" -eq 1 ]
+if [[ "${SYSTEM_FILES2RAM:-0}" == "1" ]]
 then
 
 	echo ""
@@ -2405,7 +2412,7 @@ then
 
 	fi
 
-	if [ "$DRIVERS_NVIDIA" -eq 1 ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		echo "D /var/log/nvidia-mps  0755 root root" >> /etc/tmpfiles.d/var2log.conf
@@ -2423,7 +2430,7 @@ then
 	then
 
 		echo "🔧 CONFIGURATION FSTAB"
-		if [ "$FSTAB_CONFIG1" = "NONE" ]
+		if [[ "${SYSTEM_FSTAB_CONFIG1-NONE}" == "NONE" ]]
 		then
 
 			# echo "tmpfs			/var/log			tmpfs			rw,nosuid,nodev,noexec,noatime,nodiratime,mode=1755				0 0" > /etc/fstab
@@ -2439,7 +2446,7 @@ then
 	else
 
 					echo "🔧 CONFIGURATION FSTAB"
-		if [ "$FSTAB_CONFIG1" = "NONE" ]
+		if [[ "${SYSTEM_FSTAB_CONFIG1-NONE}" == "NONE" ]]
 		then
 
 			# echo "tmpfs			/var/log			tmpfs			rw,nosuid,nodev,noexec,noatime,nodiratime,mode=1755				0 0" > /etc/fstab
@@ -2674,7 +2681,7 @@ then
 	    echo "vfio_virqfd"
 	} >> /etc/modules-load.d/promox.conf
 
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+		if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		{
@@ -2820,7 +2827,7 @@ then
 	    echo "vfio_virqfd"
 	} >> /etc/modules-load.d/promox.conf
 
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		{
@@ -2956,7 +2963,7 @@ then
 	    echo "vfio_virqfd"
 	} >> /etc/modules-load.d/promox.conf
 
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		{
@@ -4991,7 +4998,7 @@ then
 	    echo '    "tag": "docker-{{.Name}}",'
 	    echo '    "mode": "non-blocking"'
 	} >> /etc/docker/daemon.json
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 		{
 		    echo '  },'
@@ -5644,7 +5651,7 @@ then
 		ln -s -f /usr/lib/jvm/java-17-openjdk-amd64/lib/server /usr/lib/jvm/java-17-openjdk-amd64/lib/amd64/
 
 		# CONFIGURE OPENJDK PROXY
-		if [ "$PROXY" -eq 1 ]
+		if [[ "${SYSTEM_PROXY:-0}" == "1" ]]
 		then
 
 			sed -i "s%.*java.net.useSystemProxies=.*%java.net.useSystemProxies=true%" /etc/java-17-openjdk/net.properties

@@ -3,7 +3,7 @@
 Version : 0.7
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-10-29T06:42:37Z
+Début du relevé (UTC) : 2026-10-31T13:00:08Z
 Environnement d'exécution DIU : PROXMOX
 
 Les sondes système concernent le contexte d'exécution DIU.
@@ -82,7 +82,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Node
 
-  * 24.22.1
+  * 24.22.2
   * /home/devops/node/current/bin/node
 
 
@@ -94,14 +94,14 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 2.2.1
+  * 2.2.5
   * /home/devops/.opencode/bin/opencode
   * La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env
 
 
 # OpenSpec
 
-  * 1.15.0
+  * 1.16.0
   * /home/devops/.local/npm/bin/openspec
 
 
