@@ -857,6 +857,14 @@ persistée dans `/root/diu/config/docker.env` avec le défaut `0`. Les
 consommateurs existants de la stack gardent ce nom; `1` active la stack et les
 entrées d’hôtes associées.
 
+### Contrôle de la stack Docker DevOps
+
+`modules/diu/variables/docker/docker_stack_devops.sh` déclare
+`DOCKER_STACK_DEVOPS` en `STATIC`, `ENABLE`, scope `docker`, défaut `0`. Une
+valeur existante `0` ou `1` est conservée; une valeur absente est persistée
+dans `/root/diu/config/docker.env` avec le défaut `0`. Le consommateur
+existant conserve le même nom; `1` active l’ajout des noms d’hôtes DevOps.
+
 ### Indicateurs de tests DevOps
 
 `modules/diu/variables/environnements/env_devops_tests_docker.sh` et

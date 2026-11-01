@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Configuration Docker : déclaration de `DOCKER_STACK_DEVOPS` en `STATIC`,
+  `ENABLE`, scope `docker`, défaut `0`. Une valeur existante `0` ou `1` est
+  conservée; le défaut est persisté uniquement en l’absence de valeur.
+
 - Configuration Docker : déclaration de
   `DOCKER_STACK_TRAEFIK_DOCKHAND` en `STATIC`, `ENABLE`, scope `docker`, défaut
   `0`. Une valeur existante `0` ou `1` est conservée; le défaut est persisté
