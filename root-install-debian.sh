@@ -3062,7 +3062,7 @@ EOF
 
 ### LOGROTATE ###
 
-if [ "$LOG_ROTATE" -eq 1 ]
+if [[ "${SYSTEM_LOG_ROTATE:-0}" == "1" ]]
 then
 
 	echo "🔧 CONFIGURE LOGOROTATE"

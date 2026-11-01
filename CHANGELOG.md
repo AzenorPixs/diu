@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration de `LOG_ROTATE` vers `SYSTEM_LOG_ROTATE`,
+  déclaré en `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement sauf si la
+  nouvelle variable est déjà configurée.
+
 - Variables système : migration du contrôle `IPv6` vers `SYSTEM_IPV6`, déclaré
   en `STATIC`, `ENABLE`, scope `system`. En l’absence de valeur configurée,
   l’état initial est détecté avec sysctl et persisté. La valeur historique
