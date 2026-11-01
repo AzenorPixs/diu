@@ -14,6 +14,7 @@ MODULES = [
     ('SYSTEM_FSTAB_CONFIG3', 'system_fstab_config3.sh', 'NONE'),
     ('SYSTEM_FSTAB_CONFIG4', 'system_fstab_config4.sh', 'NONE'),
     ('SYSTEM_FSTAB_CONFIG5', 'system_fstab_config5.sh', 'NONE'),
+    ('SYSTEM_FSTAB_CONFIG6', 'system_fstab_config6.sh', 'NONE'),
 ]
 
 
@@ -101,10 +102,12 @@ source "$TEST_SCRIPT"
     def test_entry_point_uses_only_the_new_names(self):
         source = (ROOT / 'root-install-debian.sh').read_text()
         self.assertEqual(source.count('if [[ "${SYSTEM_FSTAB:-0}" == "1" ]]'), 1)
-        for index in range(1, 6):
+        for index in range(1, 7):
             self.assertIn(f'SYSTEM_FSTAB_CONFIG{index}', source)
+        self.assertLess(source.index('echo "${SYSTEM_FSTAB_CONFIG5-}" >> /etc/fstab'),
+                        source.index('echo "${SYSTEM_FSTAB_CONFIG6-}" >> /etc/fstab'))
         self.assertNotRegex(source, r'\$(?:\{)?FSTAB(?:\})?(?![A-Z0-9_])')
-        self.assertNotRegex(source, r'\$(?:\{)?FSTAB_CONFIG[1-5](?:\})?(?![A-Z0-9_])')
+        self.assertNotRegex(source, r'\$(?:\{)?FSTAB_CONFIG[1-6](?:\})?(?![A-Z0-9_])')
 
 
 if __name__ == '__main__':

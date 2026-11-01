@@ -2325,6 +2325,13 @@ then
 
 	fi
 
+	if [[ "${SYSTEM_FSTAB_CONFIG6-NONE}" != "NONE" ]]
+	then
+
+		echo "${SYSTEM_FSTAB_CONFIG6-}" >> /etc/fstab
+
+	fi
+
 fi
 
 
