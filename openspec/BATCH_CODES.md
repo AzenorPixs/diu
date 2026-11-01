@@ -177,7 +177,6 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 | reconcile-forgejo-credential-bootstrap | Réconciliation du bootstrap des identifiants Forgejo | ACTIF | code non attribué | [dossier](changes/reconcile-forgejo-credential-bootstrap/) | [proposition](changes/reconcile-forgejo-credential-bootstrap/proposal.md) |
 | reconcile-diu-deb-packaging-contract | Réconciliation du contrat de packaging Debian DIU | ACTIF | code non attribué | [dossier](changes/reconcile-diu-deb-packaging-contract/) | [proposition](changes/reconcile-diu-deb-packaging-contract/proposal.md) |
 | fix-gitlab-release-asset-link-validation | Validation du lien d’asset Debian GitLab | ACTIF | code non attribué | [dossier](changes/fix-gitlab-release-asset-link-validation/) | [proposition](changes/fix-gitlab-release-asset-link-validation/proposal.md) |
-| add-system-files2ram-variable | Déclaration modulaire de SYSTEM_FILES2RAM | ACTIF | code non attribué | [dossier](changes/add-system-files2ram-variable/) | [proposition](changes/add-system-files2ram-variable/proposal.md) |
 
 ## Entrées provisoires et contrôles
 
@@ -191,8 +190,9 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 | add-system-drivers-nvidia-variable | Déclaration modulaire de SYSTEM_DRIVERS_NVIDIA | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-drivers-nvidia-variable/) | [proposition](changes/archive/2026-11-01-add-system-drivers-nvidia-variable/proposal.md) |
 | add-system-fstab-configuration | Configuration modulaire de FSTAB et de ses entrées | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-configuration/) | [proposition](changes/archive/2026-11-01-add-system-fstab-configuration/proposal.md) |
 | add-system-fstab-config-six | Ajout de SYSTEM_FSTAB_CONFIG6 | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-config-six/) | [proposition](changes/archive/2026-11-01-add-system-fstab-config-six/proposal.md) |
+| add-system-files2ram-variable | Déclaration modulaire de SYSTEM_FILES2RAM | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-files2ram-variable/) | [proposition](changes/archive/2026-11-01-add-system-files2ram-variable/proposal.md) |
 
-Dix entrées « code non attribué » : quatre actives et six archivées. Couverture des codes : 125/135 changes, 125 codes uniques ; couverture de navigation : 135/135. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
+Dix entrées « code non attribué » : trois actives et sept archivées. Couverture des codes : 125/135 changes, 125 codes uniques ; couverture de navigation : 135/135. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
 
 Annotations limitées à 58 préfixages et 67 ajouts de titre principal. Contenus préexistants hors titre conservés octet pour octet. Les liens et correspondances avec la cartographie sont contrôlés ; aucune tâche ni exigence n’est modifiée.
 
