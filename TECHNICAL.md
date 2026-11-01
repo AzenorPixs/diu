@@ -689,13 +689,14 @@ dans `BUILD.md`.
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM` et `FSTAB_CONFIG1` à
-`FSTAB_CONFIG6`,
+`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6` et
+`FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
-Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB` et `FILES2RAM`, le nettoyage transfère la dernière
-valeur littérale `0` ou `1` vers leur nouveau nom système dans `system.env`.
+Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG` et `IPv6`, le
+nettoyage transfère la dernière valeur littérale `0` ou `1` vers leur nouveau
+nom système dans `system.env`.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
 littérale simple, y compris une valeur entre guillemets. Une déclaration
 nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
@@ -710,7 +711,8 @@ d'écriture bloque le chargement suivant.
 Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
 `SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
-`SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM` et
+`SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM`,
+`SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6` et
 `SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
@@ -811,6 +813,29 @@ traitement FILES2RAM existant seulement lorsque `SYSTEM_FILES2RAM` vaut `1`.
 Celui-ci peut supprimer `/var/log/*` lors de sa première activation si
 `/etc/tmpfiles.d/var2log.conf` n’existe pas; l’ancienne valeur littérale est
 migrée avant l’exécution et une syntaxe ambiguë bloque le nettoyage.
+
+### Configuration GRUB système
+
+`modules/diu/variables/system/system_grub_config.sh` déclare
+`SYSTEM_GRUB_CONFIG` avec `STATIC`, `ENABLE`, scope `system` et valeur initiale
+`0`. Une valeur absente est persistée dans `/root/diu/config/system.env`, puis
+exportée; une valeur existante est préservée. Le point d’entrée exécute le
+bloc GRUB existant seulement lorsque cette variable vaut `1`. La dernière
+valeur littérale `GRUB_CONFIG=0|1` est migrée lors du nettoyage historique si
+`SYSTEM_GRUB_CONFIG` n’est pas déjà déclarée; une valeur `1` reste `1`, tandis
+qu’une affectation ambiguë bloque le nettoyage.
+
+### Contrôle IPv6 système
+
+`modules/diu/variables/system/system_ipv6.sh` déclare `SYSTEM_IPV6` en
+`STATIC`, `ENABLE`, scope `system`. Si elle n’est pas définie, le DIU lit
+`net.ipv6.conf.all.disable_ipv6` avec sysctl : `0` produit `SYSTEM_IPV6=1`,
+`1` produit `SYSTEM_IPV6=0`. La valeur est persistée dans
+`/root/diu/config/system.env`; une erreur ou valeur sysctl invalide bloque la
+génération sans export. Une valeur historique littérale `IPv6=0|1` est
+migrée sans altération et prévaut sur la détection; toute valeur nouvelle
+déjà définie garde la priorité. Le point d’entrée conserve les traitements
+sysctl IPv6 existants sous le nouveau nom.
 
 ### Indicateurs de tests DevOps
 
