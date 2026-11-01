@@ -7,24 +7,24 @@ Retirer de manière idempotente les déclarations historiques de distribution, d
 
 ### Requirement: Nettoyage de la configuration historique
 
-Le DIU SHALL fournir config_cleanup dans `modules/system/variables-cleanup.sh`, appelée avant le chargement de /root/diu/variables.sh. Elle SHALL supprimer les lignes d’affectation simple de DEBIAN_RELEASE, DEBIAN_TYPE, DISPLAY_LINK ou TIME_ZONE, avec espaces initiaux et export optionnel, sans lire leur valeur dans les journaux et sans affecter les autres lignes. Elle SHALL accepter un chemin optionnel pour les tests et utiliser /root/diu/variables.sh par défaut.
+Le DIU SHALL fournir `config_cleanup` dans `modules/system/variables-cleanup.sh`, appelée avant le chargement de `/root/diu/variables.sh`. Elle SHALL supprimer les lignes d’affectation simple de `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE` ou `PROXY_CA`, avec espaces initiaux et `export` optionnel, sans afficher leur valeur ni affecter les autres lignes. Elle SHALL accepter un chemin optionnel pour les tests et utiliser `/root/diu/variables.sh` par défaut.
 
 #### Scenario: Anciennes déclarations présentes
 
-- **WHEN** le fichier contient une ou plusieurs affectations de DEBIAN_RELEASE, DEBIAN_TYPE, DISPLAY_LINK ou TIME_ZONE
-- **THEN** toutes ces affectations sont supprimées avant le chargement
-- **AND** SYSTEM_DEBIAN_RELEASE, SYSTEM_DEBIAN_ENVIRONNEMENT, SYSTEM_DRIVERS_DISPLAY_LINK, SYSTEM_TIME_ZONE, les noms voisins, commentaires et autres variables sont préservés
+- **WHEN** le fichier contient une ou plusieurs affectations de `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE` ou `PROXY_CA`
+- **THEN** toutes ces affectations SHALL être supprimées avant le chargement
+- **AND** les nouveaux noms, noms voisins, commentaires et autres variables SHALL être conservés
 
 #### Scenario: Absence et répétition
 
-- **WHEN** le fichier ou la déclaration est absent, ou le nettoyage est répété
-- **THEN** le nettoyage réussit sans réécrire le fichier
+- **WHEN** le fichier ou une déclaration à supprimer est absent, ou le nettoyage est répété
+- **THEN** le nettoyage SHALL réussir sans réécrire le fichier
 
 #### Scenario: Erreur de lecture ou écriture
 
 - **WHEN** une lecture ou suppression échoue
-- **THEN** le nettoyage retourne un code non nul avec un diagnostic sur stderr sans contenu du fichier
-- **AND** le démarrage ne poursuit pas le chargement de la configuration
+- **THEN** le nettoyage SHALL retourner un code non nul avec un diagnostic sur stderr sans contenu de configuration
+- **AND** le démarrage SHALL NOT poursuivre le chargement de la configuration
 
 ### Requirement: Consommateurs migrés
 

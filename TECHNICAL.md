@@ -688,7 +688,8 @@ dans `BUILD.md`.
 
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
-`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK` et `TIME_ZONE`, avec `export` facultatif et espaces initiaux éventuels.
+`DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE` et `PROXY_CA`,
+avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
 La fonction accepte un chemin de fichier optionnel, ce qui permet les tests
@@ -696,8 +697,9 @@ isolés. Elle est idempotente : l'absence du fichier ou l'absence de la ligne à
 supprimer est un succès sans réécriture. Toute erreur de lecture ou d'écriture
 bloque le chargement suivant.
 
-Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE` et
-`SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK` et `SYSTEM_TIME_ZONE`. Les valeurs historiques ne sont pas transférées.
+Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
+`SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
+`SYSTEM_TIME_ZONE` et `SYSTEM_PROXY_CA`. Les valeurs historiques ne sont pas transférées.
 Le nettoyage intervient à la prochaine exécution du DIU, sans sauvegarde
 automatique des anciennes affectations supprimées.
 
@@ -736,6 +738,17 @@ invalide.
 
 Une déclaration désactivée retire la variable de l'environnement et supprime
 uniquement sa ligne persistante exacte.
+
+### Option proxy CA système
+
+`modules/diu/variables/system/system_proxy_ca.sh` déclare
+`SYSTEM_PROXY_CA` avec `STATIC`, `ENABLE`, scope `system` et valeur initiale
+`0`. Une valeur absente est persistée dans `/root/diu/config/system.env`, puis
+exportée ; une valeur existante, même vide, est conservée. Le point d’entrée
+exécute le traitement CA existant seulement lorsque `SYSTEM_PROXY_CA` vaut
+`1`. L’ancienne affectation `PROXY_CA` est supprimée avant le chargement de
+`variables.sh`, sans transfert ; une ancienne activation doit être reportée
+explicitement à `SYSTEM_PROXY_CA=1` dans `system.env`.
 
 ### Indicateurs de tests DevOps
 

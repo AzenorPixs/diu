@@ -1840,7 +1840,7 @@ dispatch_arguments "$@"
 
 ###  PROXY ###
 
-if [ "$PROXY_CA" -eq 1 ]
+if [[ "${SYSTEM_PROXY_CA:-0}" == "1" ]]
 then
 
 	echo "🔧 Configure CA"

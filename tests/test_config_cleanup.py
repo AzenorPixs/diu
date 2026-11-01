@@ -21,8 +21,10 @@ class ConfigCleanupTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
             preserved = ('# DEBIAN_RELEASE=comment\n# DEBIAN_TYPE=comment\n# DISPLAY_LINK=comment\n'
+                         '# PROXY_CA=comment\n'
                          'SYSTEM_DRIVERS_DISPLAY_LINK=1\nDISPLAY_LINK_EXTRA=keep\n'
                          '# TIME_ZONE=comment\nSYSTEM_TIME_ZONE=UTC\nTIME_ZONE_EXTRA=keep\n'
+                         'SYSTEM_PROXY_CA=0\nPROXY_CA_EXTRA=keep\n'
                          'SYSTEM_DEBIAN_ENVIRONNEMENT=VM\nDEBIAN_TYPE_EXTRA=keep\n'
                          'SYSTEM_DEBIAN_RELEASE=bookworm\n'
                          'DEBIAN_RELEASE_EXTRA=keep\nOTHER=keep\n\n')
@@ -33,7 +35,9 @@ class ConfigCleanupTests(unittest.TestCase):
                             'TIME_ZONE=UTC\n export TIME_ZONE=Europe/London\n'
                             '\texport\tTIME_ZONE=UTC # comment\n'
                             'DISPLAY_LINK=1\n export DISPLAY_LINK=0\n'
-                            '\texport\tDISPLAY_LINK=1 # comment\n' + preserved)
+                            '\texport\tDISPLAY_LINK=1 # comment\n'
+                            'PROXY_CA=0\n export PROXY_CA="1"\n'
+                            '\texport\tPROXY_CA=1 # comment\n' + preserved)
             path.chmod(0o640)
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -76,6 +80,15 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(path.read_text(), 'OTHER=keep\n')
 
+    def test_proxy_ca_only(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('export PROXY_CA=1\nSYSTEM_PROXY_CA=0\nPROXY_CA_EXTRA=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'SYSTEM_PROXY_CA=0\nPROXY_CA_EXTRA=keep\n')
+            self.assertEqual(result.stdout, '')
+
     def test_read_and_write_errors(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
@@ -99,6 +112,8 @@ class ConfigCleanupTests(unittest.TestCase):
         self.assertNotRegex(text, r'\bDEBIAN_TYPE\b')
         self.assertIn('SYSTEM_DEBIAN_ENVIRONNEMENT', text)
         self.assertNotRegex(text, r'\bDISPLAY_LINK\b')
+        self.assertIn('PROXY_CA', (ROOT / 'modules/system/variables-cleanup.sh').read_text())
+        self.assertNotRegex(text, r'\bPROXY_CA\b')
         self.assertIn('. "$BASH_SCRIPT_PATH/modules/system/drivers.sh"', text)
         drivers = (ROOT / 'modules/system/drivers.sh').read_text()
         self.assertNotRegex(drivers, r'\bDISPLAY_LINK\b')

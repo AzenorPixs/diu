@@ -4,7 +4,7 @@ Plan validé : `ACL-DIU-20261028-R1`. Attribution et vérification documentaire 
 
 ## Périmètre et convention
 
-125 correspondances vérifiées : 8 changes actifs codés et 117 archivés codés. Trois changes actifs et un change archivé supplémentaires restent sans code ; la navigation couvre 129 changes, dont 11 actifs et 118 archivés. Aucun code préexistant n’a été renuméroté et aucun nouveau code n’est attribué ici.
+125 correspondances vérifiées : 8 changes actifs codés et 117 archivés codés. Trois changes actifs et deux changes archivés supplémentaires restent sans code ; la navigation couvre 130 changes, dont 11 actifs et 119 archivés. Aucun code préexistant n’a été renuméroté et aucun nouveau code n’est attribué ici.
 
 Un code désigne un change et reste stable indépendamment de son état. Préfixe significatif suivi d’un numéro séquentiel de deux chiffres, extensible sans renumérotation. Allocation initiale : noms exacts des dossiers archivés triés, puis identifiants des actifs triés, avec compteur indépendant par famille. Ce tri ne définit ni priorité métier ni date de création.
 
@@ -185,8 +185,9 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 | Identifiant technique | Titre | État | Code | Dossier | Source |
 |---|---|---|---|---|---|
 | add-devops-docker-tpm-access | Ajout de la mention d’accès TPM au conteneur Docker | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-devops-docker-tpm-access/) | [proposition](changes/archive/2026-11-01-add-devops-docker-tpm-access/proposal.md) |
+| add-system-proxy-ca | Déclaration modulaire de SYSTEM_PROXY_CA | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-proxy-ca/) | [proposition](changes/archive/2026-11-01-add-system-proxy-ca/proposal.md) |
 
-Quatre entrées « code non attribué » : trois actives et une archivée. Couverture des codes : 125/129 changes, 125 codes uniques ; couverture de navigation : 129/129. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
+Cinq entrées « code non attribué » : trois actives et deux archivées. Couverture des codes : 125/130 changes, 125 codes uniques ; couverture de navigation : 130/130. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
 
 Annotations limitées à 58 préfixages et 67 ajouts de titre principal. Contenus préexistants hors titre conservés octet pour octet. Les liens et correspondances avec la cartographie sont contrôlés ; aucune tâche ni exigence n’est modifiée.
 
