@@ -102,3 +102,16 @@ system_info_drivers dans modules/system/infos.sh SHALL répondre à rid system i
 - **WHEN** la variable vaut 1 mais le paquet est absent, incomplet, sans version ou son interrogation échoue
 - **THEN** la version affiche UNSET avec un diagnostic et un statut non nul
 - **AND** la configuration est préservée
+
+### Requirement: Informations des logiciels CrowdSec
+
+`softwares_infos` SHALL afficher les interrupteurs CrowdSec du scope logiciels
+et SHALL NOT afficher la clé API. `system_info_debian` SHALL NOT présenter le
+dépôt CrowdSec comme une variable du scope system.
+
+#### Scenario: Informations CrowdSec sans secret
+
+- **WHEN** les informations logicielles sont demandées
+- **THEN** les trois interrupteurs CrowdSec sont affichés sous le bloc
+  `SOFTWARES`
+- **AND** la clé API n'est pas affichée

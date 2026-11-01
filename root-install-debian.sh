@@ -3519,7 +3519,53 @@ then
 
 fi
 
-if [[ "${SYSTEM_CROWDSEC_AGENT:-0}" == "1" ]]
+crowdsec_bouncer_set_api_key() {
+	local config_file="/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml"
+	local temporary_file line found=0
+	[[ -n "${SOFTWARES_CROWDSEC_BOUNCER_API_KEY:-}" ]] || {
+		printf '%s\n' "La clé API du bouncer CrowdSec est absente." >&2
+		return 1
+	}
+	[[ -f "$config_file" && -r "$config_file" ]] || {
+		printf '%s\n' "Configuration du bouncer CrowdSec inaccessible." >&2
+		return 1
+	}
+	temporary_file="$(mktemp "${config_file}.XXXXXX")" || {
+		printf '%s\n' "Fichier temporaire du bouncer CrowdSec impossible à créer." >&2
+		return 1
+	}
+	if ! chmod 0600 "$temporary_file"; then
+		rm -f -- "$temporary_file"
+		printf '%s\n' "Sécurisation temporaire de la configuration CrowdSec impossible." >&2
+		return 1
+	fi
+	while IFS= read -r line || [[ -n "$line" ]]; do
+		if [[ "$line" =~ ^([[:blank:]]*api_key[[:blank:]]*:[[:blank:]]*).*$ ]]; then
+			printf '%s%s\n' "${BASH_REMATCH[1]}" "$SOFTWARES_CROWDSEC_BOUNCER_API_KEY" >> "$temporary_file" || {
+				rm -f -- "$temporary_file"
+				return 1
+			}
+			found=1
+		else
+			printf '%s\n' "$line" >> "$temporary_file" || {
+				rm -f -- "$temporary_file"
+				return 1
+			}
+		fi
+	done < "$config_file"
+	if [[ "$found" != 1 ]]; then
+		rm -f -- "$temporary_file"
+		printf '%s\n' "Clé api_key absente de la configuration CrowdSec." >&2
+		return 1
+	fi
+	if ! mv -f -- "$temporary_file" "$config_file"; then
+		rm -f -- "$temporary_file"
+		printf '%s\n' "Écriture de la configuration CrowdSec impossible." >&2
+		return 1
+	fi
+}
+
+if [[ "${SOFTWARES_APT_CROWDSEC_AGENT:-0}" == "1" ]]
 then
 
 	echo ""
@@ -3553,14 +3599,14 @@ then
 	echo "CROWDSEC BOUNCER IPTABLES CONFIGURATION"
 	sed -i 's%.*log_dir.*%log_dir: /var/log/machines/siem%' /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 	sed -i 's%.*api_url.*%api_url: http://127.0.0.1:8080/%' /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-	sed -i "s%.*api_key.*%api_key: $CROWDSEC_BOUNCER_API_KEY%" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+	crowdsec_bouncer_set_api_key || exit 1
 	sed -i 's%.*disable_ipv6.*%disable_ipv6: false%' /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 	systemctl disable crowdsec-firewall-bouncer.service
 	service crowdsec-firewall-bouncer restart
 
 fi
 
-if [ "$CROWDSEC_BOUNCER" -eq 1 ]
+if [[ "${SOFTWARES_APT_CROWDSEC_BOUNCER:-0}" == "1" ]]
 then
 
 	echo ""
@@ -3569,7 +3615,7 @@ then
 
 	echo "CONFIGURE CROWDSEC BOUNCER IPTABLES CONFIGURATION"
 	sed -i 's%.*api_url.*%api_url: http://siem.ch-nontron.fr:8080/%' /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-	sed -i "s%.*api_key.*%api_key: $CROWDSEC_BOUNCER_API_KEY%" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+	crowdsec_bouncer_set_api_key || exit 1
 	sed -i 's%.*log_mode.*%log_mode: stdout%' /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 	systemctl disable crowdsec-firewall-bouncer.service
 	service crowdsec-firewall-bouncer restart
@@ -8263,7 +8309,7 @@ then
 
 	fi
 
-	if [ "$CROWDSEC_BOUNCER" -eq 1 ]
+	if [[ "${SOFTWARES_APT_CROWDSEC_BOUNCER:-0}" == "1" ]]
 	then
 		{
 		    echo '# RESTART CROWDSEC FIREWALL BOUNCER'

@@ -472,29 +472,34 @@ class ConfigCleanupTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
             system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
             path.write_text('CROWDSEC_AGENT=0\nexport CROWDSEC_AGENT=1 # active\nOTHER=keep\n')
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(path.read_text(), 'OTHER=keep\n')
-            self.assertEqual(system_config.read_text(), 'export SYSTEM_CROWDSEC_AGENT=1\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC_AGENT=1\n')
+            self.assertFalse(system_config.exists())
 
             path.write_text('export CROWDSEC_AGENT=1\n')
             system_config.write_text('export SYSTEM_CROWDSEC_AGENT=0\n')
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(path.read_text(), '')
-            self.assertEqual(system_config.read_text(), 'export SYSTEM_CROWDSEC_AGENT=0\n')
+            self.assertEqual(system_config.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC_AGENT=1\n')
 
+            softwares_config.unlink()
             system_config.unlink()
             path.write_text('CROWDSEC_AGENT=0\n')
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(system_config.read_text(), 'export SYSTEM_CROWDSEC_AGENT=0\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC_AGENT=0\n')
 
     def test_ambiguous_crowdsec_agent_is_preserved_without_exposure(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
             system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
             sentinel = Path(directory) / 'executed'
             original = f'CROWDSEC_AGENT="$(touch {sentinel})"\nOTHER=keep\n'
             path.write_text(original)
@@ -503,6 +508,78 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(path.read_text(), original)
             self.assertEqual(system_config.read_text(), 'export SYSTEM_CROWDSEC_AGENT=1\n')
+            self.assertFalse(softwares_config.exists())
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_crowdsec_apt_repository_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('SYSTEM_APT_CROWDSEC=1\nOTHER=keep\n')
+            system_config.write_text('export SYSTEM_APT_CROWDSEC=0\nSYSTEM_APT_DOCKER=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'SYSTEM_APT_DOCKER=1\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC=0\n')
+
+            system_config.write_text('export SYSTEM_APT_CROWDSEC=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_CROWDSEC=0\n')
+            path.write_text('OTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC=0\n')
+            self.assertEqual(system_config.read_text(), '')
+
+    def test_system_crowdsec_migrates_when_legacy_variables_file_is_absent(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
+            system_config.write_text('export SYSTEM_CROWDSEC_AGENT=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), '')
+            self.assertEqual(softwares_config.read_text(),
+                             'export SOFTWARES_APT_CROWDSEC_AGENT=1\n')
+
+    def test_crowdsec_bouncer_migrates_to_software_scope(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('CROWDSEC_BOUNCER=0\nexport CROWDSEC_BOUNCER=1\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual((Path(directory) / 'softwares.env').read_text(),
+                             'export SOFTWARES_APT_CROWDSEC_BOUNCER=1\n')
+
+    def test_crowdsec_api_key_migrates_opaquely_and_secures_software_config(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            synthetic_key = 'syntheticCrowdsecKey-123:abc'
+            path.write_text(f'CROWDSEC_BOUNCER_API_KEY="{synthetic_key}"\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(softwares_config.read_text(),
+                             f'export SOFTWARES_CROWDSEC_BOUNCER_API_KEY={synthetic_key}\n')
+            self.assertEqual(softwares_config.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(result.stdout, '')
+            self.assertNotIn(synthetic_key, result.stderr)
+
+    def test_ambiguous_crowdsec_api_key_fails_without_exposure_or_execution(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'CROWDSEC_BOUNCER_API_KEY="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
             self.assertFalse(sentinel.exists())
             self.assertNotIn(str(sentinel), result.stderr)
             self.assertEqual(result.stdout, '')
