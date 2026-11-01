@@ -4,7 +4,7 @@ Plan validé : `ACL-DIU-20261028-R1`. Attribution et vérification documentaire 
 
 ## Périmètre et convention
 
-125 correspondances vérifiées : 8 changes actifs et 117 archivés. Trois changes actifs supplémentaires sont inscrits provisoirement sans code ; la navigation couvre donc 128 changes, dont 11 actifs. Tous étaient sans code attesté avant cette attribution. Aucun code préexistant à renuméroter ; aucune réservation nouvelle.
+125 correspondances vérifiées : 8 changes actifs codés et 117 archivés codés. Trois changes actifs et deux changes archivés supplémentaires restent sans code ; la navigation couvre 130 changes, dont 11 actifs et 119 archivés. Aucun code préexistant n’a été renuméroté et aucun nouveau code n’est attribué ici.
 
 Un code désigne un change et reste stable indépendamment de son état. Préfixe significatif suivi d’un numéro séquentiel de deux chiffres, extensible sans renumérotation. Allocation initiale : noms exacts des dossiers archivés triés, puis identifiants des actifs triés, avec compteur indépendant par famille. Ce tri ne définit ni priorité métier ni date de création.
 
@@ -12,7 +12,7 @@ Les mentions L8, L10, L11 et L12 dans les preuves CGP sont des repères de revue
 
 ## Familles
 
-Le tableau compte uniquement les 125 correspondances codées ; les trois entrées provisoires restent séparées.
+Le tableau compte uniquement les 125 correspondances codées ; les quatre entrées sans code restent séparées selon leur état.
 
 | Préfixe | Responsabilité | Archives | Actifs | Total | Source de cadrage |
 |---|---|---:|---:|---:|---|
@@ -177,10 +177,22 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 | reconcile-forgejo-credential-bootstrap | Réconciliation du bootstrap des identifiants Forgejo | ACTIF | code non attribué | [dossier](changes/reconcile-forgejo-credential-bootstrap/) | [proposition](changes/reconcile-forgejo-credential-bootstrap/proposal.md) |
 | reconcile-diu-deb-packaging-contract | Réconciliation du contrat de packaging Debian DIU | ACTIF | code non attribué | [dossier](changes/reconcile-diu-deb-packaging-contract/) | [proposition](changes/reconcile-diu-deb-packaging-contract/proposal.md) |
 | fix-gitlab-release-asset-link-validation | Validation du lien d’asset Debian GitLab | ACTIF | code non attribué | [dossier](changes/fix-gitlab-release-asset-link-validation/) | [proposition](changes/fix-gitlab-release-asset-link-validation/proposal.md) |
+| add-system-files2ram-variable | Déclaration modulaire de SYSTEM_FILES2RAM | ACTIF | code non attribué | [dossier](changes/add-system-files2ram-variable/) | [proposition](changes/add-system-files2ram-variable/proposal.md) |
 
 ## Entrées provisoires et contrôles
 
-Trois entrées « code non attribué ». Couverture des codes : 125/128 changes, 125 codes uniques ; couverture de navigation : 128/128. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
+### Changes archivés sans code attribué
+
+| Identifiant technique | Titre | État | Code | Dossier | Source |
+|---|---|---|---|---|---|
+| add-devops-docker-tpm-access | Ajout de la mention d’accès TPM au conteneur Docker | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-devops-docker-tpm-access/) | [proposition](changes/archive/2026-11-01-add-devops-docker-tpm-access/proposal.md) |
+| add-system-proxy-ca | Déclaration modulaire de SYSTEM_PROXY_CA | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-proxy-ca/) | [proposition](changes/archive/2026-11-01-add-system-proxy-ca/proposal.md) |
+| add-system-proxy-variable | Déclaration modulaire de SYSTEM_PROXY | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-proxy-variable/) | [proposition](changes/archive/2026-11-01-add-system-proxy-variable/proposal.md) |
+| add-system-drivers-nvidia-variable | Déclaration modulaire de SYSTEM_DRIVERS_NVIDIA | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-drivers-nvidia-variable/) | [proposition](changes/archive/2026-11-01-add-system-drivers-nvidia-variable/proposal.md) |
+| add-system-fstab-configuration | Configuration modulaire de FSTAB et de ses entrées | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-configuration/) | [proposition](changes/archive/2026-11-01-add-system-fstab-configuration/proposal.md) |
+| add-system-fstab-config-six | Ajout de SYSTEM_FSTAB_CONFIG6 | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-config-six/) | [proposition](changes/archive/2026-11-01-add-system-fstab-config-six/proposal.md) |
+
+Dix entrées « code non attribué » : quatre actives et six archivées. Couverture des codes : 125/135 changes, 125 codes uniques ; couverture de navigation : 135/135. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
 
 Annotations limitées à 58 préfixages et 67 ajouts de titre principal. Contenus préexistants hors titre conservés octet pour octet. Les liens et correspondances avec la cartographie sont contrôlés ; aucune tâche ni exigence n’est modifiée.
 
