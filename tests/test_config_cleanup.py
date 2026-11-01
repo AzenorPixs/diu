@@ -205,6 +205,45 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(path.read_text(), '')
             self.assertEqual(system_config.read_text(), 'export SYSTEM_FILES2RAM=0\n')
 
+    def test_grub_config_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('GRUB_CONFIG=0\nexport GRUB_CONFIG=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=1\n')
+
+            path.write_text('export GRUB_CONFIG=1\n')
+            system_config.write_text('export SYSTEM_GRUB_CONFIG=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=0\n')
+
+            path.write_text('export GRUB_CONFIG=0\n')
+            system_config.unlink()
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=0\n')
+
+    def test_ambiguous_grub_config_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'GRUB_CONFIG="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config = Path(directory) / 'system.env'
+            system_config.write_text('export SYSTEM_GRUB_CONFIG=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
     def test_ambiguous_files2ram_is_preserved_without_exposure(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
@@ -286,6 +325,8 @@ class ConfigCleanupTests(unittest.TestCase):
         self.assertEqual(text.count('if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]'), 6)
         self.assertNotRegex(text, r'\$(?:\{)?FILES2RAM(?:\})?(?![A-Z0-9_])')
         self.assertIn('if [[ "${SYSTEM_FILES2RAM:-0}" == "1" ]]', text)
+        self.assertNotRegex(text, r'\$(?:\{)?GRUB_CONFIG(?:\})?(?![A-Z0-9_])')
+        self.assertIn('if [[ "${SYSTEM_GRUB_CONFIG:-0}" == "1" ]]', text)
         self.assertIn('. "$BASH_SCRIPT_PATH/modules/system/drivers.sh"', text)
         drivers = (ROOT / 'modules/system/drivers.sh').read_text()
         self.assertNotRegex(drivers, r'\bDISPLAY_LINK\b')
