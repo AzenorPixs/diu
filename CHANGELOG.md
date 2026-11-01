@@ -10,6 +10,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   littérales sont transférées sauf si la nouvelle variable existe déjà;
   les syntaxes shell ambiguës bloquent le nettoyage.
 
+- FSTAB système : ajout de `SYSTEM_FSTAB_CONFIG6`, en `STATIC`, `ENABLE`,
+  scope `system`, défaut `NONE`. Lorsque le drapeau est activé, l’entrée est
+  ajoutée après la cinquième; l’affectation littérale historique est migrée si
+  la nouvelle déclaration est absente.
+
 - Variables système : migration du drapeau `DRIVERS_NVIDIA` vers
   `SYSTEM_DRIVERS_NVIDIA`, déclarée en `STATIC`, `ENABLE`, scope `system`,
   défaut `0`. Les anciennes valeurs littérales `0` ou `1` sont migrées sauf

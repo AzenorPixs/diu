@@ -9,16 +9,16 @@ Retirer de manière idempotente les déclarations historiques de distribution, d
 
 Le DIU SHALL appeler `config_cleanup` avant de sourcer
 `/root/diu/variables.sh`. La fonction SHALL supprimer les affectations simples
-des variables historiques listées dans le scénario et préserver les autres
-lignes. Elle SHALL migrer leurs littéraux acceptés vers les nouveaux noms
-système si ceux-ci ne sont pas déjà déclarés. Elle SHALL accepter un chemin
-optionnel ; son défaut est `/root/diu/variables.sh`.
+des variables historiques listées dans le scénario sans exposer leurs valeurs
+ni modifier les autres lignes. Elle SHALL migrer les valeurs littérales
+acceptées vers les nouveaux noms système si ceux-ci ne sont pas déclarés. Elle
+SHALL accepter un chemin optionnel, par défaut `/root/diu/variables.sh`.
 
 #### Scenario: Anciennes déclarations présentes
 
 - **WHEN** le fichier contient une ou plusieurs affectations de
   `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-  `PROXY`, `DRIVERS_NVIDIA`, `FSTAB` ou `FSTAB_CONFIG1` à `FSTAB_CONFIG5`
+  `PROXY`, `DRIVERS_NVIDIA`, `FSTAB` ou `FSTAB_CONFIG1` à `FSTAB_CONFIG6`
 - **THEN** les affectations historiques SHALL être supprimées avant le
   chargement
 - **AND** leurs dernières valeurs simples littérales SHALL être persistées

@@ -43,15 +43,15 @@ config_cleanup_parse_fstab_literal() {
 config_cleanup() {
     local variables_file="${1:-/root/diu/variables.sh}"
     local system_config_file="${2:-/root/diu/config/system.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-5]|FSTAB)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
     local fstab_config_number fstab_config_value fstab_migration_found=0
     local fstab_config_migration_needed=0
     local REPLY
-    local -a fstab_config_values=() fstab_config_found=(0 0 0 0 0 0)
-    local -a fstab_config_declared=(0 0 0 0 0 0)
+    local -a fstab_config_values=() fstab_config_found=(0 0 0 0 0 0 0)
+    local -a fstab_config_declared=(0 0 0 0 0 0 0)
 
     [[ -e "$variables_file" ]] || return 0
 
@@ -85,7 +85,7 @@ config_cleanup() {
                 printf '%s\n' 'Erreur : affectation historique FSTAB ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
-        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?FSTAB_CONFIG([1-5])= ]]; then
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?FSTAB_CONFIG([1-6])= ]]; then
             fstab_config_number="${BASH_REMATCH[2]}"
             fstab_config_found["$fstab_config_number"]=1
             if config_cleanup_parse_fstab_literal "${line#*=}"; then
@@ -101,7 +101,7 @@ config_cleanup() {
     if [[ "$fstab_found" == 1 ]]; then
         fstab_migration_found=1
     fi
-    for fstab_config_number in 1 2 3 4 5; do
+    for fstab_config_number in 1 2 3 4 5 6; do
         if [[ "${fstab_config_found[$fstab_config_number]}" == 1 ]]; then
             fstab_migration_found=1
         fi
@@ -146,7 +146,7 @@ config_cleanup() {
                 fi
             fi
         fi
-        for fstab_config_number in 1 2 3 4 5; do
+        for fstab_config_number in 1 2 3 4 5 6; do
             if [[ "${fstab_config_found[$fstab_config_number]}" == 1 ]]; then
                 if grep -E "^[[:blank:]]*(export[[:blank:]]+)?SYSTEM_FSTAB_CONFIG${fstab_config_number}=" \
                     "$system_config_file" > /dev/null 2>&1; then
@@ -162,7 +162,7 @@ config_cleanup() {
         done
     fi
 
-    for fstab_config_number in 1 2 3 4 5; do
+    for fstab_config_number in 1 2 3 4 5 6; do
         if [[ "${fstab_config_found[$fstab_config_number]}" == 1 &&
               "${fstab_config_declared[$fstab_config_number]}" == 0 ]]; then
             fstab_config_migration_needed=1
@@ -196,7 +196,7 @@ config_cleanup() {
             return 1
         fi
     fi
-    for fstab_config_number in 1 2 3 4 5; do
+    for fstab_config_number in 1 2 3 4 5 6; do
         if [[ "${fstab_config_found[$fstab_config_number]}" == 1 &&
               "${fstab_config_declared[$fstab_config_number]}" == 0 ]]; then
             fstab_config_value="${fstab_config_values[$fstab_config_number]}"
