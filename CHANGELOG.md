@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration de `PROXY_CA` vers `SYSTEM_PROXY_CA`, déclarée
+  en `STATIC`, `ENABLE`, scope `system`, défaut `0`. Le traitement CA existant
+  reste actif uniquement pour la valeur `1` ; la valeur historique n’est pas
+  transférée.
+
 - Génération de DEVOPS.md : ajout de la puce « Accès TPM OK » après l'image
   debian:stable-slim dans la rubrique Docker activée. Mention documentaire
   fixe, sans sonde ni changement d'infrastructure ; la rubrique passe à six
