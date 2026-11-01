@@ -188,8 +188,9 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 | add-system-proxy-ca | Déclaration modulaire de SYSTEM_PROXY_CA | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-proxy-ca/) | [proposition](changes/archive/2026-11-01-add-system-proxy-ca/proposal.md) |
 | add-system-proxy-variable | Déclaration modulaire de SYSTEM_PROXY | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-proxy-variable/) | [proposition](changes/archive/2026-11-01-add-system-proxy-variable/proposal.md) |
 | add-system-drivers-nvidia-variable | Déclaration modulaire de SYSTEM_DRIVERS_NVIDIA | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-drivers-nvidia-variable/) | [proposition](changes/archive/2026-11-01-add-system-drivers-nvidia-variable/proposal.md) |
+| add-system-fstab-configuration | Configuration modulaire de FSTAB et de ses entrées | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-configuration/) | [proposition](changes/archive/2026-11-01-add-system-fstab-configuration/proposal.md) |
 
-Sept entrées « code non attribué » : trois actives et quatre archivées. Couverture des codes : 125/132 changes, 125 codes uniques ; couverture de navigation : 132/132. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
+Huit entrées « code non attribué » : trois actives et cinq archivées. Couverture des codes : 125/133 changes, 125 codes uniques ; couverture de navigation : 133/133. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
 
 Annotations limitées à 58 préfixages et 67 ajouts de titre principal. Contenus préexistants hors titre conservés octet pour octet. Les liens et correspondances avec la cartographie sont contrôlés ; aucune tâche ni exigence n’est modifiée.
 
