@@ -690,14 +690,15 @@ Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
 `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
-`LOG_ROTATE` et
+`LOG_ROTATE`, `JOURNALD_MAX_USE` et
 `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
 Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6` et
 `LOG_ROTATE`, le nettoyage transfère la dernière valeur littérale `0` ou `1`
-vers leur nouveau nom système dans `system.env`.
+vers leur nouveau nom système dans `system.env`. Pour `JOURNALD_MAX_USE`, il
+transfère la dernière taille littérale journald simple, sans l’évaluer.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
 littérale simple, y compris une valeur entre guillemets. Une déclaration
 nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
@@ -713,7 +714,8 @@ Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
 `SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
 `SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM`,
-`SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6`, `SYSTEM_LOG_ROTATE` et
+`SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6`, `SYSTEM_LOG_ROTATE`,
+`SYSTEM_JOURNALD_MAX_USE` et
 `SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
@@ -847,6 +849,16 @@ L’ancienne valeur littérale `LOG_ROTATE=0|1` est migrée exactement si aucune
 valeur nouvelle n’est déjà présente. Le point d’entrée ne modifie le fichier
 `/etc/logrotate.conf` que lorsque `SYSTEM_LOG_ROTATE=1`; dans ce cas il
 continue d’utiliser `LOG_ROTATE_DAILY` pour le compte de rotations.
+
+### Limite de taille journald
+
+`modules/diu/variables/system/system_journald_max_use.sh` déclare
+`SYSTEM_JOURNALD_MAX_USE` en `STATIC`, `ENABLE`, scope `system`, défaut
+`500M`. Les valeurs acceptées sont un entier, suivi facultativement de `K`,
+`M`, `G`, `T`, `P` ou `E`. Une valeur historique simple
+`JOURNALD_MAX_USE` est migrée sans l’évaluer; une valeur nouvelle déjà
+configurée est prioritaire. Le point d’entrée utilise cette limite pour les
+journaux systemd persistants et volatils. `JOURNALD_KEEP_FREE` reste distinct.
 
 ### Contrôle de la stack Docker Traefik / Dockhand
 

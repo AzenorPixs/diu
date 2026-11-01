@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration de `JOURNALD_MAX_USE` vers
+  `SYSTEM_JOURNALD_MAX_USE`, déclaré en `STATIC`, `ENABLE`, scope `system`,
+  défaut `500M`. L’ancienne valeur de taille littérale est transférée sans
+  interprétation si la nouvelle variable n’est pas déjà configurée; les
+  directives `SystemMaxUse` et `RuntimeMaxUse` utilisent le nouveau nom.
+
 - Configuration Docker : déclaration de `DOCKER_STACK_DEVOPS` en `STATIC`,
   `ENABLE`, scope `docker`, défaut `0`. Une valeur existante `0` ou `1` est
   conservée; le défaut est persisté uniquement en l’absence de valeur.

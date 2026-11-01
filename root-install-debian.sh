@@ -3109,9 +3109,9 @@ config_host
 echo "🔧 CONFIGURE SYSTEMD"
 sed -i 's%.*Compress=.*%Compress=yes%' /etc/systemd/journald.conf
 sed -i 's%.*Storage=.*%Storage=volatile%' /etc/systemd/journald.conf
-sed -i -E "s|^[#[:space:]]*SystemMaxUse=.*|SystemMaxUse=${JOURNALD_MAX_USE}|" /etc/systemd/journald.conf
+sed -i -E "s|^[#[:space:]]*SystemMaxUse=.*|SystemMaxUse=${SYSTEM_JOURNALD_MAX_USE}|" /etc/systemd/journald.conf
 sed -i -E "s|^[#[:space:]]*SystemKeepFree=.*|SystemKeepFree=${JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
-sed -i -E "s|^[#[:space:]]*RuntimeMaxUse=.*|RuntimeMaxUse=${JOURNALD_MAX_USE}|" /etc/systemd/journald.conf
+sed -i -E "s|^[#[:space:]]*RuntimeMaxUse=.*|RuntimeMaxUse=${SYSTEM_JOURNALD_MAX_USE}|" /etc/systemd/journald.conf
 sed -i -E "s|^[#[:space:]]*RuntimeKeepFree=.*|RuntimeKeepFree=${JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
 systemctl restart systemd-journald
 
