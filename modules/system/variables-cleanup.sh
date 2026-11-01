@@ -43,7 +43,7 @@ config_cleanup_parse_fstab_literal() {
 config_cleanup() {
     local variables_file="${1:-/root/diu/variables.sh}"
     local system_config_file="${2:-/root/diu/config/system.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -53,6 +53,7 @@ config_cleanup() {
     local log_rotate_value='' log_rotate_found=0 system_log_rotate_declared=0
     local journald_max_use_value='' journald_max_use_found=0 system_journald_max_use_declared=0
     local journald_keep_free_value='' journald_keep_free_found=0 system_journald_keep_free_declared=0
+    local no_sleep_value='' no_sleep_found=0 system_no_sleep_declared=0
     local fstab_config_number fstab_config_value fstab_migration_found=0
     local fstab_config_migration_needed=0
     local REPLY
@@ -141,6 +142,14 @@ config_cleanup() {
                 printf '%s\n' 'Erreur : affectation historique JOURNALD_KEEP_FREE ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?NO_SLEEP= ]]; then
+            no_sleep_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?NO_SLEEP=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                no_sleep_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique NO_SLEEP ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?FSTAB_CONFIG([1-6])= ]]; then
             fstab_config_number="${BASH_REMATCH[2]}"
             fstab_config_found["$fstab_config_number"]=1
@@ -166,7 +175,7 @@ config_cleanup() {
         fi
     done
 
-    if [[ ( "$proxy_found" == 1 || "$nvidia_found" == 1 || "$grub_config_found" == 1 || "$ipv6_found" == 1 || "$log_rotate_found" == 1 || "$journald_max_use_found" == 1 || "$journald_keep_free_found" == 1 || "$fstab_migration_found" == 1 ) &&
+    if [[ ( "$proxy_found" == 1 || "$nvidia_found" == 1 || "$grub_config_found" == 1 || "$ipv6_found" == 1 || "$log_rotate_found" == 1 || "$journald_max_use_found" == 1 || "$journald_keep_free_found" == 1 || "$no_sleep_found" == 1 || "$fstab_migration_found" == 1 ) &&
           -e "$system_config_file" ]]; then
         if [[ ! -f "$system_config_file" || ! -r "$system_config_file" ]]; then
             printf '%s\n' 'Erreur : lecture de la configuration système impossible.' >&2
@@ -271,6 +280,17 @@ config_cleanup() {
                 fi
             fi
         fi
+        if [[ "$no_sleep_found" == 1 ]]; then
+            if grep -E '^[[:blank:]]*(export[[:blank:]]+)?SYSTEM_NO_SLEEP=' "$system_config_file" > /dev/null 2>&1; then
+                system_no_sleep_declared=1
+            else
+                status=$?
+                if [[ "$status" -ne 1 ]]; then
+                    printf '%s\n' 'Erreur : lecture de la configuration système impossible.' >&2
+                    return 1
+                fi
+            fi
+        fi
         for fstab_config_number in 1 2 3 4 5 6; do
             if [[ "${fstab_config_found[$fstab_config_number]}" == 1 ]]; then
                 if grep -E "^[[:blank:]]*(export[[:blank:]]+)?SYSTEM_FSTAB_CONFIG${fstab_config_number}=" \
@@ -303,6 +323,7 @@ config_cleanup() {
           ( "$log_rotate_found" == 1 && "$system_log_rotate_declared" == 0 ) ||
           ( "$journald_max_use_found" == 1 && "$system_journald_max_use_declared" == 0 ) ||
           ( "$journald_keep_free_found" == 1 && "$system_journald_keep_free_declared" == 0 ) ||
+          ( "$no_sleep_found" == 1 && "$system_no_sleep_declared" == 0 ) ||
           "$fstab_config_migration_needed" == 1 ]]; then
         if ! install -d -m 0755 "$(dirname "$system_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration système impossible.' >&2
@@ -360,6 +381,12 @@ config_cleanup() {
     if [[ "$journald_keep_free_found" == 1 && "$system_journald_keep_free_declared" == 0 ]]; then
         if ! printf 'export SYSTEM_JOURNALD_KEEP_FREE=%q\n' "$journald_keep_free_value" >> "$system_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration JOURNALD_KEEP_FREE impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$no_sleep_found" == 1 && "$system_no_sleep_declared" == 0 ]]; then
+        if ! printf 'export SYSTEM_NO_SLEEP=%s\n' "$no_sleep_value" >> "$system_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration NO_SLEEP impossible.' >&2
             return 1
         fi
     fi
