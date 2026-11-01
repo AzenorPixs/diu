@@ -60,10 +60,16 @@ class ModuleInfosTests(unittest.TestCase):
                            'SOFTWARES_APT_CROWDSEC_BOUNCER=1\nsoftwares_infos')
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual([line for line in r.stdout.splitlines() if '=' in line], [
+            'SOFTWARES_APT_DESKTOP=UNSET',
             'SOFTWARES_APT_CROWDSEC=1',
             'SOFTWARES_APT_CROWDSEC_AGENT=0',
             'SOFTWARES_APT_CROWDSEC_BOUNCER=1',
         ])
+
+    def test_desktop_toggle_is_reported_in_software_scope(self):
+        r = self.run_shell('SOFTWARES_APT_DESKTOP=1\nsoftwares_infos')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('SOFTWARES_APT_DESKTOP=1\n', r.stdout)
 
     def test_drivers_without_version_query(self):
         for value in (None, '', '0', 'UNSET'):

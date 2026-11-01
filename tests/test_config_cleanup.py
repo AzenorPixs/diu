@@ -556,6 +556,37 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual((Path(directory) / 'softwares.env').read_text(),
                              'export SOFTWARES_APT_CROWDSEC_BOUNCER=1\n')
 
+    def test_desktop_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('DESKTOP=0\nexport DESKTOP=1 # enabled\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_DESKTOP=1\n')
+
+            path.write_text('DESKTOP=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_DESKTOP=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_DESKTOP=0\n')
+
+    def test_ambiguous_desktop_value_fails_without_modification(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            original = 'DESKTOP="$(touch /tmp/diu-desktop-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_DESKTOP=0\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_DESKTOP=0\n')
+            self.assertEqual(result.stdout, '')
+            self.assertNotIn('/tmp/diu-desktop-should-not-run', result.stderr)
+
     def test_crowdsec_api_key_migrates_opaquely_and_secures_software_config(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
