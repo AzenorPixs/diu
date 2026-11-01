@@ -848,6 +848,15 @@ valeur nouvelle n’est déjà présente. Le point d’entrée ne modifie le fic
 `/etc/logrotate.conf` que lorsque `SYSTEM_LOG_ROTATE=1`; dans ce cas il
 continue d’utiliser `LOG_ROTATE_DAILY` pour le compte de rotations.
 
+### Contrôle de la stack Docker Traefik / Dockhand
+
+`modules/diu/variables/docker/docker_stack_traefik_dockhand.sh` déclare
+`DOCKER_STACK_TRAEFIK_DOCKHAND` en `STATIC`, `ENABLE`, scope `docker`, défaut
+`0`. Une valeur existante `0` ou `1` est conservée; une valeur absente est
+persistée dans `/root/diu/config/docker.env` avec le défaut `0`. Les
+consommateurs existants de la stack gardent ce nom; `1` active la stack et les
+entrées d’hôtes associées.
+
 ### Indicateurs de tests DevOps
 
 `modules/diu/variables/environnements/env_devops_tests_docker.sh` et

@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Configuration Docker : déclaration de
+  `DOCKER_STACK_TRAEFIK_DOCKHAND` en `STATIC`, `ENABLE`, scope `docker`, défaut
+  `0`. Une valeur existante `0` ou `1` est conservée; le défaut est persisté
+  uniquement en l’absence de valeur.
+
 - Variables système : migration de `LOG_ROTATE` vers `SYSTEM_LOG_ROTATE`,
   déclaré en `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière
   valeur historique littérale `0` ou `1` est transférée exactement sauf si la
