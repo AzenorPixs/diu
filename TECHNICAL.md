@@ -689,11 +689,12 @@ dans `BUILD.md`.
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-`PROXY`, `DRIVERS_NVIDIA`, `FSTAB` et `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
+`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM` et `FSTAB_CONFIG1` à
+`FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
-Pour `PROXY`, `DRIVERS_NVIDIA` et `FSTAB`, le nettoyage transfère la dernière
+Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB` et `FILES2RAM`, le nettoyage transfère la dernière
 valeur littérale `0` ou `1` vers leur nouveau nom système dans `system.env`.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
 littérale simple, y compris une valeur entre guillemets. Une déclaration
@@ -709,8 +710,8 @@ d'écriture bloque le chargement suivant.
 Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
 `SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
-`SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB` et `SYSTEM_FSTAB_CONFIG1` à
-`SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
+`SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM` et
+`SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
 autres anciennes affectations supprimées.
@@ -799,6 +800,17 @@ reste aussi consommée par FILES2RAM. La migration des
 anciennes affectations littérales est effectuée avant de sourcer
 `variables.sh`; les syntaxes nécessitant une interprétation shell bloquent le
 nettoyage.
+
+### Option FILES2RAM système
+
+`modules/diu/variables/system/system_files2ram.sh` déclare
+`SYSTEM_FILES2RAM` avec `STATIC`, `ENABLE`, scope `system` et valeur initiale
+`0`. Une valeur absente est persistée dans `/root/diu/config/system.env`, puis
+exportée; une valeur existante est préservée. Le point d’entrée exécute le
+traitement FILES2RAM existant seulement lorsque `SYSTEM_FILES2RAM` vaut `1`.
+Celui-ci peut supprimer `/var/log/*` lors de sa première activation si
+`/etc/tmpfiles.d/var2log.conf` n’existe pas; l’ancienne valeur littérale est
+migrée avant l’exécution et une syntaxe ambiguë bloque le nettoyage.
 
 ### Indicateurs de tests DevOps
 
