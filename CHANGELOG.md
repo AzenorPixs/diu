@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration du contrôle GRUB `GRUB_CONFIG` vers
+  `SYSTEM_GRUB_CONFIG`, déclaré en `STATIC`, `ENABLE`, scope `system`, défaut
+  `0`. La dernière valeur historique littérale `0` ou `1` est transférée sauf
+  si la nouvelle variable est déjà configurée ; les déclarations ambiguës
+  bloquent le nettoyage.
+
 - Variables système : migration du drapeau `FILES2RAM` vers
   `SYSTEM_FILES2RAM`, déclaré en `STATIC`, `ENABLE`, scope `system`, défaut
   `0`. Une ancienne valeur littérale `0` ou `1` est migrée sauf si la nouvelle

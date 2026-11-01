@@ -2467,7 +2467,7 @@ fi
 
 ### GRUB ###
 
-if [ "$GRUB_CONFIG" -eq 1 ]
+if [[ "${SYSTEM_GRUB_CONFIG:-0}" == "1" ]]
 then
 
 	echo ""
