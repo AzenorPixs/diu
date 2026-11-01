@@ -3110,9 +3110,9 @@ echo "🔧 CONFIGURE SYSTEMD"
 sed -i 's%.*Compress=.*%Compress=yes%' /etc/systemd/journald.conf
 sed -i 's%.*Storage=.*%Storage=volatile%' /etc/systemd/journald.conf
 sed -i -E "s|^[#[:space:]]*SystemMaxUse=.*|SystemMaxUse=${SYSTEM_JOURNALD_MAX_USE}|" /etc/systemd/journald.conf
-sed -i -E "s|^[#[:space:]]*SystemKeepFree=.*|SystemKeepFree=${JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
+sed -i -E "s|^[#[:space:]]*SystemKeepFree=.*|SystemKeepFree=${SYSTEM_JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
 sed -i -E "s|^[#[:space:]]*RuntimeMaxUse=.*|RuntimeMaxUse=${SYSTEM_JOURNALD_MAX_USE}|" /etc/systemd/journald.conf
-sed -i -E "s|^[#[:space:]]*RuntimeKeepFree=.*|RuntimeKeepFree=${JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
+sed -i -E "s|^[#[:space:]]*RuntimeKeepFree=.*|RuntimeKeepFree=${SYSTEM_JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
 systemctl restart systemd-journald
 
 if [ "$NO_SLEEP" -eq 1 ]
