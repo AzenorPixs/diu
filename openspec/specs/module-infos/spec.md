@@ -105,13 +105,12 @@ system_info_drivers dans modules/system/infos.sh SHALL répondre à rid system i
 
 ### Requirement: Informations des logiciels CrowdSec
 
-`softwares_infos` SHALL afficher les interrupteurs CrowdSec du scope logiciels
-et SHALL NOT afficher la clé API. `system_info_debian` SHALL NOT présenter le
-dépôt CrowdSec comme une variable du scope system.
+`softwares_infos` SHALL afficher `SOFTWARES_APT_DESKTOP` et les trois
+interrupteurs CrowdSec sous le titre `SOFTWARES`. Elle SHALL NOT afficher la
+clé API CrowdSec.
 
 #### Scenario: Informations CrowdSec sans secret
 
 - **WHEN** les informations logicielles sont demandées
-- **THEN** les trois interrupteurs CrowdSec sont affichés sous le bloc
-  `SOFTWARES`
+- **THEN** les réglages logiciels de bureau et CrowdSec sont affichés
 - **AND** la clé API n'est pas affichée

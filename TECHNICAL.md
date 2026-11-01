@@ -690,7 +690,7 @@ Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
 `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
-`LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP`,
+`LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP`, `DESKTOP`,
 `CROWDSEC_AGENT`, `SYSTEM_CROWDSEC_AGENT`, `CROWDSEC_BOUNCER`,
 `CROWDSEC_BOUNCER_API_KEY`, `SYSTEM_APT_CROWDSEC`, `APACHE2` et
 `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
@@ -904,6 +904,12 @@ par APT. La clé `SOFTWARES_CROWDSEC_BOUNCER_API_KEY` est aussi stockée dans
 `softwares.env`, qui est protégé en mode `0600` dès qu'il contient la clé.
 L’application à la configuration YAML ne transmet pas la valeur dans les
 arguments d’un processus enfant ni dans la sortie.
+
+Le profil de logiciels de bureau utilise `SOFTWARES_APT_DESKTOP`, déclaré en
+`STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La valeur historique
+littérale `DESKTOP=0|1` est transférée exactement vers `softwares.env` si le
+nouveau nom n'y est pas déjà configuré. Les deux consommateurs du point
+d'entrée utilisent ce nouveau contrôle.
 
 ### Contrôle de la stack Docker Traefik / Dockhand
 
