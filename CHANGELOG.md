@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration de `NO_SLEEP` vers `SYSTEM_NO_SLEEP`, déclaré
+  en `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
+  nom est déjà configuré.
+
 - Variables système : migration de `JOURNALD_KEEP_FREE` vers
   `SYSTEM_JOURNALD_KEEP_FREE`, déclaré en `STATIC`, `ENABLE`, scope `system`,
   défaut `1G`. L’ancienne valeur de taille littérale est transférée sans

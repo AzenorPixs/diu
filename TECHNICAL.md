@@ -690,7 +690,7 @@ Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
 `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
-`LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE` et
+`LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP` et
 `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
@@ -699,7 +699,8 @@ Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6` et
 `LOG_ROTATE`, le nettoyage transfère la dernière valeur littérale `0` ou `1`
 vers leur nouveau nom système dans `system.env`. Pour `JOURNALD_MAX_USE` et
 `JOURNALD_KEEP_FREE`, il transfère la dernière taille littérale journald
-simple, sans l’évaluer.
+simple, sans l’évaluer. `NO_SLEEP` suit également la migration littérale
+`0|1` sans évaluation.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
 littérale simple, y compris une valeur entre guillemets. Une déclaration
 nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
@@ -716,7 +717,7 @@ Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
 `SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM`,
 `SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6`, `SYSTEM_LOG_ROTATE`,
-`SYSTEM_JOURNALD_MAX_USE`, `SYSTEM_JOURNALD_KEEP_FREE` et
+`SYSTEM_JOURNALD_MAX_USE`, `SYSTEM_JOURNALD_KEEP_FREE`, `SYSTEM_NO_SLEEP` et
 `SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
@@ -870,6 +871,15 @@ journaux systemd persistants et volatils. `JOURNALD_KEEP_FREE` reste distinct.
 `JOURNALD_KEEP_FREE` est migrée sans l’évaluer; une valeur nouvelle déjà
 configurée est prioritaire. Le point d’entrée utilise cette réserve pour les
 journaux systemd persistants et volatils.
+
+### Contrôle de veille systemd
+
+`modules/diu/variables/system/system_no_sleep.sh` déclare `SYSTEM_NO_SLEEP` en
+`STATIC`, `ENABLE`, scope `system`, défaut `0`. Une valeur historique simple
+`NO_SLEEP=0|1` est migrée exactement; une valeur nouvelle déjà configurée est
+prioritaire. `SYSTEM_NO_SLEEP=1` crée `nosleep.conf` avec les paramètres
+existants qui désactivent suspend et hibernation. Une valeur `0` ignore ce
+bloc et ne supprime pas un fichier `nosleep.conf` déjà présent.
 
 ### Contrôle de la stack Docker Traefik / Dockhand
 

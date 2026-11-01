@@ -388,6 +388,45 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotIn(str(sentinel), result.stderr)
             self.assertEqual(result.stdout, '')
 
+    def test_no_sleep_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('NO_SLEEP=0\nexport NO_SLEEP=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=1\n')
+
+            path.write_text('export NO_SLEEP=0\n')
+            system_config.write_text('export SYSTEM_NO_SLEEP=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=1\n')
+
+            system_config.unlink()
+            path.write_text('NO_SLEEP=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=0\n')
+
+    def test_ambiguous_no_sleep_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'NO_SLEEP="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_NO_SLEEP=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
     def test_journald_max_use_migration_and_precedence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'

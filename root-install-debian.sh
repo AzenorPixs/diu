@@ -3115,7 +3115,7 @@ sed -i -E "s|^[#[:space:]]*RuntimeMaxUse=.*|RuntimeMaxUse=${SYSTEM_JOURNALD_MAX_
 sed -i -E "s|^[#[:space:]]*RuntimeKeepFree=.*|RuntimeKeepFree=${SYSTEM_JOURNALD_KEEP_FREE}|" /etc/systemd/journald.conf
 systemctl restart systemd-journald
 
-if [ "$NO_SLEEP" -eq 1 ]
+if [[ "${SYSTEM_NO_SLEEP:-0}" == "1" ]]
 then
 	echo "🔧 CONFIGURE NO SLEEP"
 	mkdir -p /etc/systemd/sleep.conf.d
