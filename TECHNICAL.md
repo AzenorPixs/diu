@@ -689,12 +689,12 @@ dans `BUILD.md`.
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG` et
+`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6` et
 `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
-Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM` et `GRUB_CONFIG`, le
+Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG` et `IPv6`, le
 nettoyage transfère la dernière valeur littérale `0` ou `1` vers leur nouveau
 nom système dans `system.env`.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
@@ -712,7 +712,7 @@ Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
 `SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
 `SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM`,
-`SYSTEM_GRUB_CONFIG` et
+`SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6` et
 `SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
@@ -824,6 +824,18 @@ bloc GRUB existant seulement lorsque cette variable vaut `1`. La dernière
 valeur littérale `GRUB_CONFIG=0|1` est migrée lors du nettoyage historique si
 `SYSTEM_GRUB_CONFIG` n’est pas déjà déclarée; une valeur `1` reste `1`, tandis
 qu’une affectation ambiguë bloque le nettoyage.
+
+### Contrôle IPv6 système
+
+`modules/diu/variables/system/system_ipv6.sh` déclare `SYSTEM_IPV6` en
+`STATIC`, `ENABLE`, scope `system`. Si elle n’est pas définie, le DIU lit
+`net.ipv6.conf.all.disable_ipv6` avec sysctl : `0` produit `SYSTEM_IPV6=1`,
+`1` produit `SYSTEM_IPV6=0`. La valeur est persistée dans
+`/root/diu/config/system.env`; une erreur ou valeur sysctl invalide bloque la
+génération sans export. Une valeur historique littérale `IPv6=0|1` est
+migrée sans altération et prévaut sur la détection; toute valeur nouvelle
+déjà définie garde la priorité. Le point d’entrée conserve les traitements
+sysctl IPv6 existants sous le nouveau nom.
 
 ### Indicateurs de tests DevOps
 
