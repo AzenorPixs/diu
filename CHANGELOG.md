@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration du drapeau `DRIVERS_NVIDIA` vers
+  `SYSTEM_DRIVERS_NVIDIA`, déclarée en `STATIC`, `ENABLE`, scope `system`,
+  défaut `0`. Les anciennes valeurs littérales `0` ou `1` sont migrées sauf
+  si la nouvelle variable est déjà configurée ; les déclarations ambiguës
+  bloquent le nettoyage.
+
 - Variables système : migration du drapeau `PROXY` vers `SYSTEM_PROXY`,
   déclarée en `STATIC`, `ENABLE`, scope `system`, défaut `0`. Les valeurs
   historiques simples `0` ou `1` sont migrées sauf si `SYSTEM_PROXY` est déjà

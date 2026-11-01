@@ -40,18 +40,20 @@ class ConfigCleanupTests(unittest.TestCase):
                             'PROXY_CA=0\n export PROXY_CA="1"\n'
                             '\texport\tPROXY_CA=1 # comment\n' + preserved)
             with path.open('a') as stream:
-                stream.write('PROXY=0\n export PROXY=1 # legacy\nPROXY_HTTP=1\n')
+                stream.write('PROXY=0\n export PROXY=1 # legacy\nPROXY_HTTP=1\n'
+                             'DRIVERS_NVIDIA=0\n export DRIVERS_NVIDIA=1 # legacy\n'
+                             'DRIVERS_NVIDIA_EXTRA=keep\n')
             path.chmod(0o640)
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\n')
+            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\nDRIVERS_NVIDIA_EXTRA=keep\n')
             self.assertEqual((Path(directory) / 'system.env').read_text(),
-                             'export SYSTEM_PROXY=1\n')
+                             'export SYSTEM_PROXY=1\nexport SYSTEM_DRIVERS_NVIDIA=1\n')
             self.assertEqual(path.stat().st_mode & 0o777, 0o640)
             before = path.stat()
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\n')
+            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\nDRIVERS_NVIDIA_EXTRA=keep\n')
             self.assertEqual(path.stat().st_mtime_ns, before.st_mtime_ns)
             self.assertEqual(path.stat().st_ino, before.st_ino)
             self.assertEqual(result.stdout, '')
@@ -86,6 +88,39 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(path.read_text(), 'export PROXY="${PROXY_ENABLED}"\nOTHER=keep\n')
             self.assertFalse((Path(directory) / 'system.env').exists())
             self.assertNotIn('PROXY_ENABLED', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_drivers_nvidia_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('DRIVERS_NVIDIA=0\nexport DRIVERS_NVIDIA=1\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_DRIVERS_NVIDIA=1\n')
+            before = system_config.stat()
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.stat().st_mtime_ns, before.st_mtime_ns)
+
+            path.write_text('DRIVERS_NVIDIA=0\n')
+            system_config.write_text('export SYSTEM_DRIVERS_NVIDIA=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_DRIVERS_NVIDIA=1\n')
+
+    def test_ambiguous_drivers_nvidia_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            original = 'export DRIVERS_NVIDIA="${NVIDIA_ENABLED}"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse((Path(directory) / 'system.env').exists())
+            self.assertNotIn('NVIDIA_ENABLED', result.stderr)
             self.assertEqual(result.stdout, '')
 
     def test_missing_file(self):
@@ -151,6 +186,8 @@ class ConfigCleanupTests(unittest.TestCase):
         self.assertNotRegex(text, r'\bDISPLAY_LINK\b')
         self.assertIn('PROXY_CA', (ROOT / 'modules/system/variables-cleanup.sh').read_text())
         self.assertNotRegex(text, r'\bPROXY_CA\b')
+        self.assertNotRegex(text, r'\$(?:\{)?DRIVERS_NVIDIA(?:\})?(?![A-Z0-9_])')
+        self.assertEqual(text.count('if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]'), 6)
         self.assertIn('. "$BASH_SCRIPT_PATH/modules/system/drivers.sh"', text)
         drivers = (ROOT / 'modules/system/drivers.sh').read_text()
         self.assertNotRegex(drivers, r'\bDISPLAY_LINK\b')

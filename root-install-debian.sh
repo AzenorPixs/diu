@@ -2099,7 +2099,7 @@ fi
 
 ### DRIVERS ###
 
-if [ "$DRIVERS_NVIDIA" -eq 1 ]
+if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 then
 
 	# https://wiki.debian.org/NvidiaGraphicsDrivers
@@ -2405,7 +2405,7 @@ then
 
 	fi
 
-	if [ "$DRIVERS_NVIDIA" -eq 1 ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		echo "D /var/log/nvidia-mps  0755 root root" >> /etc/tmpfiles.d/var2log.conf
@@ -2674,7 +2674,7 @@ then
 	    echo "vfio_virqfd"
 	} >> /etc/modules-load.d/promox.conf
 
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+		if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		{
@@ -2820,7 +2820,7 @@ then
 	    echo "vfio_virqfd"
 	} >> /etc/modules-load.d/promox.conf
 
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		{
@@ -2956,7 +2956,7 @@ then
 	    echo "vfio_virqfd"
 	} >> /etc/modules-load.d/promox.conf
 
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 
 		{
@@ -4991,7 +4991,7 @@ then
 	    echo '    "tag": "docker-{{.Name}}",'
 	    echo '    "mode": "non-blocking"'
 	} >> /etc/docker/daemon.json
-	if [ "$DRIVERS_NVIDIA" == "1" ]
+	if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]
 	then
 		{
 		    echo '  },'
