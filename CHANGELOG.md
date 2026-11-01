@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de DEVOPS.md : ajout de la puce « Accès TPM OK » après l'image
+  debian:stable-slim dans la rubrique Docker activée. Mention documentaire
+  fixe, sans sonde ni changement d'infrastructure ; la rubrique passe à six
+  puces et les autres comportements restent inchangés.
+
 - Régressions : isolation des configurations Git de test, fixtures globales
   alignées sur U1, référence Zsh Z1 avec inventaire explicite et contrôle APT
   indépendant de l’ordre de démarrage du pipeline.

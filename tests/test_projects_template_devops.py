@@ -280,17 +280,19 @@ ENV_DEVOPS_USER="$1"
         self.assertNotIn('# Docker, pour tests nécessitant des droits root\n', content)
         self.assertEqual(content.count('/var/run/docker.sock'), int(docker))
         self.assertEqual(content.count('debian:stable-slim'), int(docker))
-        self.assertEqual(content.count('  * Accès TPM OK\n'), int(lxc))
+        self.assertEqual(content.count('  * Accès TPM OK\n'), int(docker) + int(lxc))
         self.assertEqual(content.count('  * ' + retention + '\n'), int(lxc))
         self.assertEqual(content.count('# Docker-Compose\n'), 1)
         self.assertEqual(content.count(CONTAINER_TEST_AUTHORIZATION), int(docker) + int(lxc))
-        for title, enabled, count in ((docker_title, docker, 5), (lxc_title, lxc, 5)):
+        for title, enabled, count in ((docker_title, docker, 6), (lxc_title, lxc, 5)):
             if enabled:
                 section = content.split(title, 1)[1].split('\n# ', 1)[0]
                 bullets = [line for line in section.splitlines() if line.startswith('  * ')]
                 self.assertEqual(len(bullets), count)
-                self.assertEqual(bullets[3 if title == lxc_title else 4],
+                self.assertEqual(bullets[3 if title == lxc_title else 5],
                                  '  * ' + CONTAINER_TEST_AUTHORIZATION)
+                if title == docker_title:
+                    self.assertEqual(bullets[4], '  * Accès TPM OK')
                 if title == lxc_title:
                     self.assertEqual(bullets[-1], '  * ' + retention)
         ordered = ['# Matériel\n']
@@ -485,6 +487,7 @@ ssh() { container_forbidden; }
         self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * 29.1.2\n  * {self.host_bin / "docker"}\n'
                       '  * /var/run/docker.sock\n  * debian:stable-slim\n'
+                      '  * Accès TPM OK\n'
                       f'  * {CONTAINER_TEST_AUTHORIZATION}\n\n\n'
                       '# OpenSSH & SSHPASS\n', content)
         self.assert_test_container_sections(content, True, False)
@@ -1072,13 +1075,15 @@ exit
         self.assertIn('venv: indisponible', content)
         self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * indisponible (sonde échouée)\n  * {self.host_bin / "docker"}\n'
-                      '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
+                      '  * /var/run/docker.sock\n  * debian:stable-slim\n'
+                      '  * Accès TPM OK\n', content)
         self.assert_test_container_sections(content, True, False)
         (self.host_bin / 'docker').unlink()
         content = self.successful_document(self.run_generation())
         self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       '  * indisponible (binaire absent)\n  * binaire introuvable\n'
-                      '  * /var/run/docker.sock\n  * debian:stable-slim\n', content)
+                      '  * /var/run/docker.sock\n  * debian:stable-slim\n'
+                      '  * Accès TPM OK\n', content)
         self.assert_test_container_sections(content, True, False)
 
     def test_node_and_pip_scripts_use_devops_interpreters_despite_their_shebangs(self):
