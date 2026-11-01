@@ -43,7 +43,8 @@ config_cleanup_parse_fstab_literal() {
 config_cleanup() {
     local variables_file="${1:-/root/diu/variables.sh}"
     local system_config_file="${2:-/root/diu/config/system.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP)='
+    local softwares_config_file="${3:-/root/diu/config/softwares.env}"
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|APACHE2)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -54,6 +55,7 @@ config_cleanup() {
     local journald_max_use_value='' journald_max_use_found=0 system_journald_max_use_declared=0
     local journald_keep_free_value='' journald_keep_free_found=0 system_journald_keep_free_declared=0
     local no_sleep_value='' no_sleep_found=0 system_no_sleep_declared=0
+    local apache2_value='' apache2_found=0 softwares_apache2_declared=0
     local fstab_config_number fstab_config_value fstab_migration_found=0
     local fstab_config_migration_needed=0
     local REPLY
@@ -148,6 +150,14 @@ config_cleanup() {
                 no_sleep_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique NO_SLEEP ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?APACHE2= ]]; then
+            apache2_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?APACHE2=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                apache2_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique APACHE2 ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?FSTAB_CONFIG([1-6])= ]]; then
@@ -307,6 +317,23 @@ config_cleanup() {
         done
     fi
 
+    if [[ "$apache2_found" == 1 && -e "$softwares_config_file" ]]; then
+        if [[ ! -f "$softwares_config_file" || ! -r "$softwares_config_file" ]]; then
+            printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
+            return 1
+        fi
+        if grep -E '^[[:blank:]]*(export[[:blank:]]+)?SOFTWARES_APT_APACHE2=' \
+            "$softwares_config_file" > /dev/null 2>&1; then
+            softwares_apache2_declared=1
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
+                return 1
+            fi
+        fi
+    fi
+
     for fstab_config_number in 1 2 3 4 5 6; do
         if [[ "${fstab_config_found[$fstab_config_number]}" == 1 &&
               "${fstab_config_declared[$fstab_config_number]}" == 0 ]]; then
@@ -327,6 +354,12 @@ config_cleanup() {
           "$fstab_config_migration_needed" == 1 ]]; then
         if ! install -d -m 0755 "$(dirname "$system_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration système impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$apache2_found" == 1 && "$softwares_apache2_declared" == 0 ]]; then
+        if ! install -d -m 0755 "$(dirname "$softwares_config_file")"; then
+            printf '%s\n' 'Erreur : création de la configuration logiciels impossible.' >&2
             return 1
         fi
     fi
@@ -387,6 +420,12 @@ config_cleanup() {
     if [[ "$no_sleep_found" == 1 && "$system_no_sleep_declared" == 0 ]]; then
         if ! printf 'export SYSTEM_NO_SLEEP=%s\n' "$no_sleep_value" >> "$system_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration NO_SLEEP impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$apache2_found" == 1 && "$softwares_apache2_declared" == 0 ]]; then
+        if ! printf 'export SOFTWARES_APT_APACHE2=%s\n' "$apache2_value" >> "$softwares_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration APACHE2 impossible.' >&2
             return 1
         fi
     fi

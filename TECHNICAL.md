@@ -690,7 +690,7 @@ Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
 `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
-`LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP` et
+`LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP`, `APACHE2` et
 `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
@@ -701,6 +701,8 @@ vers leur nouveau nom système dans `system.env`. Pour `JOURNALD_MAX_USE` et
 `JOURNALD_KEEP_FREE`, il transfère la dernière taille littérale journald
 simple, sans l’évaluer. `NO_SLEEP` suit également la migration littérale
 `0|1` sans évaluation.
+`APACHE2` est migrée séparément vers `SOFTWARES_APT_APACHE2` dans
+`softwares.env`, avec validation littérale et priorité au nouveau nom.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
 littérale simple, y compris une valeur entre guillemets. Une déclaration
 nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
@@ -722,6 +724,10 @@ Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
 autres anciennes affectations supprimées.
+
+Le contrôle d’installation Apache2 utilise `SOFTWARES_APT_APACHE2`, déclaré
+dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
+`softwares.env`.
 
 ### Déclarations unitaires
 
@@ -1121,6 +1127,16 @@ La préparation du client et du remote Flatpak relève séparément du module
 Les identifiants logiciels sont validés avant routage. Une recette doit être
 déclarée explicitement par le moteur ; le nom fourni par l'utilisateur ne doit
 jamais devenir directement un nom de fonction ou une commande shell.
+
+### Apache2 via APT
+
+`modules/diu/variables/softwares/software_apt_apache2.sh` déclare
+`SOFTWARES_APT_APACHE2` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+Une valeur existante `0` ou `1` est conservée; une valeur absente est
+persistée dans `/root/diu/config/softwares.env`. L’ancienne valeur littérale
+`APACHE2=0|1` est migrée exactement vers ce scope si aucune nouvelle valeur
+n’est déjà définie. Une valeur `1` garde l’installation Apache2 et de ses
+dépendances existantes selon la version Debian détectée.
 
 ### Moteur `deb`
 

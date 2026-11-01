@@ -3487,7 +3487,7 @@ if [ "${ACMESH:-0}" -eq 1 ]; then
 
 fi
 
-if [ "$APACHE2" -eq 1 ]
+if [[ "${SOFTWARES_APT_APACHE2:-0}" == "1" ]]
 then
 
 	if [ "$SYSTEM_DEBIAN_RELEASE" = "trixie" ]
