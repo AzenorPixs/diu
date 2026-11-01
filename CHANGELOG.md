@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration de `JOURNALD_KEEP_FREE` vers
+  `SYSTEM_JOURNALD_KEEP_FREE`, déclaré en `STATIC`, `ENABLE`, scope `system`,
+  défaut `1G`. L’ancienne valeur de taille littérale est transférée sans
+  interprétation si la nouvelle variable n’est pas déjà configurée; les
+  directives `SystemKeepFree` et `RuntimeKeepFree` utilisent le nouveau nom.
+
 - Variables système : migration de `JOURNALD_MAX_USE` vers
   `SYSTEM_JOURNALD_MAX_USE`, déclaré en `STATIC`, `ENABLE`, scope `system`,
   défaut `500M`. L’ancienne valeur de taille littérale est transférée sans

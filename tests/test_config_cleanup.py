@@ -355,6 +355,39 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotIn(str(sentinel), result.stderr)
             self.assertEqual(result.stdout, '')
 
+    def test_journald_keep_free_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('JOURNALD_KEEP_FREE=500M\nexport JOURNALD_KEEP_FREE="1G" # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_KEEP_FREE=1G\n')
+
+            path.write_text("export JOURNALD_KEEP_FREE='2G'\n")
+            system_config.write_text('export SYSTEM_JOURNALD_KEEP_FREE=500M\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_KEEP_FREE=500M\n')
+
+    def test_ambiguous_journald_keep_free_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'JOURNALD_KEEP_FREE="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_JOURNALD_KEEP_FREE=1G\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_KEEP_FREE=1G\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
     def test_journald_max_use_migration_and_precedence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
