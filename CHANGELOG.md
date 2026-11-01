@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Variables système : migration du contrôle `IPv6` vers `SYSTEM_IPV6`, déclaré
+  en `STATIC`, `ENABLE`, scope `system`. En l’absence de valeur configurée,
+  l’état initial est détecté avec sysctl et persisté. La valeur historique
+  littérale `0` ou `1` est transférée telle quelle; une valeur nouvelle déjà
+  présente reste prioritaire.
+
 - Variables système : migration du contrôle GRUB `GRUB_CONFIG` vers
   `SYSTEM_GRUB_CONFIG`, déclaré en `STATIC`, `ENABLE`, scope `system`, défaut
   `0`. La dernière valeur historique littérale `0` ou `1` est transférée sauf
