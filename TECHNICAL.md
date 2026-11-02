@@ -778,6 +778,8 @@ Le contrôle Zoom utilise `SOFTWARES_APT_ZOOM` dans `softwares.env` pour le
 parcours de téléchargement et d’installation du paquet Debian.
 Le contrôle Zsh utilise `SOFTWARES_APT_ZSH` dans `softwares.env` pour
 l’installation et la configuration de Zsh/Fish.
+Le contrôle de `/etc/rc.local` utilise `SYSTEM_RC_LOCAL` dans `system.env`;
+l’ancienne valeur `RCLOCAL=0|1` y est migrée.
 Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
 `SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
 Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
@@ -1386,6 +1388,14 @@ vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
 L’ancienne valeur littérale `ZOOM=0|1` est transférée exactement vers
 `softwares.env` si le nouveau nom n’y est pas déjà défini. Le consommateur
 conserve le téléchargement, l’installation et la mise à jour du paquet Debian.
+
+### Contrôle système de RC.local
+
+`modules/diu/variables/system/system_rc_local.sh` déclare
+`SYSTEM_RC_LOCAL` en `STATIC`, `ENABLE`, scope `system`, défaut `0`. L’ancienne
+valeur littérale `RCLOCAL=0|1` est transférée exactement vers `system.env` si
+la nouvelle variable n’y est pas déjà définie; `/etc/rc.local` reste généré
+conditionnellement.
 
 ### Zsh et Fish par APT
 

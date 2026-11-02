@@ -7693,7 +7693,7 @@ fi
 
 ### RC.LOCAL ###
 
-if [ "$RCLOCAL" -eq 1 ]
+if [[ "${SYSTEM_RC_LOCAL:-0}" -eq 1 ]]
 then
 
 	echo "🔧 CONFIGURE RC.LOCAL"
