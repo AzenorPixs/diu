@@ -2393,7 +2393,7 @@ then
 
 	fi
 
-	if [[ "${SOFTWARES_APT_DESKTOP:-0}" == "1" ]]
+	if [[ "${DESKTOP:-0}" == "1" ]]
 	then
 
 		if [ "$DESKTOP_GUI" == "GNOME" ]
@@ -3622,7 +3622,7 @@ then
 
 fi
 
-if [[ "${SOFTWARES_APT_DESKTOP:-0}" == "1" ]]; then
+if [[ "${DESKTOP:-0}" == "1" ]]; then
 
 	if dpkg -s mesa-utils &>/dev/null
 	then

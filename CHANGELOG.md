@@ -4,10 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
-- Logiciels de bureau : migration de `DESKTOP` vers
-  `SOFTWARES_APT_DESKTOP`, déclaré en `STATIC`, `ENABLE`, scope `softwares`,
-  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
-  exactement sauf si le nouveau nom est déjà configuré.
+- Profil de bureau : renommage de `SOFTWARES_APT_DESKTOP` vers `DESKTOP` dans
+  le scope `desktop`. La valeur déjà persistée dans `softwares.env` est
+  transférée exactement vers `desktop.env`, sauf si `DESKTOP` y est déjà
+  configurée.
 
 - CrowdSec : déplacement du dépôt APT, des interrupteurs agent/bouncer et de
   la clé API vers le scope `softwares`. Les valeurs historiques sont migrées
