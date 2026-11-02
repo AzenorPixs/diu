@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
+
+# shellcheck source=lib/project-version.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"
 # Fonctions de construction du paquet Debian DIU
 
 # Retourne la version unique de HEAD, ou une sortie vide sans tag.
 diu_package_version_from_head() {
     local project_path="${1:-}" tags="" tag="" candidate="" version=""
+    version="$(project_version_get "${project_path}/project.env")" || return 1
+    if [[ -n "$version" ]]; then printf '%s' "$version"; return 0; fi
     if [[ ! -e "${project_path}/.git" ]]; then
         return 0
     fi
@@ -33,6 +38,11 @@ diu_release_version_matches() {
     if ! dpkg --validate-version "${package_version}" >/dev/null 2>&1; then
         print_error "Version du paquet Debian invalide."
         return 1
+    fi
+    local selected_project_version=""
+    selected_project_version="$(project_version_get "${project_path}/project.env")" || return 1
+    if [[ -n "$selected_project_version" ]]; then
+        project_version_tag_for_head "$project_path" "$selected_project_version" >/dev/null || return 1
     fi
     version="$(diu_package_version_from_head "${project_path}")" || return 1
     if [[ -n "${version}" && "${version}" != "${package_version}" ]]; then

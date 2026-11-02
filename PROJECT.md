@@ -79,6 +79,11 @@ du nom et de l’arborescence du projet.
 Le module `projects` assure la configuration et la gestion des projets de
 développement.
 
+Une `PROJECT_VERSION` optionnelle dans `project.env` unifie en priorité la
+version des commits et tags, des paquets Debian, des images Docker et de leurs
+publications. Sans cette clé, chaque parcours conserve son mécanisme existant.
+
+
 Il regroupe les fonctions nécessaires à la création, à l'initialisation et à
 l'administration des projets pris en charge par le DIU, ainsi qu'à la
 publication de leurs images Docker et paquets Debian vers Forgejo.

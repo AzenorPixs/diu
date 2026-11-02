@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck source=lib/project-version.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"
+
 # Gestion des commandes docker au sein d'un projet
 
 # Lire exclusivement les arguments publics, sans interprétation shell.
@@ -71,6 +74,8 @@ projects_docker_build() {
 
     local project_dir
     local project_env
+    local selected_project_version=""
+    local -a docker_version_tags=()
     local image_name
     local -a docker_build_args=()
 
@@ -107,6 +112,8 @@ projects_docker_build() {
     # --------------------------------------------------------
     # Chargement de la configuration du projet
     # --------------------------------------------------------
+
+    selected_project_version="$(project_version_get "$project_env")" || return 1
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -167,10 +174,16 @@ projects_docker_build() {
     echo "Image       : ${image_name}:latest"
     echo
 
+    if [[ -n "$selected_project_version" ]]; then
+        docker_version_tags=(--tag "${image_name}:${selected_project_version}")
+        echo "Version     : ${selected_project_version}"
+    fi
+
     if ! runuser -u "${DEVOPS_USER}" -- \
         docker build \
             --file "${project_dir}/${dockerfile}" \
             --tag "${image_name}:latest" \
+            "${docker_version_tags[@]}" \
             "${docker_build_args[@]}" \
             "${project_dir}"
     then

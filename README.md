@@ -52,6 +52,26 @@ cette entrée système exacte et son chemin, sans l'ajouter. Des règles Git
 globales prioritaires peuvent modifier son effet pour un compte donné.
 Les détails figurent dans [le cadrage technique](TECHNICAL.md).
 
+La version du projet peut être déclarée dans `project.env` :
+
+```text
+PROJECT_VERSION=1.0.0
+```
+
+Cette clé optionnelle est prioritaire pour les commits/tags, les builds Debian
+et Docker et leurs publications. Le format est `x.y.z`, sans préfixe v ni zéro
+initial sur les trois entiers sauf 0. Une valeur présente vide, invalide ou
+dupliquée provoque une erreur ; sans clé, les mécanismes antérieurs restent
+inchangés. Debian utilise d'abord cette valeur, puis la recette et les tags
+selon le constructeur. Docker produit les tags VERSION et latest.
+Le tag Git est `v1.0.0` ; les pushes vérifient qu'il désigne HEAD et ne le
+remplacent jamais. Pour une nouvelle livraison après attribution d'un tag,
+incrémenter PROJECT_VERSION. Un arbre inchangé ne crée pas de commit vide.
+Les publications Docker utilisent l'image locale versionnée et refusent une
+image absente ; les publications Debian refusent un paquet de version différente.
+Les aides de commit, push, CICD et build rappellent ce contrat avant bootstrap.
+Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent les contrôles.
+
 Pour construire le paquet Debian d'un projet :
 
 ```bash

@@ -1484,6 +1484,29 @@ nouvelle recette doit suivre le même registre explicite et rester idempotente.
 
 ## Projets et configuration Git
 
+### Version prioritaire du projet
+
+`lib/project-version.sh` lit uniquement `PROJECT_VERSION` dans `project.env`,
+sans exécution de configuration ni réutilisation d'une valeur du projet précédent.
+Le format est une version stable `x.y.z`, sans préfixe v et sans zéro initial
+sur chacun des entiers sauf 0 ; les valeurs présentes invalides sont bloquantes.
+Une clé absente conserve la sélection historique de chaque fonction.
+Le contrat transversal est `openspec/specs/project-version/spec.md`.
+Les règles de packaging sont détaillées dans BUILD.md.
+Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
+une description explicite est conservée. Une collision est refusée avant le
+nouveau commit, sans remplacement de tag. Un arbre inchangé ne crée rien.
+Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
+qu'il désigne HEAD avant tout transport ; les branches et protections restent
+inchangées (leases Forgejo/GitHub, push normal GitLab).
+Le build Docker produit latest et le tag VERSION. Une publication versionnée
+utilise cette image locale précise et le tag Git attendu ; une image absente
+ou un paquet de version différente bloque la publication. Les autres tags de
+HEAD ne déterminent pas la version lorsque PROJECT_VERSION est présente.
+Les aides décrivent ces règles avant bootstrap. La clé est relue pour chaque
+projet, sans réutilisation de la variable shell éventuellement chargée avant.
+
+
 ### Construction Debian déclarative
 
 `projects_build_deb` dans `modules/projects/debian-build.sh` implémente

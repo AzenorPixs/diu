@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
+# shellcheck source=lib/project-version.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"
+
 publish_release_debian() {
     local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
+    project_version_get "$project_env" >/dev/null || return 1
 
     local project_name=""
     local local_default_branch=""

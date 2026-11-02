@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck source=lib/project-version.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"
+
 # Gestion Git au sein des projets géré par le DIU
 
 # Flux CI/CD DIU
@@ -42,6 +45,8 @@ cicd_project_diu() {
 
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
+
+    project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
 
     if [[ ! -d "${project_path}" ]]; then
         print_error "Projet introuvable : ${project_path}"
@@ -166,6 +171,8 @@ cicd_project_docker_release() {
 
     project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
+
+    project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
 
     # ==========================================================
     # Vérification du projet
@@ -419,6 +426,8 @@ cicd_project() {
     project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
+    project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
+
     if [[ ! -d "${project_path}" ]]; then
         print_error "Projet introuvable : ${project_path}"
         return 1
@@ -429,15 +438,22 @@ cicd_project() {
         return 1
     fi
 
-    effective_commit_tag="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" tag --points-at HEAD 2>/dev/null |
-            head -n 1
-    )"
-
-    if [[ -n "${effective_commit_tag}" ]]; then
-        commit_tag="${effective_commit_tag}"
-        docker_version="${commit_tag#v}"
+    local selected_project_version=""
+    selected_project_version="$(project_version_get "$project_env")" || return 1
+    if [[ -n "$selected_project_version" ]]; then
+        commit_tag="v${selected_project_version}"
+        docker_version="$selected_project_version"
+    else
+        effective_commit_tag="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_path}" tag --points-at HEAD 2>/dev/null |
+                head -n 1
+        )"
+    
+        if [[ -n "${effective_commit_tag}" ]]; then
+            commit_tag="${effective_commit_tag}"
+            docker_version="${commit_tag#v}"
+        fi
     fi
 
     if [[ ! -f "${project_env}" ]]; then
@@ -1327,6 +1343,10 @@ git_commit() {
     local commit_tag="$3"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
+    local selected_project_version="" tag_check_rc=0
+    project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
+    selected_project_version="$(project_version_get "$project_env")" || return 1
+
 
     local project_name=""
     local git_user_name=""
@@ -1535,6 +1555,20 @@ git_commit() {
         return 0
     fi
 
+    if [[ -n "$selected_project_version" ]]; then
+        if runuser -u "${DEVOPS_USER}" -- "${git_local_command[@]}" -C "$project_path" \
+            show-ref --verify --quiet "refs/tags/$commit_tag"; then
+            print_error 'Le tag de PROJECT_VERSION existe déjà ; incrémenter la version avant un nouveau commit.'
+            return 1
+        else
+            tag_check_rc=$?
+            if [[ "$tag_check_rc" -ne 1 ]]; then
+                print_error 'Impossible de vérifier la disponibilité du tag de version.'
+                return 1
+            fi
+        fi
+    fi
+
     # Résumé avant commit
     print_title "Résumé des modifications"
 
@@ -1638,6 +1672,10 @@ git_commit_all() {
             GIT_USER_NAME \
             GIT_USER_EMAIL
 
+        if ! project_version_get "$project_env" >/dev/null; then
+            failed=1
+            continue
+        fi
         # shellcheck disable=SC1090
         if ! source "${project_env}"; then
             print_error "Projet ignoré : ${project_id} (project.env illisible)."
@@ -2300,6 +2338,7 @@ _git_push_provider() {
 
     local current_branch=""
     local current_tag=""
+    local selected_project_version=""
     local remote_url=""
     local configured_remote_url=""
     local upstream=""
@@ -2333,6 +2372,11 @@ _git_push_provider() {
     if [[ ! -d "${project_path}" ]]; then
         print_error "Projet introuvable : ${project_path}"
         return 1
+    fi
+
+    selected_project_version="$(project_version_get "$project_env")" || return 1
+    if [[ -n "$selected_project_version" ]]; then
+        current_tag="$(project_version_tag_for_head "$project_path" "$selected_project_version" "${ENV_DEVOPS_USER:-${DEVOPS_USER}}")" || return 1
     fi
 
     # Vérification de Git
@@ -2748,13 +2792,15 @@ _git_push_provider() {
         return 1
     fi
 
-    # Tag éventuel du dernier commit
-    current_tag="$(
-        runuser -u "${ENV_DEVOPS_USER}" -- \
-            git -C "${project_path}" \
-            tag --points-at HEAD 2>/dev/null |
-            head -n 1
-    )"
+    if [[ -z "$selected_project_version" ]]; then
+        # Tag éventuel du dernier commit
+        current_tag="$(
+            runuser -u "${ENV_DEVOPS_USER}" -- \
+                git -C "${project_path}" \
+                tag --points-at HEAD 2>/dev/null |
+                head -n 1
+        )"
+    fi
 
     # Vérification / configuration du remote Git
     configured_remote_url=""
@@ -4110,6 +4156,10 @@ forgejo_push_all() {
             REMOTE_FORGEJO_BRANCH \
             REMOTE_FORGEJO_SSL_VERIFY
 
+        if ! project_version_get "$project_env" >/dev/null; then
+            failed=1
+            continue
+        fi
         # shellcheck disable=SC1090
         if ! source "${project_env}"; then
             print_error "Projet ignoré : ${project_id} (project.env illisible)."
@@ -4407,6 +4457,7 @@ projects_forgejo_release() {
         REMOTE_FORGEJO_BRANCH \
         REMOTE_FORGEJO_SSL_VERIFY
 
+    project_version_get "$project_env" >/dev/null || return 1
     # shellcheck disable=SC1090
     source "${project_env}"
 
@@ -4433,6 +4484,7 @@ projects_forgejo_release() {
             REMOTE_FORGEJO_NAME \
             REMOTE_FORGEJO_BRANCH \
             REMOTE_FORGEJO_SSL_VERIFY
+        project_version_get "$project_env" >/dev/null || return 1
         # shellcheck disable=SC1090
         source "${project_env}"
     fi
@@ -4460,6 +4512,7 @@ projects_forgejo_release() {
             REMOTE_FORGEJO_NAME \
             REMOTE_FORGEJO_BRANCH \
             REMOTE_FORGEJO_SSL_VERIFY
+        project_version_get "$project_env" >/dev/null || return 1
         # shellcheck disable=SC1090
         source "${project_env}"
     fi
@@ -4610,6 +4663,7 @@ projects_gitlab_release() {
         REMOTE_GITLAB_BRANCH \
         REMOTE_GITLAB_SSL_VERIFY
 
+    project_version_get "$project_env" >/dev/null || return 1
     # shellcheck disable=SC1090
     source "${project_env}"
 
@@ -4643,6 +4697,7 @@ projects_gitlab_release() {
             REMOTE_GITLAB_NAME \
             REMOTE_GITLAB_BRANCH \
             REMOTE_GITLAB_SSL_VERIFY
+        project_version_get "$project_env" >/dev/null || return 1
         # shellcheck disable=SC1090
         source "${project_env}"
 
@@ -4680,6 +4735,7 @@ projects_gitlab_release() {
             REMOTE_GITLAB_NAME \
             REMOTE_GITLAB_BRANCH \
             REMOTE_GITLAB_SSL_VERIFY
+        project_version_get "$project_env" >/dev/null || return 1
         # shellcheck disable=SC1090
         source "${project_env}"
 
@@ -4801,6 +4857,7 @@ projects_gitlab_release_docker() {
     local git_tag=""
     local git_tags_count=0
     local docker_version=""
+    local selected_project_version=""
 
     local local_image=""
     local remote_registry=""
@@ -4839,6 +4896,8 @@ projects_gitlab_release_docker() {
             "Fichier project.env introuvable : ${project_env}"
         return 1
     fi
+
+    selected_project_version="$(project_version_get "$project_env")" || return 1
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -4888,47 +4947,55 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    git_tags_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" \
-            tag --points-at HEAD 2>/dev/null |
-            sed '/^[[:space:]]*$/d' |
-            wc -l
-    )"
-
-    if [[ "${git_tags_count}" -eq 0 ]]; then
-        print_error "Aucun tag Git associé au dernier commit."
-        return 1
-    fi
-
-    if [[ "${git_tags_count}" -gt 1 ]]; then
-        print_error "Plusieurs tags Git sont associés au dernier commit."
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" \
-            tag --points-at HEAD
-        return 1
-    fi
-
-    git_tag="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" \
-            tag --points-at HEAD 2>/dev/null |
-            head -n 1
-    )"
-
-    if [[ -z "${git_tag}" ]]; then
-        print_error "Impossible de déterminer le tag Git du dernier commit."
-        return 1
-    fi
-
-    docker_version="${git_tag#v}"
-
-    if [[ -z "${docker_version}" ]]; then
-        print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
-        return 1
+    if [[ -n "$selected_project_version" ]]; then
+        git_tag="$(project_version_tag_for_head "$project_dir" "$selected_project_version")" || return 1
+        docker_version="$selected_project_version"
+    else
+        git_tags_count="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_dir}" \
+                tag --points-at HEAD 2>/dev/null |
+                sed '/^[[:space:]]*$/d' |
+                wc -l
+        )"
+    
+        if [[ "${git_tags_count}" -eq 0 ]]; then
+            print_error "Aucun tag Git associé au dernier commit."
+            return 1
+        fi
+    
+        if [[ "${git_tags_count}" -gt 1 ]]; then
+            print_error "Plusieurs tags Git sont associés au dernier commit."
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_dir}" \
+                tag --points-at HEAD
+            return 1
+        fi
+    
+        git_tag="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_dir}" \
+                tag --points-at HEAD 2>/dev/null |
+                head -n 1
+        )"
+    
+        if [[ -z "${git_tag}" ]]; then
+            print_error "Impossible de déterminer le tag Git du dernier commit."
+            return 1
+        fi
+    
+        docker_version="${git_tag#v}"
+    
+        if [[ -z "${docker_version}" ]]; then
+            print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
+            return 1
+        fi
     fi
 
     local_image="${PROJECT_ID:-${project_id}}:latest"
+    if [[ -n "$selected_project_version" ]]; then
+        local_image="${PROJECT_ID:-${project_id}}:${selected_project_version}"
+    fi
     remote_image_version="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:${docker_version}"
     remote_image_latest="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:latest"
 
@@ -5058,6 +5125,7 @@ projects_github_release() {
     local git_tag=""
     local git_tags_count=0
     local docker_version=""
+    local selected_project_version=""
     local local_image=""
     local remote_image_version=""
     local remote_image_latest=""
@@ -5082,6 +5150,8 @@ projects_github_release() {
     unset PROJECT_ID PROJECT_DOCKERED REMOTE_GITHUB_BASE_URL \
         REMOTE_GITHUB_OWNER REMOTE_GITHUB_REPOSITORY REMOTE_GITHUB_NAME \
         REMOTE_GITHUB_BRANCH
+    selected_project_version="$(project_version_get "$project_env")" || return 1
+
     # shellcheck disable=SC1090
     source "${project_env}"
 
@@ -5116,27 +5186,35 @@ projects_github_release() {
         return 1
     fi
 
-    git_tags_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" tag --points-at HEAD 2>/dev/null |
-            sed '/^[[:space:]]*$/d' |
-            wc -l
-    )"
-
-    if [[ "${git_tags_count}" -ne 1 ]]; then
-        print_error "Un unique tag Git doit pointer sur le dernier commit."
-        return 1
-    fi
-
-    git_tag="$(runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_dir}" tag --points-at HEAD 2>/dev/null | head -n 1)"
-    docker_version="${git_tag#v}"
-    if [[ -z "${docker_version}" ]]; then
-        print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
-        return 1
+    if [[ -n "$selected_project_version" ]]; then
+        git_tag="$(project_version_tag_for_head "$project_dir" "$selected_project_version")" || return 1
+        docker_version="$selected_project_version"
+    else
+        git_tags_count="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_dir}" tag --points-at HEAD 2>/dev/null |
+                sed '/^[[:space:]]*$/d' |
+                wc -l
+        )"
+    
+        if [[ "${git_tags_count}" -ne 1 ]]; then
+            print_error "Un unique tag Git doit pointer sur le dernier commit."
+            return 1
+        fi
+    
+        git_tag="$(runuser -u "${DEVOPS_USER}" -- \
+            git -C "${project_dir}" tag --points-at HEAD 2>/dev/null | head -n 1)"
+        docker_version="${git_tag#v}"
+        if [[ -z "${docker_version}" ]]; then
+            print_error "Version Docker invalide déduite du tag Git '${git_tag}'."
+            return 1
+        fi
     fi
 
     local_image="${PROJECT_ID}:latest"
+    if [[ -n "$selected_project_version" ]]; then
+        local_image="${PROJECT_ID:-${project_id}}:${selected_project_version}"
+    fi
     remote_image_version="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:${docker_version}"
     remote_image_latest="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:latest"
 
@@ -5211,6 +5289,7 @@ projects_gitlab_release_debian() {
     local remote_project=""
     local remote_project_encoded=""
     local git_tag=""
+    local selected_project_version=""
     local git_tags_count=0
     local release_payload=""
     local upload_body=""
@@ -5257,6 +5336,8 @@ projects_gitlab_release_debian() {
         REMOTE_GITLAB_NAME \
         REMOTE_GITLAB_BRANCH \
         REMOTE_GITLAB_SSL_VERIFY
+    selected_project_version="$(project_version_get "$project_env")" || return 1
+
     # shellcheck disable=SC1090
     source "${project_env}"
 
@@ -5281,44 +5362,48 @@ projects_gitlab_release_debian() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        git -C "${project_path}" \
-        tag --points-at HEAD >/dev/null 2>&1; then
-        print_error "Impossible de lire les tags Git du projet."
-        return 1
-    fi
-
-    git_tags_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+    if [[ -n "$selected_project_version" ]]; then
+        git_tag="$(project_version_tag_for_head "$project_path" "$selected_project_version")" || return 1
+    else
+        if ! runuser -u "${DEVOPS_USER}" -- \
             git -C "${project_path}" \
-            tag --points-at HEAD 2>/dev/null |
-            sed '/^[[:space:]]*$/d' |
-            wc -l
-    )"
-
-    if [[ "${git_tags_count}" -eq 0 ]]; then
-        print_error "Aucun tag Git associé au dernier commit."
-        return 1
-    fi
-
-    if [[ "${git_tags_count}" -gt 1 ]]; then
-        print_error "Plusieurs tags Git sont associés au dernier commit."
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" \
-            tag --points-at HEAD
-        return 1
-    fi
-
-    git_tag="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_path}" \
-            tag --points-at HEAD 2>/dev/null |
-            head -n 1
-    )"
-
-    if [[ -z "${git_tag}" ]]; then
-        print_error "Impossible de déterminer le tag Git du dernier commit."
-        return 1
+            tag --points-at HEAD >/dev/null 2>&1; then
+            print_error "Impossible de lire les tags Git du projet."
+            return 1
+        fi
+    
+        git_tags_count="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_path}" \
+                tag --points-at HEAD 2>/dev/null |
+                sed '/^[[:space:]]*$/d' |
+                wc -l
+        )"
+    
+        if [[ "${git_tags_count}" -eq 0 ]]; then
+            print_error "Aucun tag Git associé au dernier commit."
+            return 1
+        fi
+    
+        if [[ "${git_tags_count}" -gt 1 ]]; then
+            print_error "Plusieurs tags Git sont associés au dernier commit."
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_path}" \
+                tag --points-at HEAD
+            return 1
+        fi
+    
+        git_tag="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_path}" \
+                tag --points-at HEAD 2>/dev/null |
+                head -n 1
+        )"
+    
+        if [[ -z "${git_tag}" ]]; then
+            print_error "Impossible de déterminer le tag Git du dernier commit."
+            return 1
+        fi
     fi
 
     local debian_file_path
@@ -5361,6 +5446,15 @@ projects_gitlab_release_debian() {
     if ! command -v jq >/dev/null 2>&1; then
         print_error "jq n'est pas installé."
         return 1
+    fi
+
+    if [[ -n "$selected_project_version" ]]; then
+        local artifact_version=""
+        artifact_version="$(dpkg-deb -f "$deb_file" Version)" || return 1
+        if [[ "$artifact_version" != "$selected_project_version" ]]; then
+            print_error 'La version du paquet Debian ne correspond pas à PROJECT_VERSION.'
+            return 1
+        fi
     fi
 
     if ! _gitlab_ensure_credentials "${project_path}" "${REMOTE_GITLAB_NAME:-origin}"; then
@@ -5529,6 +5623,7 @@ projects_forgejo_release_docker() {
     local git_tag=""
     local git_tags_count=0
     local docker_version=""
+    local selected_project_version=""
 
     local local_image=""
     local remote_registry=""
@@ -5581,6 +5676,8 @@ projects_forgejo_release_docker() {
     # --------------------------------------------------------
     # Chargement de project.env
     # --------------------------------------------------------
+
+    selected_project_version="$(project_version_get "$project_env")" || return 1
 
     # shellcheck disable=SC1090
     source "${project_env}"
@@ -5639,61 +5736,69 @@ projects_forgejo_release_docker() {
     # Détermination du tag associé au dernier commit Git
     # --------------------------------------------------------
 
-    git_tags_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" \
-            tag --points-at HEAD 2>/dev/null |
-            sed '/^[[:space:]]*$/d' |
-            wc -l
-    )"
-
-    if [[ "${git_tags_count}" -eq 0 ]]; then
-        print_error \
-            "Aucun tag Git associé au dernier commit."
-        return 1
+    if [[ -n "$selected_project_version" ]]; then
+        git_tag="$(project_version_tag_for_head "$project_dir" "$selected_project_version")" || return 1
+        docker_version="$selected_project_version"
+    else
+        git_tags_count="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_dir}" \
+                tag --points-at HEAD 2>/dev/null |
+                sed '/^[[:space:]]*$/d' |
+                wc -l
+        )"
+    
+        if [[ "${git_tags_count}" -eq 0 ]]; then
+            print_error \
+                "Aucun tag Git associé au dernier commit."
+            return 1
+        fi
+    
+        if [[ "${git_tags_count}" -gt 1 ]]; then
+            print_error \
+                "Plusieurs tags Git sont associés au dernier commit."
+    
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_dir}" \
+                tag --points-at HEAD
+    
+            return 1
+        fi
+    
+        git_tag="$(
+            runuser -u "${DEVOPS_USER}" -- \
+                git -C "${project_dir}" \
+                tag --points-at HEAD 2>/dev/null |
+                head -n 1
+        )"
+    
+        if [[ -z "${git_tag}" ]]; then
+            print_error \
+                "Impossible de déterminer le tag Git du dernier commit."
+            return 1
+        fi
+    
+        # --------------------------------------------------------
+        # Détermination de la version Docker
+        # --------------------------------------------------------
+    
+        docker_version="${git_tag#v}"
+    
+        if [[ -z "${docker_version}" ]]; then
+            print_error \
+                "Version Docker invalide déduite du tag Git '${git_tag}'."
+            return 1
+        fi
+    
+        # --------------------------------------------------------
+        # Détermination des images Docker
+        # --------------------------------------------------------
     fi
-
-    if [[ "${git_tags_count}" -gt 1 ]]; then
-        print_error \
-            "Plusieurs tags Git sont associés au dernier commit."
-
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" \
-            tag --points-at HEAD
-
-        return 1
-    fi
-
-    git_tag="$(
-        runuser -u "${DEVOPS_USER}" -- \
-            git -C "${project_dir}" \
-            tag --points-at HEAD 2>/dev/null |
-            head -n 1
-    )"
-
-    if [[ -z "${git_tag}" ]]; then
-        print_error \
-            "Impossible de déterminer le tag Git du dernier commit."
-        return 1
-    fi
-
-    # --------------------------------------------------------
-    # Détermination de la version Docker
-    # --------------------------------------------------------
-
-    docker_version="${git_tag#v}"
-
-    if [[ -z "${docker_version}" ]]; then
-        print_error \
-            "Version Docker invalide déduite du tag Git '${git_tag}'."
-        return 1
-    fi
-
-    # --------------------------------------------------------
-    # Détermination des images Docker
-    # --------------------------------------------------------
 
     local_image="${PROJECT_ID:-${project_id}}:latest"
+    if [[ -n "$selected_project_version" ]]; then
+        local_image="${PROJECT_ID:-${project_id}}:${selected_project_version}"
+    fi
 
     remote_registry="${REMOTE_FORGEJO_BASE_URL#https://}"
     remote_registry="${remote_registry#http://}"

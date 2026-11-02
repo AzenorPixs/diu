@@ -36,9 +36,11 @@ Le moteur SHALL valider les métadonnées et les chemins avant construction. Il 
 - **THEN** la construction échoue et les anciens paquets sont conservés
 
 ### Requirement: Version et construction locale
-La recette MAY fournir une version Debian littérale. Sans version, le moteur SHALL sélectionner l'unique version valide des tags de HEAD, sans préfixe v, ou l'heure locale sans Git ou tag. Il SHALL construire avec dpkg-deb --root-owner-group depuis les fichiers de travail.
+
+PROJECT_VERSION SHALL être prioritaire sur la version littérale de la recette. Sans cette clé, la recette MAY fournir une version ; sinon le moteur SHALL sélectionner l’unique version valide des tags de HEAD sans préfixe v, ou l’heure locale sans Git ou tag. Le moteur SHALL construire avec dpkg-deb --root-owner-group depuis les fichiers de travail.
 
 #### Scenario: Version ambiguë
+- **GIVEN** PROJECT_VERSION est absente de project.env
 - **WHEN** HEAD porte plusieurs versions distinctes, un tag invalide ou sa consultation échoue
 - **THEN** la construction échoue sans modifier dist
 

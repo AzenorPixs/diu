@@ -22,6 +22,10 @@ class DockerBuildArgs(unittest.TestCase):
         self.capture = self.lab / 'docker.capture'
         self.module = self.lab / 'docker.sh'
         source = (ROOT / 'modules/projects/docker.sh').read_text()
+        # Le module déplacé conserve la même dépendance publique au lecteur de version.
+        source = source.replace(
+            '. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"',
+            f'. "{ROOT / "lib/project-version.sh"}"', 1)
         # Rebaser seulement le chemin historique, sans toucher au lecteur testé.
         old = 'project_dir="/home/${DEVOPS_USER}/datas/${project_id}"'
         self.assertEqual(source.count(old), 1)
