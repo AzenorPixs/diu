@@ -972,6 +972,9 @@ du point d'entrée utilisent ce contrôle.
 persistée dans `/root/diu/config/docker.env` avec le défaut `0`. Les
 consommateurs existants de la stack gardent ce nom; `1` active la stack et les
 entrées d’hôtes associées.
+Le réglage de mise à jour est `DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE`, déclaré
+en `STATIC`, `ENABLE`, scope `docker`, défaut `0`; l’ancienne valeur
+`DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=0|1` est migrée vers `docker.env`.
 
 ### Contrôle de la stack Docker DevOps
 

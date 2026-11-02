@@ -5236,7 +5236,7 @@ then
 		if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
 		then
 
-			if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
+			if [[ "${DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE:-0}" -eq 1 ]]
 			then
 
 				echo "🔧 CHECK DOCKER IMAGE STACK PROXY TRAEFIK FOR UPGRADE"
@@ -5450,7 +5450,7 @@ then
 			if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
 			then
 
-        if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
+        if [[ "${DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE:-0}" -eq 1 ]]
         then
 
           echo ""
@@ -8410,7 +8410,7 @@ then
 
 fi
 
-if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
+if [[ "${DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE:-0}" -eq 1 ]]
 then
 
 	echo "##############################################"
