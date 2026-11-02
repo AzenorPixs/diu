@@ -6435,7 +6435,7 @@ then
 
 fi
 
-if [ "$ZOOM" -eq 1 ]
+if [[ "${SOFTWARES_APT_ZOOM:-0}" -eq 1 ]]
 then
 
 	DEB_URL="https://zoom.us/client/latest/zoom_amd64.deb"
