@@ -164,6 +164,12 @@ identiques à ceux décrits pour DevOps, y compris l'exclusion des comptes
 configurés DevOps, Docker et IA. Un bloc désactivé ou un compte absent ne
 révoque pas de règles déjà installées.
 
+Le propriétaire des stacks Docker est déclaré dans le scope `docker` sous le
+nom `ENVIRONMENT_DOCKER_USER`, en `STATIC`, `ENABLE`, défaut `docker`.
+L'ancienne valeur littérale `DOCKER_USER` est migrée exactement vers
+`docker.env`; une valeur nouvelle existante garde la priorité. Les références
+aux chemins et données des stacks utilisent le nouveau nom.
+
 Les deux fonctions utilisent `configure_environment_sudoers`, limité aux
 scopes fixes `devops` et `docker`. Chaque scope possède son candidat caché et
 son fragment indépendant ; une génération ne remplace pas celui de l'autre
