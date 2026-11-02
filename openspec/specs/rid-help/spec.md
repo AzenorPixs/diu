@@ -385,6 +385,7 @@ l'affichage de son état. Les signatures des commandes MUST rester inchangées.
 - **WHEN** l'aide projects, projects git ou projects git status est demandée
 - **THEN** les descriptions concernées mentionnent safe.directory système
 - **AND** les commandes conservent leurs arguments publics existants
+
 ### Requirement: Aide du packaging Debian DIU
 
 Les aides SHALL présenter rid projects deb [ID PROJECT] et rid proj deb <ID PROJECT>, le défaut diu et la nature DIU des sources. help et ? SHALL fonctionner avant le bootstrap, sans construction ni configuration.
@@ -394,3 +395,9 @@ Les aides SHALL présenter rid projects deb [ID PROJECT] et rid proj deb <ID PRO
 - **WHEN** une aide des deux syntaxes est demandée
 - **THEN** elle explique la source et le défaut sans appeler le builder
 
+### Requirement: Aide du build Debian générique
+L'aide SHALL présenter `rid projects build deb <ID PROJECT>`, l'indicateur PROJECT_DEBIAN_PACKAGE, les valeurs Yes/YES/1 et la recette build/debian-package.json. help et ? SHALL fonctionner avant le bootstrap et sans écriture.
+
+#### Scenario: Aide contextuelle
+- **WHEN** l'aide de projects build, projects build deb ou projects build deb diu est demandée
+- **THEN** elle présente la syntaxe et le contrat sans construction ni chargement de configuration

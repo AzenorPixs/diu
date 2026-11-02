@@ -1,0 +1,12 @@
+{
+  "package": "diu",
+  "architecture": "all",
+  "maintainer": "Anthony DEMARD <postmaster@pixs.fr>",
+  "description": "Debian Installeur Unifié",
+  "depends": ["awk"],
+  "files": [
+    {"source": "root-install-debian.sh", "destination": "/root/diu/root-install-debian.sh"},
+    {"source": "lib", "destination": "/root/diu/lib"},
+    {"source": "modules", "destination": "/root/diu/modules"}
+  ]
+}

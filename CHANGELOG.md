@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Projets : ajout de `rid projects build deb <ID PROJECT>` et de ses aides.
+  Construction générique depuis `build/debian-package.json`, exclu du paquet,
+  activée par `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`. Un projet désactivé est ignoré ;
+  une recette absente pour un projet activé est une erreur. Recette DIU fournie,
+  équivalente au paquet historique ; anciennes commandes préservées. Rotation
+  limitée au même nom et architecture. Sources préparées sans hook ni liens symboliques.
+
 - DIU : remplacement de `VERSION_ALIAS` par `DIU_VERSION`, déclaré en
   `DYNAMIC`, `ENABLE`, scope `diu`. Le générateur lit la version du paquet
   Debian `diu` installé; l’ancien alias n’est pas transféré.
