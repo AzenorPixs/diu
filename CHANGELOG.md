@@ -4,6 +4,20 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Version de projet : `PROJECT_VERSION=x.y.z` devient prioritaire pour les
+  commits et tags, les pushes Git et les builds/publications Debian et Docker.
+  Lecture littérale isolée, refus des valeurs invalides et collisions de tags ;
+  sans clé, les mécanismes existants sont conservés. Docker garde latest et
+  ajoute le tag versionné, réutilisé pour publication. Aides mises à jour ;
+  version DIU retenue pour cette livraison : 1.0.0, déjà présente dans project.env.
+
+- Projets : ajout de `rid projects build deb <ID PROJECT>` et de ses aides.
+  Construction générique depuis `build/debian-package.json`, exclu du paquet,
+  activée par `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`. Un projet désactivé est ignoré ;
+  une recette absente pour un projet activé est une erreur. Recette DIU fournie,
+  équivalente au paquet historique ; anciennes commandes préservées. Rotation
+  limitée au même nom et architecture. Sources préparées sans hook ni liens symboliques.
+
 - DIU : remplacement de `VERSION_ALIAS` par `DIU_VERSION`, déclaré en
   `DYNAMIC`, `ENABLE`, scope `diu`. Le générateur lit la version du paquet
   Debian `diu` installé; l’ancien alias n’est pas transféré.

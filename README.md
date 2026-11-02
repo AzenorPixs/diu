@@ -52,6 +52,44 @@ cette entrée système exacte et son chemin, sans l'ajouter. Des règles Git
 globales prioritaires peuvent modifier son effet pour un compte donné.
 Les détails figurent dans [le cadrage technique](TECHNICAL.md).
 
+La version du projet peut être déclarée dans `project.env` :
+
+```text
+PROJECT_VERSION=1.0.0
+```
+
+Cette clé optionnelle est prioritaire pour les commits/tags, les builds Debian
+et Docker et leurs publications. Le format est `x.y.z`, sans préfixe v ni zéro
+initial sur les trois entiers sauf 0. Une valeur présente vide, invalide ou
+dupliquée provoque une erreur ; sans clé, les mécanismes antérieurs restent
+inchangés. Debian utilise d'abord cette valeur, puis la recette et les tags
+selon le constructeur. Docker produit les tags VERSION et latest.
+Le tag Git est `v1.0.0` ; les pushes vérifient qu'il désigne HEAD et ne le
+remplacent jamais. Pour une nouvelle livraison après attribution d'un tag,
+incrémenter PROJECT_VERSION. Un arbre inchangé ne crée pas de commit vide.
+Les publications Docker utilisent l'image locale versionnée et refusent une
+image absente ; les publications Debian refusent un paquet de version différente.
+Les aides de commit, push, CICD et build rappellent ce contrat avant bootstrap.
+Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent les contrôles.
+
+Pour construire le paquet Debian d'un projet :
+
+```bash
+rid projects build deb <ID PROJECT>
+```
+
+Le projet fournit `build/debian-package.json`, qui décrit les métadonnées et
+les copies ; cette recette reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
+dans `project.env` doit valoir `Yes`, `YES` ou `1`. Sinon, la commande informe
+que le projet ne produit aucun paquet Debian et termine sans construction.
+Pour un projet activé, une recette absente empêche le build avec une erreur.
+Le résultat est déposé dans `dist/` ; les anciens paquets de même nom et
+architecture y sont supprimés après succès. Le format et les contrôles sont
+décrits dans [BUILD.md](BUILD.md). L'aide est disponible avec
+`rid projects build deb help` ou `?`, avant bootstrap.
+La recette DIU reproduit le paquet historique ; `rid projects deb diu` et
+`rcicddiu` conservent leur fonctionnement. Aucun paquet n'est installé par le build.
+
 Pour construire une image avec `rid projects docker build <ID PROJECT>`, le
 projet peut fournir le fichier public optionnel `build/docker-build.args` :
 
