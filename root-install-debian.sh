@@ -4075,7 +4075,7 @@ then
       fi
   fi
 
-  if [[ "${ENV_IA:-0}" == "0" ]]; then
+  if [[ "${ENVIRONMENT_IA:-0}" == "0" ]]; then
       # l'utilisateur ENV_IA_USER NE doit pas être dans le groupe $ENV_DEVOPS_GROUP
       if id -nG "$ENV_IA_USER" | grep -qw "$ENV_DEVOPS_GROUP"; then
           gpasswd -d "$ENV_IA_USER" "$ENV_DEVOPS_GROUP"
@@ -4094,7 +4094,7 @@ then
 
 	install -d -o "$ENV_DEVOPS_USER" -g "$ENV_DEVOPS_GROUP" -m 2770 "/home/$ENV_DEVOPS_USER/.local/npm" "/home/$ENV_DEVOPS_USER/.local/npm/bin" "/home/$ENV_DEVOPS_USER/.opencode/bin" "/home/$ENV_DEVOPS_USER/datas" "/home/$ENV_DEVOPS_USER/syncthing"
 
-  if [ "${SYNCTHING}" = "1" ]; then
+  if [[ "${SOFTWARES_APT_SYNCTHING:-0}" == "1" ]]; then
       cat > /home/devops/datas/.stignore <<'EOF'
 # Dépôts Git
 **/.git/
@@ -5124,7 +5124,7 @@ then
 		chmod 600 /home/"$ENVIRONMENT_DOCKER_USER"/proxy/letsencrypt/acme.json
 	fi
 
-	if [ "$SSH" -eq 1 ]
+	if [[ "${SOFTWARES_APT_SSH_SERVER:-0}" -eq 1 ]]
 	then
 
 		echo "🔧 CONFIGURE /home/$ENVIRONMENT_DOCKER_USER FOR OPENSSH SERVER"
@@ -5160,7 +5160,7 @@ then
 	if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 	then
 
-		if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
+		if [[ "${DOCKER_STACK_BUNKERWEB_UPDATE:-0}" -eq 1 ]]
 		then
 
 			if [ "$DOCKER_STACK_BUNKERWEB_AUTO_UPDATE" -eq 1 ]
@@ -5236,7 +5236,7 @@ then
 		if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
 		then
 
-			if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
+			if [[ "${DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE:-0}" -eq 1 ]]
 			then
 
 				echo "🔧 CHECK DOCKER IMAGE STACK PROXY TRAEFIK FOR UPGRADE"
@@ -5426,7 +5426,7 @@ then
 			if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
 			then
 
-				if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
+				if [[ "${DOCKER_STACK_BUNKERWEB_UPDATE:-0}" -eq 1 ]]
 				then
 
 					echo ""
@@ -5450,7 +5450,7 @@ then
 			if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
 			then
 
-        if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
+        if [[ "${DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE:-0}" -eq 1 ]]
         then
 
           echo ""
@@ -5549,7 +5549,7 @@ else
 
 fi
 
-if [ "$ENV_IA" -eq 1 ]
+if [ "${ENVIRONMENT_IA:-0}" -eq 1 ]
 then
 
   groupadd -f "$ENV_IA_GROUP"
@@ -5603,7 +5603,7 @@ then
 
 fi
 
-if [ "$FASTFETCH" -eq 1 ]
+if [[ "${SOFTWARES_APT_FASTFETCH:-0}" -eq 1 ]]
 then
 
 	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ] || [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]
@@ -5650,7 +5650,7 @@ then
 
 fi
 
-if [ "$JSVC" -eq 1 ]
+if [[ "${SOFTWARES_APT_JSVC:-0}" -eq 1 ]]
 then
 
 	echo ""
@@ -5659,7 +5659,7 @@ then
 
 fi
 
-if [ "$LEMONLDAP" -eq 1 ]
+if [[ "${SOFTWARES_APT_LEMONLDAP:-0}" -eq 1 ]]
 then
 
 	echo ""
@@ -5668,7 +5668,7 @@ then
 
 fi
 
-if [ "$MONGODB" -eq 1 ]
+if [[ "${SOFTWARES_APT_MONGODB:-0}" -eq 1 ]]
 then
 
 	echo ""
@@ -5683,7 +5683,7 @@ then
 
 fi
 
-if [ "$OPENJDK" -eq 1 ]
+if [[ "${SOFTWARES_APT_OPENJDK:-0}" -eq 1 ]]
 then
 
 	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ] || [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]
@@ -5745,7 +5745,7 @@ then
 
 fi
 
-if [ "$OMADA" -eq 1 ]
+if [[ "${SOFTWARES_APT_OMADA:-0}" -eq 1 ]]
 then
 
 	if [ -f /root/omada_v"${OMADA_VERSION}".deb ]
@@ -5764,7 +5764,7 @@ then
 
 fi
 
-if [ "$OPENVSWITCH" -eq 1 ]
+if [[ "${SOFTWARES_APT_OPENVSWITCH:-0}" -eq 1 ]]
 then
 
 	if dpkg -s openvswitch-switch &>/dev/null
@@ -5782,7 +5782,7 @@ then
 
 fi
 
-if [ "$POSTGRESQL" -eq 1 ]
+if [[ "${SOFTWARES_APT_POSTGRESQL:-0}" -eq 1 ]]
 then
 
 	echo ""
@@ -5791,7 +5791,7 @@ then
 
 fi
 
-if [ "$POSTFIX" -eq 1 ]
+if [[ "${SOFTWARES_APT_POSTFIX:-0}" -eq 1 ]]
 then
 
 	echo ""
@@ -5802,7 +5802,7 @@ then
 
 fi
 
-if [ "$QEMU_GUEST_AGENT" -eq 1 ]
+if [[ "${SOFTWARES_APT_QEMU_GUEST_AGENT:-0}" -eq 1 ]]
 then
 
 	echo ""
@@ -5811,7 +5811,7 @@ then
 
 fi
 
-if [ "$SYSLOG_CLIENT" -eq 1 ]
+if [[ "${SOFTWARES_APT_SYSLOG_CLIENT:-0}" -eq 1 ]]
 then
 
 	if dpkg -s rsyslog &>/dev/null
@@ -5984,7 +5984,7 @@ then
 
 fi
 
-if [ "$SYSLOG_SERVER" -eq 1 ]
+if [[ "${SOFTWARES_APT_SYSLOG_SERVER:-0}" -eq 1 ]]
 then
 
 	if dpkg -s rsyslog &>/dev/null
@@ -6330,7 +6330,7 @@ then
 
 fi
 
-if [ "$SSH" -eq 1 ]
+if [[ "${SOFTWARES_APT_SSH_SERVER:-0}" -eq 1 ]]
 then
 
 	if dpkg -s openssh-server &>/dev/null
@@ -6356,7 +6356,7 @@ then
 
 fi
 
-if [ "${SYNCTHING}" -eq 1 ]; then
+if [[ "${SOFTWARES_APT_SYNCTHING:-0}" -eq 1 ]]; then
 
     if dpkg -s syncthing >/dev/null 2>&1; then
         echo "SYNCTHING OK ✅"
@@ -6367,7 +6367,7 @@ if [ "${SYNCTHING}" -eq 1 ]; then
 
 fi
 
-if [ "$WEBMIN" -eq 1 ]
+if [[ "${SOFTWARES_APT_WEBMIN:-0}" -eq 1 ]]
 then
 
 	echo "🔧 INSTALL WEBMIN"
@@ -6385,7 +6385,7 @@ else
 
 fi
 
-if [ "$WAZUH_CLIENT" -eq 1 ]
+if [[ "${SOFTWARES_APT_WAZUH_AGENT:-0}" -eq 1 ]]
 then
 
 	if [ -f /root/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb ]
@@ -6417,7 +6417,7 @@ else
 
 fi
 
-if [ "$WAZUH_SERVER" -eq 1 ]
+if [[ "${SOFTWARES_APT_WAZUH_SERVER:-0}" -eq 1 ]]
 then
 
 	if [ "$WAZUH_SERVER_UPGRADE" -eq 1 ]
@@ -6435,7 +6435,7 @@ then
 
 fi
 
-if [ "$ZOOM" -eq 1 ]
+if [[ "${SOFTWARES_APT_ZOOM:-0}" -eq 1 ]]
 then
 
 	DEB_URL="https://zoom.us/client/latest/zoom_amd64.deb"
@@ -6480,7 +6480,7 @@ then
 
 fi
 
-if [ "$ZSH" -eq 1 ]
+if [[ "${SOFTWARES_APT_ZSH:-0}" -eq 1 ]]
 then
 	
 	if dpkg -s fish &>/dev/null
@@ -7693,7 +7693,7 @@ fi
 
 ### RC.LOCAL ###
 
-if [ "$RCLOCAL" -eq 1 ]
+if [[ "${SYSTEM_RC_LOCAL:-0}" -eq 1 ]]
 then
 
 	echo "🔧 CONFIGURE RC.LOCAL"
@@ -8064,7 +8064,7 @@ then
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ "$OMADA" -eq 1 ]
+	if [[ "${SOFTWARES_APT_OMADA:-0}" -eq 1 ]]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /root/fwon.sh
@@ -8389,7 +8389,7 @@ then
 
 fi
 
-if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
+if [[ "${DOCKER_STACK_BUNKERWEB_UPDATE:-0}" -eq 1 ]]
 then
 
 	echo "###############################################"
@@ -8410,7 +8410,7 @@ then
 
 fi
 
-if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
+if [[ "${DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE:-0}" -eq 1 ]]
 then
 
 	echo "##############################################"
@@ -8435,8 +8435,8 @@ echo ""
 echo ""
 echo ""
 echo "######################################"
-echo "# Update ALIAS 		: $VERSION_ALIAS #"
-echo "# Update VARIABLES 	: $VERSION_VARIABLES #"
+# shellcheck disable=SC2153
+echo "# DIU VERSION 		: $DIU_VERSION #"
 # VERSION provient de la configuration historique, distincte des versions locales des modules.
 # shellcheck disable=SC2153
 echo "# Update SCRIPT - RI 	: $VERSION #"

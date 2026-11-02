@@ -118,15 +118,15 @@ source "$TMPDIR/declaration.sh"
         cases = [
             ({'SOFTWARES_APT_CROWDSEC_AGENT': 1}, 'CROWDSEC', 1),
             ({'SOFTWARES_APT_CROWDSEC_BOUNCER': 1}, 'CROWDSEC', 1),
-            ({'LEMONLDAP': 1}, 'LEMONLDAP', 1),
-            ({'WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 4),
-            ({'WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 0}, 'WAZUH', 0),
-            ({'WAZUH_SERVER': 0, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 0),
+            ({'SOFTWARES_APT_LEMONLDAP': 1}, 'LEMONLDAP', 1),
+            ({'SOFTWARES_APT_WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 4),
+            ({'SOFTWARES_APT_WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 0}, 'WAZUH', 0),
+            ({'SOFTWARES_APT_WAZUH_SERVER': 0, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 0),
         ]
-        cases += [({'MONGODB': 1, 'MONGODB_VERSION': version}, 'MONGODB', branch)
+        cases += [({'SOFTWARES_APT_MONGODB': 1, 'MONGODB_VERSION': version}, 'MONGODB', branch)
                   for version, branch in [('4.4', 4), ('5', 5), ('6', 6), ('7', 7), ('8', 8)]]
-        cases += [({'MONGODB': 0, 'MONGODB_VERSION': '8'}, 'MONGODB', 0),
-                  ({'MONGODB': 1, 'MONGODB_VERSION': 'unknown'}, 'MONGODB', 0)]
+        cases += [({'SOFTWARES_APT_MONGODB': 0, 'MONGODB_VERSION': '8'}, 'MONGODB', 0),
+                  ({'SOFTWARES_APT_MONGODB': 1, 'MONGODB_VERSION': 'unknown'}, 'MONGODB', 0)]
         for values, name, expected in cases:
             with self.subTest(values=values), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
                 directory = self.prepare(tmp)

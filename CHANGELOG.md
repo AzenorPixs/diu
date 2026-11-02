@@ -4,6 +4,127 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : remplacement de `VERSION_ALIAS` par `DIU_VERSION`, déclaré en
+  `DYNAMIC`, `ENABLE`, scope `diu`. Le générateur lit la version du paquet
+  Debian `diu` installé; l’ancien alias n’est pas transféré.
+
+- Docker : renommage de `DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE` vers
+  `DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE`, déclaré en `STATIC`, `ENABLE`, scope
+  `docker`, défaut `0`. La valeur historique littérale est transférée
+  exactement; les réglages de version restent distincts.
+
+- Docker : migration de `DOCKER_STACK_BUNKERWEB_UPGRADE` vers
+  `DOCKER_STACK_BUNKERWEB_UPDATE`, déclaré en `STATIC`, `ENABLE`, scope
+  `docker`, défaut `0`. La valeur historique littérale est transférée
+  exactement; auto-update et version restent distincts.
+
+- Système : migration de `RCLOCAL` vers `SYSTEM_RC_LOCAL`, déclaré en
+  `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; `/etc/rc.local`
+  n’est généré que lorsque le réglage est activé.
+
+- Logiciel APT : migration de `ZSH` vers `SOFTWARES_APT_ZSH`, déclaré en
+  `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; le comportement
+  d’installation et de configuration de Zsh/Fish est conservé.
+
+- Logiciel : migration de `ZOOM` vers `SOFTWARES_APT_ZOOM`, déclaré en
+  `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; le parcours
+  existant du paquet Debian Zoom est conservé.
+
+- Logiciel APT : migration de `WAZUH_SERVER` vers
+  `SOFTWARES_APT_WAZUH_SERVER`, déclaré en `STATIC`, `ENABLE`, scope
+  `softwares`, défaut `0`. La dernière valeur littérale `0` ou `1` est migrée;
+  `WAZUH_SERVER_UPGRADE` reste distincte pour la branche du dépôt.
+
+- Logiciel : migration de `WAZUH_CLIENT` vers `SOFTWARES_APT_WAZUH_AGENT`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement;
+  `WAZUH_CLIENT_VERSION` reste distincte.
+
+- Logiciel APT : migration de `WEBMIN` vers `SOFTWARES_APT_WEBMIN`, déclaré en
+  `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; le dépôt
+  `SYSTEM_APT_WEBMIN` reste distinct.
+
+- Logiciel APT : migration de `SYNCTHING` vers `SOFTWARES_APT_SYNCTHING`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement si le
+  nouveau nom n’est pas déjà configuré; `.stignore` reste conditionnel.
+
+- Logiciel APT : migration de `SSH` vers `SOFTWARES_APT_SSH_SERVER`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; les clés
+  `KEY_SSH_*` restent inchangées.
+
+- Logiciel APT : migration de `SYSLOG_SERVER` vers
+  `SOFTWARES_APT_SYSLOG_SERVER`, déclaré en `STATIC`, `ENABLE`, scope
+  `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
+  est transférée exactement; les catégories `SYSLOG_SERVER_SKIL_*` restent
+  séparées.
+
+- Logiciel APT : migration de `SYSLOG_CLIENT` vers
+  `SOFTWARES_APT_SYSLOG_CLIENT`, déclaré en `STATIC`, `ENABLE`, scope
+  `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
+  est transférée exactement; `SYSLOG_CLIENT_SERVER` reste le serveur cible.
+
+- Logiciel APT : migration de `QEMU_GUEST_AGENT` vers
+  `SOFTWARES_APT_QEMU_GUEST_AGENT`, déclaré en `STATIC`, `ENABLE`, scope
+  `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
+  est transférée exactement si le nouveau nom n’est pas déjà configuré.
+
+- Logiciel APT : migration de `POSTFIX` vers `SOFTWARES_APT_POSTFIX`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; `POSTFIX_RELAY_HOST`
+  reste distinct pour configurer le relais.
+
+- Logiciel APT : migration de `POSTGRESQL` vers `SOFTWARES_APT_POSTGRESQL`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement si la
+  nouvelle variable n’est pas déjà configurée.
+
+- Logiciel APT : migration de `OPENVSWITCH` vers
+  `SOFTWARES_APT_OPENVSWITCH`, déclaré en `STATIC`, `ENABLE`, scope `softwares`,
+  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
+  exactement si le nouveau nom n’est pas déjà configuré.
+
+- Logiciel : migration de `OMADA` vers `SOFTWARES_APT_OMADA`, déclaré en
+  `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; `OMADA_VERSION`
+  et les réglages syslog restent distincts.
+
+- Logiciel APT : migration de `OPENJDK` vers `SOFTWARES_APT_OPENJDK`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement, en conservant la
+  sélection Java 17/21 selon Debian.
+
+- Logiciel APT : migration de `MONGODB` vers `SOFTWARES_APT_MONGODB`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; `MONGODB_VERSION`
+  et le réglage de dépôt `SYSTEM_APT_MONGODB` restent distincts.
+
+- Logiciel APT : migration de `LEMONLDAP` vers `SOFTWARES_APT_LEMONLDAP`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement; le réglage
+  distinct du dépôt `SYSTEM_APT_LEMONLDAP` demeure en scope `system`.
+
+- Logiciel APT : migration de `JSVC` vers `SOFTWARES_APT_JSVC`, déclaré en
+  `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
+  nom est déjà configuré.
+
+- Logiciel APT : migration de `FASTFETCH` vers `SOFTWARES_APT_FASTFETCH`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement sauf si le
+  nouveau nom est déjà configuré; le comportement par distribution est
+  conservé.
+
+- Environnement IA : migration de `ENV_IA` vers `ENVIRONMENT_IA`, déclaré en
+  `STATIC`, `ENABLE`, scope `environnements`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
+  nom est déjà configuré.
+
 - Compte propriétaire des stacks Docker : migration de `DOCKER_USER` vers
   `ENVIRONMENT_DOCKER_USER`, déclaré en `STATIC`, `ENABLE`, scope `docker`,
   défaut `docker`. La valeur historique littérale est transférée exactement,

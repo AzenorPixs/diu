@@ -33,7 +33,7 @@ class DevopsSudoersTests(unittest.TestCase):
         cls.function = '\n'.join(functions)
         variable = 'ENVIRONMENTS_DEVOPS' if cls.SCOPE == 'devops' else 'ENVIRONMENT_DOCKER'
         next_condition = ('if [ "${ENVIRONMENT_DOCKER:-0}" -eq 1 ]\nthen\n'
-                          if cls.SCOPE == 'devops' else 'if [ "$ENV_IA" -eq 1 ]\nthen\n')
+                          if cls.SCOPE == 'devops' else 'if [ "${ENVIRONMENT_IA:-0}" -eq 1 ]\nthen\n')
         condition = ('if [ "${ENVIRONMENTS_DEVOPS:-0}" -eq 1 ]\nthen\n'
                      if cls.SCOPE == 'devops' else 'if [ "${ENVIRONMENT_DOCKER:-0}" -eq 1 ]\nthen\n')
         start = source.index(condition)

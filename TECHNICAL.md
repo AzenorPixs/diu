@@ -738,9 +738,59 @@ ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
 autres anciennes affectations supprimées.
 
+Le résumé de mise à jour affiche `DIU_VERSION`, déclarée dynamiquement dans le
+scope `diu` depuis la version retournée par `dpkg-query` pour le paquet `diu`.
+L’ancienne valeur `VERSION_ALIAS` n’est pas transférée.
+
 Le contrôle d’installation Apache2 utilise `SOFTWARES_APT_APACHE2`, déclaré
 dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
 `softwares.env`.
+Le contrôle d’installation de Fastfetch utilise `SOFTWARES_APT_FASTFETCH`,
+déclaré dans le scope `softwares`; l’ancienne valeur `FASTFETCH` est migrée
+vers `softwares.env`.
+Le contrôle d’installation jsvc utilise `SOFTWARES_APT_JSVC`, déclaré dans le
+scope `softwares`; l’ancienne valeur `JSVC` est migrée vers `softwares.env`.
+Le contrôle d’installation LemonLDAP-NG utilise `SOFTWARES_APT_LEMONLDAP` dans
+`softwares.env`; sa valeur initialise `SYSTEM_APT_LEMONLDAP` uniquement si le
+réglage du dépôt système n’existe pas déjà.
+Le contrôle d’installation MongoDB utilise `SOFTWARES_APT_MONGODB` dans
+`softwares.env`; `MONGODB_VERSION` reste séparé pour sélectionner la branche
+du dépôt `SYSTEM_APT_MONGODB`.
+Le contrôle OpenJDK utilise `SOFTWARES_APT_OPENJDK` dans `softwares.env`; le
+point d’entrée conserve la sélection Java selon la version Debian.
+Le contrôle Omada utilise `SOFTWARES_APT_OMADA` dans `softwares.env` pour
+l’installation et le firewall; `OMADA_VERSION` et `SYSLOG_SERVER_SKIL_OMADA`
+restent séparés.
+Le contrôle Open vSwitch utilise `SOFTWARES_APT_OPENVSWITCH` dans
+`softwares.env`; l’ancienne valeur `OPENVSWITCH` y est migrée.
+Le contrôle du serveur PostgreSQL utilise `SOFTWARES_APT_POSTGRESQL` dans
+`softwares.env`; l’ancienne valeur `POSTGRESQL` y est migrée.
+Le contrôle Postfix utilise `SOFTWARES_APT_POSTFIX` dans `softwares.env`; la
+valeur distincte `POSTFIX_RELAY_HOST` continue à configurer le relais.
+Le contrôle de `qemu-guest-agent` utilise `SOFTWARES_APT_QEMU_GUEST_AGENT` dans
+`softwares.env`; le paquet reste désactivé par défaut.
+Le contrôle Syncthing utilise `SOFTWARES_APT_SYNCTHING` dans `softwares.env`
+pour l’installation du paquet et le rendu conditionnel de `.stignore`.
+Le contrôle Webmin utilise `SOFTWARES_APT_WEBMIN` dans `softwares.env`; son
+dépôt APT reste contrôlé séparément par `SYSTEM_APT_WEBMIN`.
+Le contrôle de l’agent Wazuh utilise `SOFTWARES_APT_WAZUH_AGENT` dans
+`softwares.env`; `WAZUH_CLIENT_VERSION` reste le sélecteur de version séparé.
+Le contrôle Wazuh Server utilise `SOFTWARES_APT_WAZUH_SERVER` dans
+`softwares.env`; son repli vers `SYSTEM_APT_WAZUH` respecte
+`WAZUH_SERVER_UPGRADE`.
+Le contrôle Zoom utilise `SOFTWARES_APT_ZOOM` dans `softwares.env` pour le
+parcours de téléchargement et d’installation du paquet Debian.
+Le contrôle Zsh utilise `SOFTWARES_APT_ZSH` dans `softwares.env` pour
+l’installation et la configuration de Zsh/Fish.
+Le contrôle de `/etc/rc.local` utilise `SYSTEM_RC_LOCAL` dans `system.env`;
+l’ancienne valeur `RCLOCAL=0|1` y est migrée.
+Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
+`SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
+Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
+les options `SYSLOG_SERVER_SKIL_*` continuent à sélectionner les catégories de
+journaux.
+Le serveur OpenSSH utilise `SOFTWARES_APT_SSH_SERVER` dans `softwares.env`;
+les clés `KEY_SSH_ADMIN` et `KEY_SSH_ACME` ne sont pas renommées.
 
 ### Déclarations unitaires
 
@@ -926,6 +976,9 @@ du point d'entrée utilisent ce contrôle.
 persistée dans `/root/diu/config/docker.env` avec le défaut `0`. Les
 consommateurs existants de la stack gardent ce nom; `1` active la stack et les
 entrées d’hôtes associées.
+Le réglage de mise à jour est `DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE`, déclaré
+en `STATIC`, `ENABLE`, scope `docker`, défaut `0`; l’ancienne valeur
+`DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=0|1` est migrée vers `docker.env`.
 
 ### Contrôle de la stack Docker DevOps
 
@@ -934,6 +987,15 @@ entrées d’hôtes associées.
 valeur existante `0` ou `1` est conservée; une valeur absente est persistée
 dans `/root/diu/config/docker.env` avec le défaut `0`. Le consommateur
 existant conserve le même nom; `1` active l’ajout des noms d’hôtes DevOps.
+
+### Mise à jour de la stack Docker BunkerWeb
+
+`modules/diu/variables/docker/docker_stack_bunkerweb_update.sh` déclare
+`DOCKER_STACK_BUNKERWEB_UPDATE` en `STATIC`, `ENABLE`, scope `docker`, défaut
+`0`. L’ancienne valeur littérale `DOCKER_STACK_BUNKERWEB_UPGRADE=0|1` est
+migrée exactement vers `docker.env` si le nouveau nom n’y est pas déjà défini.
+`DOCKER_STACK_BUNKERWEB_AUTO_UPDATE` et `DOCKER_STACK_BUNKERWEB_VERSION`
+restent des réglages distincts.
 
 ### Indicateurs de tests DevOps
 
@@ -959,6 +1021,12 @@ DevOps utilise le nouveau nom.
 L'ancienne valeur littérale `ENV_DOCKER=0|1` est migrée exactement vers
 `environnements.env`; les paramètres voisins `ENV_DOCKER_USER` et
 `ENV_DOCKER_GROUP` restent distincts.
+
+`modules/diu/variables/environnements/environment_ia.sh` déclare
+`ENVIRONMENT_IA` en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`.
+L'ancienne valeur littérale `ENV_IA=0|1` est migrée exactement vers
+`environnements.env`; le bloc de création du compte et de préparation du profil
+IA utilise le nouveau nom.
 Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
 produit un diagnostic stderr et un statut non nul, sans définir la variable
 absente concernée.
@@ -1180,6 +1248,179 @@ persistée dans `/root/diu/config/softwares.env`. L’ancienne valeur littérale
 `APACHE2=0|1` est migrée exactement vers ce scope si aucune nouvelle valeur
 n’est déjà définie. Une valeur `1` garde l’installation Apache2 et de ses
 dépendances existantes selon la version Debian détectée.
+
+### Fastfetch par APT
+
+`modules/diu/variables/softwares/software_apt_fastfetch.sh` déclare
+`SOFTWARES_APT_FASTFETCH` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `FASTFETCH=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
+d’entrée conserve les installations APT existantes selon la version Debian.
+
+### jsvc par APT
+
+`modules/diu/variables/softwares/software_apt_jsvc.sh` déclare
+`SOFTWARES_APT_JSVC` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `JSVC=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
+d’entrée conserve l’installation APT conditionnelle de jsvc.
+
+### LemonLDAP-NG par APT
+
+`modules/diu/variables/softwares/software_apt_lemonldap.sh` déclare
+`SOFTWARES_APT_LEMONLDAP` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `LEMONLDAP=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Elle sert
+aussi de repli à l’initialisation du dépôt `SYSTEM_APT_LEMONLDAP`; une valeur
+système déjà configurée reste prioritaire.
+
+### MongoDB par APT
+
+`modules/diu/variables/softwares/software_apt_mongodb.sh` déclare
+`SOFTWARES_APT_MONGODB` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `MONGODB=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie.
+`MONGODB_VERSION` reste inchangée et sélectionne la branche utilisée pour
+initialiser `SYSTEM_APT_MONGODB`; une valeur déjà configurée de ce réglage
+système reste prioritaire.
+
+### OpenJDK par APT
+
+`modules/diu/variables/softwares/software_apt_openjdk.sh` déclare
+`SOFTWARES_APT_OPENJDK` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `OPENJDK=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
+d’entrée garde OpenJDK 17 sur Bullseye/Bookworm et OpenJDK 21 sur Trixie.
+
+### Omada
+
+`modules/diu/variables/softwares/software_apt_omada.sh` déclare
+`SOFTWARES_APT_OMADA` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `OMADA=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. L’installation
+du paquet et les règles firewall suivent ce réglage; `OMADA_VERSION` et
+`SYSLOG_SERVER_SKIL_OMADA` ne sont pas migrées.
+
+### Open vSwitch par APT
+
+`modules/diu/variables/softwares/software_apt_openvswitch.sh` déclare
+`SOFTWARES_APT_OPENVSWITCH` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `OPENVSWITCH=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
+point d’entrée conserve l’installation APT conditionnelle de
+`openvswitch-switch`.
+
+### Serveur PostgreSQL par APT
+
+`modules/diu/variables/softwares/software_apt_postgresql.sh` déclare
+`SOFTWARES_APT_POSTGRESQL` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `POSTGRESQL=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
+point d’entrée conserve l’installation APT conditionnelle du serveur
+PostgreSQL.
+
+### Postfix par APT
+
+`modules/diu/variables/softwares/software_apt_postfix.sh` déclare
+`SOFTWARES_APT_POSTFIX` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `POSTFIX=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie.
+`POSTFIX_RELAY_HOST` reste distinct et configure `relayhost` lorsque Postfix
+est activé.
+
+### qemu-guest-agent par APT
+
+`modules/diu/variables/softwares/software_apt_qemu_guest_agent.sh` déclare
+`SOFTWARES_APT_QEMU_GUEST_AGENT` en `STATIC`, `ENABLE`, scope `softwares`,
+défaut `0`. L’ancienne valeur littérale `QEMU_GUEST_AGENT=0|1` est transférée
+exactement vers `softwares.env` si la nouvelle variable n’y est pas déjà
+définie. Le point d’entrée conserve l’installation APT conditionnelle du
+paquet `qemu-guest-agent`.
+
+### Client syslog par APT
+
+`modules/diu/variables/softwares/software_apt_syslog_client.sh` déclare
+`SOFTWARES_APT_SYSLOG_CLIENT` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `SYSLOG_CLIENT=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
+`SYSLOG_CLIENT_SERVER` reste distincte et indique la destination des journaux.
+
+### Serveur syslog par APT
+
+`modules/diu/variables/softwares/software_apt_syslog_server.sh` déclare
+`SOFTWARES_APT_SYSLOG_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `SYSLOG_SERVER=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Les
+variables `SYSLOG_SERVER_SKIL_*` restent distinctes pour configurer les
+catégories de journaux.
+
+### Serveur OpenSSH par APT
+
+`modules/diu/variables/softwares/software_apt_ssh_server.sh` déclare
+`SOFTWARES_APT_SSH_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `SSH=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Les blocs
+existants d’installation et de préparation des clés restent pilotés par cette
+variable; les valeurs `KEY_SSH_*` restent distinctes.
+
+### Syncthing par APT
+
+`modules/diu/variables/softwares/software_apt_syncthing.sh` déclare
+`SOFTWARES_APT_SYNCTHING` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `SYNCTHING=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
+point d’entrée conserve l’installation APT et le rendu conditionnel de
+`.stignore`.
+
+### Webmin par APT
+
+`modules/diu/variables/softwares/software_apt_webmin.sh` déclare
+`SOFTWARES_APT_WEBMIN` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `WEBMIN=0|1` est transférée exactement vers
+`softwares.env` si le nouveau nom n’y est pas déjà défini.
+`SYSTEM_APT_WEBMIN` reste le réglage distinct du dépôt tiers.
+
+### Agent Wazuh par paquet Debian
+
+`modules/diu/variables/softwares/software_apt_wazuh_agent.sh` déclare
+`SOFTWARES_APT_WAZUH_AGENT` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `WAZUH_CLIENT=0|1` est transférée exactement
+vers `softwares.env` si le nouveau nom n’y est pas déjà défini.
+`WAZUH_CLIENT_VERSION` reste inchangée et sélectionne la version du paquet.
+
+### Wazuh Server
+
+`modules/diu/variables/softwares/software_apt_wazuh_server.sh` déclare
+`SOFTWARES_APT_WAZUH_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `WAZUH_SERVER=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
+`WAZUH_SERVER_UPGRADE` reste distincte et détermine le repli initial du dépôt
+`SYSTEM_APT_WAZUH`.
+
+### Zoom par paquet Debian
+
+`modules/diu/variables/softwares/software_apt_zoom.sh` déclare
+`SOFTWARES_APT_ZOOM` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `ZOOM=0|1` est transférée exactement vers
+`softwares.env` si le nouveau nom n’y est pas déjà défini. Le consommateur
+conserve le téléchargement, l’installation et la mise à jour du paquet Debian.
+
+### Contrôle système de RC.local
+
+`modules/diu/variables/system/system_rc_local.sh` déclare
+`SYSTEM_RC_LOCAL` en `STATIC`, `ENABLE`, scope `system`, défaut `0`. L’ancienne
+valeur littérale `RCLOCAL=0|1` est transférée exactement vers `system.env` si
+la nouvelle variable n’y est pas déjà définie; `/etc/rc.local` reste généré
+conditionnellement.
+
+### Zsh et Fish par APT
+
+`modules/diu/variables/softwares/software_apt_zsh.sh` déclare
+`SOFTWARES_APT_ZSH` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `ZSH=0|1` est transférée exactement vers
+`softwares.env` si le nouveau nom n’y est pas déjà défini. Le point d’entrée
+conserve l’installation APT et la configuration de Zsh, Fish et des outils
+associés.
 
 ### Moteur `deb`
 
