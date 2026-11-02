@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `SYSLOG_CLIENT` vers
+  `SOFTWARES_APT_SYSLOG_CLIENT`, déclaré en `STATIC`, `ENABLE`, scope
+  `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
+  est transférée exactement; `SYSLOG_CLIENT_SERVER` reste le serveur cible.
+
 - Logiciel APT : migration de `QEMU_GUEST_AGENT` vers
   `SOFTWARES_APT_QEMU_GUEST_AGENT`, déclaré en `STATIC`, `ENABLE`, scope
   `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
