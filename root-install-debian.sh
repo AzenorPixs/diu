@@ -5764,7 +5764,7 @@ then
 
 fi
 
-if [ "$OPENVSWITCH" -eq 1 ]
+if [[ "${SOFTWARES_APT_OPENVSWITCH:-0}" -eq 1 ]]
 then
 
 	if dpkg -s openvswitch-switch &>/dev/null
