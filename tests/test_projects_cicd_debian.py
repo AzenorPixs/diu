@@ -46,6 +46,7 @@ projects_gitlab_release() { fixture_release gitlab_release "$1"; }
 projects_github_release() { fixture_release github_release "$1"; }
 publish_release_debian() { fixture_release forgejo_debian "$1"; }
 projects_gitlab_release_debian() { fixture_release gitlab_debian "$1"; }
+projects_github_release_debian() { fixture_release github_debian "$1"; }
 cicd_project project 2026.11.02.15.33 v2026.11.02.15.33
 '''
 
@@ -98,12 +99,12 @@ class CicdDebianTests(unittest.TestCase):
         result = self.run_flow()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.operations(result), ['commit', 'push_forgejo', 'push_gitlab', 'push_github',
-                                                 'debian', 'forgejo_debian', 'gitlab_debian'])
+                                                 'debian', 'forgejo_debian', 'gitlab_debian', 'github_debian'])
         for number in range(1, 7):
             self.assertEqual(result.stdout.count(f'TITLE:Étape {number}/6'), 1)
         self.assertIn('OP:commit:project:2.3.4:v2.3.4', result.stdout)
         self.assertIn('Paquet Debian\n  Build   : construit dans ', result.stdout)
-        self.assertIn('publication Debian non prise en charge', result.stdout)
+        self.assertIn('GitHub  : paquet Debian publié depuis dist', result.stdout)
 
     def test_mixed_order_builds_both_before_parent_publications(self):
         self.config(docker='Yes')
@@ -123,6 +124,7 @@ class CicdDebianTests(unittest.TestCase):
                     self.assertEqual(self.operations(result).count('debian'), 1)
                     self.assertNotIn('docker', self.operations(result))
                     self.assertIn('forgejo_debian', self.operations(result))
+                    self.assertIn('github_debian', self.operations(result))
                     self.assertNotIn('github_release', self.operations(result))
 
     def test_inactive_values_do_not_call_builder_or_publications(self):
@@ -205,6 +207,7 @@ class CicdDebianTests(unittest.TestCase):
         self.assertEqual(metadata.strip(), '2.3.4')
         self.assertIn('forgejo_debian', self.operations(result))
         self.assertIn('gitlab_debian', self.operations(result))
+        self.assertIn('github_debian', self.operations(result))
 
     def test_missing_recipe_preserves_old_package_and_blocks_release(self):
         self.recipe.unlink()
@@ -223,6 +226,15 @@ class CicdDebianTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('gitlab_debian', self.operations(result))
         self.assertIn('Paquet Debian\n  Build   : construit dans ', result.stdout)
+
+    def test_github_failure_is_reported_for_debian_only_and_mixed_projects(self):
+        for docker, failure in [('No', 'github_debian'), ('Yes', 'github_release')]:
+            self.config(docker=docker)
+            result = self.run_flow(FAIL_OPERATION=failure)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('État global : échec', result.stdout)
+            self.assertIn('GitHub  : échec', result.stdout)
+            self.assertIn('Paquet Debian\n  Build   : construit dans ', result.stdout)
 
     def test_help_explains_six_steps_without_bootstrap(self):
         for suffix in [('projects', 'cicd'), ('projects', 'cicd', 'diu')]:
