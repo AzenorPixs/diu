@@ -757,6 +757,8 @@ point d’entrée conserve la sélection Java selon la version Debian.
 Le contrôle Omada utilise `SOFTWARES_APT_OMADA` dans `softwares.env` pour
 l’installation et le firewall; `OMADA_VERSION` et `SYSLOG_SERVER_SKIL_OMADA`
 restent séparés.
+Le contrôle Open vSwitch utilise `SOFTWARES_APT_OPENVSWITCH` dans
+`softwares.env`; l’ancienne valeur `OPENVSWITCH` y est migrée.
 
 ### Déclarations unitaires
 
@@ -1254,6 +1256,15 @@ L’ancienne valeur littérale `OMADA=0|1` est transférée exactement vers
 `softwares.env` si la nouvelle variable n’y est pas déjà définie. L’installation
 du paquet et les règles firewall suivent ce réglage; `OMADA_VERSION` et
 `SYSLOG_SERVER_SKIL_OMADA` ne sont pas migrées.
+
+### Open vSwitch par APT
+
+`modules/diu/variables/softwares/software_apt_openvswitch.sh` déclare
+`SOFTWARES_APT_OPENVSWITCH` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `OPENVSWITCH=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
+point d’entrée conserve l’installation APT conditionnelle de
+`openvswitch-switch`.
 
 ### Moteur `deb`
 

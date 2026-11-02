@@ -62,7 +62,7 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -90,6 +90,7 @@ config_cleanup() {
     local mongodb_value='' mongodb_found=0 softwares_apt_mongodb_declared=0
     local openjdk_value='' openjdk_found=0 softwares_apt_openjdk_declared=0
     local omada_value='' omada_found=0 softwares_apt_omada_declared=0
+    local openvswitch_value='' openvswitch_found=0 softwares_apt_openvswitch_declared=0
     local crowdsec_agent_value='' crowdsec_agent_found=0
     local system_crowdsec_agent_value='' system_crowdsec_agent_found=0
     local softwares_crowdsec_agent_declared=0
@@ -285,6 +286,14 @@ config_cleanup() {
                 omada_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique OMADA ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?OPENVSWITCH= ]]; then
+            openvswitch_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?OPENVSWITCH=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                openvswitch_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique OPENVSWITCH ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?(CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT)= ]]; then
@@ -795,6 +804,21 @@ config_cleanup() {
             fi
         fi
     fi
+    if [[ "$openvswitch_found" == 1 && -e "$softwares_config_file" ]]; then
+        if [[ ! -f "$softwares_config_file" || ! -r "$softwares_config_file" ]]; then
+            printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
+            return 1
+        fi
+        if grep -E '^[[:blank:]]*(export[[:blank:]]+)?SOFTWARES_APT_OPENVSWITCH=' "$softwares_config_file" > /dev/null 2>&1; then
+            softwares_apt_openvswitch_declared=1
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
+                return 1
+            fi
+        fi
+    fi
     if [[ "$crowdsec_agent_found" == 1 && -e "$softwares_config_file" ]]; then
         if [[ ! -f "$softwares_config_file" || ! -r "$softwares_config_file" ]]; then
             printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
@@ -961,6 +985,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$openvswitch_found" == 1 && "$softwares_apt_openvswitch_declared" == 0 ]]; then
+        if ! install -d -m 0755 "$(dirname "$softwares_config_file")"; then
+            printf '%s\n' 'Erreur : création de la configuration logiciels impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$crowdsec_agent_found" == 1 && "$softwares_crowdsec_agent_declared" == 0 ]]; then
         if ! install -d -m 0755 "$(dirname "$softwares_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration logiciels impossible.' >&2
@@ -1075,6 +1105,12 @@ config_cleanup() {
     if [[ "$omada_found" == 1 && "$softwares_apt_omada_declared" == 0 ]]; then
         if ! printf 'export SOFTWARES_APT_OMADA=%s\n' "$omada_value" >> "$softwares_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration OMADA impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$openvswitch_found" == 1 && "$softwares_apt_openvswitch_declared" == 0 ]]; then
+        if ! printf 'export SOFTWARES_APT_OPENVSWITCH=%s\n' "$openvswitch_value" >> "$softwares_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration OPENVSWITCH impossible.' >&2
             return 1
         fi
     fi
