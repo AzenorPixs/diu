@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : remplacement de `VERSION_ALIAS` par `DIU_VERSION`, déclaré en
+  `DYNAMIC`, `ENABLE`, scope `diu`. Le générateur lit la version du paquet
+  Debian `diu` installé; l’ancien alias n’est pas transféré.
+
 - Docker : renommage de `DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE` vers
   `DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE`, déclaré en `STATIC`, `ENABLE`, scope
   `docker`, défaut `0`. La valeur historique littérale est transférée
