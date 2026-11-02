@@ -771,6 +771,9 @@ Le contrôle Webmin utilise `SOFTWARES_APT_WEBMIN` dans `softwares.env`; son
 dépôt APT reste contrôlé séparément par `SYSTEM_APT_WEBMIN`.
 Le contrôle de l’agent Wazuh utilise `SOFTWARES_APT_WAZUH_AGENT` dans
 `softwares.env`; `WAZUH_CLIENT_VERSION` reste le sélecteur de version séparé.
+Le contrôle Wazuh Server utilise `SOFTWARES_APT_WAZUH_SERVER` dans
+`softwares.env`; son repli vers `SYSTEM_APT_WAZUH` respecte
+`WAZUH_SERVER_UPGRADE`.
 Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
 `SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
 Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
@@ -1362,6 +1365,15 @@ L’ancienne valeur littérale `WEBMIN=0|1` est transférée exactement vers
 `0`. L’ancienne valeur littérale `WAZUH_CLIENT=0|1` est transférée exactement
 vers `softwares.env` si le nouveau nom n’y est pas déjà défini.
 `WAZUH_CLIENT_VERSION` reste inchangée et sélectionne la version du paquet.
+
+### Wazuh Server
+
+`modules/diu/variables/softwares/software_apt_wazuh_server.sh` déclare
+`SOFTWARES_APT_WAZUH_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `WAZUH_SERVER=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
+`WAZUH_SERVER_UPGRADE` reste distincte et détermine le repli initial du dépôt
+`SYSTEM_APT_WAZUH`.
 
 ### Moteur `deb`
 

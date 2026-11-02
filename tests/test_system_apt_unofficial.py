@@ -119,9 +119,9 @@ source "$TMPDIR/declaration.sh"
             ({'SOFTWARES_APT_CROWDSEC_AGENT': 1}, 'CROWDSEC', 1),
             ({'SOFTWARES_APT_CROWDSEC_BOUNCER': 1}, 'CROWDSEC', 1),
             ({'SOFTWARES_APT_LEMONLDAP': 1}, 'LEMONLDAP', 1),
-            ({'WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 4),
-            ({'WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 0}, 'WAZUH', 0),
-            ({'WAZUH_SERVER': 0, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 0),
+            ({'SOFTWARES_APT_WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 4),
+            ({'SOFTWARES_APT_WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 0}, 'WAZUH', 0),
+            ({'SOFTWARES_APT_WAZUH_SERVER': 0, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 0),
         ]
         cases += [({'SOFTWARES_APT_MONGODB': 1, 'MONGODB_VERSION': version}, 'MONGODB', branch)
                   for version, branch in [('4.4', 4), ('5', 5), ('6', 6), ('7', 7), ('8', 8)]]
