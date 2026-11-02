@@ -5124,7 +5124,7 @@ then
 		chmod 600 /home/"$ENVIRONMENT_DOCKER_USER"/proxy/letsencrypt/acme.json
 	fi
 
-	if [ "$SSH" -eq 1 ]
+	if [[ "${SOFTWARES_APT_SSH_SERVER:-0}" -eq 1 ]]
 	then
 
 		echo "🔧 CONFIGURE /home/$ENVIRONMENT_DOCKER_USER FOR OPENSSH SERVER"
@@ -6330,7 +6330,7 @@ then
 
 fi
 
-if [ "$SSH" -eq 1 ]
+if [[ "${SOFTWARES_APT_SSH_SERVER:-0}" -eq 1 ]]
 then
 
 	if dpkg -s openssh-server &>/dev/null
