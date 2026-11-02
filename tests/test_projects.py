@@ -1070,6 +1070,7 @@ projects_gitlab_release pfd
             )
             script = r'''
 source "$1/modules/projects/git.sh"
+print_title() { :; }
 print_error() { :; }
 cicd_project_print_summary() { :; }
 git_commit() { printf 'commit\n'; }
@@ -1106,6 +1107,7 @@ cicd_project project commit vcommit
             )
             script = r'''
 source "$1/modules/projects/git.sh"
+print_title() { :; }
 print_error() { :; }
 cicd_project_print_summary() { :; }
 git_commit() { printf 'commit\n'; }

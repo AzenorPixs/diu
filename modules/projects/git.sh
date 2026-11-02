@@ -388,16 +388,18 @@ cicd_project_print_summary() {
     local forgejo_release_status="${9:-}"
     local gitlab_release_status="${10:-}"
     local github_release_status="${11:-}"
+    local debian_build_status="${12:-non exécuté}"
     local version="${commit_tag#v}"
 
-    print_title "Résumé CI/CD — ${project_id}"
+    print_title "Étape 6/6 — Résumé CI/CD — ${project_id}"
     printf 'État global : %s\n\n' "${workflow_status}"
     printf 'Commit local\n  Message : %s\n  Tag     : %s\n  Version : %s\n\n' \
         "${commit_name}" "${commit_tag}" "${version}"
     printf 'Push Git\n  Forgejo : %s\n  GitLab  : %s\n  GitHub  : %s\n\n' \
         "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}"
     printf 'Image Docker\n  Build   : %s\n\n' "${docker_build_status}"
-    printf 'Releases Docker\n  Forgejo : %s\n  GitLab  : %s\n  GitHub  : %s\n' \
+    printf 'Paquet Debian\n  Build   : %s\n\n' "${debian_build_status}"
+    printf 'Publications des artefacts\n  Forgejo : %s\n  GitLab  : %s\n  GitHub  : %s\n' \
         "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
 }
 
@@ -412,7 +414,9 @@ cicd_project() {
     local forgejo_push_status="non configuré, ignoré"
     local gitlab_push_status="non configuré, ignoré"
     local github_push_status="non configuré, ignoré"
-    local docker_build_status="non Dockerisé, ignoré"
+    local docker_build_status="non exécuté"
+    local debian_build_status="non exécuté"
+    local docker_enabled="No" debian_enabled="No" publication_command=""
     local forgejo_release_status="non Dockerisé ou non configuré, ignoré"
     local gitlab_release_status="non Dockerisé ou non configuré, ignoré"
     local github_release_status="non Dockerisé ou non configuré, ignoré"
@@ -433,7 +437,10 @@ cicd_project() {
         return 1
     fi
 
+    print_title "Étape 1/6 — Commit et tag"
     if ! git_commit "${project_id}" "${commit_name}" "${commit_tag}"; then
+        workflow_status="échec"
+        cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
         print_error "Échec du commit Git."
         return 1
     fi
@@ -462,12 +469,12 @@ cicd_project() {
             "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" \
             "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" \
             "${docker_build_status}" "${forgejo_release_status}" \
-            "${gitlab_release_status}" "${github_release_status}"
+            "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
         return 0
     fi
 
     unset \
-        PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED \
+        PROJECT_ID PROJECT_NAME PROJECT_TYPE PROJECT_DOCKERED PROJECT_DEBIAN_PACKAGE \
         REMOTE_FORGEJO_BASE_URL REMOTE_FORGEJO_OWNER \
         REMOTE_FORGEJO_REPOSITORY REMOTE_FORGEJO_NAME \
         REMOTE_FORGEJO_BRANCH REMOTE_FORGEJO_SSL_VERIFY \
@@ -483,16 +490,27 @@ cicd_project() {
             "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" \
             "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" \
             "${docker_build_status}" "${forgejo_release_status}" \
-            "${gitlab_release_status}" "${github_release_status}"
+            "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
         return 0
     fi
 
+    if [[ "${PROJECT_DOCKERED:-}" == Yes ]]; then
+        docker_enabled="Yes"
+    else
+        docker_build_status="non Dockerisé, ignoré"
+    fi
+    case "${PROJECT_DEBIAN_PACKAGE:-}" in
+        Yes|YES|1) debian_enabled="Yes" ;;
+        *) debian_build_status="non activé, ignoré" ;;
+    esac
+
+    print_title "Étape 2/6 — Pushes Git"
     if projects_cicd_provider_is_complete "${project_id}" forgejo; then
         forgejo_push_status="échec"
         PROJECTS_GIT_PUSH_STATUS=""
         if ! forgejo_push "${project_id}"; then
             workflow_status="échec"
-            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec du push Forgejo."
             return 1
         fi
@@ -509,7 +527,7 @@ cicd_project() {
         PROJECTS_GIT_PUSH_STATUS=""
         if ! gitlab_push "${project_id}"; then
             workflow_status="échec"
-            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec du push GitLab."
             return 1
         fi
@@ -526,7 +544,7 @@ cicd_project() {
         PROJECTS_GIT_PUSH_STATUS=""
         if ! github_push "${project_id}"; then
             workflow_status="échec"
-            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec du push GitHub."
             return 1
         fi
@@ -538,60 +556,105 @@ cicd_project() {
         fi
     fi
 
-    if [[ "${PROJECT_DOCKERED:-}" != "Yes" ]]; then
-        cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
-        return 0
+    print_title "Étape 3/6 — Build Docker"
+    if [[ "$docker_enabled" == Yes ]]; then
+        docker_build_status="échec"
+        if ! projects_docker_build "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
+            print_error "Échec de la construction de l'image Docker."
+            return 1
+        fi
+        docker_build_status="${PROJECT_ID}:latest (version ${docker_version})"
     fi
 
-    docker_build_status="échec"
-    if ! projects_docker_build "${project_id}"; then
-        workflow_status="échec"
-        cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
-        print_error "Échec de la construction de l'image Docker."
-        return 1
+    print_title "Étape 4/6 — Build Debian"
+    if [[ "$debian_enabled" == Yes ]]; then
+        debian_build_status="échec"
+        if ! projects_build_deb "${project_id}"; then
+            workflow_status="échec"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
+            print_error 'Échec de la construction du paquet Debian.'
+            return 1
+        fi
+        debian_build_status="construit dans ${project_path}/dist"
     fi
-    docker_build_status="${PROJECT_ID}:latest (version ${docker_version})"
+
+    print_title "Étape 5/6 — Publications des artefacts"
+    if [[ "$docker_enabled" != Yes && "$debian_enabled" != Yes ]]; then
+        forgejo_release_status="aucun artefact activé, ignorée"
+        gitlab_release_status="aucun artefact activé, ignorée"
+        github_release_status="aucun artefact activé, ignorée"
+        cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
+        return 0
+    fi
 
     if [[ "${forgejo_push_status}" == indisponible* ]]; then
         forgejo_release_status="serveur indisponible, ignorée"
     elif projects_cicd_provider_is_complete "${project_id}" forgejo; then
         forgejo_release_status="échec"
-        if ! projects_forgejo_release "${project_id}"; then
+        if [[ "$docker_enabled" == Yes ]]; then
+            publication_command="projects_forgejo_release"
+        else
+            publication_command="publish_release_debian"
+        fi
+        if ! "$publication_command" "${project_id}"; then
             workflow_status="échec"
-            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec de la release Forgejo."
             return 1
         fi
-        forgejo_release_status="${REMOTE_FORGEJO_BASE_URL#https://}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:${docker_version} et latest"
+        if [[ "$docker_enabled" == Yes ]]; then
+            forgejo_release_status="${REMOTE_FORGEJO_BASE_URL#https://}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:${docker_version} et latest"
+            if [[ "$debian_enabled" == Yes ]]; then
+                forgejo_release_status+=" ; paquet Debian publié"
+            fi
+        else
+            forgejo_release_status="paquet Debian publié depuis dist"
+        fi
     fi
 
     if [[ "${gitlab_push_status}" == indisponible* ]]; then
         gitlab_release_status="serveur indisponible, ignorée"
     elif projects_cicd_provider_is_complete "${project_id}" gitlab; then
         gitlab_release_status="échec"
-        if ! projects_gitlab_release "${project_id}"; then
+        if [[ "$docker_enabled" == Yes ]]; then
+            publication_command="projects_gitlab_release"
+        else
+            publication_command="projects_gitlab_release_debian"
+        fi
+        if ! "$publication_command" "${project_id}"; then
             workflow_status="échec"
-            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec de la release GitLab."
             return 1
         fi
-        gitlab_release_status="${REMOTE_GITLAB_REGISTRY}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}:${docker_version} et latest"
+        if [[ "$docker_enabled" == Yes ]]; then
+            gitlab_release_status="${REMOTE_GITLAB_REGISTRY}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}:${docker_version} et latest"
+            if [[ "$debian_enabled" == Yes ]]; then
+                gitlab_release_status+=" ; paquet Debian publié"
+            fi
+        else
+            gitlab_release_status="paquet Debian publié depuis dist"
+        fi
     fi
 
     if [[ "${github_push_status}" == indisponible* ]]; then
         github_release_status="serveur indisponible, ignorée"
+    elif [[ "$docker_enabled" != Yes ]]; then
+        github_release_status="publication Debian non prise en charge, ignorée"
     elif projects_cicd_provider_is_complete "${project_id}" github; then
         github_release_status="échec"
         if ! projects_github_release "${project_id}"; then
             workflow_status="échec"
-            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+            cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec de la release GitHub."
             return 1
         fi
         github_release_status="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:${docker_version} et latest"
     fi
 
-    cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
+    cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
     return 0
 }
 
