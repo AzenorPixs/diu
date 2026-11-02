@@ -7,6 +7,28 @@ rid_help_line() {
 rid_display_help_context() {
     local context="${1:-}" subcontext="${2:-}" leaf="${3:-}" target="${4:-}"
 
+    case "$context:$subcontext:$leaf" in
+        projects::|projects:build:*|projects:deb:*|projects:docker:*|projects:git:*|projects:cicd:*|projects:cicddiu:*|projects:cicddr:*|projects:forgejo:push|projects:gitlab:push|projects:github:push|projects:forgejo:release|projects:gitlab:release|projects:github:release)
+            printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z dans project.env ; sans cette clé, mécanismes actuels conservés.'
+            printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
+            printf '%s\n' 'Un tag existant ne sera pas remplacé ; les publications vérifient sa concordance avec HEAD.'
+            ;;
+    esac
+
+    if [[ "$context:$subcontext" == projects:build ]]; then
+        if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != deb ) ||
+            ( -n "$target" && ( ! "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
+                "$target" == . || "$target" == .. ) ) ]]; then
+            rid_display_command_error projects build
+            return 2
+        fi
+        rid_help_line 'rid projects build deb <ID PROJECT>' 'Construit le paquet Debian défini par la recette du projet.'
+        printf '%s\n' 'Recette requise : build/debian-package.json ; elle est exclue du paquet.'
+        printf '%s\n' 'Activation dans project.env : PROJECT_DEBIAN_PACKAGE=Yes, YES ou 1 ; sinon aucun paquet Debian.'
+        printf '%s\n' 'Packaging activé et recette absente : erreur, le paquet ne peut pas être construit.'
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == projects:deb ]]; then
         if [[ $# -gt 3 || ( -n "$leaf" && ( ! "$leaf" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
             "$leaf" == . || "$leaf" == .. ) ) ]]; then
@@ -296,11 +318,18 @@ rid_display_help_context() {
             rid_help_line 'rid projects ocrw <ID PROJECT>' 'Ouvre le projet en lecture-écriture.'
             rid_help_line 'rid projects ocsh <ID PROJECT>' 'Ouvre un shell dans le projet.'
             rid_help_line 'rid projects deb [ID PROJECT]' 'Construit le paquet DIU ; source par défaut : diu.'
+            rid_help_line 'rid projects build deb <ID PROJECT>' 'Construit un paquet Debian depuis build/debian-package.json (PROJECT_DEBIAN_PACKAGE=Yes/YES/1).'
             rid_help_line 'rid projects cicddiu' 'Lance la CI/CD du projet DIU.'
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
             ;;
         projects:cicd:|projects:cicd:*)
             rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute commit, publications, build et releases configurés.'
+            ;;
+        projects:cicddiu:|projects:cicddiu:*)
+            rid_help_line 'rid projects cicddiu [COMMIT] [TAG]' 'Exécute la CI/CD du DIU ; PROJECT_VERSION est prioritaire pour le tag.'
+            ;;
+        projects:cicddr:|projects:cicddr:*)
+            rid_help_line 'rid projects cicddr <ID PROJECT> [COMMIT] [TAG]' 'Exécute la CI/CD Docker ; PROJECT_VERSION est prioritaire pour le tag.'
             ;;
         projects:docker:)
             rid_help_line 'rid projects docker build <ID PROJECT>' "Construit l'image Docker du projet."

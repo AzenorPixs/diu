@@ -6,6 +6,31 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
+Delta SCM-PROJECT-VERSION-20261102-R1 : [prioritize-project-version](openspec/changes/archive/2026-11-02-prioritize-project-version/proposal.md),
+ensemble ART/GIT, code non attribué. Contrat validé en strict le 2026-11-02 ;
+4/4 tâches validées : 1 034 tests globaux et 74 tests finaux version/aide réussis ;
+archivé le 2026-11-02, canons synchronisés, preuves dans [tasks.md](openspec/changes/archive/2026-11-02-prioritize-project-version/tasks.md).
+Les comptages historiques excluent ce delta.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_VERSION["prioritize-project-version — code non attribué — ARCHIVÉ"]
+  class P_VERSION provisoire
+```
+
+Delta SCM du 2026-11-02 : [add-projects-debian-build](openspec/changes/archive/2026-11-02-add-projects-debian-build/proposal.md),
+ensemble ART, code non attribué. Change archivé le 2026-11-02, spécifications synchronisées : 1 018 tests globaux et 12 tests finaux réussis ;
+4/4 tâches prouvées dans [tasks.md](openspec/changes/archive/2026-11-02-add-projects-debian-build/tasks.md).
+Les comptages du relevé historique ci-dessous excluent ce delta.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DEB_BUILD["add-projects-debian-build — code non attribué — ARCHIVÉ"]
+  class P_DEB_BUILD provisoire
+```
+
 Couverture : **135 changes, 11 actifs et 124 archivés** : 125 lots codés répartis en neuf familles, trois changes actifs provisoires et sept changes archivés sans code. Les 125 codes sont attestés dans les titres des propositions et dans le [registre](openspec/BATCH_CODES.md). Le squelette initial, limité au titre conservé, est complété sous validation explicite des trois volets du plan.
 
 Sources : [règles](AGENTS.md), [projet](PROJECT.md), [technique](TECHNICAL.md), [construction](BUILD.md), [environnement](DEVOPS.md), [configuration OpenSpec](openspec/config.yaml), propositions, deltas, tâches et preuves liées ci-dessous. Sources de vérité et preuves applicables prévalent sur cette synthèse.
