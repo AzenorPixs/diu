@@ -770,6 +770,8 @@ Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
 Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
 les options `SYSLOG_SERVER_SKIL_*` continuent à sélectionner les catégories de
 journaux.
+Le serveur OpenSSH utilise `SOFTWARES_APT_SSH_SERVER` dans `softwares.env`;
+les clés `KEY_SSH_ADMIN` et `KEY_SSH_ACME` ne sont pas renommées.
 
 ### Déclarations unitaires
 
@@ -1320,6 +1322,15 @@ vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
 vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Les
 variables `SYSLOG_SERVER_SKIL_*` restent distinctes pour configurer les
 catégories de journaux.
+
+### Serveur OpenSSH par APT
+
+`modules/diu/variables/softwares/software_apt_ssh_server.sh` déclare
+`SOFTWARES_APT_SSH_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `SSH=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Les blocs
+existants d’installation et de préparation des clés restent pilotés par cette
+variable; les valeurs `KEY_SSH_*` restent distinctes.
 
 ### Moteur `deb`
 

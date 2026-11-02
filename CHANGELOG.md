@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `SSH` vers `SOFTWARES_APT_SSH_SERVER`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; les clés
+  `KEY_SSH_*` restent inchangées.
+
 - Logiciel APT : migration de `SYSLOG_SERVER` vers
   `SOFTWARES_APT_SYSLOG_SERVER`, déclaré en `STATIC`, `ENABLE`, scope
   `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
