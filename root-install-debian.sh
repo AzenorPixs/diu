@@ -5659,7 +5659,7 @@ then
 
 fi
 
-if [ "$LEMONLDAP" -eq 1 ]
+if [[ "${SOFTWARES_APT_LEMONLDAP:-0}" -eq 1 ]]
 then
 
 	echo ""

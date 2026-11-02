@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `LEMONLDAP` vers `SOFTWARES_APT_LEMONLDAP`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement; le réglage
+  distinct du dépôt `SYSTEM_APT_LEMONLDAP` demeure en scope `system`.
+
 - Logiciel APT : migration de `JSVC` vers `SOFTWARES_APT_JSVC`, déclaré en
   `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
