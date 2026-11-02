@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Environnement IA : migration de `ENV_IA` vers `ENVIRONMENT_IA`, déclaré en
+  `STATIC`, `ENABLE`, scope `environnements`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
+  nom est déjà configuré.
+
 - Compte propriétaire des stacks Docker : migration de `DOCKER_USER` vers
   `ENVIRONMENT_DOCKER_USER`, déclaré en `STATIC`, `ENABLE`, scope `docker`,
   défaut `docker`. La valeur historique littérale est transférée exactement,
