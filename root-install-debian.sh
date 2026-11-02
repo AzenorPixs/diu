@@ -5097,42 +5097,42 @@ then
 
 	if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 	then
-		echo "🔧 CONFIGURE /home/$DOCKER_USER FOR BUNKERWEB DOCKHAND"
-		if [ ! -d "/home/$DOCKER_USER" ]; then
-			mkhomedir_helper "$DOCKER_USER"
+		echo "🔧 CONFIGURE /home/$ENVIRONMENT_DOCKER_USER FOR BUNKERWEB DOCKHAND"
+		if [ ! -d "/home/$ENVIRONMENT_DOCKER_USER" ]; then
+			mkhomedir_helper "$ENVIRONMENT_DOCKER_USER"
 		fi	
-		su -c "mkdir -p proxy/bw-data" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/bw-data-cache/bunkernet" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/bw-data-cache/bunkerweb" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/bw-data-cache/crowdsec" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/bw-data-cache/jinja_cache" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/bw-data-cache/misc" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/bw-data-cache/realip" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/bw-db" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/nginx-data/conf.d" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/nginx-data/ssl" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/dockhand-data" - "$DOCKER_USER"
-		su -c "mkdir -p proxy/hawser-data" - "$DOCKER_USER"
-		chown -R "$DOCKER_USER":"$DOCKER_USER" /home/"$DOCKER_USER"
-		chmod -R 0777 /home/"$DOCKER_USER"/datas
-		chmod -R 0777 /home/"$DOCKER_USER"/inits
-		chown -R 101:101 /home/"$DOCKER_USER"/proxy/bw-data
-		chown -R 101:101 /home/"$DOCKER_USER"/proxy/bw-data-cache
-		chmod -R 0775 /home/"$DOCKER_USER"/proxy/bw-data
-		chmod -R 0775 /home/"$DOCKER_USER"/proxy/bw-data-cache
-		chmod 0775 -R /home/"$DOCKER_USER"/proxy/letsencrypt
-		chmod 600 /home/"$DOCKER_USER"/proxy/letsencrypt/acme.json
+		su -c "mkdir -p proxy/bw-data" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/bunkernet" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/bunkerweb" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/crowdsec" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/jinja_cache" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/misc" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/bw-data-cache/realip" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/bw-db" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/nginx-data/conf.d" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/nginx-data/ssl" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/dockhand-data" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "mkdir -p proxy/hawser-data" - "$ENVIRONMENT_DOCKER_USER"
+		chown -R "$ENVIRONMENT_DOCKER_USER":"$ENVIRONMENT_DOCKER_USER" /home/"$ENVIRONMENT_DOCKER_USER"
+		chmod -R 0777 /home/"$ENVIRONMENT_DOCKER_USER"/datas
+		chmod -R 0777 /home/"$ENVIRONMENT_DOCKER_USER"/inits
+		chown -R 101:101 /home/"$ENVIRONMENT_DOCKER_USER"/proxy/bw-data
+		chown -R 101:101 /home/"$ENVIRONMENT_DOCKER_USER"/proxy/bw-data-cache
+		chmod -R 0775 /home/"$ENVIRONMENT_DOCKER_USER"/proxy/bw-data
+		chmod -R 0775 /home/"$ENVIRONMENT_DOCKER_USER"/proxy/bw-data-cache
+		chmod 0775 -R /home/"$ENVIRONMENT_DOCKER_USER"/proxy/letsencrypt
+		chmod 600 /home/"$ENVIRONMENT_DOCKER_USER"/proxy/letsencrypt/acme.json
 	fi
 
 	if [ "$SSH" -eq 1 ]
 	then
 
-		echo "🔧 CONFIGURE /home/$DOCKER_USER FOR OPENSSH SERVER"
-		su -c "mkdir -p .ssh" - "$DOCKER_USER"
-		su -c " touch .ssh/authorized_keys" - "$DOCKER_USER"
-		su -c "echo $KEY_SSH_ADMIN > .ssh/authorized_keys" - "$DOCKER_USER"
-		su -c "echo $KEY_SSH_ACME >> .ssh/authorized_keys" - "$DOCKER_USER"
-		su -c "chmod 0700 .ssh/authorized_keys" - "$DOCKER_USER"
+		echo "🔧 CONFIGURE /home/$ENVIRONMENT_DOCKER_USER FOR OPENSSH SERVER"
+		su -c "mkdir -p .ssh" - "$ENVIRONMENT_DOCKER_USER"
+		su -c " touch .ssh/authorized_keys" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "echo $KEY_SSH_ADMIN > .ssh/authorized_keys" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "echo $KEY_SSH_ACME >> .ssh/authorized_keys" - "$ENVIRONMENT_DOCKER_USER"
+		su -c "chmod 0700 .ssh/authorized_keys" - "$ENVIRONMENT_DOCKER_USER"
 
 	fi
 
@@ -5143,7 +5143,7 @@ then
 		then
 
 			echo ""
-			su -c "tree" - "$DOCKER_USER"
+			su -c "tree" - "$ENVIRONMENT_DOCKER_USER"
 
 		fi
 
@@ -5151,7 +5151,7 @@ then
 		then
 
 			echo ""
-			su -c "tree -I \"datas|proxy\" /home/$DOCKER_USER && tree -L 2 -I \"nits|proxy\" /home/$DOCKER_USER && tree -L 4 -I \"inits|datas\" /home/$DOCKER_USER" - "$DOCKER_USER"
+			su -c "tree -I \"datas|proxy\" /home/$ENVIRONMENT_DOCKER_USER && tree -L 2 -I \"nits|proxy\" /home/$ENVIRONMENT_DOCKER_USER && tree -L 4 -I \"inits|datas\" /home/$ENVIRONMENT_DOCKER_USER" - "$ENVIRONMENT_DOCKER_USER"
 
 		fi
 
@@ -5182,30 +5182,30 @@ then
 			# DOCKER_POSTGRESQL=`git ls-remote --tags --sort='v:refname' https://github.com/postgres/postgres.git | sed -r '/PG95|REL2_|REL6_|REL7_|REL8_|REL9_|REL_10_|REL_11_|REL_12_|REL_13_|REL_14_|REL_15_|REL_16_|REL_18_|BETA|RC|release|Release/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL_//' | sed -e 's/_/./'`
 			DOCKER_WHOAMI=$(git ls-remote --tags --sort='v:refname' https://github.com/traefik/whoami.git | tail --lines=1 | cut --delimiter='/' --fields=3)
 
-			if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ]
+			if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml" ]
 			then
 
 				echo ""
 				echo "STOP THE STACK PROXY BUNKERWEB"
-				su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - "$DOCKER_USER"
+				su -c "docker-compose -f /home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml down" - "$ENVIRONMENT_DOCKER_USER"
 
 				echo ""
 				echo "CONFIGURE THE STACK PROXY BUNKERWEB"
-				sed -i "s%.*image: bunkerity/bunkerweb:.*%    image: bunkerity/bunkerweb:$DOCKER_BUNKERWEB%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: bunkerity/bunkerweb-scheduler:.*%    image: bunkerity/bunkerweb-scheduler:$DOCKER_BUNKERWEB_SCHEDULER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: bunkerity/bunkerweb-ui:.*%    image: bunkerity/bunkerweb-ui:$DOCKER_BUNKERWEB_UI%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:$DOCKER_OST%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: portainer/portainer-ce:.*%    image: portainer/portainer-ce:$DOCKER_PORTAINER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/"$DOCKER_USER"/proxy/docker-compose.yml	
+				sed -i "s%.*image: bunkerity/bunkerweb:.*%    image: bunkerity/bunkerweb:$DOCKER_BUNKERWEB%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: bunkerity/bunkerweb-scheduler:.*%    image: bunkerity/bunkerweb-scheduler:$DOCKER_BUNKERWEB_SCHEDULER%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: bunkerity/bunkerweb-ui:.*%    image: bunkerity/bunkerweb-ui:$DOCKER_BUNKERWEB_UI%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:$DOCKER_OST%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: portainer/portainer-ce:.*%    image: portainer/portainer-ce:$DOCKER_PORTAINER%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
 
-				if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
+				if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
 				then
 
 					echo ""
 					echo "START THE STACK PROXY BUNKERWEB"
-					su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml up -d" - "$DOCKER_USER"
+					su -c "docker-compose -f /home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml up -d" - "$ENVIRONMENT_DOCKER_USER"
 					echo "..."
 					# sleep 7
 
@@ -5233,7 +5233,7 @@ then
 	if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND" -eq 1 ]
 	then
 
-		if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
+		if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
 		then
 
 			if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
@@ -5252,31 +5252,31 @@ then
 				DOCKER_WHOAMI=$(git ls-remote --tags --sort='v:refname' https://github.com/traefik/whoami.git | tail --lines=1 | cut --delimiter='/' --fields=3)
 
 				echo "🔧 STOP THE STACK PROXY TRAEFIK DOCKHAND"
-				su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - docker
+				su -c "docker-compose -f /home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml down" - docker
 
 				echo "🔧 CONFIGURE THE STACK PROXY TRAEFIK DOCKHAND"
-				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:$DOCKER_DOCKHAND%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:$DOCKER_HAWSER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:$DOCKER_LIBRESPEED%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:$DOCKER_MYSPEED%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				# sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:$DOCKER_OST%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:$DOCKER_SOCKET_PROXY%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik:.*%    image: traefik:$DOCKER_TRAEFIK3%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:$DOCKER_TRAEFIK_MANAGER%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:$DOCKER_DOCKHAND%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:$DOCKER_DOZZLE%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:$DOCKER_HAWSER%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:$DOCKER_LIBRESPEED%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:$DOCKER_MYSPEED%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				# sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:$DOCKER_OST%" /home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml
+				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:$DOCKER_SOCKET_PROXY%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik:.*%    image: traefik:$DOCKER_TRAEFIK3%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:$DOCKER_TRAEFIK_MANAGER%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:$DOCKER_WHOAMI%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
 
 
-        if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
+        if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
         then
 
           echo "🔧 START THE STACK PROXY TRAEFIK DOCKHAND"
-          su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml up -d" - docker
+          su -c "docker-compose -f /home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml up -d" - docker
           echo "..."
 
         else
 
-          echo "❌ NO CERTIFICAT LET'S ENCRYPT ON THIS MACHINE IN /home/$DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN"
+          echo "❌ NO CERTIFICAT LET'S ENCRYPT ON THIS MACHINE IN /home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN"
           exit 0
 
         fi
@@ -5284,16 +5284,16 @@ then
       else
 
 				echo "🔧 CONFIGURE THE STACK PROXY TRAEFIK DOCKHAND"
-				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				#sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:latest%" /home/$DOCKER_USER/proxy/docker-compose.yml
-				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik:.*%    image: traefik:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
-				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:latest%" /home/"$DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: fnsys/dockhand:.*%    image: fnsys/dockhand:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: amir20/dozzle:.*%    image: amir20/dozzle:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/finsys/hawser:.*%    image: ghcr.io/finsys/hawser:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: linuxserver/librespeed:.*%    image: linuxserver/librespeed:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: germannewsmaker/myspeed:.*%    image: germannewsmaker/myspeed:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				#sed -i "s%.*image: openspeedtest/latest:.*%    image: openspeedtest/latest:latest%" /home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml
+				sed -i "s%.*image: tecnativa/docker-socket-proxy:.*%    image: tecnativa/docker-socket-proxy:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik:.*%    image: traefik:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: ghcr.io/chr0nzz/traefik-manager:.*%    image: ghcr.io/chr0nzz/traefik-manager:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
+				sed -i "s%.*image: traefik/whoami:.*%    image: traefik/whoami:latest%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/docker-compose.yml
 
 			fi
 
@@ -5323,8 +5323,8 @@ then
 			echo ""
 			DOCKER_ELASTICSEARCH=$(git ls-remote --tags --sort='v:refname' https://github.com/elastic/elasticsearch.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//')
 			DOCKER_KIBANA=$(git ls-remote --tags --sort='v:refname' https://github.com/elastic/kibana.git | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/v//')
-			sed -i "s%.*image: elasticsearch:.*%    image: elasticsearch:$DOCKER_ELASTICSEARCH%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_ELK_DC_ID"/docker-compose.yml
-			sed -i "s%.*image: kibana:.*%    image: kibana:$DOCKER_KIBANA%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_ELK_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: elasticsearch:.*%    image: elasticsearch:$DOCKER_ELASTICSEARCH%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_ELK_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: kibana:.*%    image: kibana:$DOCKER_KIBANA%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_ELK_DC_ID"/docker-compose.yml
 
 			echo "START STACK ELK"
 			curl --request POST --insecure --write-out "%{http_code}" --url "https://localhost:9443/api/stacks/$DOCKER_PORTAINER_STACK_ELK_DC_ID/start?endpointId=$DOCKER_PORTAINER_STACK_ELK_ENDPOINT_ID" --header "x-api-key:$DOCKER_PORTAINER_API_KEY"
@@ -5359,12 +5359,12 @@ then
 			DOCKER_NGINX=$(git ls-remote --tags --sort='v:refname' https://github.com/nginx/nginx.git | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/release-//')
 			DOCKER_PGADMIN=$(git ls-remote --tags --sort='v:refname' https://github.com/pgadmin-org/pgadmin4.git | sed -r '/\^\{\}|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/REL-//' | sed -e 's/_/./')
 			DOCKER_COLLABORA=$(git ls-remote --tags --sort='v:refname' https://github.com/CollaboraOnline/online.git | grep "cp-" | sed -r '/\^\{\}|android|beta|rc/d' | tail --lines=1 | cut --delimiter='/' --fields=3 | sed -e 's/cp-//' | sed -e 's/-/./')
-			sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
-			sed -i "s%.*image: redis:.*%    image: redis:$DOCKER_REDIS%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
-			sed -i "s%.*image: nextcloud:.*%    image: nextcloud:$DOCKER_NEXTCLOUD-fpm%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
-			sed -i "s%.*image: nginx:.*%    image: nginx:$DOCKER_NGINX%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
-			sed -i "s%.*image: dpage/pgadmin4:.*%    image: dpage/pgadmin4:$DOCKER_PGADMIN%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
-			sed -i "s%.*image: collabora/code:.*%    image: collabora/code:$DOCKER_COLLABORA.1%" /home/"$DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: postgres:.*%    image: postgres:$DOCKER_POSTGRESQL%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: redis:.*%    image: redis:$DOCKER_REDIS%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: nextcloud:.*%    image: nextcloud:$DOCKER_NEXTCLOUD-fpm%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: nginx:.*%    image: nginx:$DOCKER_NGINX%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: dpage/pgadmin4:.*%    image: dpage/pgadmin4:$DOCKER_PGADMIN%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
+			sed -i "s%.*image: collabora/code:.*%    image: collabora/code:$DOCKER_COLLABORA.1%" /home/"$ENVIRONMENT_DOCKER_USER"/proxy/portainer-data/compose/"$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID"/docker-compose.yml
 
 			echo "START STACK NEXTCLOUD"
 			curl --request POST --insecure --write-out "%{http_code}" --url "https://localhost:9443/api/stacks/$DOCKER_PORTAINER_STACK_NEXTCLOUD_DC_ID/start?endpointId=$DOCKER_PORTAINER_STACK_NEXTCLOUD_ENDPOINT_ID" --header "x-api-key:$DOCKER_PORTAINER_API_KEY"
@@ -5397,7 +5397,7 @@ then
 
 		echo ""
 		echo "DOCKER PS"
-		su -c "docker ps" - "$DOCKER_USER"
+		su -c "docker ps" - "$ENVIRONMENT_DOCKER_USER"
 
 		# echo ""
 		# echo 'DOCKER RMI $(DOCKER IMAGE -f "dangling=true"'
@@ -5405,25 +5405,25 @@ then
 
 		echo ""
 		echo "DOCKER IMAGE LS"
-		su -c "docker image ls" - "$DOCKER_USER"
+		su -c "docker image ls" - "$ENVIRONMENT_DOCKER_USER"
 
 		echo ""
 		echo "DOCKER NETWORK LS"
-		su -c "docker network ls" - "$DOCKER_USER"
+		su -c "docker network ls" - "$ENVIRONMENT_DOCKER_USER"
 
 		echo ""
 		echo "DOCKER VOLUME LS"
-		su -c "docker volume ls" - "$DOCKER_USER"
+		su -c "docker volume ls" - "$ENVIRONMENT_DOCKER_USER"
 
 	fi
 
 	if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 	then
 
-		if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ]
+		if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml" ]
 		then
 
-			if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
+			if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
 			then
 
 				if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
@@ -5431,7 +5431,7 @@ then
 
 					echo ""
 					echo "🔧 STOP DOCKER DOZZZLE/OST/PORTAINER/WHOAMI FOR PRODUCTION"
-					su -c "docker stop dozzle && docker stop ost && docker stop portainer && docker stop whoami" - "$DOCKER_USER"
+					su -c "docker stop dozzle && docker stop ost && docker stop portainer && docker stop whoami" - "$ENVIRONMENT_DOCKER_USER"
 
 				fi
 
@@ -5444,10 +5444,10 @@ then
 	if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND" -eq 1 ]
 	then
 
-		if [ -f "/home/$DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
+		if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/static.yml" ] && [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/traefik-data/configurations/dynamic.yml" ]
 		then
 
-			if [ -f "/home/$DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
+			if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN/cert.pem" ]
 			then
 
         if [ "$DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE" -eq 1 ]
@@ -5455,13 +5455,13 @@ then
 
           echo ""
           echo "🔧 STOP DOCKER DOCKHAND/DOZZZLE/HAWSER/LIBRESPEED/MYSPEED/SOCKET-PROXY/TRAEFIK-MANAGER/WHOAMI FOR PRODUCTION"
-          su -c "docker stop dockhand && docker stop dozzle && docker stop hawser && docker stop librespeed && docker stop myspeed && docker stop socket-proxy && docker stop traefik-manager && docker stop whoami" - "$DOCKER_USER"
+          su -c "docker stop dockhand && docker stop dozzle && docker stop hawser && docker stop librespeed && docker stop myspeed && docker stop socket-proxy && docker stop traefik-manager && docker stop whoami" - "$ENVIRONMENT_DOCKER_USER"
 
         fi
 
 			else
 
-        echo "❌ NO CERTIFICAT LET'S ENCRYPT ON THIS MACHINE IN /home/$DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN"
+        echo "❌ NO CERTIFICAT LET'S ENCRYPT ON THIS MACHINE IN /home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/$DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN"
 				exit 0
 
 			fi
@@ -5474,7 +5474,7 @@ then
 
 else
 
-	if test -f "/home/$DOCKER_USER/proxy/docker-compose.yml"
+	if test -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml"
 	then
 
 		if test -f /usr/bin/dockerd
@@ -5482,7 +5482,7 @@ else
 
 			echo ""
 			echo "🔧 STOP THE STACK PROXY"
-			su -c "docker-compose -f /home/$DOCKER_USER/proxy/docker-compose.yml down" - "$DOCKER_USER"
+			su -c "docker-compose -f /home/$ENVIRONMENT_DOCKER_USER/proxy/docker-compose.yml down" - "$ENVIRONMENT_DOCKER_USER"
 
 		fi
 

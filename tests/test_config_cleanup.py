@@ -13,12 +13,13 @@ class ConfigCleanupTests(unittest.TestCase):
     def run_cleanup(self, path, prelude=""):
         return subprocess.run(
             ["bash", "-c", 'set -Eeuo pipefail\nsource "$ROOT/modules/system/variables-cleanup.sh"\n'
-             + prelude + '\nconfig_cleanup "$TARGET" "$SYSTEM_CONFIG" "$SOFTWARES_CONFIG" "$DESKTOP_CONFIG" "$ENVIRONMENTS_CONFIG"'],
+             + prelude + '\nconfig_cleanup "$TARGET" "$SYSTEM_CONFIG" "$SOFTWARES_CONFIG" "$DESKTOP_CONFIG" "$ENVIRONMENTS_CONFIG" "$DOCKER_CONFIG"'],
             env=dict(os.environ, ROOT=str(ROOT), TARGET=str(path),
                      SYSTEM_CONFIG=str(path.parent / 'system.env'),
                      SOFTWARES_CONFIG=str(path.parent / 'softwares.env'),
                      DESKTOP_CONFIG=str(path.parent / 'desktop.env'),
-                     ENVIRONMENTS_CONFIG=str(path.parent / 'environnements.env')),
+                     ENVIRONMENTS_CONFIG=str(path.parent / 'environnements.env'),
+                     DOCKER_CONFIG=str(path.parent / 'docker.env')),
             text=True, capture_output=True)
 
     def test_cleanup_and_idempotence(self):
@@ -678,6 +679,45 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertFalse(desktop_config.exists())
             self.assertEqual(result.stdout, '')
             self.assertNotIn('/tmp/diu-desktop-should-not-run', result.stderr)
+
+    def test_docker_user_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            path.write_text('DOCKER_USER=legacy\nENV_DOCKER_USER=provisioned\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_DOCKER_USER=provisioned\n')
+            self.assertEqual(docker_config.read_text(),
+                             'export ENVIRONMENT_DOCKER_USER=legacy\n')
+
+            path.write_text('DOCKER_USER=stale\n')
+            docker_config.write_text('export ENVIRONMENT_DOCKER_USER=selected\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(docker_config.read_text(),
+                             'export ENVIRONMENT_DOCKER_USER=selected\n')
+
+            path.write_text('OTHER=keep\n')
+            docker_config.write_text('export DOCKER_USER=old\nENV_DOCKER_USER=provisioned\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_config.read_text(),
+                             'ENV_DOCKER_USER=provisioned\nexport ENVIRONMENT_DOCKER_USER=old\n')
+
+    def test_ambiguous_docker_user_fails_without_evaluation_or_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            original = 'DOCKER_USER="$(touch /tmp/diu-docker-user-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(docker_config.exists())
+            self.assertNotIn('/tmp/diu-docker-user-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
 
     def test_ambiguous_old_software_desktop_value_fails_without_modification(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
