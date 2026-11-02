@@ -9,13 +9,14 @@ automatique de Psycopg, dont les dépendances relèvent des projets concernés.
 
 ### Requirement: Préparation Python sans gestion Psycopg
 
-Lorsque le bloc Python du monolithe est activé par `ENV_DEVOPS=1` et
-`PYTHON=1`, DIU SHALL préserver la préparation de Python, pip, leurs liens,
-le profil Python et la gestion des droits du domicile DevOps. DIU SHALL NOT
-installer, mettre à jour, réinstaller ou désinstaller Psycopg ou son
-implémentation binaire dans ce bloc. Les projets sont responsables de leurs
-dépendances Psycopg. Le code de gestion Psycopg désactivé SHALL être conservé
-en commentaires, avec la raison de sa désactivation.
+Lorsque le bloc Python du monolithe est activé par
+`ENVIRONMENTS_DEVOPS=1` et `PYTHON=1`, DIU SHALL préserver la préparation de
+Python, pip, leurs liens, le profil Python et la gestion des droits du domicile
+DevOps. DIU SHALL NOT installer, mettre à jour, réinstaller ou désinstaller
+Psycopg ou son implémentation binaire dans ce bloc. Les projets sont
+responsables de leurs dépendances Psycopg. Le code de gestion Psycopg
+désactivé SHALL être conservé en commentaires, avec la raison de sa
+désactivation.
 
 #### Scenario: Python déjà à jour sans Psycopg
 
@@ -31,7 +32,7 @@ en commentaires, avec la raison de sa désactivation.
 
 #### Scenario: Bloc désactivé
 
-- **WHEN** ENV_DEVOPS ou PYTHON ne vaut pas 1
+- **WHEN** `ENVIRONMENTS_DEVOPS` ou `PYTHON` ne vaut pas `1`
 - **THEN** le bloc ne prépare pas le profil Python et n'effectue aucune opération Psycopg
 
 ### Requirement: Aucun contrôle Psycopg dans le bloc Python

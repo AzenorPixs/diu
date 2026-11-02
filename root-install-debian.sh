@@ -4045,7 +4045,7 @@ EOF
 
 fi
 
-if [ "$ENV_DEVOPS" -eq 1 ]
+if [ "${ENVIRONMENTS_DEVOPS:-0}" -eq 1 ]
 then
 
 	echo ""

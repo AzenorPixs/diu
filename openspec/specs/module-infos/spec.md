@@ -123,3 +123,14 @@ system_info_drivers dans modules/system/infos.sh SHALL répondre à rid system i
 - **WHEN** les informations du module desktop sont demandées
 - **THEN** la valeur configurée de `DESKTOP` est affichée
 - **AND** une variable absente est affichée comme `UNSET`
+
+### Requirement: Information de l'activation DevOps
+
+`environments_infos` SHALL afficher `ENVIRONMENTS_DEVOPS` sous le titre
+`ENVIRONNEMENTS`.
+
+#### Scenario: État DevOps affiché
+
+- **WHEN** les informations des environnements sont demandées
+- **THEN** la valeur configurée de `ENVIRONMENTS_DEVOPS` est affichée
+- **AND** une variable absente est affichée comme `UNSET`

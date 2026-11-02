@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Environnement DevOps : migration de `ENV_DEVOPS` vers
+  `ENVIRONMENTS_DEVOPS`, déclaré en `STATIC`, `ENABLE`, scope `environnements`,
+  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
+  exactement sauf si le nouveau nom est déjà configuré.
+
 - Profil de bureau : renommage de `SOFTWARES_APT_DESKTOP` vers `DESKTOP` dans
   le scope `desktop`. La valeur déjà persistée dans `softwares.env` est
   transférée exactement vers `desktop.env`, sauf si `DESKTOP` y est déjà

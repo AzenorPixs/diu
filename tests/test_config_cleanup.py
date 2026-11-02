@@ -13,11 +13,12 @@ class ConfigCleanupTests(unittest.TestCase):
     def run_cleanup(self, path, prelude=""):
         return subprocess.run(
             ["bash", "-c", 'set -Eeuo pipefail\nsource "$ROOT/modules/system/variables-cleanup.sh"\n'
-             + prelude + '\nconfig_cleanup "$TARGET" "$SYSTEM_CONFIG" "$SOFTWARES_CONFIG" "$DESKTOP_CONFIG"'],
+             + prelude + '\nconfig_cleanup "$TARGET" "$SYSTEM_CONFIG" "$SOFTWARES_CONFIG" "$DESKTOP_CONFIG" "$ENVIRONMENTS_CONFIG"'],
             env=dict(os.environ, ROOT=str(ROOT), TARGET=str(path),
                      SYSTEM_CONFIG=str(path.parent / 'system.env'),
                      SOFTWARES_CONFIG=str(path.parent / 'softwares.env'),
-                     DESKTOP_CONFIG=str(path.parent / 'desktop.env')),
+                     DESKTOP_CONFIG=str(path.parent / 'desktop.env'),
+                     ENVIRONMENTS_CONFIG=str(path.parent / 'environnements.env')),
             text=True, capture_output=True)
 
     def test_cleanup_and_idempotence(self):
@@ -585,6 +586,44 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(desktop_config.read_text(), 'export DESKTOP=0\n')
             self.assertEqual(softwares_config.read_text(), '')
             self.assertEqual(path.read_text(), '')
+
+    def test_env_devops_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            path.write_text('ENV_DEVOPS=0\nexport ENV_DEVOPS=1 # enabled\nENV_DEVOPS_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_DEVOPS_USER=builder\n')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENTS_DEVOPS=1\n')
+
+            path.write_text('ENV_DEVOPS=1\n')
+            environments_config.write_text('export ENVIRONMENTS_DEVOPS=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENTS_DEVOPS=0\n')
+
+            path.write_text('ENV_DEVOPS=1\n')
+            environments_config.write_text('export ENV_DEVOPS=0\nENV_DEVOPS_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(),
+                             'ENV_DEVOPS_USER=builder\nexport ENVIRONMENTS_DEVOPS=0\n')
+
+    def test_ambiguous_env_devops_value_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            original = 'ENV_DEVOPS="$(touch /tmp/diu-env-devops-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(environments_config.exists())
+            self.assertNotIn('/tmp/diu-env-devops-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
 
     def test_ambiguous_desktop_value_fails_without_modification(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:

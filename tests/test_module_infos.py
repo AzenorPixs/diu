@@ -70,6 +70,11 @@ class ModuleInfosTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('DESKTOP=1\n', r.stdout)
 
+    def test_devops_toggle_is_reported_in_environments_scope(self):
+        r = self.run_shell('ENVIRONMENTS_DEVOPS=1\nenvironments_infos')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('ENVIRONMENTS_DEVOPS=1\n', r.stdout)
+
     def test_drivers_without_version_query(self):
         for value in (None, '', '0', 'UNSET'):
             declaration = '' if value is None else f'SYSTEM_DRIVERS_DISPLAY_LINK="{value}"\n'
