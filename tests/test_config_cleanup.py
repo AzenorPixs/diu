@@ -431,6 +431,45 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotIn(str(sentinel), result.stderr)
             self.assertEqual(result.stdout, '')
 
+    def test_rclocal_migration_to_system_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('RCLOCAL=0\nexport RCLOCAL=1 # active\nRCLOCAL_CONFIG=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'RCLOCAL_CONFIG=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=1\n')
+
+            path.write_text('export RCLOCAL=1\n')
+            system_config.write_text('export SYSTEM_RC_LOCAL=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=0\n')
+
+            system_config.unlink()
+            path.write_text('RCLOCAL=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=0\n')
+
+    def test_ambiguous_rclocal_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'RCLOCAL="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_RC_LOCAL=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
     def test_apache2_migration_to_softwares_scope_and_precedence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'

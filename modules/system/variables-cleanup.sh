@@ -62,7 +62,7 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -73,6 +73,7 @@ config_cleanup() {
     local journald_max_use_value='' journald_max_use_found=0 system_journald_max_use_declared=0
     local journald_keep_free_value='' journald_keep_free_found=0 system_journald_keep_free_declared=0
     local no_sleep_value='' no_sleep_found=0 system_no_sleep_declared=0
+    local rc_local_value='' rc_local_found=0 system_rc_local_declared=0
     local desktop_value='' desktop_found=0 desktop_config_declared=0
     local software_desktop_value='' software_desktop_found=0 software_desktop_lines=''
     local env_devops_value='' env_devops_found=0 environments_devops_declared=0
@@ -234,6 +235,14 @@ config_cleanup() {
                 docker_user_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique DOCKER_USER ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?RCLOCAL= ]]; then
+            rc_local_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?RCLOCAL=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                rc_local_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique RCLOCAL ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DESKTOP= ]]; then
@@ -672,7 +681,7 @@ config_cleanup() {
         fi
     done
 
-    if [[ ( "$proxy_found" == 1 || "$nvidia_found" == 1 || "$grub_config_found" == 1 || "$ipv6_found" == 1 || "$log_rotate_found" == 1 || "$journald_max_use_found" == 1 || "$journald_keep_free_found" == 1 || "$no_sleep_found" == 1 || "$crowdsec_agent_found" == 1 || "$fstab_migration_found" == 1 ) &&
+    if [[ ( "$proxy_found" == 1 || "$nvidia_found" == 1 || "$grub_config_found" == 1 || "$ipv6_found" == 1 || "$log_rotate_found" == 1 || "$journald_max_use_found" == 1 || "$journald_keep_free_found" == 1 || "$no_sleep_found" == 1 || "$rc_local_found" == 1 || "$crowdsec_agent_found" == 1 || "$fstab_migration_found" == 1 ) &&
           -e "$system_config_file" ]]; then
         if [[ ! -f "$system_config_file" || ! -r "$system_config_file" ]]; then
             printf '%s\n' 'Erreur : lecture de la configuration système impossible.' >&2
@@ -780,6 +789,17 @@ config_cleanup() {
         if [[ "$no_sleep_found" == 1 ]]; then
             if grep -E '^[[:blank:]]*(export[[:blank:]]+)?SYSTEM_NO_SLEEP=' "$system_config_file" > /dev/null 2>&1; then
                 system_no_sleep_declared=1
+            else
+                status=$?
+                if [[ "$status" -ne 1 ]]; then
+                    printf '%s\n' 'Erreur : lecture de la configuration système impossible.' >&2
+                    return 1
+                fi
+            fi
+        fi
+        if [[ "$rc_local_found" == 1 ]]; then
+            if grep -E '^[[:blank:]]*(export[[:blank:]]+)?SYSTEM_RC_LOCAL=' "$system_config_file" > /dev/null 2>&1; then
+                system_rc_local_declared=1
             else
                 status=$?
                 if [[ "$status" -ne 1 ]]; then
@@ -1189,6 +1209,7 @@ config_cleanup() {
           ( "$journald_max_use_found" == 1 && "$system_journald_max_use_declared" == 0 ) ||
           ( "$journald_keep_free_found" == 1 && "$system_journald_keep_free_declared" == 0 ) ||
           ( "$no_sleep_found" == 1 && "$system_no_sleep_declared" == 0 ) ||
+          ( "$rc_local_found" == 1 && "$system_rc_local_declared" == 0 ) ||
           "$fstab_config_migration_needed" == 1 ]]; then
         if ! install -d -m 0755 "$(dirname "$system_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration système impossible.' >&2
@@ -1441,6 +1462,12 @@ config_cleanup() {
     if [[ "$no_sleep_found" == 1 && "$system_no_sleep_declared" == 0 ]]; then
         if ! printf 'export SYSTEM_NO_SLEEP=%s\n' "$no_sleep_value" >> "$system_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration NO_SLEEP impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$rc_local_found" == 1 && "$system_rc_local_declared" == 0 ]]; then
+        if ! printf 'export SYSTEM_RC_LOCAL=%s\n' "$rc_local_value" >> "$system_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration RCLOCAL impossible.' >&2
             return 1
         fi
     fi
