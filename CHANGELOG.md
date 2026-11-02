@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `POSTFIX` vers `SOFTWARES_APT_POSTFIX`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; `POSTFIX_RELAY_HOST`
+  reste distinct pour configurer le relais.
+
 - Logiciel APT : migration de `POSTGRESQL` vers `SOFTWARES_APT_POSTGRESQL`,
   déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
   valeur historique littérale `0` ou `1` est transférée exactement si la
