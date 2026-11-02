@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Docker : renommage de `DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE` vers
+  `DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE`, déclaré en `STATIC`, `ENABLE`, scope
+  `docker`, défaut `0`. La valeur historique littérale est transférée
+  exactement; les réglages de version restent distincts.
+
 - Docker : migration de `DOCKER_STACK_BUNKERWEB_UPGRADE` vers
   `DOCKER_STACK_BUNKERWEB_UPDATE`, déclaré en `STATIC`, `ENABLE`, scope
   `docker`, défaut `0`. La valeur historique littérale est transférée
