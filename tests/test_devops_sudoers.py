@@ -31,10 +31,13 @@ class DevopsSudoersTests(unittest.TestCase):
                 raise AssertionError(f'fonction {name} absente')
             functions.append(match.group())
         cls.function = '\n'.join(functions)
-        variable = 'ENV_' + cls.SCOPE.upper()
-        next_variable = 'ENV_DOCKER' if cls.SCOPE == 'devops' else 'ENV_IA'
-        start = source.index(f'if [ "${variable}" -eq 1 ]\nthen\n')
-        end = source.index(f'if [ "${next_variable}" -eq 1 ]\nthen\n', start)
+        variable = 'ENVIRONMENTS_DEVOPS' if cls.SCOPE == 'devops' else 'ENVIRONMENT_DOCKER'
+        next_condition = ('if [ "${ENVIRONMENT_DOCKER:-0}" -eq 1 ]\nthen\n'
+                          if cls.SCOPE == 'devops' else 'if [ "$ENV_IA" -eq 1 ]\nthen\n')
+        condition = ('if [ "${ENVIRONMENTS_DEVOPS:-0}" -eq 1 ]\nthen\n'
+                     if cls.SCOPE == 'devops' else 'if [ "${ENVIRONMENT_DOCKER:-0}" -eq 1 ]\nthen\n')
+        start = source.index(condition)
+        end = source.index(next_condition, start)
         block = source[start:end]
         cls.environment_block = block
         call = f'  configure_{cls.SCOPE}_sudoers /etc/passwd /etc/login.defs /etc/sudoers.d\n'
@@ -49,7 +52,7 @@ class DevopsSudoersTests(unittest.TestCase):
                               + '\nelse\n' + inactive_tail)
         else:
             tail = block[block.index(call):]
-            cls.activation = f'if [ "${variable}" -eq 1 ]; then\n' + tail
+            cls.activation = f'if [ "${{ENVIRONMENTS_DEVOPS:-0}}" -eq 1 ]; then\n' + tail
 
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(prefix='.diu-sudoers-test.', dir=ROOT)
@@ -124,8 +127,8 @@ command() {
 }
 '''
         env = dict(os.environ, ENV_DEVOPS_USER='builder', ENV_DOCKER_USER='containers',
-                   ENV_IA_USER='assistant', ENV_DEVOPS=str(enabled),
-                   ENV_DOCKER=str(enabled), REQUESTED_SCOPE=scope, FAULT=fault,
+                   ENV_IA_USER='assistant', ENVIRONMENTS_DEVOPS=str(enabled),
+                   ENVIRONMENT_DOCKER=str(enabled), REQUESTED_SCOPE=scope, FAULT=fault,
                    MISSING_TARGET='1' if fault == 'missing_target' else '0',
                    REAL_VISUDO=VISUDO or '', CALLS=str(self.calls),
                    SUDOERS_DIR=str(self.sudoers))

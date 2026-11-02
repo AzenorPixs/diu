@@ -24,8 +24,8 @@ class DevopsPythonTests(unittest.TestCase):
         start = source.index('launch_ocrw() {')
         end = source.index('\nmanage_devops_action() {', start)
         cls.launch = source[start:end]
-        parent = source.index('if [ "$ENV_DEVOPS" -eq 1 ]\nthen\n')
-        cls.activation = source[parent:parent + len('if [ "$ENV_DEVOPS" -eq 1 ]\nthen\n')]
+        parent = source.index('if [ "${ENVIRONMENTS_DEVOPS:-0}" -eq 1 ]\nthen\n')
+        cls.activation = source[parent:parent + len('if [ "${ENVIRONMENTS_DEVOPS:-0}" -eq 1 ]\nthen\n')]
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-test-python-')
@@ -42,7 +42,7 @@ class DevopsPythonTests(unittest.TestCase):
         self.environment = {
             'PATH': str(self.tools) + ':' + os.defpath,
             'LC_ALL': 'C.UTF-8',
-            'ENV_DEVOPS': '1', 'PYTHON': '1', 'PYTHON_SERIES': '3.14',
+            'ENVIRONMENTS_DEVOPS': '1', 'PYTHON': '1', 'PYTHON_SERIES': '3.14',
             'DEVOPS_USER': 'devops-fixture', 'ENV_DEVOPS_USER': 'devops-fixture',
             'TEST_STATE': str(self.state), 'TEST_CALLS': str(self.calls),
             'TEST_AVAILABLE': '3.3.5', 'TEST_FAULT': '',
@@ -156,7 +156,7 @@ sys.exit(90)
         self.assertEqual(self.state.stat().st_mtime_ns, modified)
 
     def test_disabled_blocks_do_not_install_or_import(self):
-        for environment in ({'PYTHON': '0'}, {'ENV_DEVOPS': '0'}):
+        for environment in ({'PYTHON': '0'}, {'ENVIRONMENTS_DEVOPS': '0'}):
             with self.subTest(environment=environment):
                 result = self.run_block(**environment)
                 self.assertEqual(result.returncode, 0, result.stderr)

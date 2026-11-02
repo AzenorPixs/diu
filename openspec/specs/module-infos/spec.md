@@ -102,3 +102,46 @@ system_info_drivers dans modules/system/infos.sh SHALL répondre à rid system i
 - **WHEN** la variable vaut 1 mais le paquet est absent, incomplet, sans version ou son interrogation échoue
 - **THEN** la version affiche UNSET avec un diagnostic et un statut non nul
 - **AND** la configuration est préservée
+
+### Requirement: Informations des logiciels CrowdSec
+
+`softwares_infos` SHALL afficher les trois interrupteurs CrowdSec sous le titre
+`SOFTWARES`. Elle SHALL NOT afficher la clé API CrowdSec.
+
+#### Scenario: Informations CrowdSec sans secret
+
+- **WHEN** les informations logicielles sont demandées
+- **THEN** les réglages logiciels CrowdSec sont affichés
+- **AND** la clé API n'est pas affichée
+
+### Requirement: Informations du contrôle de bureau
+
+`desktop_infos` SHALL afficher `DESKTOP` sous le titre `DESKTOP`.
+
+#### Scenario: État du profil de bureau
+
+- **WHEN** les informations du module desktop sont demandées
+- **THEN** la valeur configurée de `DESKTOP` est affichée
+- **AND** une variable absente est affichée comme `UNSET`
+
+### Requirement: Information de l'activation DevOps
+
+`environments_infos` SHALL afficher `ENVIRONMENTS_DEVOPS` sous le titre
+`ENVIRONNEMENTS`.
+
+#### Scenario: État DevOps affiché
+
+- **WHEN** les informations des environnements sont demandées
+- **THEN** la valeur configurée de `ENVIRONMENTS_DEVOPS` est affichée
+- **AND** une variable absente est affichée comme `UNSET`
+
+### Requirement: Information de l'activation Docker
+
+`environments_infos` SHALL afficher `ENVIRONMENT_DOCKER` sous le titre
+`ENVIRONNEMENTS`.
+
+#### Scenario: État Docker affiché
+
+- **WHEN** les informations des environnements sont demandées
+- **THEN** la valeur configurée de `ENVIRONMENT_DOCKER` est affichée
+- **AND** une variable absente est affichée comme `UNSET`

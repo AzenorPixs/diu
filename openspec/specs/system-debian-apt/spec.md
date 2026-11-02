@@ -107,12 +107,24 @@ antérieures.
 
 ### Requirement: Configuration et compatibilité des dépôts tiers
 
-DIU SHALL conserver les onze variables de dépôts tiers, leur initialisation et leur priorité persistante, ainsi que les compatibilités historiques et les règles MongoDB et Wazuh détaillées ci-dessous.
-Les modalités normatives détaillées ci-dessous SHALL être respectées.
+Les dépôts tiers hors CrowdSec SHALL conserver leurs dix variables
+`SYSTEM_APT_*` dans le scope system. Le dépôt CrowdSec SHALL utiliser
+`SOFTWARES_APT_CROWDSEC` dans le scope logiciels. Sa valeur absente SHALL être
+déduite des sources APT existantes et s'activer si l'agent ou le bouncer est
+activé; une valeur déjà configurée SHALL rester prioritaire. Les migrations
+historiques de `SYSTEM_APT_CROWDSEC` et `CROWDSEC_BOUNCER` SHALL préserver leur
+valeur dans `softwares.env`.
+
+#### Scenario: Dépôt CrowdSec activé
+
+- **WHEN** le dépôt CrowdSec existe déjà ou l'agent/le bouncer est activé
+- **AND** `SOFTWARES_APT_CROWDSEC` n'est pas configurée
+- **THEN** le DIU active le dépôt APT CrowdSec
 
 #### Scenario: Activation historique sans source présente
 
-- **WHEN** un dépôt historique est activé par ses variables et sa variable `SYSTEM_APT_*` est absente
+- **WHEN** un dépôt historique non-CrowdSec est activé par ses variables et
+  que sa variable `SYSTEM_APT_*` est absente
 - **AND** aucune source APT correspondante n'est détectée
 - **THEN** son activation ou sa branche est initialisée et persistée
 
@@ -123,62 +135,36 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: MongoDB historique
 
-- **WHEN** une source MongoDB `4.4` est détectée ou la version historique `4.4` est activée
+- **WHEN** une source MongoDB `4.4` est détectée ou la version historique
+  `4.4` est activée
 - **THEN** `SYSTEM_APT_MONGODB` est initialisé à `4` si cette variable est absente
-- **AND** le moteur utilise une clé et une suite MongoDB `4.4` avec la suite Debian prévue
+- **AND** le moteur utilise la clé et la suite MongoDB `4.4`
 
 #### Scenario: Installation MongoDB sans branche explicite
 
 - **WHEN** `rid system install apt mongodb` est exécuté
 - **THEN** une branche configurée entre `4` et `8` est conservée
-- **AND** si aucune branche valide n'est configurée, la branche `8` est choisie
-- **AND** une commande `mongodb-4` à `mongodb-8` sélectionne la branche explicite
+- **AND** la branche `8` est choisie si aucune branche valide n'est configurée
+- **AND** les commandes `mongodb-4` à `mongodb-8` sélectionnent la branche explicite
 
 #### Scenario: Wazuh activé et désactivé
 
 - **WHEN** `SYSTEM_APT_WAZUH` vaut `1`, `4` ou `0`
-- **THEN** le moteur reçoit respectivement `1`, `1` ou `0` pour le dépôt Wazuh de branche 4
+- **THEN** le moteur reçoit respectivement `1`, `1` ou `0`
 - **AND** la valeur configurée reste inchangée
 
 #### Scenario: Valeur Wazuh invalide
 
 - **WHEN** `SYSTEM_APT_WAZUH` possède une autre valeur
-- **THEN** la configuration des dépôts retourne un code non nul et un diagnostic explicite
+- **THEN** la configuration retourne un code non nul et un diagnostic explicite
 
 #### Scenario: Initialisation et compatibilité des configurations de dépôts tiers
 
-- **WHEN** DIU initialise ou applique la configuration d’un dépôt tiers
-- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
-
-Le DIU SHALL déclarer les onze variables statiques `SYSTEM_APT_CROWDSEC`,
-`SYSTEM_APT_DOCKER`, `SYSTEM_APT_LEMONLDAP`, `SYSTEM_APT_MONGODB`,
-`SYSTEM_APT_NODEJS`, `SYSTEM_APT_NVIDIA`, `SYSTEM_APT_PROXMOX`,
-`SYSTEM_APT_VSCODE`, `SYSTEM_APT_WAZUH`, `SYSTEM_APT_WEBMIN` et
-`SYSTEM_APT_CGPT` dans le scope `system`. Leur valeur absente SHALL être
-déduite des sources APT existantes, puis persistée dans `system.env`.
-Une valeur déjà initialisée MUST NOT être remplacée par la détection ou les
-variables historiques.
-
-En l'absence d'une source détectée et d'une valeur initialisée, le DIU SHALL
-préserver l'activation historique de CrowdSec (`CROWDSEC_BOUNCER=1`), de
-LemonLDAP (`LEMONLDAP=1`), de MongoDB (`MONGODB=1` avec une version reconnue)
-et de Wazuh (`WAZUH_SERVER=1` et `WAZUH_SERVER_UPGRADE=1`). Les autres valeurs
-absentes SHALL rester désactivées lorsqu'aucune source n'est détectée.
-
-Pour MongoDB, les branches `4` à `8` SHALL rester disponibles ; la branche
-historique `4` SHALL utiliser la clé et la suite `4.4`. Les sources historiques
-`4.4` SHALL être détectées comme branche `4`. La suite Debian de MongoDB SHALL
-rester `bullseye` pour Bullseye et `bookworm` pour Bookworm et les versions
-ultérieures, conformément au choix existant pour ces dernières.
-L'installation `apt mongodb` SHALL conserver une branche déjà configurée de
-`4` à `8`, ou choisir `8` si aucune branche valide n'est configurée.
-Les formes `mongodb-4` à `mongodb-8` SHALL sélectionner la branche demandée.
-
-Pour Wazuh, `0` SHALL désactiver le dépôt et `4` SHALL activer la branche 4.
-La valeur historique `1` SHALL rester acceptée comme activation de cette
-branche. Les valeurs `1` et `4` SHALL être transmises au moteur commun sous
-forme d'activation `1`, sans modifier la valeur persistée. Toute autre valeur
-SHALL provoquer un diagnostic et un retour non nul.
+- **WHEN** DIU initialise ou applique la configuration d'un dépôt tiers
+- **THEN** les dix variables APT tierces hors CrowdSec restent déclarées dans
+  le scope `system`, déduites des sources existantes et persistées dans
+  `system.env`
+- **AND** les valeurs déjà configurées gardent la priorité
 
 ### Requirement: Configuration unique dans le monolithe
 

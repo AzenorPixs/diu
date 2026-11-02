@@ -61,7 +61,6 @@ system_info_debian() {
     printf '\n%s\n %s\n%s\n\n' \
         '==============================================' 'SYSTEM APT UNOFFICIAL' '=============================================='
     printf '%s=%s\n' 'SYSTEM_APT_CGPT' "${SYSTEM_APT_CGPT-UNSET}"
-    printf '%s=%s\n' 'SYSTEM_APT_CROWDSEC' "${SYSTEM_APT_CROWDSEC-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DOCKER' "${SYSTEM_APT_DOCKER-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_LEMONLDAP' "${SYSTEM_APT_LEMONLDAP-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_MONGODB' "${SYSTEM_APT_MONGODB-UNSET}"

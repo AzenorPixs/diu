@@ -4,6 +4,69 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Compte propriétaire des stacks Docker : migration de `DOCKER_USER` vers
+  `ENVIRONMENT_DOCKER_USER`, déclaré en `STATIC`, `ENABLE`, scope `docker`,
+  défaut `docker`. La valeur historique littérale est transférée exactement,
+  sauf si le nouveau nom est déjà configuré.
+
+- Environnement Docker : migration de `ENV_DOCKER` vers `ENVIRONMENT_DOCKER`,
+  déclaré en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement sauf si le
+  nouveau nom est déjà configuré.
+
+- Environnement DevOps : migration de `ENV_DEVOPS` vers
+  `ENVIRONMENTS_DEVOPS`, déclaré en `STATIC`, `ENABLE`, scope `environnements`,
+  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
+  exactement sauf si le nouveau nom est déjà configuré.
+
+- Profil de bureau : renommage de `SOFTWARES_APT_DESKTOP` vers `DESKTOP` dans
+  le scope `desktop`. La valeur déjà persistée dans `softwares.env` est
+  transférée exactement vers `desktop.env`, sauf si `DESKTOP` y est déjà
+  configurée.
+
+- CrowdSec : déplacement du dépôt APT, des interrupteurs agent/bouncer et de
+  la clé API vers le scope `softwares`. Les valeurs historiques sont migrées
+  sans modification; la clé est transférée sans affichage, et `softwares.env`
+  reçoit le mode `0600` lorsqu'elle la contient. Les paquets continuent d'être
+  installés par APT.
+
+- Logiciels APT : migration du contrôle `APACHE2` vers
+  `SOFTWARES_APT_APACHE2`, déclaré en `STATIC`, `ENABLE`, scope `softwares`,
+  défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée
+  exactement vers `softwares.env` sauf si la nouvelle variable y est déjà
+  configurée.
+
+- Variables système : migration de `NO_SLEEP` vers `SYSTEM_NO_SLEEP`, déclaré
+  en `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
+  nom est déjà configuré.
+
+- Variables système : migration de `JOURNALD_KEEP_FREE` vers
+  `SYSTEM_JOURNALD_KEEP_FREE`, déclaré en `STATIC`, `ENABLE`, scope `system`,
+  défaut `1G`. L’ancienne valeur de taille littérale est transférée sans
+  interprétation si la nouvelle variable n’est pas déjà configurée; les
+  directives `SystemKeepFree` et `RuntimeKeepFree` utilisent le nouveau nom.
+
+- Variables système : migration de `JOURNALD_MAX_USE` vers
+  `SYSTEM_JOURNALD_MAX_USE`, déclaré en `STATIC`, `ENABLE`, scope `system`,
+  défaut `500M`. L’ancienne valeur de taille littérale est transférée sans
+  interprétation si la nouvelle variable n’est pas déjà configurée; les
+  directives `SystemMaxUse` et `RuntimeMaxUse` utilisent le nouveau nom.
+
+- Configuration Docker : déclaration de `DOCKER_STACK_DEVOPS` en `STATIC`,
+  `ENABLE`, scope `docker`, défaut `0`. Une valeur existante `0` ou `1` est
+  conservée; le défaut est persisté uniquement en l’absence de valeur.
+
+- Configuration Docker : déclaration de
+  `DOCKER_STACK_TRAEFIK_DOCKHAND` en `STATIC`, `ENABLE`, scope `docker`, défaut
+  `0`. Une valeur existante `0` ou `1` est conservée; le défaut est persisté
+  uniquement en l’absence de valeur.
+
+- Variables système : migration de `LOG_ROTATE` vers `SYSTEM_LOG_ROTATE`,
+  déclaré en `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement sauf si la
+  nouvelle variable est déjà configurée.
+
 - Variables système : migration du contrôle `IPv6` vers `SYSTEM_IPV6`, déclaré
   en `STATIC`, `ENABLE`, scope `system`. En l’absence de valeur configurée,
   l’état initial est détecté avec sysctl et persisté. La valeur historique

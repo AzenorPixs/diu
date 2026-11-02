@@ -74,7 +74,7 @@ system_apt_configure_unofficial() {
         *) print_error "Activation de dépôt APT invalide : wazuh"; return 1 ;;
     esac
     [[ "${SYSTEM_DEBIAN_RELEASE}" == bullseye ]] && mongodb_release=bullseye
-    system_apt_repository_engine "${SYSTEM_APT_CROWDSEC:-0}" crowdsec \
+    system_apt_repository_engine "${SOFTWARES_APT_CROWDSEC:-0}" crowdsec \
         https://packagecloud.io/crowdsec/crowdsec/gpgkey deb any "" http://packagecloud.io/crowdsec/crowdsec/any || return 1
     system_apt_repository_engine "${SYSTEM_APT_DOCKER:-0}" docker \
         https://download.docker.com/linux/debian/gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" https://download.docker.com/linux/debian stable || return 1
@@ -344,7 +344,7 @@ system_flatpak_update() {
 
 system_apt_repository_variable() {
     case "${1,,}" in
-        crowdsec|crodwsec) printf '%s' SYSTEM_APT_CROWDSEC ;;
+        crowdsec|crodwsec) printf '%s' SOFTWARES_APT_CROWDSEC ;;
         docker) printf '%s' SYSTEM_APT_DOCKER ;;
         lemonldap|lemonldap-ng) printf '%s' SYSTEM_APT_LEMONLDAP ;;
         mongodb|mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8) printf '%s' SYSTEM_APT_MONGODB ;;
@@ -362,6 +362,7 @@ system_apt_repository_variable() {
 system_apt_set_repository_variable() {
     local repository="$1" value="$2" variable_config_file="/root/diu/config/system.env"
     local current_line
+    [[ "$repository" == SOFTWARES_APT_CROWDSEC ]] && variable_config_file="/root/diu/config/softwares.env"
     [[ "$value" =~ ^(0|1|4|5|6|7|8)$ ]] || return 1
     export "${repository}=${value}"
     if [[ -f "$variable_config_file" ]]; then
