@@ -52,6 +52,24 @@ cette entrée système exacte et son chemin, sans l'ajouter. Des règles Git
 globales prioritaires peuvent modifier son effet pour un compte donné.
 Les détails figurent dans [le cadrage technique](TECHNICAL.md).
 
+Pour construire le paquet Debian d'un projet :
+
+```bash
+rid projects build deb <ID PROJECT>
+```
+
+Le projet fournit `build/debian-package.json`, qui décrit les métadonnées et
+les copies ; cette recette reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
+dans `project.env` doit valoir `Yes`, `YES` ou `1`. Sinon, la commande informe
+que le projet ne produit aucun paquet Debian et termine sans construction.
+Pour un projet activé, une recette absente empêche le build avec une erreur.
+Le résultat est déposé dans `dist/` ; les anciens paquets de même nom et
+architecture y sont supprimés après succès. Le format et les contrôles sont
+décrits dans [BUILD.md](BUILD.md). L'aide est disponible avec
+`rid projects build deb help` ou `?`, avant bootstrap.
+La recette DIU reproduit le paquet historique ; `rid projects deb diu` et
+`rcicddiu` conservent leur fonctionnement. Aucun paquet n'est installé par le build.
+
 Pour construire une image avec `rid projects docker build <ID PROJECT>`, le
 projet peut fournir le fichier public optionnel `build/docker-build.args` :
 

@@ -71,6 +71,11 @@ le DIU.
 
 ### Module `projects`
 
+La commande `rid projects build deb <ID PROJECT>` construit un paquet Debian
+à partir de la recette publique `build/debian-package.json` du projet, lorsque
+`PROJECT_DEBIAN_PACKAGE` vaut `Yes`, `YES` ou `1`. Le moteur est indépendant
+du nom et de l’arborescence du projet.
+
 Le module `projects` assure la configuration et la gestion des projets de
 développement.
 

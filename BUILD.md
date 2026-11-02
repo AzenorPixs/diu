@@ -1,26 +1,67 @@
-# Construction du paquet Debian du DIU
+# Construction des paquets Debian
 
-## Objet
-
-Ce document décrit exclusivement la construction du paquet Debian de
-l'application Debian Installer Unifié (DIU).
-
-Il formalise le chemin technique allant de la commande :
+## Construction générique par recette
 
 ```bash
-ridt projects cicddiu
+rid projects build deb <ID PROJECT>
 ```
 
-à la production de l'artefact :
+Le moteur `modules/projects/debian-build.sh` sélectionne un enfant direct de
+`DEVOPS_PROJECTS_ROOT`. Il lit uniquement `PROJECT_DEBIAN_PACKAGE` dans
+`project.env`, sans exécuter le fichier : `Yes`, `YES` et `1` activent le build.
+Une valeur absente, vide ou différente affiche que le projet ne produit aucun
+paquet Debian et termine avec succès avant de rechercher la recette.
+Les doublons ou affectations nécessitant une interprétation sont des erreurs.
 
-```text
-dist/diu_<version>_all.deb
-```
+Le fichier public obligatoire est `build/debian-package.json`. S'il manque
+pour un projet activé, le message indique son chemin et l'impossibilité de
+construire. Une recette illisible, symbolique ou invalide est également refusée.
+Le moteur utilise `jq`, déjà prévu dans les prérequis DIU, et `dpkg-deb`.
+Il assemble des sources préparées, sans compilation ni exécution de hook.
 
-La gestion du commit, le push Git, la création d'une release Forgejo,
-l'installation du paquet et la mise à jour du DIU ne sont décrites que
-lorsqu'elles permettent de situer la phase de construction. Leur
-fonctionnement détaillé reste hors du périmètre de ce document.
+### Format de la recette
+
+La [recette DIU](build/debian-package.json) fournit les champs obligatoires
+`package`, `architecture`, `maintainer`, `description`, `files`, et le tableau
+facultatif `depends`. Chaque copie de `files` définit une `source` relative au
+projet et une `destination` absolue dans le paquet. Un champ facultatif
+`version` fournit une version Debian littérale. Sans ce champ, les règles de
+sélection des tags et de repli calendaire décrites ci-dessous s'appliquent.
+Les sources sont les fichiers de travail, y compris non committés.
+
+Les champs inconnus et les caractères de contrôle sont refusés. Sources et
+recette doivent être non symboliques ; les liens et fichiers spéciaux dans les
+sources sont refusés dans cette première version. Les sources restent dans le
+projet, les destinations dans le staging hors `/DEBIAN` et ne se recouvrent pas.
+Une source ne peut englober la recette ou `dist/` ; déclarer les sous-répertoires
+à copier explicitement. Les caches, configurations privées et fichiers
+temporaires reconnus par les contrôles sont refusés, sans suppression silencieuse.
+La recette n'est jamais embarquée. Elle ne doit contenir aucun secret.
+
+### Résultat et rotation
+
+La commande construit avec `dpkg-deb --build --root-owner-group`, puis dépose
+`dist/<package>_<version>_<architecture>.deb`. Les temporaires sont nettoyés.
+Après dépôt, seuls les anciens paquets de même nom et architecture sont
+supprimés. Un paquet de même nom de fichier est remplacé ; les autres noms,
+architectures et fichiers sont conservés. Un échec avant dépôt ne lance aucune
+rotation. Une erreur de rotation est signalée même si le nouveau paquet existe.
+Cette commande ne lance ni tests, installation, commit, push ou release.
+Le bootstrap commun de `rid` charge et initialise toujours sa configuration.
+
+`rid projects build help`, `rid projects build deb help` et
+`rid projects build deb diu help` (ou `?`) expliquent ce contrat avant bootstrap.
+`rid` utilise le moteur installé sous `/root/diu` ; `ridt` utilise celui du dépôt.
+
+## Compatibilité du constructeur historique DIU
+
+`rid projects deb [ID PROJECT]`, `rid proj deb <ID PROJECT>` et `cicddiu`
+conservent le constructeur `build_deb_diu`, indépendant de la nouvelle recette.
+Leurs règles spécifiques sont décrites dans les sections suivantes.
+La nouvelle recette DIU produit les mêmes métadonnées, contenu, modes et
+propriétaires à sources et version identiques. Les horodatages peuvent faire
+varier les octets de l'archive. `tests/test_projects_build_deb.py` compare les
+paquets de fixture et teste un projet sans arborescence DIU.
 
 ## Environnement de construction
 

@@ -1484,6 +1484,17 @@ nouvelle recette doit suivre le même registre explicite et rester idempotente.
 
 ## Projets et configuration Git
 
+### Construction Debian déclarative
+
+`projects_build_deb` dans `modules/projects/debian-build.sh` implémente
+`rid projects build deb <ID PROJECT>`. La recette publique JSON et la lecture
+littérale isolée de `PROJECT_DEBIAN_PACKAGE` évitent toute exécution de
+configuration. `jq` valide les données ; `dpkg-deb --root-owner-group` assemble
+le staging. Le format, les refus, la version, la rotation et les limites sont
+définis dans [BUILD.md](BUILD.md). La recette DIU reste hors du paquet.
+Les anciens parcours `projects deb` et `cicddiu` restent indépendants.
+La référence est `openspec/specs/projects-debian-build/spec.md`.
+
 ### Métadonnées générales
 
 Un projet géré est identifié par son répertoire sous

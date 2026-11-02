@@ -7,6 +7,20 @@ rid_help_line() {
 rid_display_help_context() {
     local context="${1:-}" subcontext="${2:-}" leaf="${3:-}" target="${4:-}"
 
+    if [[ "$context:$subcontext" == projects:build ]]; then
+        if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != deb ) ||
+            ( -n "$target" && ( ! "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
+                "$target" == . || "$target" == .. ) ) ]]; then
+            rid_display_command_error projects build
+            return 2
+        fi
+        rid_help_line 'rid projects build deb <ID PROJECT>' 'Construit le paquet Debian défini par la recette du projet.'
+        printf '%s\n' 'Recette requise : build/debian-package.json ; elle est exclue du paquet.'
+        printf '%s\n' 'Activation dans project.env : PROJECT_DEBIAN_PACKAGE=Yes, YES ou 1 ; sinon aucun paquet Debian.'
+        printf '%s\n' 'Packaging activé et recette absente : erreur, le paquet ne peut pas être construit.'
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == projects:deb ]]; then
         if [[ $# -gt 3 || ( -n "$leaf" && ( ! "$leaf" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
             "$leaf" == . || "$leaf" == .. ) ) ]]; then
@@ -296,6 +310,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects ocrw <ID PROJECT>' 'Ouvre le projet en lecture-écriture.'
             rid_help_line 'rid projects ocsh <ID PROJECT>' 'Ouvre un shell dans le projet.'
             rid_help_line 'rid projects deb [ID PROJECT]' 'Construit le paquet DIU ; source par défaut : diu.'
+            rid_help_line 'rid projects build deb <ID PROJECT>' 'Construit un paquet Debian depuis build/debian-package.json (PROJECT_DEBIAN_PACKAGE=Yes/YES/1).'
             rid_help_line 'rid projects cicddiu' 'Lance la CI/CD du projet DIU.'
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
             ;;
