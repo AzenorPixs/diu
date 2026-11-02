@@ -6417,7 +6417,7 @@ else
 
 fi
 
-if [ "$WAZUH_SERVER" -eq 1 ]
+if [[ "${SOFTWARES_APT_WAZUH_SERVER:-0}" -eq 1 ]]
 then
 
 	if [ "$WAZUH_SERVER_UPGRADE" -eq 1 ]

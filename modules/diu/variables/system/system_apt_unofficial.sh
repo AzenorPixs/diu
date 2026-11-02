@@ -65,7 +65,7 @@ system_apt_unofficial_legacy_value() {
             fi
             ;;
         SYSTEM_APT_WAZUH)
-            if [[ "${WAZUH_SERVER:-0}" == 1 && "${WAZUH_SERVER_UPGRADE:-0}" == 1 ]]; then
+            if [[ "${SOFTWARES_APT_WAZUH_SERVER:-0}" == 1 && "${WAZUH_SERVER_UPGRADE:-0}" == 1 ]]; then
                 printf '4'
             else
                 printf '0'
