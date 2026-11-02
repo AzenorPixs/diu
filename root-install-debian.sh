@@ -5650,7 +5650,7 @@ then
 
 fi
 
-if [ "$JSVC" -eq 1 ]
+if [[ "${SOFTWARES_APT_JSVC:-0}" -eq 1 ]]
 then
 
 	echo ""
