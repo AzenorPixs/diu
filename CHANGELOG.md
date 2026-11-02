@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel : migration de `OMADA` vers `SOFTWARES_APT_OMADA`, déclaré en
+  `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; `OMADA_VERSION`
+  et les réglages syslog restent distincts.
+
 - Logiciel APT : migration de `OPENJDK` vers `SOFTWARES_APT_OPENJDK`, déclaré
   en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement, en conservant la

@@ -754,6 +754,9 @@ Le contrôle d’installation MongoDB utilise `SOFTWARES_APT_MONGODB` dans
 du dépôt `SYSTEM_APT_MONGODB`.
 Le contrôle OpenJDK utilise `SOFTWARES_APT_OPENJDK` dans `softwares.env`; le
 point d’entrée conserve la sélection Java selon la version Debian.
+Le contrôle Omada utilise `SOFTWARES_APT_OMADA` dans `softwares.env` pour
+l’installation et le firewall; `OMADA_VERSION` et `SYSLOG_SERVER_SKIL_OMADA`
+restent séparés.
 
 ### Déclarations unitaires
 
@@ -1242,6 +1245,15 @@ système reste prioritaire.
 L’ancienne valeur littérale `OPENJDK=0|1` est transférée exactement vers
 `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
 d’entrée garde OpenJDK 17 sur Bullseye/Bookworm et OpenJDK 21 sur Trixie.
+
+### Omada
+
+`modules/diu/variables/softwares/software_apt_omada.sh` déclare
+`SOFTWARES_APT_OMADA` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `OMADA=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. L’installation
+du paquet et les règles firewall suivent ce réglage; `OMADA_VERSION` et
+`SYSLOG_SERVER_SKIL_OMADA` ne sont pas migrées.
 
 ### Moteur `deb`
 
