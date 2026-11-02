@@ -6480,7 +6480,7 @@ then
 
 fi
 
-if [ "$ZSH" -eq 1 ]
+if [[ "${SOFTWARES_APT_ZSH:-0}" -eq 1 ]]
 then
 	
 	if dpkg -s fish &>/dev/null
