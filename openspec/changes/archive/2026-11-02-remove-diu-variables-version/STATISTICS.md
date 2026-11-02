@@ -15,8 +15,14 @@ Codex ; aucun agent de codage délégué.
   échec avec `/home/devops/python/current/bin/python3`.
 - Archivage réussi sous `2026-11-02-remove-diu-variables-version`;
   une exigence modifiée et deux retirées dans les spécifications canoniques.
-- Publication du paquet, installation LXC et vérification du résultat restent
-  à effectuer.
+- Publication réussie : paquet `2026.11.02.14.42`, commit `c93fac7`, tag
+  `v2026.11.02.14.42`, release Forgejo 403.
+- Le paquet a été transféré dans CISMP (LXC 100), SHA-256 vérifié
+  (`17b500d967f5cd6f759e7be112490f273c70beb4a56f903e69a5f688d5f0c3d8`), puis
+  sa version installée a été vérifiée avec `dpkg-query`.
+- Relance de `/root/diu/root-install-debian.sh` dans CISMP : code de sortie 0;
+  le résumé affiche `DIU_VERSION` uniquement et aucune erreur de variable ne
+  survient.
 
 ## Types de messages et d'outils
 
@@ -49,6 +55,10 @@ Codex ; aucun agent de codage délégué.
 - `/home/devops/.local/npm/bin/openspec archive remove-diu-variables-version --yes --json` :
   réussi; deux exigences retirées et une modifiée.
 - `git diff --check` : réussi.
+- `sudo -n -i zsh -lic 'rcicddiu'` : publication réussie; release Forgejo 403.
+- `sudo -n -i zsh -lic 'ridu'` : mise à jour de l’hôte réussie.
+- Installation CISMP par `lxc-attach` après contrôle SHA-256 : réussie.
+- Relance `/root/diu/root-install-debian.sh` dans LXC 100 : code 0.
 
 ## Accès web
 
@@ -60,4 +70,5 @@ La déclaration et l’affichage de `DIU_VARIABLES_VERSION` ont été retirés d
 code actif, des tests et de la spécification canonique. `DIU_VERSION` reste
 pour afficher la version du paquet DIU installé. Les tests, ShellCheck,
 syntaxe Bash et validation OpenSpec stricte passent. Publication et
-vérification CISMP restent à effectuer.
+installation CISMP ont réussi. Le script s’est achevé sans erreur de variable;
+le résumé conserve `DIU_VERSION`.
