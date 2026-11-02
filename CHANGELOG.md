@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Docker : migration de `DOCKER_STACK_BUNKERWEB_UPGRADE` vers
+  `DOCKER_STACK_BUNKERWEB_UPDATE`, déclaré en `STATIC`, `ENABLE`, scope
+  `docker`, défaut `0`. La valeur historique littérale est transférée
+  exactement; auto-update et version restent distincts.
+
 - Système : migration de `RCLOCAL` vers `SYSTEM_RC_LOCAL`, déclaré en
   `STATIC`, `ENABLE`, scope `system`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement; `/etc/rc.local`
