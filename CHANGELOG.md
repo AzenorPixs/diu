@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `MONGODB` vers `SOFTWARES_APT_MONGODB`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; `MONGODB_VERSION`
+  et le réglage de dépôt `SYSTEM_APT_MONGODB` restent distincts.
+
 - Logiciel APT : migration de `LEMONLDAP` vers `SOFTWARES_APT_LEMONLDAP`,
   déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
   valeur historique littérale `0` ou `1` est transférée exactement; le réglage

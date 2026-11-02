@@ -54,7 +54,7 @@ system_apt_unofficial_legacy_value() {
             [[ "${SOFTWARES_APT_LEMONLDAP:-0}" == 1 ]] && printf '1' || printf '0'
             ;;
         SYSTEM_APT_MONGODB)
-            if [[ "${MONGODB:-0}" == 1 ]]; then
+            if [[ "${SOFTWARES_APT_MONGODB:-0}" == 1 ]]; then
                 case "${MONGODB_VERSION:-}" in
                     4|4.0|4.4) printf '4' ;;
                     5|5.0|6|6.0|7|7.0|8|8.0) printf '%s' "${MONGODB_VERSION%%.*}" ;;

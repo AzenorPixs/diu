@@ -123,10 +123,10 @@ source "$TMPDIR/declaration.sh"
             ({'WAZUH_SERVER': 1, 'WAZUH_SERVER_UPGRADE': 0}, 'WAZUH', 0),
             ({'WAZUH_SERVER': 0, 'WAZUH_SERVER_UPGRADE': 1}, 'WAZUH', 0),
         ]
-        cases += [({'MONGODB': 1, 'MONGODB_VERSION': version}, 'MONGODB', branch)
+        cases += [({'SOFTWARES_APT_MONGODB': 1, 'MONGODB_VERSION': version}, 'MONGODB', branch)
                   for version, branch in [('4.4', 4), ('5', 5), ('6', 6), ('7', 7), ('8', 8)]]
-        cases += [({'MONGODB': 0, 'MONGODB_VERSION': '8'}, 'MONGODB', 0),
-                  ({'MONGODB': 1, 'MONGODB_VERSION': 'unknown'}, 'MONGODB', 0)]
+        cases += [({'SOFTWARES_APT_MONGODB': 0, 'MONGODB_VERSION': '8'}, 'MONGODB', 0),
+                  ({'SOFTWARES_APT_MONGODB': 1, 'MONGODB_VERSION': 'unknown'}, 'MONGODB', 0)]
         for values, name, expected in cases:
             with self.subTest(values=values), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
                 directory = self.prepare(tmp)

@@ -5668,7 +5668,7 @@ then
 
 fi
 
-if [ "$MONGODB" -eq 1 ]
+if [[ "${SOFTWARES_APT_MONGODB:-0}" -eq 1 ]]
 then
 
 	echo ""
