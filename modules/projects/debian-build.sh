@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# shellcheck source=lib/project-version.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"
 # Construction déclarative des paquets Debian de projets.
 
 projects_debian_enabled() {
@@ -126,7 +129,10 @@ projects_build_deb() (
     maintainer="$(jq -r '.maintainer' "$recipe")"
     description="$(jq -r '.description' "$recipe")"
     depends="$(jq -r '(.depends // []) | join(", ")' "$recipe")"
-    version="$(jq -r '.version // empty' "$recipe")"
+    version="$(project_version_get "$project_path/project.env")" || return 1
+    if [[ -z "$version" ]]; then
+        version="$(jq -r '.version // empty' "$recipe")"
+    fi
     if [[ -z "$version" ]]; then
         version="$(projects_debian_version "$project_path")" || return 1
         if [[ -z "$version" ]]; then version="$(date '+%Y.%m.%d.%H.%M')" || return 1; fi

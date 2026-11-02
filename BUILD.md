@@ -1,5 +1,20 @@
 # Construction des paquets Debian
 
+## Version prioritaire optionnelle
+
+`PROJECT_VERSION=1.0.0` dans `project.env` est prioritaire pour les deux
+constructeurs Debian. La clé est lue isolément comme une affectation littérale
+unique `x.y.z`, éventuellement citée et commentée, sans exécuter le fichier.
+Les trois entiers sont sans zéro initial sauf `0` ; la longueur est limitée à
+128 caractères. Une clé présente vide, dupliquée ou invalide est une erreur.
+Une clé absente conserve exactement les mécanismes précédents.
+
+La priorité du constructeur générique est `PROJECT_VERSION`, puis `version`
+de la recette, puis tags de `HEAD`, puis horodatage local. Le constructeur
+historique utilise `PROJECT_VERSION`, puis ses règles tags/horodatage.
+Les publications vérifient que la version déclarée correspond au paquet et
+au tag `v<VERSION>` de `HEAD`, sans déplacer un tag existant.
+
 ## Construction générique par recette
 
 ```bash
@@ -25,8 +40,8 @@ La [recette DIU](build/debian-package.json) fournit les champs obligatoires
 `package`, `architecture`, `maintainer`, `description`, `files`, et le tableau
 facultatif `depends`. Chaque copie de `files` définit une `source` relative au
 projet et une `destination` absolue dans le paquet. Un champ facultatif
-`version` fournit une version Debian littérale. Sans ce champ, les règles de
-sélection des tags et de repli calendaire décrites ci-dessous s'appliquent.
+`version` fournit une version Debian littérale, après PROJECT_VERSION. Sans
+ces deux valeurs, les règles de tags et de repli calendaire ci-dessous s'appliquent.
 Les sources sont les fichiers de travail, y compris non committés.
 
 Les champs inconnus et les caractères de contrôle sont refusés. Sources et
@@ -136,7 +151,7 @@ sont refusés. Les appels sans argument de cicddiu restent compatibles.
 
 ## Version du paquet
 
-Sans arguments supplémentaires, `manage_project_action` produit un horodatage
+Sans PROJECT_VERSION ni arguments supplémentaires, `manage_project_action` produit un horodatage
 local au format :
 
 ```text
@@ -155,14 +170,14 @@ commit : 2026.09.03.17.25
 tag    : v2026.09.03.17.25
 ```
 
-Le commit et le tag du flux cicddiu restent créés avant le build. La politique
+Le commit et le tag du flux cicddiu restent créés avant le build. En absence de PROJECT_VERSION, la politique
 V2 retient l’unique version Debian valide portée par les tags de HEAD, après
 retrait du préfixe v éventuel. Les tags équivalents v1.2.3 et 1.2.3 désignent une
 seule version. Un tag inexploitable, plusieurs versions distinctes ou un échec
 de consultation Git provoquent un arrêt explicite avant publication.
 
-Sans métadonnées Git à la racine du projet source ou sans tag de HEAD, le
-builder utilise l’heure locale YYYY.MM.DD.HH.MM. Il distingue l’absence de tag
+Sans PROJECT_VERSION, et sans métadonnées Git à la racine du projet source ou
+sans tag de HEAD, le builder utilise l’heure locale YYYY.MM.DD.HH.MM. Il distingue l’absence de tag
 d’une erreur de lecture. La release utilise la même sélection et exige son
 égalité avec la version du paquet. Sans tag, elle conserve cette version du
 paquet sans générer un nouvel horodatage ; son tag est v<VERSION>.
