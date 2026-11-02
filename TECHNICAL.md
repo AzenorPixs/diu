@@ -122,7 +122,7 @@ root lorsque l'opération modifie le système.
 
 ### Accès sudo sans mot de passe au compte DevOps
 
-À la fin du bloc `ENV_DEVOPS=1`, `configure_devops_sudoers` génère
+À la fin du bloc `ENVIRONMENTS_DEVOPS=1`, `configure_devops_sudoers` génère
 `/etc/sudoers.d/99-diu-devops` si `ENV_DEVOPS_USER` existe. Chaque compte humain
 retenu reçoit `compte ALL=(ENV_DEVOPS_USER) NOPASSWD: ALL`, avec les noms réels,
 pour utiliser `sudo -u` ou `sudo -iu` sans mot de passe.
@@ -177,7 +177,7 @@ ou `Sudoers Docker : aucun compte humain retenu.` en cas de sélection vide.
 
 Psycopg relève des dépendances des projets, déclarées notamment dans leur
 `pyproject.toml`. Sa gestion par le DIU est temporairement désactivée : le
-bloc `ENV_DEVOPS=1` et `PYTHON=1` conserve en commentaires l'installation,
+bloc `ENVIRONMENTS_DEVOPS=1` et `PYTHON=1` conserve en commentaires l'installation,
 la mise à jour, la lecture de version, le contrôle d'import et les messages
 Psycopg. La préparation de Python, pip, leurs liens, le profil Python et la
 gestion des droits DevOps restent inchangés. L'absence de Psycopg ou un import
@@ -941,6 +941,12 @@ Les nouvelles lignes de ces deux indicateurs commencent par huit espaces avant
 développeur. Une désactivation reconnaît également les déclarations anciennes
 sans retrait ou précédées de tabulations ; les lignes existantes ne sont pas
 reformatées lors de la génération.
+
+`modules/diu/variables/environnements/env_devops.sh` déclare
+`ENVIRONMENTS_DEVOPS` en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`.
+L'ancienne valeur littérale `ENV_DEVOPS=0|1` est migrée exactement vers
+`environnements.env`; le bloc de création du compte et de préparation du profil
+DevOps utilise le nouveau nom.
 Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
 produit un diagnostic stderr et un statut non nul, sans définir la variable
 absente concernée.

@@ -60,7 +60,8 @@ config_cleanup() {
     local system_config_file="${2:-/root/diu/config/system.env}"
     local softwares_config_file="${3:-/root/diu/config/softwares.env}"
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|APACHE2|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local environnements_config_file="${5:-/root/diu/config/environnements.env}"
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|APACHE2|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -73,6 +74,8 @@ config_cleanup() {
     local no_sleep_value='' no_sleep_found=0 system_no_sleep_declared=0
     local desktop_value='' desktop_found=0 desktop_config_declared=0
     local software_desktop_value='' software_desktop_found=0 software_desktop_lines=''
+    local env_devops_value='' env_devops_found=0 environments_devops_declared=0
+    local env_devops_config_value='' env_devops_config_found=0 env_devops_config_lines=''
     local apache2_value='' apache2_found=0 softwares_apache2_declared=0
     local crowdsec_agent_value='' crowdsec_agent_found=0
     local system_crowdsec_agent_value='' system_crowdsec_agent_found=0
@@ -173,6 +176,14 @@ config_cleanup() {
                 no_sleep_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique NO_SLEEP ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS= ]]; then
+            env_devops_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                env_devops_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique ENV_DEVOPS ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DESKTOP= ]]; then
@@ -309,6 +320,43 @@ config_cleanup() {
     if [[ "$software_desktop_found" == 1 ]]; then
         desktop_found=1
         desktop_value="$software_desktop_value"
+    fi
+    if [[ -e "$environnements_config_file" ]]; then
+        if [[ ! -f "$environnements_config_file" || ! -r "$environnements_config_file" ]]; then
+            printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
+            return 1
+        fi
+        if grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENVIRONMENTS_DEVOPS=' \
+            "$environnements_config_file" > /dev/null 2>&1; then
+            environments_devops_declared=1
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
+                return 1
+            fi
+        fi
+        if env_devops_config_lines="$(grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS=' "$environnements_config_file")"; then
+            while IFS= read -r line; do
+                env_devops_config_found=1
+                if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                    env_devops_config_value="${BASH_REMATCH[3]}"
+                else
+                    printf '%s\n' 'Erreur : ancienne déclaration ENV_DEVOPS ambiguë ; nettoyage impossible.' >&2
+                    return 1
+                fi
+            done <<< "$env_devops_config_lines"
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
+                return 1
+            fi
+        fi
+    fi
+    if [[ "$env_devops_config_found" == 1 ]]; then
+        env_devops_found=1
+        env_devops_value="$env_devops_config_value"
     fi
 
     if [[ "$fstab_found" == 1 ]]; then
@@ -571,6 +619,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$env_devops_found" == 1 && "$environments_devops_declared" == 0 ]]; then
+        if ! install -d -m 0755 "$(dirname "$environnements_config_file")"; then
+            printf '%s\n' 'Erreur : création de la configuration environnements impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$crowdsec_bouncer_found" == 1 && "$softwares_crowdsec_bouncer_declared" == 0 ]]; then
         if ! install -d -m 0755 "$(dirname "$softwares_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration logiciels impossible.' >&2
@@ -685,6 +739,19 @@ config_cleanup() {
     if [[ "$desktop_found" == 1 && "$desktop_config_declared" == 0 ]]; then
         if ! printf 'export DESKTOP=%s\n' "$desktop_value" >> "$desktop_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration DESKTOP impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$env_devops_found" == 1 && "$environments_devops_declared" == 0 ]]; then
+        if ! printf 'export ENVIRONMENTS_DEVOPS=%s\n' "$env_devops_value" >> "$environnements_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration ENV_DEVOPS impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ -f "$environnements_config_file" ]] && grep -E \
+        '^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS=' "$environnements_config_file" > /dev/null 2>&1; then
+        if ! sed -i -E '/^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS=/d' "$environnements_config_file"; then
+            printf '%s\n' 'Erreur : suppression de l ancienne declaration ENV_DEVOPS impossible.' >&2
             return 1
         fi
     fi
