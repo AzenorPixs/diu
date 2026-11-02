@@ -122,7 +122,7 @@ root lorsque l'opération modifie le système.
 
 ### Accès sudo sans mot de passe au compte DevOps
 
-À la fin du bloc `ENV_DEVOPS=1`, `configure_devops_sudoers` génère
+À la fin du bloc `ENVIRONMENTS_DEVOPS=1`, `configure_devops_sudoers` génère
 `/etc/sudoers.d/99-diu-devops` si `ENV_DEVOPS_USER` existe. Chaque compte humain
 retenu reçoit `compte ALL=(ENV_DEVOPS_USER) NOPASSWD: ALL`, avec les noms réels,
 pour utiliser `sudo -u` ou `sudo -iu` sans mot de passe.
@@ -155,7 +155,7 @@ commenté. Un échec ou un compte cible absent ne produit aucun message de succ�
 
 ### Accès sudo sans mot de passe au compte Docker
 
-À la fin de la branche active du bloc `ENV_DOCKER=1`, avant son `else` de
+À la fin de la branche active du bloc `ENVIRONMENT_DOCKER=1`, avant son `else` de
 désactivation, `configure_docker_sudoers` génère
 `/etc/sudoers.d/99-diu-docker` si `ENV_DOCKER_USER` existe. Chaque compte humain
 retenu reçoit `compte ALL=(ENV_DOCKER_USER) NOPASSWD: ALL`, avec les noms réels.
@@ -163,6 +163,12 @@ La sélection UID/shell, les exclusions et les contrôles de publication sont
 identiques à ceux décrits pour DevOps, y compris l'exclusion des comptes
 configurés DevOps, Docker et IA. Un bloc désactivé ou un compte absent ne
 révoque pas de règles déjà installées.
+
+Le propriétaire des stacks Docker est déclaré dans le scope `docker` sous le
+nom `ENVIRONMENT_DOCKER_USER`, en `STATIC`, `ENABLE`, défaut `docker`.
+L'ancienne valeur littérale `DOCKER_USER` est migrée exactement vers
+`docker.env`; une valeur nouvelle existante garde la priorité. Les références
+aux chemins et données des stacks utilisent le nouveau nom.
 
 Les deux fonctions utilisent `configure_environment_sudoers`, limité aux
 scopes fixes `devops` et `docker`. Chaque scope possède son candidat caché et
@@ -177,7 +183,7 @@ ou `Sudoers Docker : aucun compte humain retenu.` en cas de sélection vide.
 
 Psycopg relève des dépendances des projets, déclarées notamment dans leur
 `pyproject.toml`. Sa gestion par le DIU est temporairement désactivée : le
-bloc `ENV_DEVOPS=1` et `PYTHON=1` conserve en commentaires l'installation,
+bloc `ENVIRONMENTS_DEVOPS=1` et `PYTHON=1` conserve en commentaires l'installation,
 la mise à jour, la lecture de version, le contrôle d'import et les messages
 Psycopg. La préparation de Python, pip, leurs liens, le profil Python et la
 gestion des droits DevOps restent inchangés. L'absence de Psycopg ou un import
@@ -689,14 +695,27 @@ dans `BUILD.md`.
 Le point d'entrée appelle cette fonction avant de sourcer
 `/root/diu/variables.sh`. Elle supprime uniquement les affectations simples de
 `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6` et
+`PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
+`LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP`, `DESKTOP`,
+`CROWDSEC_AGENT`, `SYSTEM_CROWDSEC_AGENT`, `CROWDSEC_BOUNCER`,
+`CROWDSEC_BOUNCER_API_KEY`, `SYSTEM_APT_CROWDSEC`, `APACHE2` et
 `FSTAB_CONFIG1` à `FSTAB_CONFIG6`,
 avec `export` facultatif et espaces initiaux éventuels.
 Elle conserve les autres variables, commentaires et noms voisins.
 
-Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG` et `IPv6`, le
-nettoyage transfère la dernière valeur littérale `0` ou `1` vers leur nouveau
-nom système dans `system.env`.
+Pour `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6` et
+`LOG_ROTATE`, le nettoyage transfère la dernière valeur littérale `0` ou `1`
+vers leur nouveau nom système dans `system.env`. Pour `JOURNALD_MAX_USE` et
+`JOURNALD_KEEP_FREE`, il transfère la dernière taille littérale journald
+simple, sans l’évaluer. `NO_SLEEP` suit également la migration littérale
+`0|1` sans évaluation.
+`APACHE2` est migrée séparément vers `SOFTWARES_APT_APACHE2` dans
+`softwares.env`, avec validation littérale et priorité au nouveau nom.
+Les réglages `CROWDSEC_AGENT`, `SYSTEM_CROWDSEC_AGENT`,
+`CROWDSEC_BOUNCER`, `SYSTEM_APT_CROWDSEC` et `CROWDSEC_BOUNCER_API_KEY` sont
+migrés vers les noms logiciels dédiés dans `softwares.env`. Les valeurs 0/1
+sont transférées littéralement; la clé API est copiée sans affichage ni
+évaluation et le fichier reçoit le mode `0600`.
 Pour `FSTAB_CONFIG1` à `FSTAB_CONFIG6`, il transfère la dernière valeur
 littérale simple, y compris une valeur entre guillemets. Une déclaration
 nouvelle déjà présente prévaut ; toute syntaxe exigeant une interprétation
@@ -712,11 +731,16 @@ Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 `SYSTEM_DEBIAN_ENVIRONNEMENT`, `SYSTEM_DRIVERS_DISPLAY_LINK`,
 `SYSTEM_TIME_ZONE`, `SYSTEM_PROXY_CA`, `SYSTEM_PROXY`,
 `SYSTEM_DRIVERS_NVIDIA`, `SYSTEM_FSTAB`, `SYSTEM_FILES2RAM`,
-`SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6` et
+`SYSTEM_GRUB_CONFIG`, `SYSTEM_IPV6`, `SYSTEM_LOG_ROTATE`,
+`SYSTEM_JOURNALD_MAX_USE`, `SYSTEM_JOURNALD_KEEP_FREE`, `SYSTEM_NO_SLEEP` et
 `SYSTEM_FSTAB_CONFIG1` à `SYSTEM_FSTAB_CONFIG6`. À l’exception des migrations littérales documentées
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
 autres anciennes affectations supprimées.
+
+Le contrôle d’installation Apache2 utilise `SOFTWARES_APT_APACHE2`, déclaré
+dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
+`softwares.env`.
 
 ### Déclarations unitaires
 
@@ -837,6 +861,80 @@ migrée sans altération et prévaut sur la détection; toute valeur nouvelle
 déjà définie garde la priorité. Le point d’entrée conserve les traitements
 sysctl IPv6 existants sous le nouveau nom.
 
+### Contrôle logrotate système
+
+`modules/diu/variables/system/system_log_rotate.sh` déclare
+`SYSTEM_LOG_ROTATE` en `STATIC`, `ENABLE`, scope `system`, défaut `0`. Une
+valeur préconfigurée `0` ou `1` est conservée; toute autre valeur est refusée.
+L’ancienne valeur littérale `LOG_ROTATE=0|1` est migrée exactement si aucune
+valeur nouvelle n’est déjà présente. Le point d’entrée ne modifie le fichier
+`/etc/logrotate.conf` que lorsque `SYSTEM_LOG_ROTATE=1`; dans ce cas il
+continue d’utiliser `LOG_ROTATE_DAILY` pour le compte de rotations.
+
+### Limite de taille journald
+
+`modules/diu/variables/system/system_journald_max_use.sh` déclare
+`SYSTEM_JOURNALD_MAX_USE` en `STATIC`, `ENABLE`, scope `system`, défaut
+`500M`. Les valeurs acceptées sont un entier, suivi facultativement de `K`,
+`M`, `G`, `T`, `P` ou `E`. Une valeur historique simple
+`JOURNALD_MAX_USE` est migrée sans l’évaluer; une valeur nouvelle déjà
+configurée est prioritaire. Le point d’entrée utilise cette limite pour les
+journaux systemd persistants et volatils. `JOURNALD_KEEP_FREE` reste distinct.
+
+### Espace libre journald
+
+`modules/diu/variables/system/system_journald_keep_free.sh` déclare
+`SYSTEM_JOURNALD_KEEP_FREE` en `STATIC`, `ENABLE`, scope `system`, défaut
+`1G`. Les valeurs acceptées sont un entier, suivi facultativement de `K`,
+`M`, `G`, `T`, `P` ou `E`. Une valeur historique simple
+`JOURNALD_KEEP_FREE` est migrée sans l’évaluer; une valeur nouvelle déjà
+configurée est prioritaire. Le point d’entrée utilise cette réserve pour les
+journaux systemd persistants et volatils.
+
+### Contrôle de veille systemd
+
+`modules/diu/variables/system/system_no_sleep.sh` déclare `SYSTEM_NO_SLEEP` en
+`STATIC`, `ENABLE`, scope `system`, défaut `0`. Une valeur historique simple
+`NO_SLEEP=0|1` est migrée exactement; une valeur nouvelle déjà configurée est
+prioritaire. `SYSTEM_NO_SLEEP=1` crée `nosleep.conf` avec les paramètres
+existants qui désactivent suspend et hibernation. Une valeur `0` ignore ce
+bloc et ne supprime pas un fichier `nosleep.conf` déjà présent.
+
+### CrowdSec dans le scope logiciels
+
+Les interrupteurs `SOFTWARES_APT_CROWDSEC`,
+`SOFTWARES_APT_CROWDSEC_AGENT` et `SOFTWARES_APT_CROWDSEC_BOUNCER` sont
+déclarés dans le scope `softwares`. Le dépôt CrowdSec est configuré par APT;
+les paquets `crowdsec` et `crowdsec-firewall-bouncer-iptables` sont installés
+par APT. La clé `SOFTWARES_CROWDSEC_BOUNCER_API_KEY` est aussi stockée dans
+`softwares.env`, qui est protégé en mode `0600` dès qu'il contient la clé.
+L’application à la configuration YAML ne transmet pas la valeur dans les
+arguments d’un processus enfant ni dans la sortie.
+
+Le profil de bureau utilise `DESKTOP`, déclaré en `STATIC`, `ENABLE`, scope
+`desktop`, défaut `0`. La valeur historique `DESKTOP=0|1` est déplacée de
+`variables.sh` vers `desktop.env`; l'ancienne valeur plus récente
+`SOFTWARES_APT_DESKTOP=0|1` de `softwares.env` est également migrée exactement
+si `DESKTOP` n'est pas déjà déclaré dans `desktop.env`. Les deux consommateurs
+du point d'entrée utilisent ce contrôle.
+
+### Contrôle de la stack Docker Traefik / Dockhand
+
+`modules/diu/variables/docker/docker_stack_traefik_dockhand.sh` déclare
+`DOCKER_STACK_TRAEFIK_DOCKHAND` en `STATIC`, `ENABLE`, scope `docker`, défaut
+`0`. Une valeur existante `0` ou `1` est conservée; une valeur absente est
+persistée dans `/root/diu/config/docker.env` avec le défaut `0`. Les
+consommateurs existants de la stack gardent ce nom; `1` active la stack et les
+entrées d’hôtes associées.
+
+### Contrôle de la stack Docker DevOps
+
+`modules/diu/variables/docker/docker_stack_devops.sh` déclare
+`DOCKER_STACK_DEVOPS` en `STATIC`, `ENABLE`, scope `docker`, défaut `0`. Une
+valeur existante `0` ou `1` est conservée; une valeur absente est persistée
+dans `/root/diu/config/docker.env` avec le défaut `0`. Le consommateur
+existant conserve le même nom; `1` active l’ajout des noms d’hôtes DevOps.
+
 ### Indicateurs de tests DevOps
 
 `modules/diu/variables/environnements/env_devops_tests_docker.sh` et
@@ -849,6 +947,18 @@ Les nouvelles lignes de ces deux indicateurs commencent par huit espaces avant
 développeur. Une désactivation reconnaît également les déclarations anciennes
 sans retrait ou précédées de tabulations ; les lignes existantes ne sont pas
 reformatées lors de la génération.
+
+`modules/diu/variables/environnements/env_devops.sh` déclare
+`ENVIRONMENTS_DEVOPS` en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`.
+L'ancienne valeur littérale `ENV_DEVOPS=0|1` est migrée exactement vers
+`environnements.env`; le bloc de création du compte et de préparation du profil
+DevOps utilise le nouveau nom.
+
+`modules/diu/variables/environnements/environment_docker.sh` déclare
+`ENVIRONMENT_DOCKER` en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`.
+L'ancienne valeur littérale `ENV_DOCKER=0|1` est migrée exactement vers
+`environnements.env`; les paramètres voisins `ENV_DOCKER_USER` et
+`ENV_DOCKER_GROUP` restent distincts.
 Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
 produit un diagnostic stderr et un statut non nul, sans définir la variable
 absente concernée.
@@ -1060,6 +1170,16 @@ La préparation du client et du remote Flatpak relève séparément du module
 Les identifiants logiciels sont validés avant routage. Une recette doit être
 déclarée explicitement par le moteur ; le nom fourni par l'utilisateur ne doit
 jamais devenir directement un nom de fonction ou une commande shell.
+
+### Apache2 via APT
+
+`modules/diu/variables/softwares/software_apt_apache2.sh` déclare
+`SOFTWARES_APT_APACHE2` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+Une valeur existante `0` ou `1` est conservée; une valeur absente est
+persistée dans `/root/diu/config/softwares.env`. L’ancienne valeur littérale
+`APACHE2=0|1` est migrée exactement vers ce scope si aucune nouvelle valeur
+n’est déjà définie. Une valeur `1` garde l’installation Apache2 et de ses
+dépendances existantes selon la version Debian détectée.
 
 ### Moteur `deb`
 
