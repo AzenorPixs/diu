@@ -5603,7 +5603,7 @@ then
 
 fi
 
-if [ "$FASTFETCH" -eq 1 ]
+if [[ "${SOFTWARES_APT_FASTFETCH:-0}" -eq 1 ]]
 then
 
 	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ] || [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]

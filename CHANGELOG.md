@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `FASTFETCH` vers `SOFTWARES_APT_FASTFETCH`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement sauf si le
+  nouveau nom est déjà configuré; le comportement par distribution est
+  conservé.
+
 - Environnement IA : migration de `ENV_IA` vers `ENVIRONMENT_IA`, déclaré en
   `STATIC`, `ENABLE`, scope `environnements`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement sauf si le nouveau
