@@ -15,6 +15,11 @@ rid_display_help_context() {
             ;;
     esac
 
+    if [[ "$context:$subcontext" == projects:github && ( -z "$leaf" || "$leaf" == release ) ]]; then
+        printf '%s\n' "GitHub release : PROJECT_DOCKERED=Yes/YES/1 publie l’image sur GHCR ; PROJECT_DEBIAN_PACKAGE=Yes/YES/1 publie le .deb dans GitHub Releases ; les deux sont possibles."
+        printf '%s\n' 'Artefacts déjà construits, sans build ; contrôles Debian identiques à Forgejo, refus si une release existe déjà.'
+    fi
+
     if [[ "$context:$subcontext" == projects:build ]]; then
         if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != deb && "$leaf" != debian ) ||
             ( -n "$target" && ( ! "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
@@ -329,6 +334,7 @@ rid_display_help_context() {
             printf '%s\n' '1. Commit/tag ; 2. Pushes Git ; 3. Build Docker ; 4. Build Debian ; 5. Publications ; 6. Bilan.'
             printf '%s\n' 'Build Debian indépendant de Docker : PROJECT_DEBIAN_PACKAGE=Yes/YES/1 ; même moteur que rid projects build debian <ID PROJECT>.'
             printf '%s\n' 'Un échec du build empêche les releases ; les pushes déjà réalisés restent publiés.'
+            printf '%s\n' "À l’étape 5, Debian peut être publié sur Forgejo, GitLab et GitHub selon leur configuration, même sans Docker."
             ;;
         projects:cicddiu:|projects:cicddiu:*)
             rid_help_line 'rid projects cicddiu [COMMIT] [TAG]' 'Exécute la CI/CD du DIU ; PROJECT_VERSION est prioritaire pour le tag.'

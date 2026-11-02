@@ -1,32 +1,38 @@
 # implement-projects-github-release Specification
 
 ## Purpose
-Définir la publication Docker d'un projet DIU vers GitHub Container Registry.
+Définir la sélection et la publication des artefacts Docker et Debian d'un projet
+vers GitHub Container Registry et GitHub Releases.
 
 ## Requirements
 
 ### Requirement: commande de release GitHub
 
 Le système MUST exposer `rid projects github release <ID PROJECT>`, qui appelle
-`projects_github_release <ID PROJECT>`.
+`projects_github_release <ID PROJECT>`. Selon les indicateurs Yes/YES/1, la
+commande MUST publier Docker seul, Debian seul ou les deux ; sans artefact actif,
+elle MUST terminer sans publication. Elle MUST NOT lancer de build.
 
 #### Scenario: aide GitHub
 
 - **WHEN** l'utilisateur demande `rid projects github help`
 - **THEN** l'aide présente `release <ID PROJECT>`
 
+#### Scenario: Debian seul
+- **WHEN** seul PROJECT_DEBIAN_PACKAGE est actif
+- **THEN** le paquet est publié dans GitHub Releases sans appel de Docker
+
+#### Scenario: Deux artefacts
+- **WHEN** les deux indicateurs sont actifs et les artefacts requis sont présents
+- **THEN** Docker est publié sur GHCR puis le paquet dans GitHub Releases
+
+#### Scenario: Aucun artefact
+- **WHEN** aucun indicateur n'est actif
+- **THEN** la commande informe qu'aucun artefact n'est à publier et réussit
+
 ### Requirement: publication Docker GHCR conditionnelle
 
-`projects_github_release` MUST vérifier que `PROJECT_DOCKERED` vaut `Yes`,
-`YES` ou `1`, puis publier l'image locale
-`<PROJECT_ID>:latest` vers
-`ghcr.io/<REMOTE_GITHUB_OWNER>/<REMOTE_GITHUB_REPOSITORY>` avec un tag dérivé
-de l'unique tag Git de `HEAD` et avec `latest`. La fonction MUST échouer si
-l'image locale, le tag Git unique ou la configuration GitHub attendue manque.
-
-Les chemins GHCR MUST être construits en minuscules.
-
-La fonction MUST NOT appeler `projects_docker_build`.
+Si PROJECT_DOCKERED vaut Yes/YES/1, le sélecteur MUST appeler projects_github_release_docker. Ce helper MUST publier l'image locale selon project-version vers GHCR avec VERSION et latest, et les chemins propriétaire/dépôt en minuscules. Sans PROJECT_VERSION, VERSION MUST venir de l'unique tag de HEAD. Configuration, image ou tag invalide MUST provoquer un échec. Il MUST NOT appeler projects_docker_build.
 
 #### Scenario: image Docker préalablement construite
 

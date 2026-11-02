@@ -184,6 +184,7 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 
 | Identifiant technique | Titre | État | Code | Dossier | Source |
 |---|---|---|---|---|---|
+| add-github-debian-release | Publication Debian GitHub selon les conditions Forgejo | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-02-add-github-debian-release/) | [proposition](changes/archive/2026-11-02-add-github-debian-release/proposal.md) |
 | add-debian-build-to-projects-cicd | Construction Debian dans la CI/CD générique | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-02-add-debian-build-to-projects-cicd/) | [proposition](changes/archive/2026-11-02-add-debian-build-to-projects-cicd/proposal.md) |
 | prioritize-project-version | Priorité de PROJECT_VERSION pour les artefacts et Git | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-02-prioritize-project-version/) | [proposition](changes/archive/2026-11-02-prioritize-project-version/proposal.md) |
 | add-projects-debian-build | Construction Debian générique par recette de projet | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-02-add-projects-debian-build/) | [proposition](changes/archive/2026-11-02-add-projects-debian-build/proposal.md) |
@@ -195,7 +196,7 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 | add-system-fstab-config-six | Ajout de SYSTEM_FSTAB_CONFIG6 | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-config-six/) | [proposition](changes/archive/2026-11-01-add-system-fstab-config-six/proposal.md) |
 | add-system-files2ram-variable | Déclaration modulaire de SYSTEM_FILES2RAM | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-files2ram-variable/) | [proposition](changes/archive/2026-11-01-add-system-files2ram-variable/proposal.md) |
 
-Treize entrées « code non attribué » : trois actives et dix archivées. Couverture des codes : 125/138 changes, 125 codes uniques ; couverture de navigation : 138/138. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
+Quatorze entrées « code non attribué » : trois actives et onze archivées. Couverture des codes : 125/139 changes, 125 codes uniques ; couverture de navigation : 139/139. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
 
 Annotations limitées à 58 préfixages et 67 ajouts de titre principal. Contenus préexistants hors titre conservés octet pour octet. Les liens et correspondances avec la cartographie sont contrôlés ; aucune tâche ni exigence n’est modifiée.
 

@@ -265,7 +265,7 @@ _github_read_token() { github_token=fixture-token; }
 _github_ensure_credentials() { return 0; }
 _gitlab_ensure_credentials() { return 0; }
 ''' + {'forgejo': 'projects_forgejo_release_docker', 'gitlab': 'projects_gitlab_release_docker',
-       'github': 'projects_github_release', 'gitlab-debian': 'projects_gitlab_release_debian'}[provider] + ' project\n', TMPDIR=str(self.base), **extra)
+       'github': 'projects_github_release_docker', 'gitlab-debian': 'projects_gitlab_release_debian'}[provider] + ' project\n', TMPDIR=str(self.base), **extra)
 
     def test_docker_releases_use_versioned_source_for_three_providers(self):
         self.release_config()
