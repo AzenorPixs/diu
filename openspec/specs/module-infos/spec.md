@@ -134,3 +134,14 @@ system_info_drivers dans modules/system/infos.sh SHALL répondre à rid system i
 - **WHEN** les informations des environnements sont demandées
 - **THEN** la valeur configurée de `ENVIRONMENTS_DEVOPS` est affichée
 - **AND** une variable absente est affichée comme `UNSET`
+
+### Requirement: Information de l'activation Docker
+
+`environments_infos` SHALL afficher `ENVIRONMENT_DOCKER` sous le titre
+`ENVIRONNEMENTS`.
+
+#### Scenario: État Docker affiché
+
+- **WHEN** les informations des environnements sont demandées
+- **THEN** la valeur configurée de `ENVIRONMENT_DOCKER` est affichée
+- **AND** une variable absente est affichée comme `UNSET`

@@ -4872,7 +4872,7 @@ EOF
 
 fi
 
-if [ "$ENV_DOCKER" -eq 1 ]
+if [ "${ENVIRONMENT_DOCKER:-0}" -eq 1 ]
 then
 
   groupadd -f "$ENV_DOCKER_GROUP"

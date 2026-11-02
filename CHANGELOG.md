@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Environnement Docker : migration de `ENV_DOCKER` vers `ENVIRONMENT_DOCKER`,
+  déclaré en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement sauf si le
+  nouveau nom est déjà configuré.
+
 - Environnement DevOps : migration de `ENV_DEVOPS` vers
   `ENVIRONMENTS_DEVOPS`, déclaré en `STATIC`, `ENABLE`, scope `environnements`,
   défaut `0`. La dernière valeur historique littérale `0` ou `1` est transférée

@@ -612,6 +612,31 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(environments_config.read_text(),
                              'ENV_DEVOPS_USER=builder\nexport ENVIRONMENTS_DEVOPS=0\n')
 
+    def test_env_docker_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            path.write_text('ENV_DOCKER=0\nexport ENV_DOCKER=1 # enabled\nENV_DOCKER_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_DOCKER_USER=builder\n')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_DOCKER=1\n')
+
+            path.write_text('ENV_DOCKER=1\n')
+            environments_config.write_text('export ENVIRONMENT_DOCKER=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_DOCKER=0\n')
+
+            path.write_text('ENV_DOCKER=1\n')
+            environments_config.write_text('export ENV_DOCKER=0\nENV_DOCKER_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(),
+                             'ENV_DOCKER_USER=builder\nexport ENVIRONMENT_DOCKER=0\n')
+
     def test_ambiguous_env_devops_value_is_preserved_without_exposure(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
@@ -623,6 +648,19 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(path.read_text(), original)
             self.assertFalse(environments_config.exists())
             self.assertNotIn('/tmp/diu-env-devops-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ambiguous_env_docker_value_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'environnements.env'
+            original = 'ENV_DOCKER="$(touch /tmp/diu-env-docker-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(docker_config.exists())
+            self.assertNotIn('/tmp/diu-env-docker-should-not-run', result.stderr)
             self.assertEqual(result.stdout, '')
 
     def test_ambiguous_desktop_value_fails_without_modification(self):

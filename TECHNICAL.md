@@ -155,7 +155,7 @@ commenté. Un échec ou un compte cible absent ne produit aucun message de succ�
 
 ### Accès sudo sans mot de passe au compte Docker
 
-À la fin de la branche active du bloc `ENV_DOCKER=1`, avant son `else` de
+À la fin de la branche active du bloc `ENVIRONMENT_DOCKER=1`, avant son `else` de
 désactivation, `configure_docker_sudoers` génère
 `/etc/sudoers.d/99-diu-docker` si `ENV_DOCKER_USER` existe. Chaque compte humain
 retenu reçoit `compte ALL=(ENV_DOCKER_USER) NOPASSWD: ALL`, avec les noms réels.
@@ -947,6 +947,12 @@ reformatées lors de la génération.
 L'ancienne valeur littérale `ENV_DEVOPS=0|1` est migrée exactement vers
 `environnements.env`; le bloc de création du compte et de préparation du profil
 DevOps utilise le nouveau nom.
+
+`modules/diu/variables/environnements/environment_docker.sh` déclare
+`ENVIRONMENT_DOCKER` en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`.
+L'ancienne valeur littérale `ENV_DOCKER=0|1` est migrée exactement vers
+`environnements.env`; les paramètres voisins `ENV_DOCKER_USER` et
+`ENV_DOCKER_GROUP` restent distincts.
 Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
 produit un diagnostic stderr et un statut non nul, sans définir la variable
 absente concernée.
