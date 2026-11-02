@@ -8435,7 +8435,8 @@ echo ""
 echo ""
 echo ""
 echo "######################################"
-echo "# Update ALIAS 		: $VERSION_ALIAS #"
+# shellcheck disable=SC2153
+echo "# DIU VERSION 		: $DIU_VERSION #"
 echo "# Update VARIABLES 	: $VERSION_VARIABLES #"
 # VERSION provient de la configuration historique, distincte des versions locales des modules.
 # shellcheck disable=SC2153

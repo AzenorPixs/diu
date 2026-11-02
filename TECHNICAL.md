@@ -738,6 +738,10 @@ ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
 autres anciennes affectations supprimées.
 
+Le résumé de mise à jour affiche `DIU_VERSION`, déclarée dynamiquement dans le
+scope `diu` depuis la version retournée par `dpkg-query` pour le paquet `diu`.
+L’ancienne valeur `VERSION_ALIAS` n’est pas transférée.
+
 Le contrôle d’installation Apache2 utilise `SOFTWARES_APT_APACHE2`, déclaré
 dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
 `softwares.env`.

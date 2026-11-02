@@ -62,7 +62,7 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|DOCKER_STACK_BUNKERWEB_UPGRADE|DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|VERSION_ALIAS|DOCKER_STACK_BUNKERWEB_UPGRADE|DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -229,6 +229,11 @@ config_cleanup() {
                 env_ia_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique ENV_IA ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?VERSION_ALIAS= ]]; then
+            if ! config_cleanup_parse_fstab_literal "${line#*=}"; then
+                printf '%s\n' 'Erreur : affectation historique VERSION_ALIAS ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DOCKER_STACK_BUNKERWEB_UPGRADE= ]]; then
