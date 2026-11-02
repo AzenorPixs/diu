@@ -8437,7 +8437,6 @@ echo ""
 echo "######################################"
 # shellcheck disable=SC2153
 echo "# DIU VERSION 		: $DIU_VERSION #"
-echo "# Update VARIABLES 	: $DIU_VARIABLES_VERSION #"
 # VERSION provient de la configuration historique, distincte des versions locales des modules.
 # shellcheck disable=SC2153
 echo "# Update SCRIPT - RI 	: $VERSION #"

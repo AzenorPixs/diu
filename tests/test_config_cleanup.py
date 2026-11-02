@@ -1776,7 +1776,7 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotIn(str(sentinel), result.stderr)
             self.assertEqual(result.stdout, '')
 
-    def test_legacy_version_literals_are_removed_without_transfer(self):
+    def test_version_alias_literal_is_removed_without_transfer(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
             path.write_text('VERSION_ALIAS="ancienne alias"\nVERSION=2026.1\nVERSION_VARIABLES=16.07.2026\n')

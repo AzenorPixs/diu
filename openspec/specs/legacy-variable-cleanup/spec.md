@@ -1256,7 +1256,7 @@ bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une affectation littérale
   `VERSION_VARIABLES`
 - **THEN** cette affectation SHALL être supprimée sans évaluation
-- **AND** la valeur SHALL NOT être transférée vers `DIU_VARIABLES_VERSION`
+- **AND** SHALL NOT transférer sa valeur vers une variable de configuration
 
 #### Scenario: VERSION_VARIABLES ambiguë
 
