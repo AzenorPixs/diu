@@ -6385,7 +6385,7 @@ else
 
 fi
 
-if [ "$WAZUH_CLIENT" -eq 1 ]
+if [[ "${SOFTWARES_APT_WAZUH_AGENT:-0}" -eq 1 ]]
 then
 
 	if [ -f /root/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb ]

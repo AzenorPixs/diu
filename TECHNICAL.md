@@ -769,6 +769,8 @@ Le contrôle Syncthing utilise `SOFTWARES_APT_SYNCTHING` dans `softwares.env`
 pour l’installation du paquet et le rendu conditionnel de `.stignore`.
 Le contrôle Webmin utilise `SOFTWARES_APT_WEBMIN` dans `softwares.env`; son
 dépôt APT reste contrôlé séparément par `SYSTEM_APT_WEBMIN`.
+Le contrôle de l’agent Wazuh utilise `SOFTWARES_APT_WAZUH_AGENT` dans
+`softwares.env`; `WAZUH_CLIENT_VERSION` reste le sélecteur de version séparé.
 Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
 `SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
 Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
@@ -1352,6 +1354,14 @@ point d’entrée conserve l’installation APT et le rendu conditionnel de
 L’ancienne valeur littérale `WEBMIN=0|1` est transférée exactement vers
 `softwares.env` si le nouveau nom n’y est pas déjà défini.
 `SYSTEM_APT_WEBMIN` reste le réglage distinct du dépôt tiers.
+
+### Agent Wazuh par paquet Debian
+
+`modules/diu/variables/softwares/software_apt_wazuh_agent.sh` déclare
+`SOFTWARES_APT_WAZUH_AGENT` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `WAZUH_CLIENT=0|1` est transférée exactement
+vers `softwares.env` si le nouveau nom n’y est pas déjà défini.
+`WAZUH_CLIENT_VERSION` reste inchangée et sélectionne la version du paquet.
 
 ### Moteur `deb`
 

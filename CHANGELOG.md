@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel : migration de `WAZUH_CLIENT` vers `SOFTWARES_APT_WAZUH_AGENT`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement;
+  `WAZUH_CLIENT_VERSION` reste distincte.
+
 - Logiciel APT : migration de `WEBMIN` vers `SOFTWARES_APT_WEBMIN`, déclaré en
   `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement; le dépôt
