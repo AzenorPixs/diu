@@ -4094,7 +4094,7 @@ then
 
 	install -d -o "$ENV_DEVOPS_USER" -g "$ENV_DEVOPS_GROUP" -m 2770 "/home/$ENV_DEVOPS_USER/.local/npm" "/home/$ENV_DEVOPS_USER/.local/npm/bin" "/home/$ENV_DEVOPS_USER/.opencode/bin" "/home/$ENV_DEVOPS_USER/datas" "/home/$ENV_DEVOPS_USER/syncthing"
 
-  if [ "${SYNCTHING}" = "1" ]; then
+  if [[ "${SOFTWARES_APT_SYNCTHING:-0}" == "1" ]]; then
       cat > /home/devops/datas/.stignore <<'EOF'
 # Dépôts Git
 **/.git/
@@ -6356,7 +6356,7 @@ then
 
 fi
 
-if [ "${SYNCTHING}" -eq 1 ]; then
+if [[ "${SOFTWARES_APT_SYNCTHING:-0}" -eq 1 ]]; then
 
     if dpkg -s syncthing >/dev/null 2>&1; then
         echo "SYNCTHING OK ✅"
