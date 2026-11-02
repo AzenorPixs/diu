@@ -5984,7 +5984,7 @@ then
 
 fi
 
-if [ "$SYSLOG_SERVER" -eq 1 ]
+if [[ "${SOFTWARES_APT_SYSLOG_SERVER:-0}" -eq 1 ]]
 then
 
 	if dpkg -s rsyslog &>/dev/null

@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `SYSLOG_SERVER` vers
+  `SOFTWARES_APT_SYSLOG_SERVER`, déclaré en `STATIC`, `ENABLE`, scope
+  `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
+  est transférée exactement; les catégories `SYSLOG_SERVER_SKIL_*` restent
+  séparées.
+
 - Logiciel APT : migration de `SYSLOG_CLIENT` vers
   `SOFTWARES_APT_SYSLOG_CLIENT`, déclaré en `STATIC`, `ENABLE`, scope
   `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
