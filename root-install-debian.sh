@@ -5782,7 +5782,7 @@ then
 
 fi
 
-if [ "$POSTGRESQL" -eq 1 ]
+if [[ "${SOFTWARES_APT_POSTGRESQL:-0}" -eq 1 ]]
 then
 
 	echo ""

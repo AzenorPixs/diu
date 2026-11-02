@@ -759,6 +759,8 @@ l’installation et le firewall; `OMADA_VERSION` et `SYSLOG_SERVER_SKIL_OMADA`
 restent séparés.
 Le contrôle Open vSwitch utilise `SOFTWARES_APT_OPENVSWITCH` dans
 `softwares.env`; l’ancienne valeur `OPENVSWITCH` y est migrée.
+Le contrôle du serveur PostgreSQL utilise `SOFTWARES_APT_POSTGRESQL` dans
+`softwares.env`; l’ancienne valeur `POSTGRESQL` y est migrée.
 
 ### Déclarations unitaires
 
@@ -1265,6 +1267,15 @@ du paquet et les règles firewall suivent ce réglage; `OMADA_VERSION` et
 vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
 point d’entrée conserve l’installation APT conditionnelle de
 `openvswitch-switch`.
+
+### Serveur PostgreSQL par APT
+
+`modules/diu/variables/softwares/software_apt_postgresql.sh` déclare
+`SOFTWARES_APT_POSTGRESQL` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `POSTGRESQL=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
+point d’entrée conserve l’installation APT conditionnelle du serveur
+PostgreSQL.
 
 ### Moteur `deb`
 
