@@ -34,6 +34,14 @@ if [[ "${1:-}:${2:-}" == projects:deb && "${!#}" != help && "${!#}" != "?" ]]; t
     fi
 fi
 
+if [[ "${1:-}:${2:-}" == projects:build && "${!#}" != help && "${!#}" != "?" ]]; then
+    if [[ $# -ne 4 || "${3:-}" != deb || ! "${4:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
+        "${4:-}" == . || "${4:-}" == .. ]]; then
+        printf '%s\n' 'Usage : rid projects build deb <ID PROJECT>' >&2
+        exit 2
+    fi
+fi
+
 if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
     rid_display_help_context
     exit 0
@@ -142,6 +150,9 @@ config_cleanup || exit 1
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/diu-packaging.sh"
+# Chargement du constructeur déclaratif de projets.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/projects/debian-build.sh"
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/projects.sh"
@@ -1403,6 +1414,14 @@ manage_project_action() {
     local commit_timestamp=""
 
     case "$action" in
+
+        build)
+            if [[ $# -ne 3 || "${2:-}" != deb ]]; then
+                print_error 'Usage : rid projects build deb <ID PROJECT>'
+                return 2
+            fi
+            projects_build_deb "$3"
+            ;;
 
         template)
             project_id="${3:-}"
