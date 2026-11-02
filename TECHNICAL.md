@@ -774,6 +774,8 @@ Le contrôle de l’agent Wazuh utilise `SOFTWARES_APT_WAZUH_AGENT` dans
 Le contrôle Wazuh Server utilise `SOFTWARES_APT_WAZUH_SERVER` dans
 `softwares.env`; son repli vers `SYSTEM_APT_WAZUH` respecte
 `WAZUH_SERVER_UPGRADE`.
+Le contrôle Zoom utilise `SOFTWARES_APT_ZOOM` dans `softwares.env` pour le
+parcours de téléchargement et d’installation du paquet Debian.
 Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
 `SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
 Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
@@ -1374,6 +1376,14 @@ vers `softwares.env` si le nouveau nom n’y est pas déjà défini.
 vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
 `WAZUH_SERVER_UPGRADE` reste distincte et détermine le repli initial du dépôt
 `SYSTEM_APT_WAZUH`.
+
+### Zoom par paquet Debian
+
+`modules/diu/variables/softwares/software_apt_zoom.sh` déclare
+`SOFTWARES_APT_ZOOM` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `ZOOM=0|1` est transférée exactement vers
+`softwares.env` si le nouveau nom n’y est pas déjà défini. Le consommateur
+conserve le téléchargement, l’installation et la mise à jour du paquet Debian.
 
 ### Moteur `deb`
 

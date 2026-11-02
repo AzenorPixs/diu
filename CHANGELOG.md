@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel : migration de `ZOOM` vers `SOFTWARES_APT_ZOOM`, déclaré en
+  `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement; le parcours
+  existant du paquet Debian Zoom est conservé.
+
 - Logiciel APT : migration de `WAZUH_SERVER` vers
   `SOFTWARES_APT_WAZUH_SERVER`, déclaré en `STATIC`, `ENABLE`, scope
   `softwares`, défaut `0`. La dernière valeur littérale `0` ou `1` est migrée;
