@@ -905,11 +905,12 @@ par APT. La clé `SOFTWARES_CROWDSEC_BOUNCER_API_KEY` est aussi stockée dans
 L’application à la configuration YAML ne transmet pas la valeur dans les
 arguments d’un processus enfant ni dans la sortie.
 
-Le profil de logiciels de bureau utilise `SOFTWARES_APT_DESKTOP`, déclaré en
-`STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La valeur historique
-littérale `DESKTOP=0|1` est transférée exactement vers `softwares.env` si le
-nouveau nom n'y est pas déjà configuré. Les deux consommateurs du point
-d'entrée utilisent ce nouveau contrôle.
+Le profil de bureau utilise `DESKTOP`, déclaré en `STATIC`, `ENABLE`, scope
+`desktop`, défaut `0`. La valeur historique `DESKTOP=0|1` est déplacée de
+`variables.sh` vers `desktop.env`; l'ancienne valeur plus récente
+`SOFTWARES_APT_DESKTOP=0|1` de `softwares.env` est également migrée exactement
+si `DESKTOP` n'est pas déjà déclaré dans `desktop.env`. Les deux consommateurs
+du point d'entrée utilisent ce contrôle.
 
 ### Contrôle de la stack Docker Traefik / Dockhand
 
