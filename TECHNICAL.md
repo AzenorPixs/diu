@@ -749,6 +749,9 @@ scope `softwares`; l’ancienne valeur `JSVC` est migrée vers `softwares.env`.
 Le contrôle d’installation LemonLDAP-NG utilise `SOFTWARES_APT_LEMONLDAP` dans
 `softwares.env`; sa valeur initialise `SYSTEM_APT_LEMONLDAP` uniquement si le
 réglage du dépôt système n’existe pas déjà.
+Le contrôle d’installation MongoDB utilise `SOFTWARES_APT_MONGODB` dans
+`softwares.env`; `MONGODB_VERSION` reste séparé pour sélectionner la branche
+du dépôt `SYSTEM_APT_MONGODB`.
 
 ### Déclarations unitaires
 
@@ -1219,6 +1222,16 @@ L’ancienne valeur littérale `LEMONLDAP=0|1` est transférée exactement vers
 `softwares.env` si la nouvelle variable n’y est pas déjà définie. Elle sert
 aussi de repli à l’initialisation du dépôt `SYSTEM_APT_LEMONLDAP`; une valeur
 système déjà configurée reste prioritaire.
+
+### MongoDB par APT
+
+`modules/diu/variables/softwares/software_apt_mongodb.sh` déclare
+`SOFTWARES_APT_MONGODB` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `MONGODB=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie.
+`MONGODB_VERSION` reste inchangée et sélectionne la branche utilisée pour
+initialiser `SYSTEM_APT_MONGODB`; une valeur déjà configurée de ce réglage
+système reste prioritaire.
 
 ### Moteur `deb`
 
