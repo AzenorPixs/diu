@@ -62,7 +62,7 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -98,6 +98,7 @@ config_cleanup() {
     local syslog_server_value='' syslog_server_found=0 softwares_apt_syslog_server_declared=0
     local ssh_value='' ssh_found=0 softwares_apt_ssh_server_declared=0
     local syncthing_value='' syncthing_found=0 softwares_apt_syncthing_declared=0
+    local webmin_value='' webmin_found=0 softwares_apt_webmin_declared=0
     local crowdsec_agent_value='' crowdsec_agent_found=0
     local system_crowdsec_agent_value='' system_crowdsec_agent_found=0
     local softwares_crowdsec_agent_declared=0
@@ -357,6 +358,14 @@ config_cleanup() {
                 syncthing_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique SYNCTHING ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?WEBMIN= ]]; then
+            webmin_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?WEBMIN=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                webmin_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique WEBMIN ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?(CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT)= ]]; then
@@ -987,6 +996,21 @@ config_cleanup() {
             fi
         fi
     fi
+    if [[ "$webmin_found" == 1 && -e "$softwares_config_file" ]]; then
+        if [[ ! -f "$softwares_config_file" || ! -r "$softwares_config_file" ]]; then
+            printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
+            return 1
+        fi
+        if grep -E '^[[:blank:]]*(export[[:blank:]]+)?SOFTWARES_APT_WEBMIN=' "$softwares_config_file" > /dev/null 2>&1; then
+            softwares_apt_webmin_declared=1
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
+                return 1
+            fi
+        fi
+    fi
     if [[ "$crowdsec_agent_found" == 1 && -e "$softwares_config_file" ]]; then
         if [[ ! -f "$softwares_config_file" || ! -r "$softwares_config_file" ]]; then
             printf '%s\n' 'Erreur : lecture de la configuration logiciels impossible.' >&2
@@ -1201,6 +1225,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$webmin_found" == 1 && "$softwares_apt_webmin_declared" == 0 ]]; then
+        if ! install -d -m 0755 "$(dirname "$softwares_config_file")"; then
+            printf '%s\n' 'Erreur : création de la configuration logiciels impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$crowdsec_agent_found" == 1 && "$softwares_crowdsec_agent_declared" == 0 ]]; then
         if ! install -d -m 0755 "$(dirname "$softwares_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration logiciels impossible.' >&2
@@ -1363,6 +1393,12 @@ config_cleanup() {
     if [[ "$syncthing_found" == 1 && "$softwares_apt_syncthing_declared" == 0 ]]; then
         if ! printf 'export SOFTWARES_APT_SYNCTHING=%s\n' "$syncthing_value" >> "$softwares_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration SYNCTHING impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$webmin_found" == 1 && "$softwares_apt_webmin_declared" == 0 ]]; then
+        if ! printf 'export SOFTWARES_APT_WEBMIN=%s\n' "$webmin_value" >> "$softwares_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration WEBMIN impossible.' >&2
             return 1
         fi
     fi
