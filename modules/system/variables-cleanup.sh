@@ -62,7 +62,7 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|DOCKER_STACK_BUNKERWEB_UPGRADE|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -84,6 +84,7 @@ config_cleanup() {
     local env_ia_config_value='' env_ia_config_found=0 env_ia_config_lines=''
     local docker_user_value='' docker_user_found=0 environment_docker_user_declared=0
     local old_docker_user_value='' old_docker_user_found=0 old_docker_user_lines=''
+    local bunkerweb_upgrade_value='' bunkerweb_upgrade_found=0 docker_stack_bunkerweb_update_declared=0
     local apache2_value='' apache2_found=0 softwares_apache2_declared=0
     local fastfetch_value='' fastfetch_found=0 softwares_apt_fastfetch_declared=0
     local jsvc_value='' jsvc_found=0 softwares_apt_jsvc_declared=0
@@ -227,6 +228,14 @@ config_cleanup() {
                 env_ia_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique ENV_IA ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DOCKER_STACK_BUNKERWEB_UPGRADE= ]]; then
+            bunkerweb_upgrade_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DOCKER_STACK_BUNKERWEB_UPGRADE=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                bunkerweb_upgrade_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique DOCKER_STACK_BUNKERWEB_UPGRADE ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DOCKER_USER= ]]; then
@@ -639,6 +648,16 @@ config_cleanup() {
         if grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENVIRONMENT_DOCKER_USER=' \
             "$docker_config_file" > /dev/null 2>&1; then
             environment_docker_user_declared=1
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration Docker impossible.' >&2
+                return 1
+            fi
+        fi
+        if grep -E '^[[:blank:]]*(export[[:blank:]]+)?DOCKER_STACK_BUNKERWEB_UPDATE=' \
+            "$docker_config_file" > /dev/null 2>&1; then
+            docker_stack_bunkerweb_update_declared=1
         else
             status=$?
             if [[ "$status" -ne 1 ]]; then
@@ -1264,6 +1283,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$bunkerweb_upgrade_found" == 1 && "$docker_stack_bunkerweb_update_declared" == 0 ]]; then
+        if ! install -d -m 0755 "$(dirname "$docker_config_file")"; then
+            printf '%s\n' 'Erreur : création de la configuration Docker impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$crowdsec_bouncer_found" == 1 && "$softwares_crowdsec_bouncer_declared" == 0 ]]; then
         if ! install -d -m 0755 "$(dirname "$softwares_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration logiciels impossible.' >&2
@@ -1624,6 +1649,12 @@ config_cleanup() {
     if [[ "$docker_user_found" == 1 && "$environment_docker_user_declared" == 0 ]]; then
         if ! printf 'export ENVIRONMENT_DOCKER_USER=%q\n' "$docker_user_value" >> "$docker_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration DOCKER_USER impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ "$bunkerweb_upgrade_found" == 1 && "$docker_stack_bunkerweb_update_declared" == 0 ]]; then
+        if ! printf 'export DOCKER_STACK_BUNKERWEB_UPDATE=%s\n' "$bunkerweb_upgrade_value" >> "$docker_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration DOCKER_STACK_BUNKERWEB_UPGRADE impossible.' >&2
             return 1
         fi
     fi

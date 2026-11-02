@@ -5160,7 +5160,7 @@ then
 	if [ "$DOCKER_STACK_BUNKERWEB" -eq 1 ]
 	then
 
-		if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
+		if [[ "${DOCKER_STACK_BUNKERWEB_UPDATE:-0}" -eq 1 ]]
 		then
 
 			if [ "$DOCKER_STACK_BUNKERWEB_AUTO_UPDATE" -eq 1 ]
@@ -5426,7 +5426,7 @@ then
 			if [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/ch-nontron.fr/cert.pem" ] || [ -f "/home/$ENVIRONMENT_DOCKER_USER/proxy/letsencrypt/hl-nontron.fr/cert.pem" ]
 			then
 
-				if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
+				if [[ "${DOCKER_STACK_BUNKERWEB_UPDATE:-0}" -eq 1 ]]
 				then
 
 					echo ""
@@ -8389,7 +8389,7 @@ then
 
 fi
 
-if [ "$DOCKER_STACK_BUNKERWEB_UPGRADE" -eq 1 ]
+if [[ "${DOCKER_STACK_BUNKERWEB_UPDATE:-0}" -eq 1 ]]
 then
 
 	echo "###############################################"

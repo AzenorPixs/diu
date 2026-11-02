@@ -1498,6 +1498,106 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(result.stdout, '')
             self.assertNotIn('/tmp/diu-desktop-should-not-run', result.stderr)
 
+    def test_bunkerweb_upgrade_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            path.write_text(
+                'DOCKER_STACK_BUNKERWEB_UPGRADE=0\n'
+                'export DOCKER_STACK_BUNKERWEB_UPGRADE=1 # active\n'
+                'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(),
+                             'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                             'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=1\n')
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+            docker_config.unlink()
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+    def test_ambiguous_bunkerweb_upgrade_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            sentinel = Path(directory) / 'executed'
+            original = (f'DOCKER_STACK_BUNKERWEB_UPGRADE="$(touch {sentinel})"\n'
+                        'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            path.write_text(original)
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_bunkerweb_upgrade_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            path.write_text(
+                'DOCKER_STACK_BUNKERWEB_UPGRADE=0\n'
+                'export DOCKER_STACK_BUNKERWEB_UPGRADE=1 # active\n'
+                'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(),
+                             'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                             'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=1\n')
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+            docker_config.unlink()
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+    def test_ambiguous_bunkerweb_upgrade_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            sentinel = Path(directory) / 'executed'
+            original = (f'DOCKER_STACK_BUNKERWEB_UPGRADE="$(touch {sentinel})"\n'
+                        'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            path.write_text(original)
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
     def test_docker_user_migration_and_precedence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'

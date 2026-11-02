@@ -981,6 +981,15 @@ valeur existante `0` ou `1` est conservée; une valeur absente est persistée
 dans `/root/diu/config/docker.env` avec le défaut `0`. Le consommateur
 existant conserve le même nom; `1` active l’ajout des noms d’hôtes DevOps.
 
+### Mise à jour de la stack Docker BunkerWeb
+
+`modules/diu/variables/docker/docker_stack_bunkerweb_update.sh` déclare
+`DOCKER_STACK_BUNKERWEB_UPDATE` en `STATIC`, `ENABLE`, scope `docker`, défaut
+`0`. L’ancienne valeur littérale `DOCKER_STACK_BUNKERWEB_UPGRADE=0|1` est
+migrée exactement vers `docker.env` si le nouveau nom n’y est pas déjà défini.
+`DOCKER_STACK_BUNKERWEB_AUTO_UPDATE` et `DOCKER_STACK_BUNKERWEB_VERSION`
+restent des réglages distincts.
+
 ### Indicateurs de tests DevOps
 
 `modules/diu/variables/environnements/env_devops_tests_docker.sh` et
