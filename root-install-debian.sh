@@ -6367,7 +6367,7 @@ if [[ "${SOFTWARES_APT_SYNCTHING:-0}" -eq 1 ]]; then
 
 fi
 
-if [ "$WEBMIN" -eq 1 ]
+if [[ "${SOFTWARES_APT_WEBMIN:-0}" -eq 1 ]]
 then
 
 	echo "🔧 INSTALL WEBMIN"
