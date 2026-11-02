@@ -16,8 +16,14 @@ Codex ; aucun agent de codage délégué.
   échec avec `/home/devops/python/current/bin/python3`.
 - Archivage réussi sous `2026-11-02-declare-diu-variables-version-variable`;
   trois exigences ajoutées et une modifiée dans deux spécifications.
-- Publication du paquet, installation LXC et relance de l’installateur restent
-  à effectuer après ce relevé.
+- Publication réussie : paquet `2026.11.02.14.25`, commit `cb83983`, tag
+  `v2026.11.02.14.25`, release Forgejo 401.
+- Le paquet a été transféré dans CISMP (LXC 100), SHA-256 vérifié
+  (`ee9ace47efe826927a119def4c44c2bce7bfc099fa3589846265dc7679c7e6dc`), puis
+  la version installée a été vérifiée avec `dpkg-query`.
+- Relance de `/root/diu/root-install-debian.sh` dans CISMP : code de sortie 0;
+  les deux variables de version affichent `2026.11.02.14.25`, puis le script
+  termine après la section réseau sans autre erreur de variable.
 
 ## Types de messages et d'outils
 
@@ -52,6 +58,10 @@ Codex ; aucun agent de codage délégué.
 - `/home/devops/.local/npm/bin/openspec archive declare-diu-variables-version-variable --yes --json` :
   réussi; deux spécifications archivées.
 - `git diff --check` : réussi.
+- `sudo -n -i zsh -lic 'rcicddiu'` : publication réussie; release Forgejo 401.
+- `sudo -n -i zsh -lic 'ridu'` : mise à jour de l’hôte réussie.
+- Installation CISMP par `lxc-attach` après contrôle SHA-256 : réussie.
+- Relance `/root/diu/root-install-debian.sh` dans LXC 100 : code 0.
 
 ## Accès web
 
@@ -64,4 +74,4 @@ version du paquet Debian installé. Le nettoyage retire sans évaluation
 l’ancienne valeur littérale et bloque les expressions ambiguës. Les tests
 ciblés, la suite complète de référence, ShellCheck, la syntaxe Bash et OpenSpec
 stricte passent. Publication, installation LXC et nouveau cycle d’exécution
-restent à effectuer.
+ont réussi. Le script d’installation a terminé sans autre erreur de variable.
