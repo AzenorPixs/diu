@@ -741,6 +741,9 @@ autres anciennes affectations supprimées.
 Le contrôle d’installation Apache2 utilise `SOFTWARES_APT_APACHE2`, déclaré
 dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
 `softwares.env`.
+Le contrôle d’installation de Fastfetch utilise `SOFTWARES_APT_FASTFETCH`,
+déclaré dans le scope `softwares`; l’ancienne valeur `FASTFETCH` est migrée
+vers `softwares.env`.
 
 ### Déclarations unitaires
 
@@ -1186,6 +1189,14 @@ persistée dans `/root/diu/config/softwares.env`. L’ancienne valeur littérale
 `APACHE2=0|1` est migrée exactement vers ce scope si aucune nouvelle valeur
 n’est déjà définie. Une valeur `1` garde l’installation Apache2 et de ses
 dépendances existantes selon la version Debian détectée.
+
+### Fastfetch par APT
+
+`modules/diu/variables/softwares/software_apt_fastfetch.sh` déclare
+`SOFTWARES_APT_FASTFETCH` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `FASTFETCH=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
+d’entrée conserve les installations APT existantes selon la version Debian.
 
 ### Moteur `deb`
 
