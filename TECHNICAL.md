@@ -752,6 +752,8 @@ réglage du dépôt système n’existe pas déjà.
 Le contrôle d’installation MongoDB utilise `SOFTWARES_APT_MONGODB` dans
 `softwares.env`; `MONGODB_VERSION` reste séparé pour sélectionner la branche
 du dépôt `SYSTEM_APT_MONGODB`.
+Le contrôle OpenJDK utilise `SOFTWARES_APT_OPENJDK` dans `softwares.env`; le
+point d’entrée conserve la sélection Java selon la version Debian.
 
 ### Déclarations unitaires
 
@@ -1232,6 +1234,14 @@ L’ancienne valeur littérale `MONGODB=0|1` est transférée exactement vers
 `MONGODB_VERSION` reste inchangée et sélectionne la branche utilisée pour
 initialiser `SYSTEM_APT_MONGODB`; une valeur déjà configurée de ce réglage
 système reste prioritaire.
+
+### OpenJDK par APT
+
+`modules/diu/variables/softwares/software_apt_openjdk.sh` déclare
+`SOFTWARES_APT_OPENJDK` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `OPENJDK=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
+d’entrée garde OpenJDK 17 sur Bullseye/Bookworm et OpenJDK 21 sur Trixie.
 
 ### Moteur `deb`
 

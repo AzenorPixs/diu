@@ -5683,7 +5683,7 @@ then
 
 fi
 
-if [ "$OPENJDK" -eq 1 ]
+if [[ "${SOFTWARES_APT_OPENJDK:-0}" -eq 1 ]]
 then
 
 	if [ "$SYSTEM_DEBIAN_RELEASE" = "bookworm" ] || [ "$SYSTEM_DEBIAN_RELEASE" = "bullseye" ]

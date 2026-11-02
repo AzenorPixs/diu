@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `OPENJDK` vers `SOFTWARES_APT_OPENJDK`, déclaré
+  en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
+  historique littérale `0` ou `1` est transférée exactement, en conservant la
+  sélection Java 17/21 selon Debian.
+
 - Logiciel APT : migration de `MONGODB` vers `SOFTWARES_APT_MONGODB`, déclaré
   en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement; `MONGODB_VERSION`
