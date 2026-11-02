@@ -91,7 +91,8 @@ publications. Sans cette clé, chaque parcours conserve son mécanisme existant.
 
 Il regroupe les fonctions nécessaires à la création, à l'initialisation et à
 l'administration des projets pris en charge par le DIU, ainsi qu'à la
-publication de leurs images Docker et paquets Debian vers Forgejo.
+publication de leurs images Docker et paquets Debian vers Forgejo, GitLab et
+GitHub. GitHub publie les images sur GHCR et les paquets dans GitHub Releases.
 
 La construction Docker accepte un fichier public optionnel
 `build/docker-build.args`, propre à chaque projet. Le DIU valide sa syntaxe

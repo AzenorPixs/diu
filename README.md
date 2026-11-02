@@ -84,8 +84,8 @@ Le flux `rid projects cicd <ID PROJECT>` exécute six étapes :
 Le build Debian fonctionne aussi sans Docker et utilise le même moteur que
 `rid projects build debian <ID PROJECT>`. Une recette absente pour un projet
 activé ou un échec du build empêche les releases ; les pushes déjà réalisés
-restent publiés. Debian seul peut être publié sur Forgejo/GitLab selon les
-capacités et configurations existantes ; GitHub conserve sa publication Docker.
+restent publiés. Debian seul peut être publié sur Forgejo/GitLab/GitHub selon
+leur configuration ; les conditions Debian GitHub sont les mêmes que Forgejo.
 `rid projects cicd help` et `rid projects cicd <ID PROJECT> help` décrivent ces
 étapes avant bootstrap. Le détail figure dans [BUILD.md](BUILD.md).
 
@@ -140,11 +140,20 @@ rid projects forgejo release <ID PROJECT>
 La commande publie l’image Docker et/ou le paquet Debian selon
 `PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` dans `project.env`.
 
-Pour publier une image déjà construite vers GitHub Container Registry :
+Pour publier les artefacts déjà construits vers GitHub :
 
 ```bash
 rid projects github release <ID PROJECT>
 ```
+
+`PROJECT_DOCKERED=Yes/YES/1` publie l'image sur GHCR et
+`PROJECT_DEBIAN_PACKAGE=Yes/YES/1` publie le .deb dans GitHub Releases.
+Les deux activations peuvent être utilisées ensemble ; aucune construction
+n'est déclenchée par cette commande. Comme sur Forgejo, un paquet unique et
+cohérent, une version valide, un HEAD synchronisé et un tag correspondant sont
+requis. Une release existante n'est jamais remplacée ; un upload échoué laisse
+une erreur explicite et éventuellement une release incomplète, sans rollback.
+Les contrôles et cas de repli sont détaillés dans [BUILD.md](BUILD.md).
 
 Le propriétaire et le dépôt sont convertis en minuscules dans les références
 GHCR, y compris dans le résumé CI/CD : `AzenorPixs/PKeycloak` devient

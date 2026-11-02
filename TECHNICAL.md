@@ -1517,16 +1517,36 @@ uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes`, `YES` ou `1`. Les clés absentes,
 vides ou différentes n'appellent pas le builder Debian ; le bilan l'indique.
 Les deux activations sont indépendantes, sans fuite vers le projet suivant.
 
-Sans Docker, Debian peut être construit puis publié sur Forgejo/GitLab par
-les fonctions Debian existantes. Les conditions de complétude des fournisseurs,
-dont le registre GitLab, sont conservées. GitHub conserve uniquement ses
-publications Docker. Un échec de build empêche toutes les releases et retourne
+Sans Docker, Debian peut être construit puis publié sur Forgejo/GitLab/GitHub par
+les fonctions Debian. Les conditions de complétude des fournisseurs,
+dont le registre GitLab, sont conservées. GitHub publie Docker, Debian ou les
+deux selon leur activation. Un échec de build empêche toutes les releases et retourne
 un code non nul avec bilan partiel ; les pushes déjà réalisés restent publiés.
 Une indisponibilité reconnue permet les builds locaux et ignore les seules
 publications du fournisseur concerné. Aucune invocation récursive du bootstrap.
 Le bilan conserve ses onze premiers paramètres et reçoit le statut du build
 Debian dans un douzième paramètre facultatif.
 Les contrats sont `projects-cicd`, `projects-debian-build` et `rid-help`.
+
+### Publications GitHub Docker et Debian
+
+`projects_github_release` sélectionne les artefacts pour la commande directe
+`rid projects github release <ID PROJECT>`. Les deux indicateurs acceptent
+Yes/YES/1. Le corps GHCR historique est conservé dans
+`projects_github_release_docker`. Debian utilise
+`projects_github_release_debian` dans `modules/projects/github-release.sh`,
+sans dépendance à Docker ni construction. En parcours mixte, la présence du
+paquet est vérifiée avant Docker, puis les deux publications sont exécutées.
+La CI/CD conserve son activation Docker exacte Yes et appelle Debian seul
+sans appeler Docker lorsque celui-ci n'est pas activé dans le flux.
+
+Les contrôles de paquet, version, branche synchronisée, tag et release déjà
+existante suivent Forgejo ; BUILD.md décrit le détail et les échecs partiels.
+`_github_api_request` reste le transport JSON. `_github_upload_release_asset`
+réalise l'upload binaire après validation de upload_url ; les tokens sont dans
+une configuration curl temporaire 0600, hors arguments et journaux, nettoyée
+en erreur et interruption. Les réponses HTTP/JSON et l'asset sont vérifiés.
+Le contrat est `openspec/specs/projects-github-debian-release/spec.md`.
 
 ### Construction Debian déclarative
 

@@ -81,7 +81,7 @@ ces opérations, sans empêcher le build ni les publications Debian activés.
 #### Scenario: projet Debian sans Docker
 - **WHEN** PROJECT_DOCKERED est absent ou différent de Yes et PROJECT_DEBIAN_PACKAGE vaut Yes
 - **THEN** le build Docker est ignoré et le build Debian est exécuté avant les publications Debian éligibles
-- **AND THEN** aucune publication Docker ni release GitHub n'est appelée
+- **AND THEN** aucune publication Docker n'est appelée et la publication Debian GitHub est éligible
 
 ### Requirement: aide CI/CD
 
@@ -120,8 +120,9 @@ release ignorée. Sans autre erreur, le flux MUST retourner zéro avec l'état
 Le flux MUST appeler le même moteur que rid projects build debian <ID PROJECT>
 uniquement lorsque PROJECT_DEBIAN_PACKAGE vaut Yes, YES ou 1. Une clé absente,
 vide ou différente MUST ignorer cette construction et l'indiquer au bilan.
-Sans Docker, les publications Debian existantes Forgejo/GitLab MUST rester
-éligibles selon leur configuration ; aucune publication Debian GitHub n'est ajoutée.
+Sans Docker, les publications Debian Forgejo/GitLab/GitHub MUST rester
+éligibles selon leur configuration. Un échec ou une indisponibilité MUST
+conserver les règles de bilan et de poursuite du flux.
 
 #### Scenario: valeurs actives
 - **WHEN** la variable vaut Yes, YES ou 1
@@ -134,3 +135,7 @@ Sans Docker, les publications Debian existantes Forgejo/GitLab MUST rester
 #### Scenario: recette absente
 - **WHEN** le packaging est activé mais la recette est absente
 - **THEN** le builder échoue explicitement, aucune release n'est lancée et le bilan indique l'échec
+
+#### Scenario: GitHub Debian à l'étape 5
+- **WHEN** le paquet est construit, Docker est désactivé et GitHub est configuré et disponible
+- **THEN** l'étape 5 appelle le publisher Debian GitHub et le bilan indique sa réussite ou son échec

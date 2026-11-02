@@ -147,6 +147,9 @@ config_cleanup || exit 1
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/diu-release.sh"
+# Publication des paquets Debian dans GitHub Releases.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/projects/github-release.sh"
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/projects/diu-packaging.sh"
