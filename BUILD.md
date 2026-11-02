@@ -18,7 +18,7 @@ au tag `v<VERSION>` de `HEAD`, sans déplacer un tag existant.
 ## Construction générique par recette
 
 ```bash
-rid projects build deb <ID PROJECT>
+rid projects build debian <ID PROJECT>
 ```
 
 Le moteur `modules/projects/debian-build.sh` sélectionne un enfant direct de
@@ -64,9 +64,26 @@ rotation. Une erreur de rotation est signalée même si le nouveau paquet existe
 Cette commande ne lance ni tests, installation, commit, push ou release.
 Le bootstrap commun de `rid` charge et initialise toujours sa configuration.
 
-`rid projects build help`, `rid projects build deb help` et
-`rid projects build deb diu help` (ou `?`) expliquent ce contrat avant bootstrap.
+`rid projects build help`, `rid projects build debian help` et
+`rid projects build debian diu help` (ou `?`) expliquent ce contrat avant bootstrap.
+La syntaxe `rid projects build deb <ID PROJECT>` et ses aides restent des alias compatibles.
 `rid` utilise le moteur installé sous `/root/diu` ; `ridt` utilise celui du dépôt.
+
+## Construction Debian dans la CI/CD générique
+
+`rid projects cicd <ID PROJECT>` suit les six étapes commit/tag, pushes Git,
+build Docker, build Debian, publications et bilan. À l'étape 4, il appelle
+le même moteur que `rid projects build debian <ID PROJECT>`, uniquement pour
+PROJECT_DEBIAN_PACKAGE=Yes/YES/1, même si Docker est désactivé. Les règles
+existantes de recette, version, copie, dépôt et rotation restent celles du
+constructeur déclaratif. Une recette absente ou un échec de build bloque les
+releases ; le bilan indique l'échec et les pushes Git antérieurs sont conservés.
+
+Les publications constituent l'étape 5 et le bilan des deux builds l'étape 6.
+Debian seul utilise les capacités existantes de Forgejo/GitLab ; aucune
+publication Debian GitHub n'est ajoutée. Les fournisseurs indisponibles ne sont
+pas publiés, mais les builds locaux activés restent exécutés. Les tests utilisent
+uniquement fixtures, paquets locaux et transports simulés, sans CI/CD réelle.
 
 ## Compatibilité du constructeur historique DIU
 

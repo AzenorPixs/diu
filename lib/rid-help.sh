@@ -16,13 +16,14 @@ rid_display_help_context() {
     esac
 
     if [[ "$context:$subcontext" == projects:build ]]; then
-        if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != deb ) ||
+        if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != deb && "$leaf" != debian ) ||
             ( -n "$target" && ( ! "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
                 "$target" == . || "$target" == .. ) ) ]]; then
             rid_display_command_error projects build
             return 2
         fi
-        rid_help_line 'rid projects build deb <ID PROJECT>' 'Construit le paquet Debian défini par la recette du projet.'
+        rid_help_line 'rid projects build debian <ID PROJECT>' 'Construit le paquet Debian défini par la recette du projet.'
+        rid_help_line 'rid projects build deb <ID PROJECT>' 'Alias compatible de build debian.'
         printf '%s\n' 'Recette requise : build/debian-package.json ; elle est exclue du paquet.'
         printf '%s\n' 'Activation dans project.env : PROJECT_DEBIAN_PACKAGE=Yes, YES ou 1 ; sinon aucun paquet Debian.'
         printf '%s\n' 'Packaging activé et recette absente : erreur, le paquet ne peut pas être construit.'
@@ -318,12 +319,16 @@ rid_display_help_context() {
             rid_help_line 'rid projects ocrw <ID PROJECT>' 'Ouvre le projet en lecture-écriture.'
             rid_help_line 'rid projects ocsh <ID PROJECT>' 'Ouvre un shell dans le projet.'
             rid_help_line 'rid projects deb [ID PROJECT]' 'Construit le paquet DIU ; source par défaut : diu.'
-            rid_help_line 'rid projects build deb <ID PROJECT>' 'Construit un paquet Debian depuis build/debian-package.json (PROJECT_DEBIAN_PACKAGE=Yes/YES/1).'
+            rid_help_line 'rid projects build debian <ID PROJECT>' 'Construit un paquet Debian depuis build/debian-package.json (PROJECT_DEBIAN_PACKAGE=Yes/YES/1).'
+            rid_help_line 'rid projects build deb <ID PROJECT>' 'Alias compatible de build debian.'
             rid_help_line 'rid projects cicddiu' 'Lance la CI/CD du projet DIU.'
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
             ;;
         projects:cicd:|projects:cicd:*)
-            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute commit, publications, build et releases configurés.'
+            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute les six étapes CI/CD et le bilan des deux builds.'
+            printf '%s\n' '1. Commit/tag ; 2. Pushes Git ; 3. Build Docker ; 4. Build Debian ; 5. Publications ; 6. Bilan.'
+            printf '%s\n' 'Build Debian indépendant de Docker : PROJECT_DEBIAN_PACKAGE=Yes/YES/1 ; même moteur que rid projects build debian <ID PROJECT>.'
+            printf '%s\n' 'Un échec du build empêche les releases ; les pushes déjà réalisés restent publiés.'
             ;;
         projects:cicddiu:|projects:cicddiu:*)
             rid_help_line 'rid projects cicddiu [COMMIT] [TAG]' 'Exécute la CI/CD du DIU ; PROJECT_VERSION est prioritaire pour le tag.'

@@ -71,7 +71,7 @@ projects_build_deb() (
 
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "$project_id" == . || "$project_id" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
-        print_error 'Usage : rid projects build deb <ID PROJECT>'
+        print_error 'Usage : rid projects build debian <ID PROJECT>'
         return 2
     fi
     projects_root="$(realpath -e -- "$DEVOPS_PROJECTS_ROOT")" || return 1

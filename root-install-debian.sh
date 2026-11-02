@@ -35,9 +35,9 @@ if [[ "${1:-}:${2:-}" == projects:deb && "${!#}" != help && "${!#}" != "?" ]]; t
 fi
 
 if [[ "${1:-}:${2:-}" == projects:build && "${!#}" != help && "${!#}" != "?" ]]; then
-    if [[ $# -ne 4 || "${3:-}" != deb || ! "${4:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
+    if [[ $# -ne 4 || ( "${3:-}" != deb && "${3:-}" != debian ) || ! "${4:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "${4:-}" == . || "${4:-}" == .. ]]; then
-        printf '%s\n' 'Usage : rid projects build deb <ID PROJECT>' >&2
+        printf '%s\n' 'Usage : rid projects build debian <ID PROJECT>' >&2
         exit 2
     fi
 fi
@@ -1416,8 +1416,8 @@ manage_project_action() {
     case "$action" in
 
         build)
-            if [[ $# -ne 3 || "${2:-}" != deb ]]; then
-                print_error 'Usage : rid projects build deb <ID PROJECT>'
+            if [[ $# -ne 3 || ( "${2:-}" != deb && "${2:-}" != debian ) ]]; then
+                print_error 'Usage : rid projects build debian <ID PROJECT>'
                 return 2
             fi
             projects_build_deb "$3"

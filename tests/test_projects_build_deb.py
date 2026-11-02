@@ -208,7 +208,7 @@ class ProjectsBuildDebTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('rid projects build deb <ID PROJECT>', result.stdout)
-        for suffix in [('build',), ('build', 'deb'), ('build', 'deb', 'diu')]:
+        for suffix in [('build',), ('build', 'deb'), ('build', 'deb', 'diu'), ('build', 'debian'), ('build', 'debian', 'diu')]:
             for help_word in ['help', '?']:
                 result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'),
                                          'projects', *suffix, help_word], capture_output=True, text=True)
@@ -228,9 +228,11 @@ class ProjectsBuildDebTests(unittest.TestCase):
         entry = (ROOT / 'root-install-debian.sh').read_text()
         function = re.search(r'^manage_project_action\(\) \{\n.*?^\}\n', entry, re.M | re.S).group()
         script = function + '\nprojects_build_deb() { printf "PROJECT:%s" "$1"; }\nmanage_project_action build deb example\n'
-        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, 'PROJECT:example')
+        for syntax in ['deb', 'debian']:
+            result = subprocess.run(['bash', '-c', script.replace('build deb example', f'build {syntax} example')],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'PROJECT:example')
 
 
 if __name__ == '__main__':

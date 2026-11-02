@@ -7,7 +7,11 @@ sans imposer les métadonnées ou l'arborescence du DIU.
 ## Requirements
 
 ### Requirement: Commande générique et activation
-DIU SHALL accepter `rid projects build deb <ID PROJECT>` pour un enfant direct non symbolique de DEVOPS_PROJECTS_ROOT. Il SHALL lire PROJECT_DEBIAN_PACKAGE sans exécuter project.env et SHALL construire uniquement pour Yes, YES ou 1.
+
+DIU SHALL accepter rid projects build debian <ID PROJECT> et son alias compatible
+rid projects build deb <ID PROJECT> pour un enfant direct non symbolique de
+DEVOPS_PROJECTS_ROOT. Il SHALL lire PROJECT_DEBIAN_PACKAGE sans exécuter
+project.env et SHALL construire uniquement pour Yes, YES ou 1.
 
 #### Scenario: Projet désactivé
 - **WHEN** la variable est absente, vide ou différente des trois valeurs actives
@@ -16,6 +20,10 @@ DIU SHALL accepter `rid projects build deb <ID PROJECT>` pour un enfant direct n
 #### Scenario: Arguments invalides
 - **WHEN** l'identifiant manque, est invalide ou des arguments supplémentaires sont fournis
 - **THEN** la commande échoue avec une aide avant le bootstrap
+
+#### Scenario: deux syntaxes équivalentes
+- **WHEN** debian ou deb est utilisé avec le même identifiant de projet
+- **THEN** le même moteur reçoit les mêmes arguments et produit le même paquet
 
 ### Requirement: Recette déclarative obligatoire
 Le moteur SHALL utiliser build/debian-package.json pour les métadonnées et les copies. Il SHALL refuser une recette absente, illisible, symbolique ou invalide, sans exécuter son contenu ni l'inclure dans le paquet.
