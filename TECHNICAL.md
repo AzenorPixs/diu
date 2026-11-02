@@ -742,6 +742,10 @@ Le résumé de mise à jour affiche `DIU_VERSION`, déclarée dynamiquement dans
 scope `diu` depuis la version retournée par `dpkg-query` pour le paquet `diu`.
 L’ancienne valeur `VERSION_ALIAS` n’est pas transférée.
 
+Le résumé affiche aussi `DIU_VARIABLES_VERSION`, générée depuis la même
+version du paquet Debian installé. La valeur historique `VERSION_VARIABLES`
+n’est pas transférée.
+
 Le contrôle d’installation Apache2 utilise `SOFTWARES_APT_APACHE2`, déclaré
 dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
 `softwares.env`.

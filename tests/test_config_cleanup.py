@@ -1776,13 +1776,13 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotIn(str(sentinel), result.stderr)
             self.assertEqual(result.stdout, '')
 
-    def test_version_alias_literal_is_removed_without_transfer(self):
+    def test_legacy_version_literals_are_removed_without_transfer(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'
-            path.write_text('VERSION_ALIAS="ancienne alias"\nVERSION=2026.1\nVERSION_VARIABLES=42\n')
+            path.write_text('VERSION_ALIAS="ancienne alias"\nVERSION=2026.1\nVERSION_VARIABLES=16.07.2026\n')
             result = self.run_cleanup(path)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(path.read_text(), 'VERSION=2026.1\nVERSION_VARIABLES=42\n')
+            self.assertEqual(path.read_text(), 'VERSION=2026.1\n')
             self.assertFalse((Path(directory) / 'diu.env').exists())
 
     def test_ambiguous_version_alias_fails_without_modification(self):
@@ -1790,6 +1790,19 @@ class ConfigCleanupTests(unittest.TestCase):
             path = Path(directory) / 'variables.sh'
             sentinel = Path(directory) / 'executed'
             original = f'VERSION_ALIAS="$(touch {sentinel})"\nVERSION=2026.1\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ambiguous_version_variables_fails_without_modification(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'VERSION_VARIABLES="$(touch {sentinel})"\nVERSION=2026.1\n'
             path.write_text(original)
             result = self.run_cleanup(path)
             self.assertNotEqual(result.returncode, 0)
