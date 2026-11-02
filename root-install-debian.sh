@@ -5811,7 +5811,7 @@ then
 
 fi
 
-if [ "$SYSLOG_CLIENT" -eq 1 ]
+if [[ "${SOFTWARES_APT_SYSLOG_CLIENT:-0}" -eq 1 ]]
 then
 
 	if dpkg -s rsyslog &>/dev/null
