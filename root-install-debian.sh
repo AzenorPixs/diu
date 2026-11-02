@@ -5745,7 +5745,7 @@ then
 
 fi
 
-if [ "$OMADA" -eq 1 ]
+if [[ "${SOFTWARES_APT_OMADA:-0}" -eq 1 ]]
 then
 
 	if [ -f /root/omada_v"${OMADA_VERSION}".deb ]
@@ -8064,7 +8064,7 @@ then
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [ "$OMADA" -eq 1 ]
+	if [[ "${SOFTWARES_APT_OMADA:-0}" -eq 1 ]]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /root/fwon.sh
