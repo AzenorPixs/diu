@@ -664,6 +664,44 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertNotIn('/tmp/diu-env-docker-should-not-run', result.stderr)
             self.assertEqual(result.stdout, '')
 
+    def test_env_ia_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            path.write_text('ENV_IA=0\nexport ENV_IA=1 # enabled\nENV_IA_USER=assistant\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_IA_USER=assistant\n')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_IA=1\n')
+
+            path.write_text('ENV_IA=1\n')
+            environments_config.write_text('export ENVIRONMENT_IA=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_IA=0\n')
+
+            path.write_text('ENV_IA=1\n')
+            environments_config.write_text('export ENV_IA=0\nENV_IA_USER=assistant\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(),
+                             'ENV_IA_USER=assistant\nexport ENVIRONMENT_IA=0\n')
+
+    def test_ambiguous_env_ia_value_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            original = 'ENV_IA="$(touch /tmp/diu-env-ia-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(environments_config.exists())
+            self.assertNotIn('/tmp/diu-env-ia-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
+
     def test_ambiguous_desktop_value_fails_without_modification(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'

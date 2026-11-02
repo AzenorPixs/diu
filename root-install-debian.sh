@@ -4075,7 +4075,7 @@ then
       fi
   fi
 
-  if [[ "${ENV_IA:-0}" == "0" ]]; then
+  if [[ "${ENVIRONMENT_IA:-0}" == "0" ]]; then
       # l'utilisateur ENV_IA_USER NE doit pas être dans le groupe $ENV_DEVOPS_GROUP
       if id -nG "$ENV_IA_USER" | grep -qw "$ENV_DEVOPS_GROUP"; then
           gpasswd -d "$ENV_IA_USER" "$ENV_DEVOPS_GROUP"
@@ -5549,7 +5549,7 @@ else
 
 fi
 
-if [ "$ENV_IA" -eq 1 ]
+if [ "${ENVIRONMENT_IA:-0}" -eq 1 ]
 then
 
   groupadd -f "$ENV_IA_GROUP"

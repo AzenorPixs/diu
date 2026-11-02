@@ -62,7 +62,7 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|ENV_DOCKER|DOCKER_USER|APACHE2|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -79,6 +79,8 @@ config_cleanup() {
     local env_devops_config_value='' env_devops_config_found=0 env_devops_config_lines=''
     local env_docker_value='' env_docker_found=0 environment_docker_declared=0
     local env_docker_config_value='' env_docker_config_found=0 env_docker_config_lines=''
+    local env_ia_value='' env_ia_found=0 environment_ia_declared=0
+    local env_ia_config_value='' env_ia_config_found=0 env_ia_config_lines=''
     local docker_user_value='' docker_user_found=0 environment_docker_user_declared=0
     local old_docker_user_value='' old_docker_user_found=0 old_docker_user_lines=''
     local apache2_value='' apache2_found=0 softwares_apache2_declared=0
@@ -197,6 +199,14 @@ config_cleanup() {
                 env_docker_value="${BASH_REMATCH[3]}"
             else
                 printf '%s\n' 'Erreur : affectation historique ENV_DOCKER ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_IA= ]]; then
+            env_ia_found=1
+            if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_IA=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                env_ia_value="${BASH_REMATCH[3]}"
+            else
+                printf '%s\n' 'Erreur : affectation historique ENV_IA ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DOCKER_USER= ]]; then
@@ -367,6 +377,16 @@ config_cleanup() {
                 return 1
             fi
         fi
+        if grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENVIRONMENT_IA=' \
+            "$environnements_config_file" > /dev/null 2>&1; then
+            environment_ia_declared=1
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
+                return 1
+            fi
+        fi
         if env_devops_config_lines="$(grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS=' "$environnements_config_file")"; then
             while IFS= read -r line; do
                 env_devops_config_found=1
@@ -377,6 +397,23 @@ config_cleanup() {
                     return 1
                 fi
             done <<< "$env_devops_config_lines"
+        else
+            status=$?
+            if [[ "$status" -ne 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
+                return 1
+            fi
+        fi
+        if env_ia_config_lines="$(grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENV_IA=' "$environnements_config_file")"; then
+            while IFS= read -r line; do
+                env_ia_config_found=1
+                if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_IA=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
+                    env_ia_config_value="${BASH_REMATCH[3]}"
+                else
+                    printf '%s\n' 'Erreur : ancienne déclaration ENV_IA ambiguë ; nettoyage impossible.' >&2
+                    return 1
+                fi
+            done <<< "$env_ia_config_lines"
         else
             status=$?
             if [[ "$status" -ne 1 ]]; then
@@ -409,6 +446,10 @@ config_cleanup() {
     if [[ "$env_docker_config_found" == 1 ]]; then
         env_docker_found=1
         env_docker_value="$env_docker_config_value"
+    fi
+    if [[ "$env_ia_config_found" == 1 ]]; then
+        env_ia_found=1
+        env_ia_value="$env_ia_config_value"
     fi
     if [[ -e "$docker_config_file" ]]; then
         if [[ ! -f "$docker_config_file" || ! -r "$docker_config_file" ]]; then
@@ -720,6 +761,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$env_ia_found" == 1 && "$environment_ia_declared" == 0 ]]; then
+        if ! install -d -m 0755 "$(dirname "$environnements_config_file")"; then
+            printf '%s\n' 'Erreur : création de la configuration environnements impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$docker_user_found" == 1 && "$environment_docker_user_declared" == 0 ]]; then
         if ! install -d -m 0755 "$(dirname "$docker_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration Docker impossible.' >&2
@@ -855,6 +902,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$env_ia_found" == 1 && "$environment_ia_declared" == 0 ]]; then
+        if ! printf 'export ENVIRONMENT_IA=%s\n' "$env_ia_value" >> "$environnements_config_file"; then
+            printf '%s\n' 'Erreur : migration de la configuration ENV_IA impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$docker_user_found" == 1 && "$environment_docker_user_declared" == 0 ]]; then
         if ! printf 'export ENVIRONMENT_DOCKER_USER=%q\n' "$docker_user_value" >> "$docker_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration DOCKER_USER impossible.' >&2
@@ -879,6 +932,13 @@ config_cleanup() {
         '^[[:blank:]]*(export[[:blank:]]+)?ENV_DOCKER=' "$environnements_config_file" > /dev/null 2>&1; then
         if ! sed -i -E '/^[[:blank:]]*(export[[:blank:]]+)?ENV_DOCKER=/d' "$environnements_config_file"; then
             printf '%s\n' 'Erreur : suppression de l ancienne declaration ENV_DOCKER impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ -f "$environnements_config_file" ]] && grep -E \
+        '^[[:blank:]]*(export[[:blank:]]+)?ENV_IA=' "$environnements_config_file" > /dev/null 2>&1; then
+        if ! sed -i -E '/^[[:blank:]]*(export[[:blank:]]+)?ENV_IA=/d' "$environnements_config_file"; then
+            printf '%s\n' 'Erreur : suppression de l ancienne declaration ENV_IA impossible.' >&2
             return 1
         fi
     fi

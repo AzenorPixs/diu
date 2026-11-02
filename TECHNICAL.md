@@ -959,6 +959,12 @@ DevOps utilise le nouveau nom.
 L'ancienne valeur littérale `ENV_DOCKER=0|1` est migrée exactement vers
 `environnements.env`; les paramètres voisins `ENV_DOCKER_USER` et
 `ENV_DOCKER_GROUP` restent distincts.
+
+`modules/diu/variables/environnements/environment_ia.sh` déclare
+`ENVIRONMENT_IA` en `STATIC`, `ENABLE`, scope `environnements`, défaut `0`.
+L'ancienne valeur littérale `ENV_IA=0|1` est migrée exactement vers
+`environnements.env`; le bloc de création du compte et de préparation du profil
+IA utilise le nouveau nom.
 Le répertoire est créé si nécessaire. Une erreur de création ou de persistance
 produit un diagnostic stderr et un statut non nul, sans définir la variable
 absente concernée.
