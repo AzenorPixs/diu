@@ -5802,7 +5802,7 @@ then
 
 fi
 
-if [ "$QEMU_GUEST_AGENT" -eq 1 ]
+if [[ "${SOFTWARES_APT_QEMU_GUEST_AGENT:-0}" -eq 1 ]]
 then
 
 	echo ""

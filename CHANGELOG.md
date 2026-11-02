@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `QEMU_GUEST_AGENT` vers
+  `SOFTWARES_APT_QEMU_GUEST_AGENT`, déclaré en `STATIC`, `ENABLE`, scope
+  `softwares`, défaut `0`. La dernière valeur historique littérale `0` ou `1`
+  est transférée exactement si le nouveau nom n’est pas déjà configuré.
+
 - Logiciel APT : migration de `POSTFIX` vers `SOFTWARES_APT_POSTFIX`, déclaré
   en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement; `POSTFIX_RELAY_HOST`
