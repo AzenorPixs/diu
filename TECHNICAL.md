@@ -761,6 +761,8 @@ Le contrôle Open vSwitch utilise `SOFTWARES_APT_OPENVSWITCH` dans
 `softwares.env`; l’ancienne valeur `OPENVSWITCH` y est migrée.
 Le contrôle du serveur PostgreSQL utilise `SOFTWARES_APT_POSTGRESQL` dans
 `softwares.env`; l’ancienne valeur `POSTGRESQL` y est migrée.
+Le contrôle Postfix utilise `SOFTWARES_APT_POSTFIX` dans `softwares.env`; la
+valeur distincte `POSTFIX_RELAY_HOST` continue à configurer le relais.
 
 ### Déclarations unitaires
 
@@ -1276,6 +1278,15 @@ point d’entrée conserve l’installation APT conditionnelle de
 vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
 point d’entrée conserve l’installation APT conditionnelle du serveur
 PostgreSQL.
+
+### Postfix par APT
+
+`modules/diu/variables/softwares/software_apt_postfix.sh` déclare
+`SOFTWARES_APT_POSTFIX` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `POSTFIX=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie.
+`POSTFIX_RELAY_HOST` reste distinct et configure `relayhost` lorsque Postfix
+est activé.
 
 ### Moteur `deb`
 

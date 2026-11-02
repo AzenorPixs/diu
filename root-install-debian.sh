@@ -5791,7 +5791,7 @@ then
 
 fi
 
-if [ "$POSTFIX" -eq 1 ]
+if [[ "${SOFTWARES_APT_POSTFIX:-0}" -eq 1 ]]
 then
 
 	echo ""
