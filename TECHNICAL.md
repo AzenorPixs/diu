@@ -763,6 +763,8 @@ Le contrôle du serveur PostgreSQL utilise `SOFTWARES_APT_POSTGRESQL` dans
 `softwares.env`; l’ancienne valeur `POSTGRESQL` y est migrée.
 Le contrôle Postfix utilise `SOFTWARES_APT_POSTFIX` dans `softwares.env`; la
 valeur distincte `POSTFIX_RELAY_HOST` continue à configurer le relais.
+Le contrôle de `qemu-guest-agent` utilise `SOFTWARES_APT_QEMU_GUEST_AGENT` dans
+`softwares.env`; le paquet reste désactivé par défaut.
 
 ### Déclarations unitaires
 
@@ -1287,6 +1289,15 @@ L’ancienne valeur littérale `POSTFIX=0|1` est transférée exactement vers
 `softwares.env` si la nouvelle variable n’y est pas déjà définie.
 `POSTFIX_RELAY_HOST` reste distinct et configure `relayhost` lorsque Postfix
 est activé.
+
+### qemu-guest-agent par APT
+
+`modules/diu/variables/softwares/software_apt_qemu_guest_agent.sh` déclare
+`SOFTWARES_APT_QEMU_GUEST_AGENT` en `STATIC`, `ENABLE`, scope `softwares`,
+défaut `0`. L’ancienne valeur littérale `QEMU_GUEST_AGENT=0|1` est transférée
+exactement vers `softwares.env` si la nouvelle variable n’y est pas déjà
+définie. Le point d’entrée conserve l’installation APT conditionnelle du
+paquet `qemu-guest-agent`.
 
 ### Moteur `deb`
 
