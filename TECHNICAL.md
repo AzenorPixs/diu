@@ -746,6 +746,9 @@ déclaré dans le scope `softwares`; l’ancienne valeur `FASTFETCH` est migrée
 vers `softwares.env`.
 Le contrôle d’installation jsvc utilise `SOFTWARES_APT_JSVC`, déclaré dans le
 scope `softwares`; l’ancienne valeur `JSVC` est migrée vers `softwares.env`.
+Le contrôle d’installation LemonLDAP-NG utilise `SOFTWARES_APT_LEMONLDAP` dans
+`softwares.env`; sa valeur initialise `SYSTEM_APT_LEMONLDAP` uniquement si le
+réglage du dépôt système n’existe pas déjà.
 
 ### Déclarations unitaires
 
@@ -1207,6 +1210,15 @@ d’entrée conserve les installations APT existantes selon la version Debian.
 L’ancienne valeur littérale `JSVC=0|1` est transférée exactement vers
 `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
 d’entrée conserve l’installation APT conditionnelle de jsvc.
+
+### LemonLDAP-NG par APT
+
+`modules/diu/variables/softwares/software_apt_lemonldap.sh` déclare
+`SOFTWARES_APT_LEMONLDAP` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `LEMONLDAP=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Elle sert
+aussi de repli à l’initialisation du dépôt `SYSTEM_APT_LEMONLDAP`; une valeur
+système déjà configurée reste prioritaire.
 
 ### Moteur `deb`
 

@@ -51,7 +51,7 @@ system_apt_unofficial_detect() {
 system_apt_unofficial_legacy_value() {
     case "$1" in
         SYSTEM_APT_LEMONLDAP)
-            [[ "${LEMONLDAP:-0}" == 1 ]] && printf '1' || printf '0'
+            [[ "${SOFTWARES_APT_LEMONLDAP:-0}" == 1 ]] && printf '1' || printf '0'
             ;;
         SYSTEM_APT_MONGODB)
             if [[ "${MONGODB:-0}" == 1 ]]; then
