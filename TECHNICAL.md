@@ -767,6 +767,9 @@ Le contrôle de `qemu-guest-agent` utilise `SOFTWARES_APT_QEMU_GUEST_AGENT` dans
 `softwares.env`; le paquet reste désactivé par défaut.
 Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
 `SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
+Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
+les options `SYSLOG_SERVER_SKIL_*` continuent à sélectionner les catégories de
+journaux.
 
 ### Déclarations unitaires
 
@@ -1308,6 +1311,15 @@ paquet `qemu-guest-agent`.
 `0`. L’ancienne valeur littérale `SYSLOG_CLIENT=0|1` est transférée exactement
 vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
 `SYSLOG_CLIENT_SERVER` reste distincte et indique la destination des journaux.
+
+### Serveur syslog par APT
+
+`modules/diu/variables/softwares/software_apt_syslog_server.sh` déclare
+`SOFTWARES_APT_SYSLOG_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `SYSLOG_SERVER=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Les
+variables `SYSLOG_SERVER_SKIL_*` restent distinctes pour configurer les
+catégories de journaux.
 
 ### Moteur `deb`
 
