@@ -18,7 +18,9 @@ SHALL accepter un chemin optionnel, par défaut `/root/diu/variables.sh`.
 
 - **WHEN** le fichier contient une ou plusieurs affectations de
   `DEBIAN_RELEASE`, `DEBIAN_TYPE`, `DISPLAY_LINK`, `TIME_ZONE`, `PROXY_CA`,
-  `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6` ou
+  `PROXY`, `DRIVERS_NVIDIA`, `FSTAB`, `FILES2RAM`, `GRUB_CONFIG`, `IPv6`,
+  `LOG_ROTATE`, `JOURNALD_MAX_USE`, `JOURNALD_KEEP_FREE`, `NO_SLEEP`,
+  `CROWDSEC_AGENT` ou
   `FSTAB_CONFIG1` à `FSTAB_CONFIG6`
 - **THEN** les affectations historiques SHALL être supprimées avant le
   chargement
@@ -115,6 +117,263 @@ activer ou désactiver IPv6.
 - **WHEN** le point d’entrée applique le réglage IPv6
 - **THEN** il utilise `SYSTEM_IPV6` et conserve le comportement sysctl existant
 
+### Requirement: Migration de LOG_ROTATE
+
+Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
+dernière valeur littérale simple `0` ou `1` de `LOG_ROTATE` vers
+`SYSTEM_LOG_ROTATE` si cette dernière n’est pas déjà déclarée dans
+`system.env`. Une affectation nécessitant une interprétation shell SHALL
+bloquer le nettoyage sans modifier les fichiers.
+
+#### Scenario: Ancienne valeur logrotate littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
+  `LOG_ROTATE`
+- **THEN** la dernière valeur SHALL être persistée exactement sous
+  `SYSTEM_LOG_ROTATE` si aucune déclaration nouvelle n’existe
+- **AND** les anciennes affectations SHALL être supprimées
+
+#### Scenario: Nouvelle valeur logrotate déjà configurée
+
+- **WHEN** `system.env` déclare déjà `SYSTEM_LOG_ROTATE`
+- **THEN** sa valeur SHALL rester prioritaire et ne pas être réécrite
+
+#### Scenario: Ancienne valeur logrotate ambiguë
+
+- **WHEN** une affectation `LOG_ROTATE` nécessite une interprétation shell ou
+  ne vaut pas littéralement `0` ou `1`
+- **THEN** le nettoyage SHALL échouer sans supprimer l’affectation ni modifier
+  `system.env`
+- **AND** SHALL NOT afficher son contenu
+
+### Requirement: Consommateur logrotate migré
+
+Le point d’entrée SHALL utiliser `SYSTEM_LOG_ROTATE` à la place de
+`LOG_ROTATE` pour activer le bloc logrotate.
+
+#### Scenario: Utilisation du nouveau nom
+
+- **WHEN** le point d’entrée décide d’écrire `/etc/logrotate.conf`
+- **THEN** il consulte `SYSTEM_LOG_ROTATE` et conserve le comportement existant
+
+### Requirement: Migration de JOURNALD_MAX_USE
+
+Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
+dernière valeur littérale simple `JOURNALD_MAX_USE` vers
+`SYSTEM_JOURNALD_MAX_USE` si ce nouveau nom n’est pas déjà déclaré dans
+`system.env`. Les littéraux acceptés SHALL être un entier suivi
+facultativement d’une unité journald `K`, `M`, `G`, `T`, `P` ou `E`, avec
+guillemets simples ou doubles facultatifs. Une forme exigeant une
+interprétation shell SHALL bloquer le nettoyage sans mutation.
+
+#### Scenario: Ancienne limite littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations littérales
+  simples de `JOURNALD_MAX_USE`
+- **THEN** la dernière valeur SHALL être transférée exactement vers
+  `SYSTEM_JOURNALD_MAX_USE` si aucune valeur nouvelle n’existe
+- **AND** les affectations historiques SHALL être supprimées
+
+#### Scenario: Nouvelle limite déjà configurée
+
+- **WHEN** `system.env` déclare déjà `SYSTEM_JOURNALD_MAX_USE`
+- **THEN** sa valeur SHALL rester prioritaire et ne pas être réécrite
+
+#### Scenario: Ancienne limite ambiguë
+
+- **WHEN** une affectation `JOURNALD_MAX_USE` nécessite une interprétation
+  shell ou ne respecte pas le format littéral accepté
+- **THEN** le nettoyage SHALL échouer sans supprimer l’affectation ni modifier
+  `system.env`
+- **AND** SHALL NOT afficher son contenu
+
+### Requirement: Consommateurs journald migrés
+
+Le point d’entrée SHALL consulter `SYSTEM_JOURNALD_MAX_USE` pour les limites
+`SystemMaxUse` et `RuntimeMaxUse`.
+
+#### Scenario: Utilisation de la nouvelle limite
+
+- **WHEN** le DIU configure journald
+- **THEN** les deux directives utilisent `SYSTEM_JOURNALD_MAX_USE`
+
+### Requirement: Migration de JOURNALD_KEEP_FREE
+
+Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
+dernière valeur littérale simple `JOURNALD_KEEP_FREE` vers
+`SYSTEM_JOURNALD_KEEP_FREE` si ce nouveau nom n’est pas déjà déclaré dans
+`system.env`. Les littéraux acceptés SHALL être un entier suivi
+facultativement d’une unité journald `K`, `M`, `G`, `T`, `P` ou `E`, avec
+guillemets simples ou doubles facultatifs. Une forme exigeant une
+interprétation shell SHALL bloquer le nettoyage sans mutation.
+
+#### Scenario: Ancienne réserve littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations littérales
+  simples de `JOURNALD_KEEP_FREE`
+- **THEN** la dernière valeur SHALL être transférée exactement vers
+  `SYSTEM_JOURNALD_KEEP_FREE` si la nouvelle valeur n’existe pas
+- **AND** les affectations historiques SHALL être supprimées
+
+#### Scenario: Nouvelle réserve déjà configurée
+
+- **WHEN** `system.env` déclare déjà `SYSTEM_JOURNALD_KEEP_FREE`
+- **THEN** sa valeur SHALL rester prioritaire et ne pas être réécrite
+
+#### Scenario: Ancienne réserve ambiguë
+
+- **WHEN** une affectation `JOURNALD_KEEP_FREE` nécessite une interprétation
+  shell ou ne respecte pas le format littéral accepté
+- **THEN** le nettoyage SHALL échouer sans supprimer l’affectation ni modifier
+  `system.env`
+- **AND** SHALL NOT afficher son contenu
+
+### Requirement: Consommateurs journald migrés pour l’espace libre
+
+Le point d’entrée SHALL consulter `SYSTEM_JOURNALD_KEEP_FREE` pour les limites
+`SystemKeepFree` et `RuntimeKeepFree`.
+
+#### Scenario: Utilisation de la nouvelle réserve
+
+- **WHEN** le DIU configure journald
+- **THEN** les deux directives utilisent `SYSTEM_JOURNALD_KEEP_FREE`
+
+### Requirement: Migration de NO_SLEEP
+
+Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
+dernière valeur littérale simple `0` ou `1` de `NO_SLEEP` vers `SYSTEM_NO_SLEEP`
+si ce nouveau nom n’est pas déjà déclaré dans `system.env`. Une affectation
+nécessitant une interprétation shell SHALL bloquer le nettoyage sans modifier
+les fichiers.
+
+#### Scenario: Ancienne valeur NO_SLEEP littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
+  `NO_SLEEP`
+- **THEN** la dernière valeur SHALL être transférée exactement vers
+  `SYSTEM_NO_SLEEP` si aucune valeur nouvelle n’existe
+- **AND** les affectations historiques SHALL être supprimées
+
+#### Scenario: Nouvelle valeur NO_SLEEP déjà configurée
+
+- **WHEN** `system.env` déclare déjà `SYSTEM_NO_SLEEP`
+- **THEN** sa valeur SHALL rester prioritaire et ne pas être réécrite
+
+#### Scenario: Ancienne valeur NO_SLEEP ambiguë
+
+- **WHEN** une affectation `NO_SLEEP` nécessite une interprétation shell ou ne
+  vaut pas littéralement `0` ou `1`
+- **THEN** le nettoyage SHALL échouer sans supprimer l’affectation ni modifier
+  `system.env`
+- **AND** SHALL NOT afficher son contenu
+
+### Requirement: Consommateur de veille migré
+
+Le point d’entrée SHALL utiliser `SYSTEM_NO_SLEEP` à la place de `NO_SLEEP`
+pour contrôler la création de `nosleep.conf`.
+
+#### Scenario: Utilisation du nouveau nom
+
+- **WHEN** le DIU configure la veille systemd
+- **THEN** il consulte `SYSTEM_NO_SLEEP` et conserve le comportement existant
+
+### Requirement: Migration de APACHE2 vers le scope logiciels
+
+Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
+dernière valeur littérale simple `0` ou `1` de `APACHE2` vers
+`SOFTWARES_APT_APACHE2` dans `softwares.env` si le nouveau nom n’y est pas déjà
+déclaré. Une affectation nécessitant une interprétation shell SHALL bloquer le
+nettoyage sans modifier les fichiers.
+
+#### Scenario: Ancienne valeur APACHE2 littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
+  `APACHE2`
+- **THEN** la dernière valeur SHALL être transférée exactement vers
+  `SOFTWARES_APT_APACHE2` dans `softwares.env` si aucune nouvelle valeur
+  n’existe
+- **AND** les anciennes affectations SHALL être supprimées
+
+#### Scenario: Valeur SOFTWARES_APT_APACHE2 déjà configurée
+
+- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_APACHE2`
+- **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
+
+#### Scenario: Ancienne valeur APACHE2 ambiguë
+
+- **WHEN** une affectation `APACHE2` nécessite une interprétation shell ou ne
+  vaut pas littéralement `0` ou `1`
+- **THEN** le nettoyage SHALL échouer sans supprimer l’affectation ni modifier
+  `softwares.env`
+- **AND** SHALL NOT afficher son contenu
+
+### Requirement: Consommateur Apache2 migré
+
+Le point d’entrée SHALL utiliser `SOFTWARES_APT_APACHE2` à la place de
+`APACHE2` pour activer le bloc d’installation Apache2.
+
+#### Scenario: Utilisation du nouveau nom
+
+- **WHEN** le DIU décide d’installer Apache2
+- **THEN** il consulte `SOFTWARES_APT_APACHE2` et conserve le comportement APT
+  existant
+
+### Requirement: Migration de CROWDSEC_AGENT
+
+`config_cleanup` SHALL migrer les valeurs simples de `CROWDSEC_AGENT`,
+`SYSTEM_CROWDSEC_AGENT`, `CROWDSEC_BOUNCER`, `SYSTEM_APT_CROWDSEC` et la clé
+`CROWDSEC_BOUNCER_API_KEY` vers leurs nouveaux noms dans `softwares.env`.
+Les valeurs agent/bouncer/dépôt `0` ou `1` sont préservées exactement. La clé
+API est transférée opaque, sans exécution ni affichage, et le fichier reçoit
+le mode `0600`. Une valeur sous son nouveau nom reste prioritaire; toute
+affectation ancienne ambiguë bloque sans modifier les fichiers.
+
+#### Scenario: Ancienne valeur CROWDSEC_AGENT littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
+  `CROWDSEC_AGENT`
+- **THEN** la dernière valeur littérale `0` ou `1` est transférée exactement
+  vers `SOFTWARES_APT_CROWDSEC_AGENT` si aucune valeur nouvelle n'existe
+- **AND** les anciennes affectations sont supprimées
+
+#### Scenario: Nouvelle valeur CROWDSEC_AGENT déjà configurée
+
+- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_CROWDSEC_AGENT`
+- **THEN** sa valeur reste prioritaire et n'est pas réécrite
+
+#### Scenario: Ancienne valeur CROWDSEC_AGENT ambiguë
+
+- **WHEN** une affectation CrowdSec nécessite une interprétation shell ou ne
+  vaut pas littéralement `0` ou `1`
+- **THEN** le nettoyage échoue sans supprimer l'affectation ni modifier les
+  fichiers de configuration
+- **AND** il n'affiche pas la valeur
+
+#### Scenario: Clé API historique littérale
+
+- **WHEN** `variables.sh` contient une clé API littérale simple
+- **THEN** elle est transférée sans affichage vers
+  `SOFTWARES_CROWDSEC_BOUNCER_API_KEY`
+- **AND** `softwares.env` reçoit le mode `0600`
+- **AND** l'affectation historique est supprimée
+
+#### Scenario: Clé API ambiguë
+
+- **WHEN** l'affectation historique de la clé API n'est pas un littéral simple
+- **THEN** le nettoyage échoue sans évaluer ni afficher son contenu
+- **AND** les fichiers restent inchangés
+
+### Requirement: Consommateur CrowdSec migré
+
+Le point d’entrée SHALL utiliser `SYSTEM_CROWDSEC_AGENT` à la place de
+`CROWDSEC_AGENT` pour activer l’installation de l’agent.
+
+#### Scenario: Utilisation du nouveau nom
+
+- **WHEN** le DIU décide d’installer l’agent CrowdSec
+- **THEN** il consulte `SYSTEM_CROWDSEC_AGENT` et conserve le comportement
+  d’installation existant
+
 ### Requirement: Migration de GRUB_CONFIG
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
@@ -145,3 +404,121 @@ bloquer le nettoyage sans modifier les fichiers.
 - **THEN** le nettoyage SHALL échouer sans supprimer l’affectation ni modifier
   `system.env`
 - **AND** SHALL NOT afficher son contenu
+
+### Requirement: Migration de DESKTOP
+
+Avant de charger la configuration, `config_cleanup` SHALL transférer la
+dernière valeur littérale `0` ou `1` de `DESKTOP` de `variables.sh` vers
+`desktop.env` si `DESKTOP` n'y est pas déjà déclaré. Il SHALL aussi transférer
+`SOFTWARES_APT_DESKTOP=0|1` de `softwares.env` vers `DESKTOP` dans
+`desktop.env`, avec priorité à `DESKTOP` déjà présent, puis à l'ancienne valeur
+`SOFTWARES_APT_DESKTOP` sur l'affectation `DESKTOP` de `variables.sh`. Après
+une migration réussie, les anciennes affectations sont retirées de leurs
+fichiers sources. Toute syntaxe ambiguë SHALL bloquer le nettoyage sans
+évaluation ni modification des fichiers.
+
+#### Scenario: Ancienne valeur DESKTOP littérale
+
+- **WHEN** `variables.sh` contient une ou plusieurs affectations littérales
+  `DESKTOP=0|1`
+- **THEN** la dernière valeur est transférée exactement vers `desktop.env`
+- **AND** les affectations historiques sont supprimées après migration réussie
+
+#### Scenario: Nouvelle valeur prioritaire
+
+- **WHEN** `desktop.env` déclare déjà `DESKTOP`
+- **THEN** sa valeur reste prioritaire et n'est pas réécrite
+
+#### Scenario: Affectation DESKTOP ambiguë
+
+- **WHEN** une affectation historique nécessite une interprétation shell
+- **THEN** le nettoyage échoue sans supprimer l'affectation ni modifier
+  `desktop.env`
+
+#### Scenario: Migration de l'ancien scope logiciels
+
+- **WHEN** `softwares.env` déclare `SOFTWARES_APT_DESKTOP=0|1` et
+  `desktop.env` ne déclare pas encore `DESKTOP`
+- **THEN** la valeur est transférée exactement sous le nom `DESKTOP`
+- **AND** l'ancienne déclaration logiciels est supprimée
+
+### Requirement: Migration de ENV_DEVOPS
+
+Avant le chargement de configuration, `config_cleanup` SHALL migrer la
+dernière valeur littérale `0` ou `1` de `ENV_DEVOPS` depuis `variables.sh` ou
+`environnements.env` vers `ENVIRONMENTS_DEVOPS` dans `environnements.env` si le
+nouveau nom n'y est pas déjà déclaré. Une valeur déjà déclarée sous le nouveau
+nom SHALL rester prioritaire. Une affectation ambiguë SHALL bloquer le
+nettoyage sans évaluation ni modification des fichiers.
+
+#### Scenario: Ancienne valeur ENV_DEVOPS littérale
+
+- **WHEN** `variables.sh` ou `environnements.env` contient une affectation
+  `ENV_DEVOPS=0|1`
+- **THEN** sa dernière valeur littérale est transférée exactement vers
+  `ENVIRONMENTS_DEVOPS`
+- **AND** l'ancienne affectation est supprimée après migration réussie
+- **AND** les noms voisins tels que `ENV_DEVOPS_USER` sont préservés
+
+#### Scenario: Nouvelle valeur prioritaire
+
+- **WHEN** `environnements.env` déclare `ENVIRONMENTS_DEVOPS`
+- **THEN** sa valeur reste prioritaire et n'est pas réécrite
+
+#### Scenario: Affectation ENV_DEVOPS ambiguë
+
+- **WHEN** une affectation historique n'est pas un littéral simple `0` ou `1`
+- **THEN** le nettoyage échoue sans l'évaluer ni modifier les fichiers
+
+### Requirement: Migration de ENV_DOCKER
+
+`config_cleanup` SHALL migrer le littéral `ENV_DOCKER=0|1` vers
+`ENVIRONMENT_DOCKER` dans `environnements.env`. Une valeur nouvelle existante
+reste prioritaire. Les affectations ambiguës bloquent sans évaluation ni
+modification; les variables voisines `ENV_DOCKER_*` sont conservées.
+
+#### Scenario: Ancienne valeur ENV_DOCKER littérale
+
+- **WHEN** `variables.sh` ou `environnements.env` contient `ENV_DOCKER=0|1`
+- **THEN** sa dernière valeur littérale est transférée exactement vers
+  `ENVIRONMENT_DOCKER`
+- **AND** l'ancienne affectation est supprimée après migration réussie
+
+#### Scenario: Nouvelle valeur prioritaire
+
+- **WHEN** `environnements.env` déclare `ENVIRONMENT_DOCKER`
+- **THEN** sa valeur reste prioritaire et n'est pas réécrite
+
+#### Scenario: Affectation ENV_DOCKER ambiguë
+
+- **WHEN** une affectation historique `ENV_DOCKER` n'est pas un littéral simple
+  `0` ou `1`
+- **THEN** le nettoyage échoue sans l'évaluer ni modifier les fichiers
+- **AND** les variables suffixées `ENV_DOCKER_*` restent inchangées
+
+### Requirement: Migration de DOCKER_USER
+
+`config_cleanup` SHALL migrer un ancien nom de compte littéral `DOCKER_USER`
+depuis `variables.sh` ou `docker.env` vers `ENVIRONMENT_DOCKER_USER` dans
+`docker.env` si le nouveau nom n'y est pas déjà déclaré. La nouvelle valeur
+reste prioritaire; une valeur ambiguë bloque le nettoyage sans évaluation ni
+modification des fichiers. Les variables `ENV_DOCKER_USER` et
+`ENV_DOCKER_GROUP` restent inchangées.
+
+#### Scenario: Ancienne valeur DOCKER_USER littérale
+
+- **WHEN** un fichier de configuration contient `DOCKER_USER` comme nom de
+  compte simple
+- **THEN** sa valeur est transférée exactement vers `ENVIRONMENT_DOCKER_USER`
+- **AND** l'ancienne déclaration est supprimée après migration réussie
+
+#### Scenario: Nouveau nom prioritaire
+
+- **WHEN** `docker.env` déclare déjà `ENVIRONMENT_DOCKER_USER`
+- **THEN** cette valeur reste prioritaire et n'est pas réécrite
+
+#### Scenario: Ancienne valeur ambiguë
+
+- **WHEN** l'ancienne valeur `DOCKER_USER` nécessite une interprétation shell
+- **THEN** le nettoyage échoue sans l'évaluer ni modifier les fichiers
+- **AND** les paramètres voisins `ENV_DOCKER_USER` et `ENV_DOCKER_GROUP` sont préservés

@@ -29,7 +29,6 @@ system_apt_unofficial_detect() {
         *)
             local repository
             case "$variable" in
-                SYSTEM_APT_CROWDSEC) repository='crowdsec|packagecloud.io/crowdsec' ;;
                 SYSTEM_APT_DOCKER) repository='download\.docker\.com' ;;
                 SYSTEM_APT_LEMONLDAP) repository='lemonldap-ng' ;;
                 SYSTEM_APT_NODEJS) repository='nodesource|deb\.nodesource\.com' ;;
@@ -51,9 +50,6 @@ system_apt_unofficial_detect() {
 
 system_apt_unofficial_legacy_value() {
     case "$1" in
-        SYSTEM_APT_CROWDSEC)
-            [[ "${CROWDSEC_BOUNCER:-0}" == 1 ]] && printf '1' || printf '0'
-            ;;
         SYSTEM_APT_LEMONLDAP)
             [[ "${LEMONLDAP:-0}" == 1 ]] && printf '1' || printf '0'
             ;;
@@ -91,7 +87,6 @@ system_apt_unofficial_declare() {
     fi
 }
 
-system_apt_unofficial_declare SYSTEM_APT_CROWDSEC
 system_apt_unofficial_declare SYSTEM_APT_DOCKER
 system_apt_unofficial_declare SYSTEM_APT_LEMONLDAP
 system_apt_unofficial_declare SYSTEM_APT_MONGODB
