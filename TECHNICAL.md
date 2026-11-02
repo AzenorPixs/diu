@@ -744,6 +744,8 @@ dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
 Le contrôle d’installation de Fastfetch utilise `SOFTWARES_APT_FASTFETCH`,
 déclaré dans le scope `softwares`; l’ancienne valeur `FASTFETCH` est migrée
 vers `softwares.env`.
+Le contrôle d’installation jsvc utilise `SOFTWARES_APT_JSVC`, déclaré dans le
+scope `softwares`; l’ancienne valeur `JSVC` est migrée vers `softwares.env`.
 
 ### Déclarations unitaires
 
@@ -1197,6 +1199,14 @@ dépendances existantes selon la version Debian détectée.
 L’ancienne valeur littérale `FASTFETCH=0|1` est transférée exactement vers
 `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
 d’entrée conserve les installations APT existantes selon la version Debian.
+
+### jsvc par APT
+
+`modules/diu/variables/softwares/software_apt_jsvc.sh` déclare
+`SOFTWARES_APT_JSVC` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
+L’ancienne valeur littérale `JSVC=0|1` est transférée exactement vers
+`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
+d’entrée conserve l’installation APT conditionnelle de jsvc.
 
 ### Moteur `deb`
 
