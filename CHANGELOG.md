@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciel APT : migration de `SYNCTHING` vers `SOFTWARES_APT_SYNCTHING`,
+  déclaré en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière
+  valeur historique littérale `0` ou `1` est transférée exactement si le
+  nouveau nom n’est pas déjà configuré; `.stignore` reste conditionnel.
+
 - Logiciel APT : migration de `SSH` vers `SOFTWARES_APT_SSH_SERVER`, déclaré
   en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`. La dernière valeur
   historique littérale `0` ou `1` est transférée exactement; les clés

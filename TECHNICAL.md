@@ -765,6 +765,8 @@ Le contrôle Postfix utilise `SOFTWARES_APT_POSTFIX` dans `softwares.env`; la
 valeur distincte `POSTFIX_RELAY_HOST` continue à configurer le relais.
 Le contrôle de `qemu-guest-agent` utilise `SOFTWARES_APT_QEMU_GUEST_AGENT` dans
 `softwares.env`; le paquet reste désactivé par défaut.
+Le contrôle Syncthing utilise `SOFTWARES_APT_SYNCTHING` dans `softwares.env`
+pour l’installation du paquet et le rendu conditionnel de `.stignore`.
 Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
 `SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
 Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
@@ -1331,6 +1333,15 @@ catégories de journaux.
 `softwares.env` si la nouvelle variable n’y est pas déjà définie. Les blocs
 existants d’installation et de préparation des clés restent pilotés par cette
 variable; les valeurs `KEY_SSH_*` restent distinctes.
+
+### Syncthing par APT
+
+`modules/diu/variables/softwares/software_apt_syncthing.sh` déclare
+`SOFTWARES_APT_SYNCTHING` en `STATIC`, `ENABLE`, scope `softwares`, défaut
+`0`. L’ancienne valeur littérale `SYNCTHING=0|1` est transférée exactement
+vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
+point d’entrée conserve l’installation APT et le rendu conditionnel de
+`.stignore`.
 
 ### Moteur `deb`
 
