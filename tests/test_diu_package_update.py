@@ -34,6 +34,7 @@ class DiuPackageUpdateTests(unittest.TestCase):
             data = base / 'releases.json'
             data.write_text(json.dumps(releases), encoding='utf-8')
             calls = base / 'calls'
+            requests = base / 'requests'
             script = r'''
 set -Eeuo pipefail
 source "$ROOT/modules/diu/update.sh"
@@ -56,7 +57,8 @@ dpkg-deb() {
 curl() {
   local last="${!#}" output=''
   if [[ "$last" == *releases*'?'* ]]; then
-    [[ "$last" == https://api.github.com/* ]] || { printf "unexpected provider\n" >&2; return 22; }
+    printf '%s\n' "$last" >> "$REQUESTS"
+    [[ "$last" == https://api.github.com/* || "$last" == https://forge.example/* ]] || return 22
     [[ "$last" != *"$FAILURE"* || -z "$FAILURE" ]] || return 22
     jq -c --arg url "$last" '.[$url] // []' "$RELEASES"
   else
@@ -65,16 +67,18 @@ curl() {
       shift
     done
     printf '%s\n' "$last" >> "$CALLS"
+    [[ "$last" != *"$FAILURE"* || -z "$FAILURE" ]] || return 22
     printf 'fixture' > "$output"
   fi
 }
 diu_update
 '''
             env = {**os.environ, 'ROOT': str(ROOT), 'DEVOPS_PROJECTS_ROOT': tmp,
-                   'RELEASES': str(data), 'CALLS': str(calls), 'INSTALLED': installed,
+                   'RELEASES': str(data), 'CALLS': str(calls), 'REQUESTS': str(requests), 'INSTALLED': installed,
                    'FAILURE': failure, **(metadata or {})}
             result = subprocess.run(['bash', '-c', script], env=env, text=True,
                                     capture_output=True, check=False)
+            self.requests = requests.read_text().splitlines() if requests.exists() else []
             return result, calls.read_text().splitlines() if calls.exists() else []
 
     def test_only_github_is_queried(self):
@@ -92,15 +96,67 @@ diu_update
         result, calls = self.run_update(config, releases)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, ['https://github.com/team/diu/releases/diu_2.0.0_all.deb', 'install'])
+        self.assertTrue(all('api.github.com' in url for url in self.requests))
         result, calls = self.run_update(config, releases, installed='2.1.0')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, [])
+        self.assertTrue(all('api.github.com' in url for url in self.requests))
         result, calls = self.run_update(config, releases, metadata={'PKG_ARCH': 'amd64'})
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('install', calls)
+        self.assertTrue(all('api.github.com' in url for url in self.requests))
+        result, calls = self.run_update(config, releases, failure='api.github.com', metadata={'PKG_VERSION': '9.9.0'})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, ['https://forge.example/team/diu/releases/diu_9.9.0_all.deb', 'install'])
+        self.assertIn('api.github.com', self.requests[0])
+        self.assertIn('forge.example', self.requests[1])
+
+    def test_fallback_when_github_missing_empty_or_invalid(self):
+        forge = ('REMOTE_FORGEJO_BASE_URL=https://forge.example\n'
+                 'REMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n')
+        github = ('REMOTE_GITHUB_BASE_URL=https://github.com\n'
+                  'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
+        forge_api = 'https://forge.example/api/v1/repos/team/diu/releases?per_page=100&page=1'
+        gh_api = 'https://api.github.com/repos/team/diu/releases?per_page=100&page=1'
+        asset = 'https://forge.example/team/diu/2.deb'
+        release = [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]
+        for config, value in ((forge, []), (forge + github, []), (forge + github, {'error': 'invalid'}),
+                              (forge + 'REMOTE_GITHUB_BASE_URL=https://github.com\n', [])):
+            with self.subTest(config=config, value=value):
+                result, calls = self.run_update(config, {forge_api: release, gh_api: value})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(calls, [asset, 'install'])
+                self.assertTrue(any('forge.example' in u for u in self.requests))
+
+    def test_forgejo_pagination_and_unavailable_fallback(self):
+        config = ('REMOTE_GITHUB_BASE_URL=https://github.com\nREMOTE_GITHUB_OWNER=team\n'
+                  'REMOTE_GITHUB_REPOSITORY=diu\nREMOTE_FORGEJO_BASE_URL=https://forge.example\n'
+                  'REMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n')
+        api = 'https://forge.example/api/v1/repos/team/diu/releases?per_page=100&page='
+        asset = 'https://forge.example/2.deb'
+        releases = {api + '1': [{'tag_name': 'v1.0.0', 'assets': []}],
+                    api + '2': [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]}
         result, calls = self.run_update(config, releases, failure='api.github.com')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, [asset, 'install'])
+        self.assertTrue(any('page=2' in u and 'forge.example' in u for u in self.requests))
+        result, calls = self.run_update(config, {}, failure='forge.example')
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(calls, [])
+        self.assertNotIn('install', calls)
+
+    def test_invalid_forgejo_ignored_if_github_works_and_download_failure_stops(self):
+        config = ('REMOTE_FORGEJO_BASE_URL=invalid value\nREMOTE_FORGEJO_BASE_URL=duplicate\n'
+                  'REMOTE_GITHUB_BASE_URL=https://github.com\nREMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
+        api = 'https://api.github.com/repos/team/diu/releases?per_page=100&page=1'
+        asset = 'https://github.com/team/diu/2.deb'
+        releases = {api: [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]}
+        result, calls = self.run_update(config, releases)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, [asset, 'install'])
+        result, calls = self.run_update(config, releases, failure='/2.deb')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('install', calls)
+        self.assertTrue(all('api.github.com' in u for u in self.requests))
 
     def test_github_pagination(self):
         config = ('REMOTE_GITHUB_BASE_URL=https://github.com\n'

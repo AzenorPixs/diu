@@ -1,33 +1,33 @@
 # diu-package-update Specification
 
 ## Purpose
-Rechercher et installer de manière contrôlée la dernière version disponible du paquet DIU dans les releases du dépôt GitHub configuré.
+Rechercher et installer de manière contrôlée la dernière version disponible du paquet DIU en priorité dans les releases GitHub configurées, avec Forgejo en secours.
 
 ## Requirements
 
 ### Requirement: Mise à jour dédiée du paquet DIU
 
-`rid diu update` SHALL utiliser exclusivement les releases GitHub configurées dans `DEVOPS_PROJECTS_ROOT/diu/project.env`, sans interroger Forgejo ni GitLab. Elle SHALL parcourir toutes les pages, exclure brouillons et préversions et choisir parmi les assets `diu_<version>_all.deb` associés au tag `v<version>` la version stable x.y.z en priorité, puis la plus élevée selon dpkg. L’accès privé SHALL réutiliser les identifiants GitHub du projet.
+`rid diu update` SHALL privilégier GitHub configuré dans `DEVOPS_PROJECTS_ROOT/diu/project.env`, puis Forgejo en secours. Elle SHALL NOT interroger GitLab. Chaque fournisseur SHALL être validé indépendamment. Elle SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg. GitHub privé SHALL réutiliser les identifiants du projet.
 
 #### Scenario: Comparaison entre fournisseurs
-- **WHEN** les releases GitHub exposent plusieurs paquets DIU admissibles
-- **THEN** la commande privilégie une version stable x.y.z puis sélectionne la version la plus élevée de cette catégorie
+- **WHEN** GitHub fournit un paquet admissible, même si Forgejo en possède un plus récent
+- **THEN** la commande retient le meilleur candidat GitHub et n'interroge pas Forgejo
 
 #### Scenario: Autres fournisseurs configurés
-- **WHEN** Forgejo ou GitLab sont configurés, même de manière partielle ou invalide
+- **WHEN** GitLab ou une configuration Forgejo invalide sont présents et que GitHub fournit un candidat
 - **THEN** la commande les ignore sans les interroger
 
 #### Scenario: Configuration partielle
-- **WHEN** la configuration GitHub est absente ou partielle
-- **THEN** la commande retourne une erreur sans installer de paquet
+- **WHEN** GitHub est partiellement configuré et Forgejo est valide et disponible
+- **THEN** la commande signale l'échec GitHub et utilise Forgejo
 
 #### Scenario: Fournisseur absent
-- **WHEN** la configuration GitHub est absente
-- **THEN** la commande retourne une erreur sans installer de paquet
+- **WHEN** GitHub est absent ou ne propose aucun paquet admissible et Forgejo est valide et disponible
+- **THEN** la commande utilise le meilleur candidat Forgejo
 
 #### Scenario: Dépôt configuré inaccessible
-- **WHEN** le dépôt GitHub configuré ne peut pas être interrogé ou sa réponse est invalide
-- **THEN** la commande retourne une erreur sans installer de paquet ni recourir à un autre fournisseur
+- **WHEN** GitHub est inaccessible ou retourne une réponse invalide
+- **THEN** la commande essaie Forgejo et retourne une erreur sans installation si le secours échoue
 
 #### Scenario: Dépôt GitHub privé
 - **WHEN** GitHub est privé et les identifiants du projet sont valides
@@ -37,6 +37,14 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 #### Scenario: Dépôt GitHub public sans identifiant
 - **WHEN** GitHub est public et aucun jeton local n'existe
 - **THEN** la recherche et le téléchargement restent possibles sans authentification
+
+#### Scenario: GitHub déjà à jour
+- **WHEN** GitHub fournit un candidat égal ou inférieur à la version installée
+- **THEN** aucune installation ni consultation de Forgejo ne sont réalisées
+
+#### Scenario: Échec après sélection
+- **WHEN** le téléchargement, la validation du paquet ou l'installation échoue après sélection d'un candidat
+- **THEN** la commande signale l'échec sans essayer un autre fournisseur
 
 ### Requirement: Installation contrôlée
 

@@ -1930,21 +1930,23 @@ paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'A
 Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
-`rid diu update` consulte exclusivement les releases GitHub configurées dans
-`DEVOPS_PROJECTS_ROOT/diu/project.env`, à la racine du projet DIU. Ce fichier
-n'est pas inclus dans le paquet installé et doit être disponible sur la machine.
-Une configuration GitHub absente, partielle ou inaccessible interrompt la
-recherche sans installation ; Forgejo et GitLab sont ignorés par cette commande.
-La commande parcourt les pages et privilégie les versions stables x.y.z, puis
-compare les versions Debian des assets `diu_<version>_all.deb` associés au tag
-`v<version>`. Les brouillons et préversions GitHub sont exclus. Le paquet est
-vérifié (nom, version, architecture) avant `dpkg` ; le fichier temporaire est
-supprimé. `rid update diu` est un alias compatible.
-Lorsqu'un jeton existe dans le `config/` du projet DIU, le lecteur GitHub
-existant vérifie ses permissions et l'API est authentifiée. Un asset est
-téléchargé avec son identifiant depuis l'API du dépôt, sans transmettre le
-jeton aux origines de redirection. Sans jeton, le parcours reste anonyme ; un
-répertoire privé inaccessible provoque une erreur sans installation.
+`rid diu update` consulte d'abord les releases GitHub configurées dans
+`DEVOPS_PROJECTS_ROOT/diu/project.env`. Si GitHub fournit un paquet admissible,
+il est retenu même si Forgejo dispose d'une version supérieure ; une version
+installée égale ou supérieure termine sans consulter Forgejo. Si GitHub est
+absent, inaccessible, renvoie une réponse invalide ou ne fournit aucun paquet
+admissible, le bloc Forgejo est analysé indépendamment et ses releases publiques
+sont consultées en secours. GitLab est ignoré. Une configuration Forgejo invalide
+ne bloque pas GitHub. Sans candidat sur les deux fournisseurs, la commande échoue.
+
+Chaque source est paginée ; les brouillons et préversions sont exclus et les
+versions stables x.y.z sont prioritaires avant comparaison Debian des assets
+`diu_<version>_all.deb` associés au tag `v<version>`. Le paquet est vérifié
+(nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
+Toute erreur après sélection (téléchargement, validation ou installation) bloque
+sans essai sur l'autre source. `rid update diu` est un alias compatible.
+Le jeton GitHub existant, s'il est présent, permet l'accès privé par l'API sans
+transmission aux origines de redirection ; sinon le parcours est anonyme.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de
