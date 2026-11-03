@@ -31,6 +31,7 @@ runuser() {
         *'rev-parse refs/remotes/github/main') printf '%s' "${REMOTE_SHA:-$HEAD_SHA}" ;;
         *'rev-parse --verify refs/tags/'*) [[ "${LOCAL_TAG_MISSING:-}" != yes ]] || return 1; printf '%s' "$HEAD_SHA" ;;
         *'rev-parse HEAD'|*'rev-parse --verify HEAD') printf '%s' "$HEAD_SHA" ;;
+        *'merge-base --is-ancestor'*) [[ "${REPLAY_ANCESTOR:-}" == yes ]] ;;
         *'tag --points-at HEAD') printf '%s' "${LOCAL_TAGS:-v1.0.3}" ;;
         *'log -1 --format=%s') printf 'fixture release' ;;
         *) printf 'Unexpected Git operation\n' >&2; return 92 ;;
@@ -97,6 +98,21 @@ projects_github_release_debian project
 
 
 class GithubDebianReleaseTests(unittest.TestCase):
+    def test_replay_allows_tagged_ancestor_without_rewinding_remote(self):
+        result = self.run_release(harness=HARNESS.replace('projects_github_release_debian project',
+                                                        'PROJECTS_CICD_REPLAY=1\nprojects_github_release_debian project'),
+                                  REMOTE_SHA=OTHER, REPLAY_ANCESTOR='yes', RELEASE_EXISTS='complete')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('déjà publié', result.stdout)
+        self.assertTrue(all(call['method'] == 'GET' for call in self.calls()))
+
+    def test_replay_rejects_tag_outside_remote_history(self):
+        result = self.run_release(harness=HARNESS.replace('projects_github_release_debian project',
+                                                        'PROJECTS_CICD_REPLAY=1\nprojects_github_release_debian project'),
+                                  REMOTE_SHA=OTHER)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(any(call['method'] == 'POST' for call in self.calls()))
+
     def test_existing_complete_release_is_informational(self):
         result = self.run_release(RELEASE_EXISTS='complete')
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -88,8 +88,13 @@ Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent l
 
 Le flux `rid projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
 facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
-Une version déjà attribuée à un autre commit est signalée et le traitement
-est interrompu sans déplacer le tag ni republier le contenu courant. Avec un
+Une version `PROJECT_VERSION` déjà attribuée est rejouée depuis une copie isolée du commit de
+son tag : les modifications locales en attente restent disponibles et ne sont
+pas incluses. Le tag n'est jamais déplacé et une branche distante n'est jamais
+ramenée en arrière. Le paquet issu du rejeu est conservé sous
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. La publication Docker
+est ignorée lors du rejeu, DIU ne vérifiant pas l'immutabilité du tag distant ;
+les publications Debian restent indépendantes. Avec un
 arbre inchangé et un tag absent de tous les dépôts vérifiés, le tag peut être
 créé sur le commit courant sans commit vide. La forme historique explicite
 `rid projects cicd <ID PROJECT> <MESSAGE> <TAG>` reste disponible.

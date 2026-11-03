@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- CI/CD : rejeu des six étapes sur le commit du tag existant dans un contexte
+  isolé, en préservant l'index et les modifications locales. Les branches et
+  tags distants ne sont pas ramenés en arrière ; le paquet Debian de rejeu est
+  conservé séparément. La publication Docker est ignorée si l'immutabilité du
+  tag distant ne peut pas être confirmée. Version de livraison : 1.0.9.
+
 - Génération de DEVOPS.md : ajout du paragraphe de configuration locale
   `project.env` avant la légende des sondes ; version documentaire 0.8.
   Le document local est aligné et la version DIU est portée à 1.0.8.

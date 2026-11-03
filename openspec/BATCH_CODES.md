@@ -2,6 +2,8 @@
 
 Plan validé : `ACL-DIU-20261028-R1`. Attribution et vérification documentaire : **2026-10-28**.
 
+Delta SCM du 2026-11-03 : [replay-cicd-existing-version](changes/archive/2026-11-03-replay-cicd-existing-version/proposal.md), archivé, **code non attribué**. Ce repère ne modifie pas les comptages historiques ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-03 : [add-devops-project-env-guidance](changes/archive/2026-11-03-add-devops-project-env-guidance/proposal.md), archivé, **code non attribué**. Ce repère ne modifie pas les comptages historiques ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-03 : [cicd-version-idempotence-cleanup](changes/archive/2026-11-03-cicd-version-idempotence-cleanup/proposal.md), archivé, **code non attribué**. Ce repère ne modifie pas les comptages historiques ; attribution ultérieure par ACL.

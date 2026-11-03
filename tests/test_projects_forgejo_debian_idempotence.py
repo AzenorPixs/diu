@@ -22,6 +22,7 @@ forgejo_credentials_prepare() { :; }
 _forgejo_read_username() { forgejo_username=fixture; }
 _forgejo_read_token() { forgejo_token=fixture; }
 forgejo_git_fetch() { :; }
+forgejo_git_fetch_named() { :; }
 runuser() {
     shift 3
     if [[ "${1:-}" == env ]]; then shift 3; fi
@@ -30,8 +31,10 @@ runuser() {
       *'rev-parse --is-inside-work-tree'*) printf 'true\n' ;;
       *'remote get-url'*) printf 'https://forge.example/owner/project.git\n' ;;
       *'rev-parse --verify refs/tags/'*) printf '%s\n' "$HEAD_SHA" ;;
-      *'rev-parse --verify origin/main'*) printf '%s\n' "$HEAD_SHA" ;;
-      *'rev-parse HEAD'|*'rev-parse --verify HEAD'|*'rev-parse origin/main'*) printf '%s\n' "$HEAD_SHA" ;;
+      *'rev-parse --verify origin/main'*) printf '%s\n' "$REMOTE_SHA" ;;
+      *'rev-parse origin/main'*) printf '%s\n' "$REMOTE_SHA" ;;
+      *'rev-parse HEAD'|*'rev-parse --verify HEAD'*) printf '%s\n' "$HEAD_SHA" ;;
+      *'merge-base --is-ancestor'*) [[ "$ANCESTOR" == yes ]] ;;
       *'branch --show-current'*) printf 'main\n' ;;
       *'log -1 --format=%s'*) printf 'fixture\n' ;;
       *'tag --points-at HEAD'*) printf 'v1.0.3\n' ;;
@@ -54,7 +57,7 @@ publish_release_debian project
 
 
 class ForgejoDebianIdempotenceTests(unittest.TestCase):
-    def run_release(self, mode, tag_sha=HEAD):
+    def run_release(self, mode, tag_sha=HEAD, remote_sha=HEAD, replay=False, ancestor=True):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.forgejo-release-fixture-') as directory:
             base = Path(directory)
             project = base / 'project'
@@ -74,7 +77,9 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
             calls = base / 'calls'
             result = subprocess.run(['bash', '-c', HARNESS, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': str(base),
-                                    'HEAD_SHA': HEAD, 'TAG_SHA': tag_sha, 'MODE': mode, 'CALLS': str(calls)})
+                                    'HEAD_SHA': HEAD, 'TAG_SHA': tag_sha, 'MODE': mode, 'CALLS': str(calls),
+                                    'REMOTE_SHA': remote_sha, 'PROJECTS_CICD_REPLAY': '1' if replay else '0',
+                                    'ANCESTOR': 'yes' if ancestor else 'no'})
             return result, calls.read_text() if calls.exists() else ''
 
     def test_existing_asset_does_not_upload(self):
@@ -90,5 +95,13 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
 
     def test_remote_tag_mismatch_never_uploads(self):
         result, calls = self.run_release('complete', 'b' * 40)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(calls, '')
+
+    def test_replay_allows_ancestor_but_rejects_divergence(self):
+        result, calls = self.run_release('complete', remote_sha='c' * 40, replay=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, '')
+        result, calls = self.run_release('complete', remote_sha='c' * 40, replay=True, ancestor=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(calls, '')

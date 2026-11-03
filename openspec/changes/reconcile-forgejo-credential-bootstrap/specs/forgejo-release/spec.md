@@ -4,6 +4,8 @@
 
 La fonction SHALL conserver les contrôles Git préalables et la politique de
 bootstrap ci-dessous, en acceptant les tokens existants en `600` ou `660`.
+Lors du rejeu isolé, le commit du tag MAY être un ancêtre vérifié de la branche
+distante sans modifier cette dernière.
 
 #### Scenario: Contrôles préalables conservés
 
@@ -20,7 +22,7 @@ La séquence obligatoire de la phase Git SHALL être :
 3. vérification de l'existence de `config/forgejo.token` ;
 4. politique d'accès au token (voir ci-dessous) ;
 5. `git fetch origin` exécuté via `forgejo-auth`/`git-auth` avec le token ;
-6. vérification HEAD == origin/main ;
+6. vérification HEAD == origin/main, ou ancêtre vérifié en rejeu isolé ;
 7. réutilisation du même token validé pour les appels API Release
    (vérification tag, création Release, upload asset).
 
@@ -56,7 +58,8 @@ Les vérifications Git obligatoires sont :
 - le remote origin existe
 - la branche courante est main
 - origin/main existe
-- HEAD et origin/main pointent sur le même commit après fetch authentifié
+- HEAD et origin/main pointent sur le même commit après fetch authentifié,
+  sauf ancêtre vérifié en rejeu isolé
 
 #### Scenario: Séquence complète avec token existant et valide
 
@@ -143,7 +146,7 @@ AND la fonction retourne le code 1
 #### Scenario: Dépôt non synchronisé
 
 WHEN `git fetch origin` authentifié est exécuté avec succès
-AND HEAD et origin/main ne pointent pas sur le même commit après fetch
+AND HEAD et origin/main ne pointent pas sur le même commit après fetch hors rejeu isolé autorisé
 THEN la fonction affiche un message d'erreur indiquant que le dépôt n'est pas synchronisé
 AND aucun tag ni Release n'est créé
 AND la fonction retourne le code 1
@@ -178,4 +181,9 @@ AND la fonction retourne le code 1
 
 - **WHEN** le token est valide mais le username est absent et le setup est accepté
 - **THEN** le parcours complète seulement le username et conserve le token existant
+
+#### Scenario: Rejeu isolé d’un commit antérieur
+
+- **WHEN** le commit du tag est un ancêtre vérifié de la branche distante dans le contexte isolé
+- **THEN** la release peut être vérifiée ou complétée sans modifier la branche distante
 

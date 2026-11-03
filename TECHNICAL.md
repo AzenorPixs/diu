@@ -1494,9 +1494,9 @@ Une clé absente conserve la sélection historique de chaque fonction.
 Le contrat transversal est `openspec/specs/project-version/spec.md`.
 Les règles de packaging sont détaillées dans BUILD.md.
 Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
-une description explicite est conservée. Une version déjà attribuée interrompt
-le traitement de manière informative avant un nouveau commit, sans remplacer le
-tag. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
+une description explicite est conservée. Une version `PROJECT_VERSION` déjà attribuée déclenche
+un rejeu isolé du commit marqué, sans remplacer le tag ni inclure les changements
+locaux en attente. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
 dépôts vérifiés, il peut être créé sur HEAD.
 Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
 qu'il désigne HEAD avant tout transport ; les branches et protections restent
@@ -1522,6 +1522,19 @@ conserve l'activation exacte `PROJECT_DOCKERED=Yes`. Le build Debian utilise
 uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes`, `YES` ou `1`. Les clés absentes,
 vides ou différentes n'appellent pas le builder Debian ; le bilan l'indique.
 Les deux activations sont indépendantes, sans fuite vers le projet suivant.
+
+Lors d'un rejeu, le clone temporaire privé est nettoyé à la fin du flux. Le
+contexte Docker provient des fichiers suivis du commit et ne contient ni `.git`,
+ni configuration locale, ni identifiants de forge ; le build lit la configuration
+nécessaire hors de ce contexte. Le paquet Debian est conservé dans
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les pushes de branche
+sont limités aux avances possibles sans retour en arrière. Les releases Debian
+peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
+existants restent intacts. DIU ne vérifie pas l'immutabilité des tags Docker
+distants : leur publication est donc ignorée lors d'un rejeu ; ce choix ne bloque
+pas la publication Debian.
+L'image Docker locale du rejeu utilise un tag temporaire dédié `replay-*` et
+ne remplace ni le tag local versionné ni `latest`.
 
 Sans Docker, Debian peut être construit puis publié sur Forgejo/GitLab/GitHub par
 les fonctions Debian. Les conditions de complétude des fournisseurs,

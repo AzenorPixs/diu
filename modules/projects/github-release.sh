@@ -14,6 +14,7 @@ _github_release_created_json() {
 }
 
 projects_github_release_debian() {
+    PROJECTS_DEBIAN_RELEASE_STATUS=""
     local project_id="${1:-}" project_path="" project_env="" tool=""
     local package_name="" package_version="" architecture="" deb_file="" deb_filename=""
     local remote_url="" configured_url="" current_branch="" head_sha="" remote_sha=""
@@ -106,8 +107,14 @@ projects_github_release_debian() {
     current_branch="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" branch --show-current)" || return 1
     head_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse HEAD)" || return 1
     remote_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse "refs/remotes/${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}")" || return 1
-    if [[ "$current_branch" != "$LOCAL_DEFAULT_BRANCH" || -z "$head_sha" || "$head_sha" != "$remote_sha" ]]; then
+    if [[ "$current_branch" != "$LOCAL_DEFAULT_BRANCH" || -z "$head_sha" || -z "$remote_sha" ]]; then
         print_error 'La branche locale doit être attendue et HEAD synchronisé avec GitHub.'
+        return 1
+    fi
+    if [[ "$head_sha" != "$remote_sha" ]] &&
+        { [[ "${PROJECTS_CICD_REPLAY:-0}" != 1 ]] ||
+          ! runuser -u "$DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$head_sha" "$remote_sha"; }; then
+        print_error 'Le commit du tag est absent de la branche GitHub distante.'
         return 1
     fi
     head_message="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" log -1 --format=%s)" || return 1
@@ -155,6 +162,9 @@ projects_github_release_debian() {
                 print_error 'Asset GitHub existant incomplet ou incohérent.'; return 1
             fi
             print_info 'Paquet Debian déjà publié sur GitHub.'
+            # Statut consommé par le bilan CI/CD.
+            # shellcheck disable=SC2034
+            PROJECTS_DEBIAN_RELEASE_STATUS="déjà publié"
             return 0
         fi
         release_id="$(jq -er '.id | numbers | select(. > 0 and floor == .)' <<< "$body")" || return 1
