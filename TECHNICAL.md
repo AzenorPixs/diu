@@ -1507,10 +1507,51 @@ Les aides décrivent ces règles avant bootstrap. La clé est relue pour chaque
 projet, sans réutilisation de la variable shell éventuellement chargée avant.
 
 
+### CI/CD générique et artefacts indépendants
+
+`cicd_project` suit six étapes affichées : 1 commit/tag, 2 pushes Git,
+3 build Docker, 4 build Debian, 5 publications, 6 bilan. Le build Docker
+conserve l'activation exacte `PROJECT_DOCKERED=Yes`. Le build Debian utilise
+`projects_build_deb`, moteur de `rid projects build debian <ID PROJECT>`,
+uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes`, `YES` ou `1`. Les clés absentes,
+vides ou différentes n'appellent pas le builder Debian ; le bilan l'indique.
+Les deux activations sont indépendantes, sans fuite vers le projet suivant.
+
+Sans Docker, Debian peut être construit puis publié sur Forgejo/GitLab/GitHub par
+les fonctions Debian. Les conditions de complétude des fournisseurs,
+dont le registre GitLab, sont conservées. GitHub publie Docker, Debian ou les
+deux selon leur activation. Un échec de build empêche toutes les releases et retourne
+un code non nul avec bilan partiel ; les pushes déjà réalisés restent publiés.
+Une indisponibilité reconnue permet les builds locaux et ignore les seules
+publications du fournisseur concerné. Aucune invocation récursive du bootstrap.
+Le bilan conserve ses onze premiers paramètres et reçoit le statut du build
+Debian dans un douzième paramètre facultatif.
+Les contrats sont `projects-cicd`, `projects-debian-build` et `rid-help`.
+
+### Publications GitHub Docker et Debian
+
+`projects_github_release` sélectionne les artefacts pour la commande directe
+`rid projects github release <ID PROJECT>`. Les deux indicateurs acceptent
+Yes/YES/1. Le corps GHCR historique est conservé dans
+`projects_github_release_docker`. Debian utilise
+`projects_github_release_debian` dans `modules/projects/github-release.sh`,
+sans dépendance à Docker ni construction. En parcours mixte, la présence du
+paquet est vérifiée avant Docker, puis les deux publications sont exécutées.
+La CI/CD conserve son activation Docker exacte Yes et appelle Debian seul
+sans appeler Docker lorsque celui-ci n'est pas activé dans le flux.
+
+Les contrôles de paquet, version, branche synchronisée, tag et release déjà
+existante suivent Forgejo ; BUILD.md décrit le détail et les échecs partiels.
+`_github_api_request` reste le transport JSON. `_github_upload_release_asset`
+réalise l'upload binaire après validation de upload_url ; les tokens sont dans
+une configuration curl temporaire 0600, hors arguments et journaux, nettoyée
+en erreur et interruption. Les réponses HTTP/JSON et l'asset sont vérifiés.
+Le contrat est `openspec/specs/projects-github-debian-release/spec.md`.
+
 ### Construction Debian déclarative
 
 `projects_build_deb` dans `modules/projects/debian-build.sh` implémente
-`rid projects build deb <ID PROJECT>`. La recette publique JSON et la lecture
+`rid projects build debian <ID PROJECT>`. La recette publique JSON et la lecture
 littérale isolée de `PROJECT_DEBIAN_PACKAGE` évitent toute exécution de
 configuration. `jq` valide les données ; `dpkg-deb --root-owner-group` assemble
 le staging. Le format, les refus, la version, la rotation et les limites sont
@@ -1771,7 +1812,7 @@ variable de configuration. Les invites restent visibles. Les appels curl du
 contexte sont bornés à 10 secondes de connexion et 30 secondes au total ;
 aucune sonde réseau ni reprise automatique n'est ajoutée.
 
-CI/CD poursuit les autres fournisseurs et le build local activé, ignore les
+CI/CD poursuit les autres fournisseurs et les builds locaux activés, ignore les
 releases du fournisseur indisponible et termine avec l'état « terminé avec
 indisponibilités » si aucune autre erreur n'est rencontrée. Le parcours
 `forgejo push all` distingue également ce résultat d'un succès complet.

@@ -72,11 +72,30 @@ image absente ; les publications Debian refusent un paquet de version différent
 Les aides de commit, push, CICD et build rappellent ce contrat avant bootstrap.
 Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent les contrôles.
 
+Le flux `rid projects cicd <ID PROJECT>` exécute six étapes :
+
+1. Commit et tag.
+2. Pushes Git configurés.
+3. Build Docker activé.
+4. Build Debian, uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`.
+5. Publications des artefacts activés.
+6. Bilan des deux builds et des publications.
+
+Le build Debian fonctionne aussi sans Docker et utilise le même moteur que
+`rid projects build debian <ID PROJECT>`. Une recette absente pour un projet
+activé ou un échec du build empêche les releases ; les pushes déjà réalisés
+restent publiés. Debian seul peut être publié sur Forgejo/GitLab/GitHub selon
+leur configuration ; les conditions Debian GitHub sont les mêmes que Forgejo.
+`rid projects cicd help` et `rid projects cicd <ID PROJECT> help` décrivent ces
+étapes avant bootstrap. Le détail figure dans [BUILD.md](BUILD.md).
+
 Pour construire le paquet Debian d'un projet :
 
 ```bash
-rid projects build deb <ID PROJECT>
+rid projects build debian <ID PROJECT>
 ```
+
+La syntaxe `rid projects build deb <ID PROJECT>` reste un alias compatible.
 
 Le projet fournit `build/debian-package.json`, qui décrit les métadonnées et
 les copies ; cette recette reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
@@ -86,7 +105,7 @@ Pour un projet activé, une recette absente empêche le build avec une erreur.
 Le résultat est déposé dans `dist/` ; les anciens paquets de même nom et
 architecture y sont supprimés après succès. Le format et les contrôles sont
 décrits dans [BUILD.md](BUILD.md). L'aide est disponible avec
-`rid projects build deb help` ou `?`, avant bootstrap.
+`rid projects build debian help` ou `?`, avant bootstrap.
 La recette DIU reproduit le paquet historique ; `rid projects deb diu` et
 `rcicddiu` conservent leur fonctionnement. Aucun paquet n'est installé par le build.
 
@@ -121,11 +140,20 @@ rid projects forgejo release <ID PROJECT>
 La commande publie l’image Docker et/ou le paquet Debian selon
 `PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` dans `project.env`.
 
-Pour publier une image déjà construite vers GitHub Container Registry :
+Pour publier les artefacts déjà construits vers GitHub :
 
 ```bash
 rid projects github release <ID PROJECT>
 ```
+
+`PROJECT_DOCKERED=Yes/YES/1` publie l'image sur GHCR et
+`PROJECT_DEBIAN_PACKAGE=Yes/YES/1` publie le .deb dans GitHub Releases.
+Les deux activations peuvent être utilisées ensemble ; aucune construction
+n'est déclenchée par cette commande. Comme sur Forgejo, un paquet unique et
+cohérent, une version valide, un HEAD synchronisé et un tag correspondant sont
+requis. Une release existante n'est jamais remplacée ; un upload échoué laisse
+une erreur explicite et éventuellement une release incomplète, sans rollback.
+Les contrôles et cas de repli sont détaillés dans [BUILD.md](BUILD.md).
 
 Le propriétaire et le dépôt sont convertis en minuscules dans les références
 GHCR, y compris dans le résumé CI/CD : `AzenorPixs/PKeycloak` devient
@@ -149,7 +177,7 @@ Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue
 est signalée comme « serveur indisponible — publication non confirmée ».
 La commande retourne zéro ; elle n'annonce pas la publication comme réussie.
 Le flux `rid projects cicd <ID PROJECT>` poursuit les autres fournisseurs et
-le build local, puis ignore les releases du fournisseur indisponible. Sans
+les builds locaux activés, puis ignore les releases du fournisseur indisponible. Sans
 autre erreur, son résumé indique « terminé avec indisponibilités ».
 `rid projects forgejo push all` poursuit également les autres projets.
 

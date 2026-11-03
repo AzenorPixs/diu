@@ -396,11 +396,19 @@ Les aides SHALL présenter rid projects deb [ID PROJECT] et rid proj deb <ID PRO
 - **THEN** elle explique la source et le défaut sans appeler le builder
 
 ### Requirement: Aide du build Debian générique
-L'aide SHALL présenter `rid projects build deb <ID PROJECT>`, l'indicateur PROJECT_DEBIAN_PACKAGE, les valeurs Yes/YES/1 et la recette build/debian-package.json. help et ? SHALL fonctionner avant le bootstrap et sans écriture.
+
+Les aides SHALL présenter rid projects build debian <ID PROJECT> et l'alias deb,
+PROJECT_DEBIAN_PACKAGE avec Yes/YES/1 et la recette build/debian-package.json.
+Les aides build, build debian et build deb, avec ou sans projet, SHALL rester
+disponibles avant bootstrap sans construction ni lecture de configuration.
 
 #### Scenario: Aide contextuelle
 - **WHEN** l'aide de projects build, projects build deb ou projects build deb diu est demandée
-- **THEN** elle présente la syntaxe et le contrat sans construction ni chargement de configuration
+- **THEN** elle présente les syntaxes et le contrat sans construction ni chargement de configuration
+
+#### Scenario: aides des deux syntaxes
+- **WHEN** help ou ? est demandé pour build, build debian ou build deb
+- **THEN** la syntaxe canonique et l'alias sont expliqués sans effet de bord
 
 ### Requirement: Aide de la version prioritaire
 Les aides de commit, push, CICD et builds Debian/Docker SHALL décrire PROJECT_VERSION, son format x.y.z, sa priorité et la conservation des mécanismes antérieurs en absence de clé. Elles SHALL rester disponibles avant bootstrap.
@@ -408,3 +416,10 @@ Les aides de commit, push, CICD et builds Debian/Docker SHALL décrire PROJECT_V
 #### Scenario: Aide sans configuration
 - **WHEN** une aide des opérations concernées est demandée
 - **THEN** elle présente le contrat de version sans lire project.env ni lancer d'opération
+
+### Requirement: Aide des publications GitHub Docker et Debian
+Les aides GitHub release et CI/CD SHALL décrire Docker seul, Debian seul et le parcours mixte, les indicateurs Yes/YES/1 et la publication de paquets déjà construits selon les conditions Forgejo, sans exécuter le flux.
+
+#### Scenario: Aide avant bootstrap
+- **WHEN** help ou ? est demandé pour projects github ou projects github release
+- **THEN** les deux types d'artefacts et leur activation sont présentés sans lecture de configuration

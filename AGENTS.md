@@ -15,8 +15,8 @@ Version : 0.6
 * Protocole des sessions de codage pilotées : résolution décrite en section 7
   (contrat distribué CAB pour CAB, fichier local facultatif sinon) ;
 
-Le projet `diu` est le référentiel de ces règles générales. Leur
-propagation vers un projet consommateur conserve son identité et sa racine.
+La propagation des règles générales vers un projet consommateur conserve
+son identité et sa racine.
 Une adaptation locale ou une propagation vers d'autres consommateurs nécessite
 l'autorisation applicable ; elle ne modifie pas implicitement le référentiel.
 
