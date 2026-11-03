@@ -4,6 +4,30 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de DEVOPS.md : ajout du paragraphe de configuration locale
+  `project.env` avant la légende des sondes ; version documentaire 0.8.
+  Le document local est aligné et la version DIU est portée à 1.0.8.
+
+- CI/CD : ajout d'une version facultative x.y.z, reprise informative des
+  versions déjà attribuées et conservation des assets Debian existants.
+  Les sélections DIU privilégient les versions stables sans epoch Debian.
+  Les tags et releases DIU horodatés en 2026 ont été retirés après sauvegarde.
+  Livraison : 1.0.7.
+
+- DIU : `rid update diu` utilise le jeton GitHub du projet lorsqu'il est
+  présent pour les releases et les assets privés ; les accès publics sans
+  jeton restent anonymes et les erreurs d'accès bloquent l'installation.
+
+- DIU : décodage des réponses HTTP compressées par `curl` lors de la recherche
+  des releases et du téléchargement du paquet ; une erreur de décodage bloque
+  l'installation. La prise en charge de Zstandard dépend du `curl` installé.
+
+- DIU : ajout de `rid diu update`, recherche du paquet le plus récent dans les
+  releases publiques des dépôts configurés et contrôle avant installation.
+  `rid update` exécute cette opération en premier ; `rid update diu` reste un
+  alias. Le `project.env` du projet DIU doit être accessible sur la machine.
+  Version de projet : 1.0.4.
+
 - GitHub : `rid projects github release <ID PROJECT>` publie Docker sur GHCR,
   Debian dans GitHub Releases, ou les deux avec Yes/YES/1. Le paquet suit les
   mêmes contrôles que Forgejo ; release existante refusée, upload binaire

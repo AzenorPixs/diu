@@ -2,6 +2,10 @@
 
 Plan validé : `ACL-DIU-20261028-R1`. Attribution et vérification documentaire : **2026-10-28**.
 
+Delta SCM du 2026-11-03 : [add-devops-project-env-guidance](changes/archive/2026-11-03-add-devops-project-env-guidance/proposal.md), archivé, **code non attribué**. Ce repère ne modifie pas les comptages historiques ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-03 : [cicd-version-idempotence-cleanup](changes/archive/2026-11-03-cicd-version-idempotence-cleanup/proposal.md), archivé, **code non attribué**. Ce repère ne modifie pas les comptages historiques ; attribution ultérieure par ACL.
+
 ## Périmètre et convention
 
 125 correspondances vérifiées : 8 changes actifs codés et 117 archivés codés. Trois changes actifs et deux changes archivés supplémentaires restent sans code ; la navigation couvre 130 changes, dont 11 actifs et 119 archivés. Aucun code préexistant n’a été renuméroté et aucun nouveau code n’est attribué ici.
@@ -26,6 +30,15 @@ Le tableau compte uniquement les 125 correspondances codées ; les quatre entré
 | GIT | Dépôts locaux, fournisseurs, authentification, push et clonage distant | 26 | 5 | 31 | [TECHNICAL.md](../TECHNICAL.md) |
 | ART | Construction, registres, releases et orchestration des artefacts | 10 | 1 | 11 | [BUILD.md](../BUILD.md) |
 | **Total** | | **117** | **8** | **125** | |
+
+
+Delta SCM du 2026-11-03 : [diu-package-update](changes/archive/2026-11-03-diu-package-update/proposal.md), change archivé le 2026-11-03, **code non attribué** ; contrat strict et six tâches validés. Ce repère ne constitue pas une attribution et ne modifie pas les comptages historiques. Attribution ultérieure à traiter par ACL.
+
+
+Delta SCM du 2026-11-03 : [fix-diu-http-compression](changes/archive/2026-11-03-fix-diu-http-compression/proposal.md), change archivé le 2026-11-03, **code non attribué** ; cinq tâches validées. Ce repère ne constitue pas une attribution et ne modifie pas les comptages historiques. Attribution ultérieure à traiter par ACL.
+
+
+Delta du 2026-11-03 : [authenticate-diu-github-updates](changes/archive/2026-11-03-authenticate-diu-github-updates/proposal.md), archivé le 2026-11-03, **code non attribué** ; six tâches validées. Ce repère ne constitue pas une attribution. Attribution ultérieure à traiter par ACL.
 
 ## Correspondances vérifiées
 
