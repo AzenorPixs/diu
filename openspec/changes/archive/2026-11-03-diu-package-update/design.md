@@ -1,0 +1,7 @@
+## Conception
+
+Le projet DIU est identifié par `diu` dans le répertoire `DEVOPS_PROJECTS_ROOT` utilisé par les commandes de projet. Sa configuration est à la racine de ce projet ; elle n'est pas distribuée dans le paquet installé. Les blocs Forgejo, GitHub et GitLab sont distincts. Un bloc entièrement absent est ignoré, un bloc partiel ou une requête en échec interrompt la sélection. Les API de releases publiques sont interrogées page par page ; les releases Forgejo et GitHub marquées brouillon ou préversion sont écartées ; les releases GitLab accessibles et les autres releases, ainsi que leurs assets `diu_<version>_all.deb` dont le tag correspond à la version sont candidats. La plus grande version Debian est sélectionnée avant tout téléchargement.
+
+L'installation conserve les vérifications du paquet et ne rétrograde jamais. Le téléchargement temporaire est privé, ses métadonnées incluent nom, version et architecture, et les échecs sont explicites. La mise à jour globale appelle le module dans un sous-shell, avant les autres participants, pour éviter qu'un remplacement de processus interrompe la suite. L'alias ciblé partage la même fonction.
+
+Les accès aux releases restent publics, sans identifiants. Une configuration ou un dépôt manquant sur une installation ne provoque aucune installation et produit un diagnostic. Le retour à l'ancienne version du programme s'effectue par réinstallation d'un paquet précédent disponible ; aucune migration de données n'est introduite.

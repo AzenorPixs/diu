@@ -6,6 +6,15 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
+Delta SCM du 2026-11-03 : [diu-package-update](openspec/changes/archive/2026-11-03-diu-package-update/proposal.md), code non attribué, archivé le 2026-11-03. Contrat OpenSpec et six tâches validés ; 1 080 tests globaux exécutés, dont 2 ignorés. Voir [tâches](openspec/changes/archive/2026-11-03-diu-package-update/tasks.md). Les comptages historiques excluent ce delta.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_UPDATE["diu-package-update — code non attribué — ARCHIVÉ"]
+  class P_DIU_UPDATE provisoire
+```
+
 Delta SCM-GITHUB-DEBIAN-20261102-R1 : [add-github-debian-release](openspec/changes/archive/2026-11-02-add-github-debian-release/proposal.md),
 ensemble ART, code non attribué. Contrat et publisher validés le 2026-11-02 ; 4/4 tâches
 validées, 1 074 tests globaux et 175 tests ciblés réussis, archivé le 2026-11-02, quatre canons synchronisés dans [tasks.md](openspec/changes/archive/2026-11-02-add-github-debian-release/tasks.md).

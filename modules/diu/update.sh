@@ -1,271 +1,124 @@
 #!/usr/bin/env bash
 
-# Mise à jour du DIU
-
-update_diu() {
-    local forgejo_url="https://forgejo.pixs.fr"
-    local forgejo_owner="rootforgejo"
-    local forgejo_repository="diu"
-
-    local latest_release=""
-    local latest_version=""
-    local installed_version=""
-
-    local deb_filename=""
-    local deb_file=""
-    local download_url=""
-
-    local downloaded_package=""
-    local downloaded_version=""
-
-    # ----------------------------------------------------------
-    # Cette fonction travaille exclusivement sur le dépôt public
-    # du DIU.
-    #
-    # AUCUNE authentification Forgejo/Git ne doit être utilisée.
-    #
-    # git_get_latest_release doit donc interroger l'API publique
-    # du forge distant.
-    # ----------------------------------------------------------
-
-    # ----------------------------------------------------------
-    # Vérification des prérequis
-    # ----------------------------------------------------------
-
-    if ! command -v dpkg >/dev/null 2>&1; then
-        print_error "La commande dpkg est indisponible."
+# Lire uniquement les paramètres publics des fournisseurs, sans exécuter project.env.
+_diu_update_config() {
+    local file="$1" line key value raw
+    local assignment='^[[:blank:]]*(export[[:blank:]]+)?(REMOTE_(FORGEJO|GITHUB|GITLAB)_(BASE_URL|OWNER|REPOSITORY))[[:blank:]]*=(.*)$'
+    local literal="^[[:blank:]]*([A-Za-z0-9._:/%+~-]+|\"[A-Za-z0-9._:/%+~-]+\"|'[A-Za-z0-9._:/%+~-]+')[[:blank:]]*$"
+    local -A seen=()
+    [[ -f "$file" && -r "$file" && ! -L "$file" ]] || {
+        print_error "Configuration du projet DIU inaccessible : $file" >&2
         return 1
-    fi
-
-    if ! command -v dpkg-query >/dev/null 2>&1; then
-        print_error "La commande dpkg-query est indisponible."
-        return 1
-    fi
-
-    if ! command -v dpkg-deb >/dev/null 2>&1; then
-        print_error "La commande dpkg-deb est indisponible."
-        return 1
-    fi
-
-    if ! command -v curl >/dev/null 2>&1; then
-        print_error "La commande curl est indisponible."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Récupération de la dernière release
-    # ----------------------------------------------------------
-
-    print_title "Recherche de la dernière release DIU"
-
-    print_info "Dépôt public : ${forgejo_url}/${forgejo_owner}/${forgejo_repository}"
-
-    if ! latest_release="$(
-        git_get_latest_release \
-            "${forgejo_url}" \
-            "${forgejo_owner}" \
-            "${forgejo_repository}"
-    )"; then
-
-        print_error "Impossible de récupérer la dernière release du DIU."
-        return 1
-    fi
-
-    if [[ -z "${latest_release}" ]]; then
-        print_error "La dernière release DIU est vide."
-        return 1
-    fi
-
-    print_success "Dernière release : ${latest_release}"
-
-    # ----------------------------------------------------------
-    # Conversion du tag en version Debian
-    #
-    # v2026.08.17.14.58
-    #       ↓
-    # 2026.08.17.14.58
-    # ----------------------------------------------------------
-
-    latest_version="${latest_release#v}"
-
-    if [[ -z "${latest_version}" ]]; then
-        print_error "Impossible d'extraire la version depuis ${latest_release}."
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Validation de la version Debian
-    # ----------------------------------------------------------
-
-    if ! dpkg --compare-versions \
-        "${latest_version}" eq "${latest_version}" 2>/dev/null; then
-
-        print_error "La version distante n'est pas une version Debian valide : ${latest_version}"
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Récupération de la version installée
-    # ----------------------------------------------------------
-
-    if ! installed_version="$(
-        dpkg-query \
-            -W \
-            -f='${Version}' \
-            diu 2>/dev/null
-    )"; then
-        print_error "Impossible de lire la version installée du DIU."
-        return 1
-    fi
-
-    if [[ -z "${installed_version}" ]]; then
-        print_error "Le paquet DIU n'est pas installé sur ce système."
-        return 1
-    fi
-
-    print_info "Version installée : ${installed_version}"
-    print_info "Dernière version  : ${latest_version}"
-
-    # ----------------------------------------------------------
-    # Comparaison des versions Debian
-    # ----------------------------------------------------------
-
-    if dpkg --compare-versions \
-        "${latest_version}" le "${installed_version}"; then
-
-        if [[ "${latest_version}" == "${installed_version}" ]]; then
-            print_success "Le DIU est déjà à jour (${installed_version})."
-        else
-            print_info \
-                "La version installée (${installed_version}) est plus récente que la release distante (${latest_version})."
-            print_info "Aucune mise à jour ne sera effectuée."
-        fi
-
-        return 0
-    fi
-
-    print_success \
-        "Nouvelle version disponible : ${installed_version} → ${latest_version}"
-
-    # ----------------------------------------------------------
-    # Préparation du fichier Debian
-    # ----------------------------------------------------------
-
-    deb_filename="diu_${latest_version}_all.deb"
-    deb_file="/tmp/${deb_filename}"
-
-    # ----------------------------------------------------------
-    # URL publique de téléchargement Forgejo
-    # ----------------------------------------------------------
-
-    download_url="${forgejo_url}/${forgejo_owner}/${forgejo_repository}/releases/download/${latest_release}/${deb_filename}"
-
-    print_info "Téléchargement : ${download_url}"
-    print_info "Destination    : ${deb_file}"
-    print_info "Authentification HTTP : aucune"
-
-    # ----------------------------------------------------------
-    # Nettoyage d'un éventuel ancien paquet
-    # ----------------------------------------------------------
-
-    rm -f "${deb_file}"
-
-    # ----------------------------------------------------------
-    # Téléchargement public
-    #
-    # IMPORTANT :
-    #
-    # Aucun --user
-    # Aucun Authorization:
-    # Aucun token Forgejo
-    # Aucun credential Git
-    # ----------------------------------------------------------
-
-	if ! curl \
-		--fail \
-		--silent \
-		--show-error \
-		--location \
-		--compressed \
-		--output "${deb_file}" \
-		"${download_url}"; then
-
-        print_error "Échec du téléchargement du paquet DIU."
-        rm -f "${deb_file}"
-        return 1
-    fi
-
-    # ----------------------------------------------------------
-    # Vérification du paquet téléchargé
-    # ----------------------------------------------------------
-
-    if [[ ! -s "${deb_file}" ]]; then
-        print_error "Le paquet téléchargé est vide."
-        rm -f "${deb_file}"
-        return 1
-    fi
-
-    # Format dpkg-deb : conserver les expressions littérales.
-    # shellcheck disable=SC2016
-    if ! downloaded_package="$(
-        dpkg-deb \
-            --show \
-            --showformat='${Package}' \
-            "${deb_file}" \
-            2>/dev/null
-    )"; then
-        print_error "Impossible de lire le nom du paquet téléchargé."
-        return 1
-    fi
-
-    # shellcheck disable=SC2016
-    if ! downloaded_version="$(
-        dpkg-deb \
-            --show \
-            --showformat='${Version}' \
-            "${deb_file}" \
-            2>/dev/null
-    )"; then
-        print_error "Impossible de lire la version du paquet téléchargé."
-        return 1
-    fi
-
-    if [[ "${downloaded_package}" != "diu" ]]; then
-        print_error "Le paquet téléchargé n'est pas un paquet DIU."
-        print_error "Package détecté : ${downloaded_package}"
-        rm -f "${deb_file}"
-        return 1
-    fi
-
-    if [[ "${downloaded_version}" != "${latest_version}" ]]; then
-        print_error "Version du paquet téléchargé incohérente."
-        print_error "Attendue : ${latest_version}"
-        print_error "Trouvée   : ${downloaded_version}"
-        rm -f "${deb_file}"
-        return 1
-    fi
-
-    print_success "Paquet DIU téléchargé et vérifié."
-
-    # ----------------------------------------------------------
-    # Installation
-    #
-    # IMPORTANT :
-    #
-    # exec remplace le processus DIU courant par dpkg.
-    #
-    # Le shell DIU ne poursuit donc aucune exécution après le
-    # lancement de l'installation Debian.
-    # ----------------------------------------------------------
-
-    print_title "Installation du DIU ${latest_version}"
-
-    print_info "Le processus DIU va maintenant être remplacé par dpkg."
-    print_info "Installation : ${deb_file}"
-
-    exec dpkg --install "${deb_file}"
+    }
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ $assignment ]] || continue
+        key="${BASH_REMATCH[2]}"; raw="${BASH_REMATCH[5]}"
+        [[ ! ${seen[$key]+present} ]] || { print_error "Variable dupliquée : $key" >&2; return 1; }
+        seen[$key]=1
+        # Une valeur vide est traitée comme une absence de configuration.
+        [[ "$raw" =~ ^[[:blank:]]*$ || "$raw" == "''" || "$raw" == '""' ]] && continue
+        [[ "$raw" =~ $literal ]] || { print_error "Valeur non littérale : $key" >&2; return 1; }
+        value="${BASH_REMATCH[1]}"
+        value="${value#\"}"; value="${value%\"}"
+        value="${value#\'}"; value="${value%\'}"
+        printf -v "$key" '%s' "$value"
+    done < "$file"
 }
 
+# Exécuter dans un sous-shell afin de limiter configuration et temporaires.
+update_diu() (
+    # Les valeurs sont utilisées par expansion indirecte pour chaque fournisseur.
+    # shellcheck disable=SC2034
+    local REMOTE_FORGEJO_BASE_URL='' REMOTE_FORGEJO_OWNER='' REMOTE_FORGEJO_REPOSITORY=''
+    # shellcheck disable=SC2034
+    local REMOTE_GITHUB_BASE_URL='' REMOTE_GITHUB_OWNER='' REMOTE_GITHUB_REPOSITORY=''
+    # shellcheck disable=SC2034
+    local REMOTE_GITLAB_BASE_URL='' REMOTE_GITLAB_OWNER='' REMOTE_GITLAB_REPOSITORY=''
+    local provider prefix base_key owner_key repo_key base owner repo api path page response previous_response count rows
+    local tag name url version best_version='' best_url='' best_provider='' installed='' status='' temp_dir='' file=''
+    local package_version='' package_name='' package_arch='' configured=0
+    local executable
+    for executable in curl jq dpkg dpkg-query dpkg-deb mktemp; do
+        command -v "$executable" >/dev/null 2>&1 || { print_error "Commande indisponible : $executable"; return 1; }
+    done
+    [[ -n "${DEVOPS_PROJECTS_ROOT:-}" ]] || { print_error 'DEVOPS_PROJECTS_ROOT est absent.'; return 1; }
+    _diu_update_config "${DEVOPS_PROJECTS_ROOT%/}/diu/project.env" || return 1
+    # shellcheck disable=SC2016
+    status="$(dpkg-query -W -f='${db:Status-Status} ${Version}' diu 2>/dev/null)" || { print_error 'Version installée du DIU indisponible.'; return 1; }
+    [[ "$status" == 'installed '* ]] || { print_error "Le paquet DIU n'est pas installé."; return 1; }
+    installed="${status#installed }"
+    if [[ -z "$installed" ]] || ! dpkg --validate-version "$installed" >/dev/null 2>&1; then
+        print_error 'Version installée du DIU invalide.'; return 1
+    fi
+    for provider in FORGEJO GITHUB GITLAB; do
+        prefix="REMOTE_${provider}"; base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
+        base="${!base_key}"; owner="${!owner_key}"; repo="${!repo_key}"
+        [[ -n "$base$owner$repo" ]] || continue
+        [[ -n "$base" && -n "$owner" && -n "$repo" ]] || { print_error "Configuration $provider incomplète."; return 1; }
+        [[ "$base" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~-]+)*/*$ && "$owner" =~ ^[A-Za-z0-9._/-]+$ && "$repo" =~ ^[A-Za-z0-9._-]+$ && "$owner" != *..* && "$repo" != *..* ]] || { print_error "Configuration $provider invalide."; return 1; }
+        configured=$((configured + 1)); base="${base%/}"
+        case "$provider" in
+            FORGEJO) api="$base/api/v1/repos/$owner/$repo/releases" ;;
+            GITHUB)
+                if [[ "$base" == https://github.com ]]; then api="https://api.github.com/repos/$owner/$repo/releases"; else api="$base/api/v3/repos/$owner/$repo/releases"; fi ;;
+            GITLAB)
+                path="$(jq -rn --arg value "$owner/$repo" '$value|@uri')" || return 1
+                api="$base/api/v4/projects/$path/releases" ;;
+        esac
+        page=1; previous_response=''
+        while :; do
+            response="$(curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
+            count="$(jq -er 'if type == "array" then length else error("réponse invalide") end' <<< "$response")" || { print_error "Réponse $provider invalide."; return 1; }
+            [[ "$count" -gt 0 ]] || break
+            if [[ "$response" == "$previous_response" || "$page" -gt 1000 ]]; then
+                print_error "Pagination $provider invalide."; return 1
+            fi
+            previous_response="$response"
+            if [[ "$provider" == GITLAB ]]; then
+                jq -e 'all(.[]; type == "object" and (.tag_name | type == "string") and ((.assets // {}) | type == "object") and ((.assets.links // []) | type == "array"))' <<< "$response" >/dev/null || { print_error "Réponse $provider invalide."; return 1; }
+            else
+                jq -e 'all(.[]; type == "object" and (.tag_name | type == "string") and ((.assets // []) | type == "array"))' <<< "$response" >/dev/null || { print_error "Réponse $provider invalide."; return 1; }
+            fi
+            if [[ "$provider" == GITLAB ]]; then
+                rows="$(jq -er '[.[] | select((.tag_name|type)=="string") | .tag_name as $tag | (.assets.links // [])[] | select((.name|type)=="string" and (.url|type)=="string") | [$tag,.name,.url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
+            else
+                rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string" and (.browser_download_url|type)=="string") | [$tag,.name,.browser_download_url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
+            fi
+            while IFS=$'\t' read -r tag name url; do
+                [[ -n "$tag" && "$tag" == v* ]] || continue
+                version="${tag#v}"
+                [[ "$version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ && "$name" == "diu_${version}_all.deb" ]] || continue
+                dpkg --validate-version "$version" >/dev/null 2>&1 || continue
+                [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
+                if [[ -z "$best_version" ]] || dpkg --compare-versions "$version" gt "$best_version"; then
+                    best_version="$version"; best_url="$url"; best_provider="$provider"
+                fi
+            done <<< "$rows"
+            page=$((page + 1))
+        done
+    done
+    [[ "$configured" -gt 0 && -n "$best_version" ]] || { print_error 'Aucun paquet DIU admissible trouvé.'; return 1; }
+    if dpkg --compare-versions "$best_version" le "$installed"; then
+        print_info "DIU déjà à jour : $installed (dernière version : $best_version)."
+        return 0
+    fi
+    temp_dir="$(mktemp -d)" || { print_error 'Impossible de créer le répertoire temporaire.'; return 1; }
+    trap 'rm -rf -- "$temp_dir"' EXIT
+    file="$temp_dir/diu_${best_version}_all.deb"
+    print_info "Téléchargement DIU $best_version depuis $best_provider."
+    curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" || { print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
+    # Les champs dpkg sont des expressions littérales.
+    # shellcheck disable=SC2016
+    package_name="$(dpkg-deb --show --showformat='${Package}' "$file" 2>/dev/null)" || { print_error 'Lecture du nom du paquet impossible.'; return 1; }
+    # shellcheck disable=SC2016
+    package_version="$(dpkg-deb --show --showformat='${Version}' "$file" 2>/dev/null)" || { print_error 'Lecture de la version du paquet impossible.'; return 1; }
+    # shellcheck disable=SC2016
+    package_arch="$(dpkg-deb --show --showformat='${Architecture}' "$file" 2>/dev/null)" || { print_error "Lecture de l'architecture du paquet impossible."; return 1; }
+    [[ "$package_name" == diu && "$package_version" == "$best_version" && "$package_arch" == all ]] || { print_error 'Métadonnées du paquet DIU incohérentes.'; return 1; }
+    dpkg --install "$file" || { print_error 'Installation du paquet DIU échouée.'; return 1; }
+)
+
+# Isolation de la mise à jour lors du parcours global.
 diu_update() {
     (update_diu)
 }
