@@ -1920,6 +1920,11 @@ récente si elle est supérieure à la version installée. Les brouillons et
 préversions signalés par Forgejo et GitHub sont exclus. Le paquet est vérifié
 (nom, version, architecture) avant `dpkg`, sans authentification ; le fichier
 temporaire est supprimé. `rid update diu` est un alias compatible.
+La recherche et le téléchargement activent `curl --compressed` : les
+encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
+sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de
+décodage est signalé et bloque l'installation. Les tests HTTP locaux utilisent
+des réponses Zstandard et un paquet de fixture, sans installation réelle.
 
 ### Validation HTTP du lien d’asset Debian GitLab
 
