@@ -29,8 +29,8 @@ class DiuHttpCompressionTests(unittest.TestCase):
             project = root / 'diu'
             project.mkdir()
             (project / 'project.env').write_text(
-                'REMOTE_FORGEJO_BASE_URL=https://forge.example\n'
-                'REMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n', encoding='utf-8')
+                'REMOTE_GITHUB_BASE_URL=https://github.example\n'
+                'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n', encoding='utf-8')
             staging = root / 'package'
             (staging / 'DEBIAN').mkdir(parents=True)
             (staging / 'DEBIAN').chmod(0o755)
@@ -44,7 +44,7 @@ class DiuHttpCompressionTests(unittest.TestCase):
             def compress(data):
                 return subprocess.run(['zstd', '-q', '-c'], input=data, capture_output=True, check=True).stdout
 
-            asset = 'https://forge.example/team/diu/releases/download/v2.0.0/diu_2.0.0_all.deb'
+            asset = 'https://github.example/team/diu/releases/download/v2.0.0/diu_2.0.0_all.deb'
             releases = json.dumps([{'tag_name': 'v2.0.0', 'assets': [
                 {'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]).encode()
             requests = []
@@ -86,7 +86,7 @@ curl() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --proto|--proto-redir) shift 2 ;;
-            https://forge.example/*) args+=("$TEST_SERVER${1#https://forge.example}"); shift ;;
+            https://github.example/*) args+=("$TEST_SERVER${1#https://github.example}"); shift ;;
             *) args+=("$1"); shift ;;
         esac
     done

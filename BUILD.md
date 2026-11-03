@@ -80,6 +80,11 @@ existantes de recette, version, copie, dépôt et rotation restent celles du
 constructeur déclaratif. Une recette absente ou un échec de build bloque les
 releases ; le bilan indique l'échec et les pushes Git antérieurs sont conservés.
 
+Pour une version déjà attribuée, le build utilise le commit du tag dans un
+contexte isolé. Le paquet est conservé sous `dist/replay/<TAG>/<SHA256>/` sans écraser
+un fichier existant. DIU ne vérifie pas l'immutabilité du tag Docker distant :
+sa publication est ignorée pendant le rejeu ; la publication Debian reste indépendante.
+
 Les publications constituent l'étape 5 et le bilan des deux builds l'étape 6.
 Debian seul utilise les publications Forgejo/GitLab/GitHub, avec les mêmes
 conditions de paquet et de version pour GitHub que sur Forgejo. Les fournisseurs indisponibles ne sont

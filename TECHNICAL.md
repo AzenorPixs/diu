@@ -770,7 +770,7 @@ valeur distincte `POSTFIX_RELAY_HOST` continue à configurer le relais.
 Le contrôle de `qemu-guest-agent` utilise `SOFTWARES_APT_QEMU_GUEST_AGENT` dans
 `softwares.env`; le paquet reste désactivé par défaut.
 Le contrôle Syncthing utilise `SOFTWARES_APT_SYNCTHING` dans `softwares.env`
-pour l’installation du paquet et le rendu conditionnel de `.stignore`.
+pour l’installation du paquet ; le DIU ne crée ni ne modifie `.stignore`.
 Le contrôle Webmin utilise `SOFTWARES_APT_WEBMIN` dans `softwares.env`; son
 dépôt APT reste contrôlé séparément par `SYSTEM_APT_WEBMIN`.
 Le contrôle de l’agent Wazuh utilise `SOFTWARES_APT_WAZUH_AGENT` dans
@@ -1369,8 +1369,7 @@ variable; les valeurs `KEY_SSH_*` restent distinctes.
 `SOFTWARES_APT_SYNCTHING` en `STATIC`, `ENABLE`, scope `softwares`, défaut
 `0`. L’ancienne valeur littérale `SYNCTHING=0|1` est transférée exactement
 vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
-point d’entrée conserve l’installation APT et le rendu conditionnel de
-`.stignore`.
+point d’entrée conserve l’installation APT sans créer ni modifier `.stignore`.
 
 ### Webmin par APT
 
@@ -1494,9 +1493,9 @@ Une clé absente conserve la sélection historique de chaque fonction.
 Le contrat transversal est `openspec/specs/project-version/spec.md`.
 Les règles de packaging sont détaillées dans BUILD.md.
 Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
-une description explicite est conservée. Une version déjà attribuée interrompt
-le traitement de manière informative avant un nouveau commit, sans remplacer le
-tag. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
+une description explicite est conservée. Une version `PROJECT_VERSION` déjà attribuée déclenche
+un rejeu isolé du commit marqué, sans remplacer le tag ni inclure les changements
+locaux en attente. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
 dépôts vérifiés, il peut être créé sur HEAD.
 Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
 qu'il désigne HEAD avant tout transport ; les branches et protections restent
@@ -1522,6 +1521,24 @@ conserve l'activation exacte `PROJECT_DOCKERED=Yes`. Le build Debian utilise
 uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes`, `YES` ou `1`. Les clés absentes,
 vides ou différentes n'appellent pas le builder Debian ; le bilan l'indique.
 Les deux activations sont indépendantes, sans fuite vers le projet suivant.
+
+Les sorties de publication Debian utilisent des libellés de projet alignés.
+Chaque fournisseur annonce uniquement les contrôles effectivement réalisés ;
+le tag figure dans les messages de release et de paquet déjà présent. Le
+répertoire temporaire du rejeu est explicitement identifié comme isolé.
+
+Lors d'un rejeu, le clone temporaire privé est nettoyé à la fin du flux. Le
+contexte Docker provient des fichiers suivis du commit et ne contient ni `.git`,
+ni configuration locale, ni identifiants de forge ; le build lit la configuration
+nécessaire hors de ce contexte. Le paquet Debian est conservé dans
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les pushes de branche
+sont limités aux avances possibles sans retour en arrière. Les releases Debian
+peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
+existants restent intacts. DIU ne vérifie pas l'immutabilité des tags Docker
+distants : leur publication est donc ignorée lors d'un rejeu ; ce choix ne bloque
+pas la publication Debian.
+L'image Docker locale du rejeu utilise un tag temporaire dédié `replay-*` et
+ne remplace ni le tag local versionné ni `latest`.
 
 Sans Docker, Debian peut être construit puis publié sur Forgejo/GitLab/GitHub par
 les fonctions Debian. Les conditions de complétude des fournisseurs,
@@ -1643,20 +1660,18 @@ partage le questionnaire entre `update_projects` et `git_update_legacy`.
 Le parcours historique conserve le mode dans son résumé et sa réécriture ;
 la configuration Git locale et le clonage local le préservent.
 
-La création depuis le modèle et `rid projects sync <ID PROJECT>` utilisent
-ce lecteur sur la configuration destination avant la copie. Le document
-racine `ORCHESTRATED_CODING.md` est copié, personnalisé et reçoit le
-propriétaire prévu seulement pour `Yes`. Pour `No`, absence ou valeur vide,
-la source n'est pas requise et une destination existante reste intacte,
-y compris ses attributs. Pour `Yes`, une source absente ou non régulière
-provoque un échec avant toute copie du modèle. À la création, le répertoire
-et la configuration déjà préparés sont conservés en cas d'échec. `sync all`
-décide séparément pour chaque projet et poursuit après échec avec un résultat
-global non nul. Les commandes `template openspec`, `template devops` et
-`template all` restent indépendantes de cette copie documentaire.
+La création et la mise à jour utilisent le même questionnaire : le type
+propose BASH, GO, JAVASCRIPT, PERL et PYTHON sans interdire les autres valeurs ;
+les options Docker et paquet Debian acceptent `Yes` ou `No`. La version
+`PROJECT_VERSION` est obligatoire et conforme au format `x.y.z` sans zéro
+initial ; une version existante est proposée par défaut. Une saisie invalide
+est redemandée et une fin d'entrée interrompt la configuration avant écriture.
+La création et la synchronisation ne copient pas `ORCHESTRATED_CODING.md` et
+la synchronisation conserve les documents déjà présents. Le lecteur du mode
+continue à valider la configuration avant copie.
 
 `rid projects sync` synchronise `AGENTS.md`, `.gitignore`
-et le protocole conditionnel décrit ci-dessus. Il copie également
+et copie également
 `DEVELOPMENT_MAP.md` depuis le modèle seulement si aucune entrée de ce nom
 n'existe à la racine du projet, indépendamment du mode de pilotage. Cette
 nouvelle copie est personnalisée et reçoit le propriétaire prévu. Une entrée
@@ -1915,23 +1930,21 @@ paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'A
 Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
-`rid diu update` consulte les releases des fournisseurs Forgejo,
-GitHub et GitLab définis dans `DEVOPS_PROJECTS_ROOT/diu/project.env`, à la
-racine du projet DIU. Ce fichier n'est pas inclus dans le paquet installé et
-doit être disponible sur la machine. Les blocs absents sont ignorés ; un bloc
-partiel ou un dépôt inaccessible interrompt la recherche sans installation.
-La commande parcourt les pages, compare les versions Debian des assets
-`diu_<version>_all.deb` associés au tag `v<version>`, puis télécharge la plus
-récente si elle est supérieure à la version installée. Les brouillons et
-préversions signalés par Forgejo et GitHub sont exclus. Le paquet est vérifié
-(nom, version, architecture) avant `dpkg` ; le fichier temporaire est
+`rid diu update` consulte exclusivement les releases GitHub configurées dans
+`DEVOPS_PROJECTS_ROOT/diu/project.env`, à la racine du projet DIU. Ce fichier
+n'est pas inclus dans le paquet installé et doit être disponible sur la machine.
+Une configuration GitHub absente, partielle ou inaccessible interrompt la
+recherche sans installation ; Forgejo et GitLab sont ignorés par cette commande.
+La commande parcourt les pages et privilégie les versions stables x.y.z, puis
+compare les versions Debian des assets `diu_<version>_all.deb` associés au tag
+`v<version>`. Les brouillons et préversions GitHub sont exclus. Le paquet est
+vérifié (nom, version, architecture) avant `dpkg` ; le fichier temporaire est
 supprimé. `rid update diu` est un alias compatible.
-Pour GitHub, lorsqu'un jeton existe dans le `config/` du projet DIU, le lecteur
-GitHub existant vérifie ses permissions et l'API est authentifiée. Un asset est
+Lorsqu'un jeton existe dans le `config/` du projet DIU, le lecteur GitHub
+existant vérifie ses permissions et l'API est authentifiée. Un asset est
 téléchargé avec son identifiant depuis l'API du dépôt, sans transmettre le
 jeton aux origines de redirection. Sans jeton, le parcours reste anonyme ; un
-dépôt privé inaccessible provoque une erreur sans installation. Forgejo et
-GitLab conservent leur accès public.
+répertoire privé inaccessible provoque une erreur sans installation.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de

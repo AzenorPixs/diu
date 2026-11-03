@@ -1,29 +1,33 @@
 # diu-package-update Specification
 
 ## Purpose
-Rechercher et installer de manière contrôlée la dernière version disponible du paquet DIU dans les releases des dépôts configurés.
+Rechercher et installer de manière contrôlée la dernière version disponible du paquet DIU dans les releases du dépôt GitHub configuré.
 
 ## Requirements
 
 ### Requirement: Mise à jour dédiée du paquet DIU
 
-La commande `rid diu update` SHALL rechercher les releases Forgejo, GitHub et GitLab configurés dans le `project.env` du projet DIU situé dans `DEVOPS_PROJECTS_ROOT`. Elle SHALL parcourir toutes les pages et choisir la version stable x.y.z en priorité, puis la version la plus élevée selon dpkg dans sa catégorie, parmi les assets `diu_<version>_all.deb` et tags `v<version>` admissibles. Les brouillons et préversions signalés par Forgejo ou GitHub SHALL être exclus. L'accès GitHub privé SHALL réutiliser le mécanisme d'identifiants GitHub du projet.
+`rid diu update` SHALL utiliser exclusivement les releases GitHub configurées dans `DEVOPS_PROJECTS_ROOT/diu/project.env`, sans interroger Forgejo ni GitLab. Elle SHALL parcourir toutes les pages, exclure brouillons et préversions et choisir parmi les assets `diu_<version>_all.deb` associés au tag `v<version>` la version stable x.y.z en priorité, puis la plus élevée selon dpkg. L’accès privé SHALL réutiliser les identifiants GitHub du projet.
 
 #### Scenario: Comparaison entre fournisseurs
-- **WHEN** plusieurs dépôts configurés exposent des paquets DIU admissibles
+- **WHEN** les releases GitHub exposent plusieurs paquets DIU admissibles
 - **THEN** la commande privilégie une version stable x.y.z puis sélectionne la version la plus élevée de cette catégorie
 
+#### Scenario: Autres fournisseurs configurés
+- **WHEN** Forgejo ou GitLab sont configurés, même de manière partielle ou invalide
+- **THEN** la commande les ignore sans les interroger
+
 #### Scenario: Configuration partielle
-- **WHEN** un bloc fournisseur est partiel ou une réponse invalide
+- **WHEN** la configuration GitHub est absente ou partielle
 - **THEN** la commande retourne une erreur sans installer de paquet
 
 #### Scenario: Fournisseur absent
-- **WHEN** un bloc fournisseur est entièrement absent
-- **THEN** il est ignoré
+- **WHEN** la configuration GitHub est absente
+- **THEN** la commande retourne une erreur sans installer de paquet
 
 #### Scenario: Dépôt configuré inaccessible
-- **WHEN** un fournisseur configuré ne peut pas être interrogé
-- **THEN** la commande retourne une erreur sans installer de paquet
+- **WHEN** le dépôt GitHub configuré ne peut pas être interrogé ou sa réponse est invalide
+- **THEN** la commande retourne une erreur sans installer de paquet ni recourir à un autre fournisseur
 
 #### Scenario: Dépôt GitHub privé
 - **WHEN** GitHub est privé et les identifiants du projet sont valides

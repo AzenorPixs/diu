@@ -393,8 +393,12 @@ cicd_project_print_summary() {
 
     print_title "Étape 6/6 — Résumé CI/CD — ${project_id}"
     printf 'État global : %s\n\n' "${workflow_status}"
-    printf 'Commit local\n  Message : %s\n  Tag     : %s\n  Version : %s\n\n' \
+    printf 'Commit local\n  Message : %s\n  Tag     : %s\n  Version : %s\n' \
         "${commit_name}" "${commit_tag}" "${version}"
+    if [[ "${replay:-0}" == 1 ]]; then
+        printf '  État    : tag existant, aucun nouveau commit\n'
+    fi
+    printf '\n'
     printf 'Push Git\n  Forgejo : %s\n  GitLab  : %s\n  GitHub  : %s\n\n' \
         "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}"
     printf 'Image Docker\n  Build   : %s\n\n' "${docker_build_status}"
@@ -403,7 +407,194 @@ cicd_project_print_summary() {
         "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}"
 }
 
-cicd_project() {
+# Prépare un clone privé du commit versionné pour un rejeu sans arbre modifié.
+_projects_cicd_replay_prepare_internal() {
+    local project_id="$1" project_path="$2" tag="$3"
+    local commit="" branch="" remote="" url="" credential="" replay_project=""
+    PROJECTS_CICD_REPLAY_ROOT=""
+    if [[ ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ || "$project_id" == .. || -L "$project_path" ]]; then
+        print_error 'Projet de rejeu invalide ou symbolique.'
+        return 1
+    fi
+    commit="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/tags/${tag}^{commit}")" || return 1
+    branch="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" branch --show-current)" || return 1
+    [[ -n "$branch" ]] || { print_error 'Branche locale indisponible pour le rejeu.'; return 1; }
+    PROJECTS_CICD_REPLAY_ROOT="$(runuser -u "$DEVOPS_USER" -- mktemp -d -p "${TMPDIR:-/tmp}" diu-cicd-replay.XXXXXXXX)" || return 1
+    replay_project="$PROJECTS_CICD_REPLAY_ROOT/$project_id"
+    if ! runuser -u "$DEVOPS_USER" -- git clone --quiet --no-hardlinks --no-checkout "$project_path" "$replay_project" ||
+        ! runuser -u "$DEVOPS_USER" -- git -C "$replay_project" checkout --quiet -B "$branch" "$commit" ||
+        ! runuser -u "$DEVOPS_USER" -- git -C "$replay_project" remote remove origin; then
+        print_error 'Impossible de préparer le clone du commit versionné.'
+        return 1
+    fi
+    while IFS= read -r remote; do
+        [[ -n "$remote" ]] || continue
+        url="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" remote get-url "$remote")" || return 1
+        if [[ "$url" == *://*@* ]]; then
+            print_error "Le remote $remote contient une identité intégrée interdite."
+            return 1
+        fi
+        runuser -u "$DEVOPS_USER" -- git -C "$replay_project" remote add "$remote" "$url" || return 1
+    done < <(runuser -u "$DEVOPS_USER" -- git -C "$project_path" remote)
+    if [[ -L "$project_path/project.env" || ! -f "$project_path/project.env" ]]; then
+        print_error 'Configuration de projet absente ou symbolique.'
+        return 1
+    fi
+    if [[ -e "$replay_project/project.env" || -L "$replay_project/project.env" ]]; then
+        print_error 'La configuration locale entrerait en conflit avec le contenu du commit.'
+        return 1
+    fi
+    runuser -u "$DEVOPS_USER" -- cp -p -- "$project_path/project.env" "$replay_project/project.env" || return 1
+    if [[ -L "$project_path/config" ]]; then
+        print_error 'Répertoire de configuration source symbolique.'
+        return 1
+    fi
+    if [[ -L "$replay_project/config" || ( -e "$replay_project/config" && ! -d "$replay_project/config" ) ]]; then
+        print_error 'Répertoire de configuration symbolique ou invalide.'
+        return 1
+    fi
+    runuser -u "$DEVOPS_USER" -- mkdir -p -- "$replay_project/config" || return 1
+    runuser -u "$DEVOPS_USER" -- chmod 700 -- "$replay_project/config" || return 1
+    for credential in forgejo.username forgejo.token github.username github.token gitlab.username gitlab.token; do
+        if [[ -e "$project_path/config/$credential" || -L "$project_path/config/$credential" ]]; then
+            if [[ -L "$project_path/config/$credential" || ! -f "$project_path/config/$credential" ]]; then
+                print_error 'Fichier de configuration de forge non régulier.'
+                return 1
+            fi
+            if [[ -e "$replay_project/config/$credential" || -L "$replay_project/config/$credential" ]]; then
+                print_error 'Un identifiant de forge entrerait en conflit avec le contenu du commit.'
+                return 1
+            fi
+            runuser -u "$DEVOPS_USER" -- cp -p -- "$project_path/config/$credential" "$replay_project/config/$credential" || return 1
+        fi
+    done
+}
+
+projects_cicd_replay_prepare() {
+    PROJECTS_CICD_REPLAY_ROOT=""
+    if ! _projects_cicd_replay_prepare_internal "$@"; then
+        if [[ -n "$PROJECTS_CICD_REPLAY_ROOT" ]]; then
+            runuser -u "$DEVOPS_USER" -- rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT" || return 1
+            PROJECTS_CICD_REPLAY_ROOT=""
+        fi
+        return 1
+    fi
+}
+
+# Transport authentifié sans réutiliser le push de branche avec force-with-lease.
+projects_cicd_replay_git_transport() {
+    local provider="$1" project_path="$2"
+    shift 2
+    local forgejo_username="" forgejo_token="" github_username="" github_token=""
+    local gitlab_username="" gitlab_token=""
+    case "$provider" in
+        forgejo)
+            _forgejo_read_username "$project_path" && _forgejo_read_token "$project_path" || return 1
+            _forgejo_git_with_token "$project_path" "$forgejo_username" "$forgejo_token" "$@" ;;
+        github)
+            _github_read_username "$project_path" && _github_read_token "$project_path" || return 1
+            git_with_token "$project_path" "$github_username" "$github_token" "$@" ;;
+        gitlab)
+            _gitlab_read_username "$project_path" && _gitlab_read_token "$project_path" || return 1
+            _gitlab_git_with_token "$project_path" "$gitlab_username" "$gitlab_token" "$@" ;;
+        *) print_error 'Fournisseur de rejeu inconnu.'; return 1 ;;
+    esac
+}
+
+# Le push de branche est strictement fast-forward ; le tag n'est jamais forcé.
+_projects_cicd_replay_git_provider() {
+    local provider="$1" project_path="$2" remote="$3" branch="$4" tag="$5"
+    local refs="" head_sha="" branch_sha="" tag_sha="" peeled_sha="" sha="" ref=""
+    local prefix="REMOTE_${provider^^}" base_key="" owner_key="" repo_key="" expected_url="" actual_url=""
+    PROJECTS_CICD_REPLAY_GIT_STATUS="déjà en ligne"
+    base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
+    expected_url="${!base_key%/}/${!owner_key}/${!repo_key}.git"
+    actual_url="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" remote get-url "$remote")" || return 1
+    if [[ "$actual_url" != "$expected_url" ]]; then
+        print_error "Le remote $remote ne correspond pas à la configuration du projet."
+        return 1
+    fi
+    head_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
+    refs="$(projects_cicd_replay_git_transport "$provider" "$project_path" ls-remote "$remote" \
+        "refs/heads/$branch" "refs/tags/$tag" "refs/tags/$tag^{}")" || return 1
+    while IFS=$'\t' read -r sha ref; do
+        [[ -n "$sha$ref" ]] || continue
+        if [[ ! "$sha" =~ ^([a-f0-9]{40}|[a-f0-9]{64})$ ]]; then
+            print_error "Référence Git distante invalide sur $remote."
+            return 1
+        fi
+        case "$ref" in
+            "refs/heads/$branch") branch_sha="$sha" ;;
+            "refs/tags/$tag") tag_sha="$sha" ;;
+            "refs/tags/$tag^{}") peeled_sha="$sha" ;;
+        esac
+    done <<< "$refs"
+    if [[ -n "$tag_sha" && "${peeled_sha:-$tag_sha}" != "$head_sha" ]]; then
+        print_error "Le tag distant $tag désigne un autre commit."
+        return 1
+    fi
+    if [[ -n "$branch_sha" ]]; then
+        projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
+            "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
+        if [[ "$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/remotes/$remote/$branch")" != "$branch_sha" ]]; then
+            print_error "La branche $remote/$branch a changé pendant la vérification."
+            return 1
+        fi
+    fi
+    if [[ -n "$branch_sha" && "$branch_sha" != "$head_sha" ]]; then
+        if runuser -u "$DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$branch_sha" "$head_sha"; then
+            projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" "HEAD:refs/heads/$branch" || return 1
+            projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
+                "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
+            PROJECTS_CICD_REPLAY_GIT_STATUS="branche avancée"
+        else
+            PROJECTS_CICD_REPLAY_GIT_STATUS="branche conservée"
+            print_info "Branche $remote/$branch conservée : aucun retour en arrière."
+        fi
+    elif [[ -z "$branch_sha" ]]; then
+        projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" "HEAD:refs/heads/$branch" || return 1
+        projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
+            "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
+        PROJECTS_CICD_REPLAY_GIT_STATUS="branche créée"
+    fi
+    if [[ -z "$tag_sha" ]]; then
+        projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" "refs/tags/$tag:refs/tags/$tag" || return 1
+        PROJECTS_CICD_REPLAY_GIT_STATUS+=" ; tag publié"
+    else
+        print_info "Tag $tag déjà présent sur $remote."
+    fi
+}
+
+projects_cicd_replay_git_provider() {
+    local context_dir="" projects_git_unavailable_file="" replay_rc=0
+    context_dir="$(mktemp -d -p "${PROJECTS_CICD_REPLAY_ROOT:-${TMPDIR:-/tmp}}" .network.XXXXXXXX)" || {
+        print_error 'Impossible de préparer le contexte réseau du rejeu.'; return 1;
+    }
+    projects_git_unavailable_file="$context_dir/unavailable"
+    PROJECTS_GIT_PUSH_STATUS="échec"
+    (
+        print_error() {
+            if [[ ! -s "$projects_git_unavailable_file" ]]; then printf '❌ %s\n' "$*" >&2; fi
+        }
+        _projects_cicd_replay_git_provider "$@" || exit $?
+        printf '%s' "$PROJECTS_CICD_REPLAY_GIT_STATUS" > "$context_dir/status"
+    ) || replay_rc=$?
+    if [[ "$replay_rc" -ne 0 && -s "$projects_git_unavailable_file" ]]; then
+        PROJECTS_GIT_PUSH_STATUS="indisponible"
+        print_info "Serveur $1 indisponible : publication non confirmée."
+        replay_rc=0
+    elif [[ "$replay_rc" -eq 0 ]]; then
+        PROJECTS_CICD_REPLAY_GIT_STATUS="$(cat "$context_dir/status")" || replay_rc=1
+        PROJECTS_GIT_PUSH_STATUS="publié"
+    fi
+    rm -rf -- "$context_dir" || { print_error 'Nettoyage du contexte réseau impossible.'; return 1; }
+    return "$replay_rc"
+}
+
+_cicd_project_impl() {
+    local original_projects_root="${DEVOPS_PROJECTS_ROOT}"
+    local DEVOPS_PROJECTS_ROOT
+    printf -v DEVOPS_PROJECTS_ROOT '%s' "$original_projects_root"
     local project_id="${1:-}"
     local commit_name="${2:-}"
     local commit_tag="${3:-}"
@@ -416,11 +607,22 @@ cicd_project() {
     local github_push_status="non configuré, ignoré"
     local docker_build_status="non exécuté"
     local debian_build_status="non exécuté"
-    local docker_enabled="No" debian_enabled="No" publication_command=""
+    local docker_enabled="No" docker_publish_enabled="No" debian_enabled="No" publication_command=""
     local forgejo_release_status="non Dockerisé ou non configuré, ignoré"
     local gitlab_release_status="non Dockerisé ou non configuré, ignoré"
     local github_release_status="non configuré, ignorée"
     local docker_version="${commit_tag#v}"
+    local replay=0 original_project_path="" replay_pending_changes=""
+    # Le builder Docker consulte ce chemin via la portée dynamique Bash.
+    # shellcheck disable=SC2034
+    local PROJECTS_CICD_PROJECT_ENV=""
+    # shellcheck disable=SC2034
+    local PROJECTS_CICD_DOCKER_CONTEXT=""
+    # shellcheck disable=SC2034
+    local PROJECTS_CICD_DOCKER_TAG=""
+    # Les publishers consultent ce drapeau via la portée dynamique Bash.
+    # shellcheck disable=SC2034
+    local PROJECTS_CICD_REPLAY=0
 
     if [[ -z "${project_id}" || -z "${commit_name}" || -z "${commit_tag}" ]]; then
         print_error "Usage : cicd_project <ID PROJECT> <COMMIT> <TAG>"
@@ -438,6 +640,45 @@ cicd_project() {
     fi
 
     print_title "Étape 1/6 — Commit et tag"
+    local requested_version="" replay_tag_exists=0 tag_probe_rc=0
+    requested_version="$(project_version_get "$project_env")" || return 1
+    if [[ -n "$requested_version" && -e "$project_path/.git" ]]; then
+        if runuser -u "$DEVOPS_USER" -- git -C "$project_path" \
+            show-ref --verify --quiet "refs/tags/$commit_tag" 2>/dev/null; then
+            replay_tag_exists=1
+        else
+            tag_probe_rc=$?
+            if [[ "$tag_probe_rc" -ne 1 ]]; then
+                print_error 'Impossible de vérifier le tag Git du projet.'
+                return 1
+            fi
+        fi
+    fi
+    if [[ "$replay_tag_exists" == 1 ]]; then
+        original_project_path="$project_path"
+        print_info "Version $requested_version déjà attribuée : rejeu sur le commit du tag."
+        replay_pending_changes="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" status --porcelain=v1 --untracked-files=normal)" || {
+            print_error "Impossible de vérifier les modifications locales avant le rejeu."
+            return 1
+        }
+        if [[ -n "$replay_pending_changes" ]]; then
+            print_info 'Modifications locales conservées et exclues de ce rejeu.'
+            workflow_status='rejeu : modifications locales conservées'
+        fi
+        if ! projects_cicd_replay_prepare "$project_id" "$project_path" "$commit_tag"; then
+            print_error 'Impossible de préparer le contexte isolé du rejeu.'
+            return 1
+        fi
+        printf -v DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
+        project_path="$DEVOPS_PROJECTS_ROOT/$project_id"
+        project_env="$project_path/project.env"
+        # shellcheck disable=SC2034
+        PROJECTS_CICD_REPLAY=1
+        replay=1
+        # Le drapeau est consommé par les publishers dans des modules distincts.
+        # shellcheck disable=SC2034
+        readonly PROJECTS_CICD_REPLAY_ROOT PROJECTS_CICD_REPLAY replay original_project_path
+    else
     PROJECTS_GIT_COMMIT_STATUS=""
     if ! git_commit "${project_id}" "${commit_name}" "${commit_tag}"; then
         workflow_status="échec"
@@ -452,6 +693,7 @@ cicd_project() {
             'non exécuté' 'non exécuté' 'non exécuté' 'non exécuté' \
             'non exécutée' 'non exécutée' 'non exécutée' 'non exécuté'
         return 0
+    fi
     fi
 
     local selected_project_version=""
@@ -503,6 +745,11 @@ cicd_project() {
             "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
         return 0
     fi
+    if [[ "$replay" == 1 ]]; then
+        printf -v DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
+        project_path="$DEVOPS_PROJECTS_ROOT/$project_id"
+        project_env="$project_path/project.env"
+    fi
 
     if [[ "${PROJECT_DOCKERED:-}" == Yes ]]; then
         docker_enabled="Yes"
@@ -513,12 +760,15 @@ cicd_project() {
         Yes|YES|1) debian_enabled="Yes" ;;
         *) debian_build_status="non activé, ignoré" ;;
     esac
+    docker_publish_enabled="$docker_enabled"
 
     print_title "Étape 2/6 — Pushes Git"
     if projects_cicd_provider_is_complete "${project_id}" forgejo; then
         forgejo_push_status="échec"
         PROJECTS_GIT_PUSH_STATUS=""
-        if ! forgejo_push "${project_id}"; then
+        if ! { if [[ "$replay" == 1 ]]; then
+            projects_cicd_replay_git_provider forgejo "$project_path" "$REMOTE_FORGEJO_NAME" "$REMOTE_FORGEJO_BRANCH" "$commit_tag"
+        else forgejo_push "${project_id}"; fi; }; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec du push Forgejo."
@@ -527,6 +777,8 @@ cicd_project() {
         if [[ "${PROJECTS_GIT_PUSH_STATUS:-}" == "indisponible" ]]; then
             forgejo_push_status="indisponible — publication non confirmée"
             workflow_status="terminé avec indisponibilités"
+        elif [[ "$replay" == 1 ]]; then
+            forgejo_push_status="$PROJECTS_CICD_REPLAY_GIT_STATUS"
         else
             forgejo_push_status="publié vers ${REMOTE_FORGEJO_NAME}/${REMOTE_FORGEJO_BRANCH}"
         fi
@@ -535,7 +787,9 @@ cicd_project() {
     if projects_cicd_provider_is_complete "${project_id}" gitlab; then
         gitlab_push_status="échec"
         PROJECTS_GIT_PUSH_STATUS=""
-        if ! gitlab_push "${project_id}"; then
+        if ! { if [[ "$replay" == 1 ]]; then
+            projects_cicd_replay_git_provider gitlab "$project_path" "$REMOTE_GITLAB_NAME" "$REMOTE_GITLAB_BRANCH" "$commit_tag"
+        else gitlab_push "${project_id}"; fi; }; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec du push GitLab."
@@ -544,6 +798,8 @@ cicd_project() {
         if [[ "${PROJECTS_GIT_PUSH_STATUS:-}" == "indisponible" ]]; then
             gitlab_push_status="indisponible — publication non confirmée"
             workflow_status="terminé avec indisponibilités"
+        elif [[ "$replay" == 1 ]]; then
+            gitlab_push_status="$PROJECTS_CICD_REPLAY_GIT_STATUS"
         else
             gitlab_push_status="publié vers ${REMOTE_GITLAB_NAME}/${REMOTE_GITLAB_BRANCH}"
         fi
@@ -552,7 +808,9 @@ cicd_project() {
     if projects_cicd_provider_is_complete "${project_id}" github; then
         github_push_status="échec"
         PROJECTS_GIT_PUSH_STATUS=""
-        if ! github_push "${project_id}"; then
+        if ! { if [[ "$replay" == 1 ]]; then
+            projects_cicd_replay_git_provider github "$project_path" "$REMOTE_GITHUB_NAME" "$REMOTE_GITHUB_BRANCH" "$commit_tag"
+        else github_push "${project_id}"; fi; }; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec du push GitHub."
@@ -561,6 +819,8 @@ cicd_project() {
         if [[ "${PROJECTS_GIT_PUSH_STATUS:-}" == "indisponible" ]]; then
             github_push_status="indisponible — publication non confirmée"
             workflow_status="terminé avec indisponibilités"
+        elif [[ "$replay" == 1 ]]; then
+            github_push_status="$PROJECTS_CICD_REPLAY_GIT_STATUS"
         else
             github_push_status="publié vers ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}"
         fi
@@ -569,6 +829,24 @@ cicd_project() {
     print_title "Étape 3/6 — Build Docker"
     if [[ "$docker_enabled" == Yes ]]; then
         docker_build_status="échec"
+        if [[ "$replay" == 1 ]]; then
+            # Le contexte contient uniquement les fichiers suivis au commit du tag.
+            # shellcheck disable=SC2034
+            PROJECTS_CICD_DOCKER_CONTEXT="$PROJECTS_CICD_REPLAY_ROOT/docker-context"
+            if ! runuser -u "$DEVOPS_USER" -- mkdir -m 700 -- "$PROJECTS_CICD_DOCKER_CONTEXT" ||
+                ! runuser -u "$DEVOPS_USER" -- git -C "$project_path" checkout-index \
+                    --all --prefix="$PROJECTS_CICD_DOCKER_CONTEXT/"; then
+                print_error 'Impossible de préparer le contexte Docker du commit versionné.'
+                return 1
+            fi
+            # shellcheck disable=SC2034
+            PROJECTS_CICD_PROJECT_ENV="$project_env"
+            # shellcheck disable=SC2034
+            PROJECTS_CICD_DOCKER_TAG="replay-${PROJECTS_CICD_REPLAY_ROOT##*.}"
+            # Valeurs consommées par le builder via la portée dynamique Bash.
+            # shellcheck disable=SC2034
+            readonly PROJECTS_CICD_PROJECT_ENV PROJECTS_CICD_DOCKER_CONTEXT PROJECTS_CICD_DOCKER_TAG
+        fi
         if ! projects_docker_build "${project_id}"; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
@@ -576,6 +854,9 @@ cicd_project() {
             return 1
         fi
         docker_build_status="${PROJECT_ID}:latest (version ${docker_version})"
+        if [[ "$replay" == 1 ]]; then
+            docker_build_status="${PROJECT_ID}:${PROJECTS_CICD_DOCKER_TAG} (commit du tag ${commit_tag})"
+        fi
     fi
 
     print_title "Étape 4/6 — Build Debian"
@@ -588,13 +869,55 @@ cicd_project() {
             return 1
         fi
         debian_build_status="construit dans ${project_path}/dist"
+        if [[ "$replay" == 1 ]]; then
+            local replay_artifact="" replay_hash="" replay_digest_target="" replay_target="$original_project_path/dist/replay/$commit_tag"
+            if [[ -L "$original_project_path/dist" || -L "$original_project_path/dist/replay" || -L "$replay_target" ]]; then
+                print_error 'Destination des paquets de rejeu symbolique.'
+                return 1
+            fi
+            runuser -u "$DEVOPS_USER" -- mkdir -p -- "$replay_target" || return 1
+            for replay_artifact in "$project_path"/dist/*.deb; do
+                [[ -f "$replay_artifact" && ! -L "$replay_artifact" ]] || continue
+                replay_hash="$(sha256sum < "$replay_artifact")" || return 1
+                replay_hash="${replay_hash%% *}"
+                [[ "$replay_hash" =~ ^[a-f0-9]{64}$ ]] || return 1
+                replay_digest_target="$replay_target/$replay_hash"
+                if [[ -L "$replay_digest_target" ]]; then
+                    print_error 'Destination du paquet de rejeu symbolique.'; return 1
+                fi
+                runuser -u "$DEVOPS_USER" -- mkdir -p -- "$replay_digest_target" || return 1
+                if [[ -L "$replay_digest_target/${replay_artifact##*/}" ]]; then
+                    print_error 'Fichier de paquet de rejeu symbolique.'; return 1
+                fi
+                runuser -u "$DEVOPS_USER" -- cp -n -- "$replay_artifact" "$replay_digest_target/" || return 1
+                if ! cmp -s -- "$replay_artifact" "$replay_digest_target/${replay_artifact##*/}"; then
+                    print_error 'Le paquet sauvegardé ne correspond pas au paquet construit.'; return 1
+                fi
+            done
+            debian_build_status="construit dans ${replay_target}"
+        fi
     fi
 
     print_title "Étape 5/6 — Publications des artefacts"
-    if [[ "$docker_enabled" != Yes && "$debian_enabled" != Yes ]]; then
-        forgejo_release_status="aucun artefact activé, ignorée"
-        gitlab_release_status="aucun artefact activé, ignorée"
-        github_release_status="aucun artefact activé, ignorée"
+    if [[ "$replay" == 1 && "$docker_enabled" == Yes ]]; then
+        docker_publish_enabled=No
+        print_info "Publication Docker ignorée : immutabilité du tag distant non confirmée."
+        if [[ "$workflow_status" == réussi ]]; then
+            workflow_status='terminé avec publication Docker ignorée'
+        else
+            workflow_status+=' ; publication Docker ignorée'
+        fi
+    fi
+    if [[ "$docker_publish_enabled" != Yes && "$debian_enabled" != Yes ]]; then
+        if [[ "$replay" == 1 && "$docker_enabled" == Yes ]]; then
+            if projects_cicd_provider_is_complete "$project_id" forgejo; then forgejo_release_status="Docker : immutabilité non confirmée, ignorée"; fi
+            if projects_cicd_provider_is_complete "$project_id" gitlab; then gitlab_release_status="Docker : immutabilité non confirmée, ignorée"; fi
+            if projects_cicd_provider_is_complete "$project_id" github; then github_release_status="Docker : immutabilité non confirmée, ignorée"; fi
+        else
+            forgejo_release_status="aucun artefact activé, ignorée"
+            gitlab_release_status="aucun artefact activé, ignorée"
+            github_release_status="aucun artefact activé, ignorée"
+        fi
         cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
         return 0
     fi
@@ -603,7 +926,8 @@ cicd_project() {
         forgejo_release_status="serveur indisponible, ignorée"
     elif projects_cicd_provider_is_complete "${project_id}" forgejo; then
         forgejo_release_status="échec"
-        if [[ "$docker_enabled" == Yes ]]; then
+        PROJECTS_DEBIAN_RELEASE_STATUS=""
+        if [[ "$docker_publish_enabled" == Yes ]]; then
             publication_command="projects_forgejo_release"
         else
             publication_command="publish_release_debian"
@@ -614,13 +938,16 @@ cicd_project() {
             print_error "Échec de la release Forgejo."
             return 1
         fi
-        if [[ "$docker_enabled" == Yes ]]; then
+        if [[ "$docker_publish_enabled" == Yes ]]; then
             forgejo_release_status="${REMOTE_FORGEJO_BASE_URL#https://}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:${docker_version} et latest"
             if [[ "$debian_enabled" == Yes ]]; then
                 forgejo_release_status+=" ; paquet Debian publié"
             fi
         else
-            forgejo_release_status="paquet Debian publié depuis dist"
+            if [[ "$PROJECTS_DEBIAN_RELEASE_STATUS" == 'déjà publié' ]]; then
+                forgejo_release_status='paquet Debian déjà publié'
+            else forgejo_release_status="paquet Debian publié depuis dist"; fi
+            if [[ "$replay" == 1 && "$docker_enabled" == Yes ]]; then forgejo_release_status+=' ; Docker ignoré'; fi
         fi
     fi
 
@@ -628,7 +955,8 @@ cicd_project() {
         gitlab_release_status="serveur indisponible, ignorée"
     elif projects_cicd_provider_is_complete "${project_id}" gitlab; then
         gitlab_release_status="échec"
-        if [[ "$docker_enabled" == Yes ]]; then
+        PROJECTS_DEBIAN_RELEASE_STATUS=""
+        if [[ "$docker_publish_enabled" == Yes ]]; then
             publication_command="projects_gitlab_release"
         else
             publication_command="projects_gitlab_release_debian"
@@ -639,13 +967,16 @@ cicd_project() {
             print_error "Échec de la release GitLab."
             return 1
         fi
-        if [[ "$docker_enabled" == Yes ]]; then
+        if [[ "$docker_publish_enabled" == Yes ]]; then
             gitlab_release_status="${REMOTE_GITLAB_REGISTRY}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}:${docker_version} et latest"
             if [[ "$debian_enabled" == Yes ]]; then
                 gitlab_release_status+=" ; paquet Debian publié"
             fi
         else
-            gitlab_release_status="paquet Debian publié depuis dist"
+            if [[ "$PROJECTS_DEBIAN_RELEASE_STATUS" == 'déjà publié' ]]; then
+                gitlab_release_status='paquet Debian déjà publié'
+            else gitlab_release_status="paquet Debian publié depuis dist"; fi
+            if [[ "$replay" == 1 && "$docker_enabled" == Yes ]]; then gitlab_release_status+=' ; Docker ignoré'; fi
         fi
     fi
 
@@ -653,7 +984,8 @@ cicd_project() {
         github_release_status="serveur indisponible, ignorée"
     elif projects_cicd_provider_is_complete "${project_id}" github; then
         github_release_status="échec"
-        if [[ "$docker_enabled" == Yes ]]; then
+        PROJECTS_DEBIAN_RELEASE_STATUS=""
+        if [[ "$docker_publish_enabled" == Yes ]]; then
             publication_command="projects_github_release"
         else
             publication_command="projects_github_release_debian"
@@ -664,19 +996,32 @@ cicd_project() {
             print_error "Échec de la release GitHub."
             return 1
         fi
-        if [[ "$docker_enabled" == Yes ]]; then
+        if [[ "$docker_publish_enabled" == Yes ]]; then
             github_release_status="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:${docker_version} et latest"
             if [[ "$debian_enabled" == Yes ]]; then
                 github_release_status+=" ; paquet Debian publié"
             fi
         else
-            github_release_status="paquet Debian publié depuis dist"
+            if [[ "$PROJECTS_DEBIAN_RELEASE_STATUS" == 'déjà publié' ]]; then
+                github_release_status='paquet Debian déjà publié'
+            else github_release_status="paquet Debian publié depuis dist"; fi
+            if [[ "$replay" == 1 && "$docker_enabled" == Yes ]]; then github_release_status+=' ; Docker ignoré'; fi
         fi
     fi
 
     cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
     return 0
 }
+
+cicd_project() (
+    local PROJECTS_CICD_REPLAY_ROOT=""
+    local replay_exit_rc=0
+    trap 'replay_exit_rc=$?; if [[ -n "$PROJECTS_CICD_REPLAY_ROOT" ]] && ! rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT"; then print_error "Nettoyage du contexte de rejeu impossible."; if [[ "$replay_exit_rc" -eq 0 ]]; then replay_exit_rc=1; fi; fi; exit "$replay_exit_rc"' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    trap 'exit 129' HUP
+    _cicd_project_impl "$@"
+)
 
 # Analalyse le dépot le local Git pour le projet <PROJECT ID>
 git_analyse() {
@@ -2961,11 +3306,9 @@ _git_push_provider() {
         print_error \
             "L'URL Git configurée ne correspond pas à project.env."
 
-        printf '%-22s : %s\n' \
-            "URL configurée" "${configured_remote_url}"
-
-        printf '%-22s : %s\n' \
-            "URL déclarée" "${remote_url}"
+        printf '%s : %s\n' \
+            'URL configurée  ' "${configured_remote_url}" \
+            'URL déclarée    ' "${remote_url}"
 
         return 1
     fi
@@ -2973,23 +3316,21 @@ _git_push_provider() {
     # Informations du projet
     print_title "Dépôt Git"
 
-    printf '%-22s : %s\n' "Projet" "${project_name}"
-    printf '%-22s : %s\n' "ID projet" "${project_id}"
-    printf '%-22s : %s\n' "Répertoire" "${project_path}"
-    printf '%-22s : %s\n' "Utilisateur" "${ENV_DEVOPS_USER}"
-    printf '%-22s : %s\n' "Type distant" "${remote_git_type}"
-    printf '%-22s : %s\n' "Branche locale" "${current_branch}"
-    printf '%-22s : %s\n' "Dépôt distant" "${remote_name}"
-    printf '%-22s : %s\n' "URL distante" "${configured_remote_url}"
-    printf '%-22s : %s\n' \
-        "Branche distante" "${remote_default_branch}"
+    printf '%s : %s\n' \
+        'Projet          ' "${project_name}" \
+        'ID projet       ' "${project_id}" \
+        'Répertoire      ' "${project_path}" \
+        'Utilisateur     ' "${ENV_DEVOPS_USER}" \
+        'Type distant    ' "${remote_git_type}" \
+        'Branche locale  ' "${current_branch}" \
+        'Dépôt distant   ' "${remote_name}" \
+        'URL distante    ' "${configured_remote_url}" \
+        'Branche distante' "${remote_name}/${remote_default_branch}"
 
     if [[ -n "${current_tag}" ]]; then
-        printf '%-22s : %s\n' \
-            "Tag du commit" "${current_tag}"
+        printf '%s : %s\n' 'Tag du commit   ' "${current_tag}"
     else
-        printf '%-22s : %s\n' \
-            "Tag du commit" "Aucun"
+        printf '%s : %s\n' 'Tag du commit   ' "Aucun"
     fi
 
     # git status
@@ -5455,6 +5796,9 @@ projects_github_release_docker() {
 
 # Publication du paquet Debian d'un projet via une release GitLab.
 projects_gitlab_release_debian() {
+    PROJECTS_DEBIAN_RELEASE_STATUS=""
+    local display_project_label='Répertoire      '
+    if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]]; then display_project_label='Répertoire isolé'; fi
     local project_id="${1:-}"
     local project_path=""
     local project_env=""
@@ -5637,6 +5981,16 @@ projects_gitlab_release_debian() {
         fi
     fi
 
+    print_info 'GitLab : configuration déclarée pour la publication Debian.'
+    printf '%s : %s\n' \
+        'Projet          ' "$project_name" \
+        'ID projet       ' "$project_id" \
+        "$display_project_label" "$project_path" \
+        'Type distant    ' 'GitLab' \
+        'Dépôt distant   ' "$REMOTE_GITLAB_NAME" \
+        'Branche distante' "$REMOTE_GITLAB_NAME/$REMOTE_GITLAB_BRANCH" \
+        'Tag             ' "$git_tag"
+    print_info 'GitLab : vérification des identifiants.'
     if ! _gitlab_ensure_credentials "${project_path}" "${REMOTE_GITLAB_NAME:-origin}"; then
         print_error "Impossible d'obtenir les identifiants GitLab."
         return 1
@@ -5648,6 +6002,8 @@ projects_gitlab_release_debian() {
         print_error "Identifiants GitLab incomplets."
         return 1
     fi
+    print_info 'GitLab : identifiants disponibles.'
+    print_info "GitLab : vérification de la release pour ${git_tag}."
 
     remote_api_base="${REMOTE_GITLAB_BASE_URL%/}/api/v4/projects"
     remote_project="${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}"
@@ -5738,6 +6094,7 @@ projects_gitlab_release_debian() {
             print_error 'Release GitLab existante incohérente.'
             return 1
         fi
+        print_info "GitLab : tag ${git_tag} de la release cohérent avec le commit local."
         release_asset_count="$(jq -er --arg name "$deb_filename" '[.assets.links[] | select(.name == $name)] | length' <<< "${release_body%$'\n'*}")" || return 1
         if [[ "$release_asset_count" -gt 1 ]]; then
             print_error 'Assets GitLab ambigus pour cette version.'
@@ -5745,12 +6102,14 @@ projects_gitlab_release_debian() {
         fi
         if [[ "$release_asset_count" -eq 1 ]]; then
             print_info "Paquet Debian déjà publié sur GitLab pour ${git_tag}."
+            PROJECTS_DEBIAN_RELEASE_STATUS="déjà publié"
             return 0
         fi
     elif [[ "${release_http_code}" != "404" ]]; then
         print_error "Impossible de vérifier la release GitLab (HTTP ${release_http_code})."
         return 1
     else
+        print_info "GitLab : aucune release existante pour ${git_tag}."
         release_payload="$(
             jq -n \
                 --arg tag_name "${git_tag}" \

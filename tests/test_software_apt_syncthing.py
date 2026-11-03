@@ -80,8 +80,9 @@ source "$TEST_SCRIPT"
 
     def test_both_consumers_use_new_name_with_disabled_fallback(self):
         source = (ROOT / 'root-install-debian.sh').read_text()
-        self.assertEqual(source.count('${SOFTWARES_APT_SYNCTHING:-0}'), 2)
+        self.assertEqual(source.count('${SOFTWARES_APT_SYNCTHING:-0}'), 1)
         self.assertNotRegex(source, r'\$(?:\{)?SYNCTHING(?:\})?(?![A-Z0-9_])')
+        self.assertNotIn('/home/devops/datas/.stignore', source)
 
 
 if __name__ == '__main__':

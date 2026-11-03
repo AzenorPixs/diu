@@ -11,10 +11,10 @@ _diu_update_version_gt() {
     dpkg --compare-versions "$left" gt "$right"
 }
 
-# Lire uniquement les paramètres publics des fournisseurs, sans exécuter project.env.
+# Lire uniquement les paramètres publics GitHub, sans exécuter project.env.
 _diu_update_config() {
     local file="$1" line key value raw
-    local assignment='^[[:blank:]]*(export[[:blank:]]+)?(REMOTE_(FORGEJO|GITHUB|GITLAB)_(BASE_URL|OWNER|REPOSITORY))[[:blank:]]*=(.*)$'
+    local assignment='^[[:blank:]]*(export[[:blank:]]+)?(REMOTE_(GITHUB)_(BASE_URL|OWNER|REPOSITORY))[[:blank:]]*=(.*)$'
     local literal="^[[:blank:]]*([A-Za-z0-9._:/%+~-]+|\"[A-Za-z0-9._:/%+~-]+\"|'[A-Za-z0-9._:/%+~-]+')[[:blank:]]*$"
     local -A seen=()
     [[ -f "$file" && -r "$file" && ! -L "$file" ]] || {
@@ -38,14 +38,10 @@ _diu_update_config() {
 
 # Exécuter dans un sous-shell afin de limiter configuration et temporaires.
 update_diu() (
-    # Les valeurs sont utilisées par expansion indirecte pour chaque fournisseur.
-    # shellcheck disable=SC2034
-    local REMOTE_FORGEJO_BASE_URL='' REMOTE_FORGEJO_OWNER='' REMOTE_FORGEJO_REPOSITORY=''
+    # Les valeurs sont utilisées par expansion indirecte.
     # shellcheck disable=SC2034
     local REMOTE_GITHUB_BASE_URL='' REMOTE_GITHUB_OWNER='' REMOTE_GITHUB_REPOSITORY=''
-    # shellcheck disable=SC2034
-    local REMOTE_GITLAB_BASE_URL='' REMOTE_GITLAB_OWNER='' REMOTE_GITLAB_REPOSITORY=''
-    local provider prefix base_key owner_key repo_key base owner repo api path page response previous_response count rows
+    local provider prefix base_key owner_key repo_key base owner repo api page response previous_response count rows
     local tag name url version best_version='' best_url='' best_provider='' installed='' status='' temp_dir='' file=''
     local project_path='' github_token='' github_config='' github_authenticated=0 best_github_authenticated=0
     local package_version='' package_name='' package_arch='' configured=0
@@ -64,77 +60,63 @@ update_diu() (
     if [[ -z "$installed" ]] || ! dpkg --validate-version "$installed" >/dev/null 2>&1; then
         print_error 'Version installée du DIU invalide.'; return 1
     fi
-    for provider in FORGEJO GITHUB GITLAB; do
-        prefix="REMOTE_${provider}"; base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
-        base="${!base_key}"; owner="${!owner_key}"; repo="${!repo_key}"
-        [[ -n "$base$owner$repo" ]] || continue
-        [[ -n "$base" && -n "$owner" && -n "$repo" ]] || { print_error "Configuration $provider incomplète."; return 1; }
-        [[ "$base" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~-]+)*/*$ && "$owner" =~ ^[A-Za-z0-9._/-]+$ && "$repo" =~ ^[A-Za-z0-9._-]+$ && "$owner" != *..* && "$repo" != *..* ]] || { print_error "Configuration $provider invalide."; return 1; }
-        configured=$((configured + 1)); base="${base%/}"
-        case "$provider" in
-            FORGEJO) api="$base/api/v1/repos/$owner/$repo/releases" ;;
-            GITHUB)
-                if [[ "$base" == https://github.com ]]; then api="https://api.github.com/repos/$owner/$repo/releases"; else api="$base/api/v3/repos/$owner/$repo/releases"; fi
-                if [[ -e "$project_path/config/github.token" ]]; then
-                    set +x
-                    if ! declare -F _github_read_token >/dev/null || ! _github_read_token "$project_path"; then
-                        print_error 'Impossible de lire les identifiants GitHub du projet.'; return 1
-                    fi
-                    if [[ -z "$github_token" || "$github_token" == *$'\r'* || "$github_token" == *$'\n'* || "$github_token" == *'"'* || "$github_token" == *\\* ]]; then
-                        print_error 'Identifiant GitHub invalide.'; return 1
-                    fi
-                    github_config="$(mktemp)" || { print_error "Impossible de préparer l'authentification GitHub."; return 1; }
-                    chmod 600 "$github_config" || { print_error "Impossible de sécuriser l'authentification GitHub."; return 1; }
-                    printf 'header = "Authorization: Bearer %s"\n' "$github_token" > "$github_config" || return 1
-                    github_authenticated=1
-                fi ;;
-            GITLAB)
-                path="$(jq -rn --arg value "$owner/$repo" '$value|@uri')" || return 1
-                api="$base/api/v4/projects/$path/releases" ;;
-        esac
-        page=1; previous_response=''
-        while :; do
+    provider=GITHUB
+    prefix="REMOTE_${provider}"; base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
+    base="${!base_key}"; owner="${!owner_key}"; repo="${!repo_key}"
+    [[ -n "$base$owner$repo" ]] || { print_error "Configuration GITHUB absente."; return 1; }
+    [[ -n "$base" && -n "$owner" && -n "$repo" ]] || { print_error "Configuration $provider incomplète."; return 1; }
+    [[ "$base" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~-]+)*/*$ && "$owner" =~ ^[A-Za-z0-9._/-]+$ && "$repo" =~ ^[A-Za-z0-9._-]+$ && "$owner" != *..* && "$repo" != *..* ]] || { print_error "Configuration $provider invalide."; return 1; }
+    configured=$((configured + 1)); base="${base%/}"
+    if [[ "$base" == https://github.com ]]; then api="https://api.github.com/repos/$owner/$repo/releases"; else api="$base/api/v3/repos/$owner/$repo/releases"; fi
+    if [[ -e "$project_path/config/github.token" ]]; then
+        set +x
+        if ! declare -F _github_read_token >/dev/null || ! _github_read_token "$project_path"; then
+            print_error 'Impossible de lire les identifiants GitHub du projet.'; return 1
+        fi
+        if [[ -z "$github_token" || "$github_token" == *$'\r'* || "$github_token" == *$'\n'* || "$github_token" == *'"'* || "$github_token" == *\\* ]]; then
+            print_error 'Identifiant GitHub invalide.'; return 1
+        fi
+        github_config="$(mktemp)" || { print_error "Impossible de préparer l'authentification GitHub."; return 1; }
+        chmod 600 "$github_config" || { print_error "Impossible de sécuriser l'authentification GitHub."; return 1; }
+        printf 'header = "Authorization: Bearer %s"\n' "$github_token" > "$github_config" || return 1
+        github_authenticated=1
+    fi
+    page=1; previous_response=''
+    while :; do
+        if [[ "$provider" == GITHUB && "$github_authenticated" == 1 ]]; then
+            response="$(curl --config "$github_config" --header 'Accept: application/vnd.github+json' --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
+        else
+            response="$(curl --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
+        fi
+        count="$(jq -er 'if type == "array" then length else error("réponse invalide") end' <<< "$response")" || { print_error "Réponse $provider invalide."; return 1; }
+        [[ "$count" -gt 0 ]] || break
+        if [[ "$response" == "$previous_response" || "$page" -gt 1000 ]]; then
+            print_error "Pagination $provider invalide."; return 1
+        fi
+        previous_response="$response"
+        jq -e 'all(.[]; type == "object" and (.tag_name | type == "string") and ((.assets // []) | type == "array"))' <<< "$response" >/dev/null || { print_error "Réponse $provider invalide."; return 1; }
+        if [[ "$github_authenticated" == 1 ]]; then
+            rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string") | [$tag,.name,((.id // "")|tostring)] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
+        else
+            rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string" and (.browser_download_url|type)=="string") | [$tag,.name,.browser_download_url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
+        fi
+        while IFS=$'\t' read -r tag name url; do
+            [[ -n "$tag" && "$tag" == v* ]] || continue
+            version="${tag#v}"
+            [[ "$version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ && "$name" == "diu_${version}_all.deb" ]] || continue
+            dpkg --validate-version "$version" >/dev/null 2>&1 || continue
             if [[ "$provider" == GITHUB && "$github_authenticated" == 1 ]]; then
-                response="$(curl --config "$github_config" --header 'Accept: application/vnd.github+json' --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
+                [[ "$url" =~ ^[1-9][0-9]*$ ]] || { print_error "Identifiant d'asset GitHub invalide."; return 1; }
+                url="${api%/releases}/releases/assets/${url}"
             else
-                response="$(curl --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
+                [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
             fi
-            count="$(jq -er 'if type == "array" then length else error("réponse invalide") end' <<< "$response")" || { print_error "Réponse $provider invalide."; return 1; }
-            [[ "$count" -gt 0 ]] || break
-            if [[ "$response" == "$previous_response" || "$page" -gt 1000 ]]; then
-                print_error "Pagination $provider invalide."; return 1
+            if [[ -z "$best_version" ]] || _diu_update_version_gt "$version" "$best_version"; then
+                best_version="$version"; best_url="$url"; best_provider="$provider"
+                if [[ "$provider" == GITHUB ]]; then best_github_authenticated="$github_authenticated"; else best_github_authenticated=0; fi
             fi
-            previous_response="$response"
-            if [[ "$provider" == GITLAB ]]; then
-                jq -e 'all(.[]; type == "object" and (.tag_name | type == "string") and ((.assets // {}) | type == "object") and ((.assets.links // []) | type == "array"))' <<< "$response" >/dev/null || { print_error "Réponse $provider invalide."; return 1; }
-            else
-                jq -e 'all(.[]; type == "object" and (.tag_name | type == "string") and ((.assets // []) | type == "array"))' <<< "$response" >/dev/null || { print_error "Réponse $provider invalide."; return 1; }
-            fi
-            if [[ "$provider" == GITLAB ]]; then
-                rows="$(jq -er '[.[] | select((.tag_name|type)=="string") | .tag_name as $tag | (.assets.links // [])[] | select((.name|type)=="string" and (.url|type)=="string") | [$tag,.name,.url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
-            elif [[ "$provider" == GITHUB && "$github_authenticated" == 1 ]]; then
-                rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string") | [$tag,.name,((.id // "")|tostring)] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
-            else
-                rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string" and (.browser_download_url|type)=="string") | [$tag,.name,.browser_download_url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
-            fi
-            while IFS=$'\t' read -r tag name url; do
-                [[ -n "$tag" && "$tag" == v* ]] || continue
-                version="${tag#v}"
-                [[ "$version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ && "$name" == "diu_${version}_all.deb" ]] || continue
-                dpkg --validate-version "$version" >/dev/null 2>&1 || continue
-                if [[ "$provider" == GITHUB && "$github_authenticated" == 1 ]]; then
-                    [[ "$url" =~ ^[1-9][0-9]*$ ]] || { print_error "Identifiant d'asset GitHub invalide."; return 1; }
-                    url="${api%/releases}/releases/assets/${url}"
-                else
-                    [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
-                fi
-                if [[ -z "$best_version" ]] || _diu_update_version_gt "$version" "$best_version"; then
-                    best_version="$version"; best_url="$url"; best_provider="$provider"
-                    if [[ "$provider" == GITHUB ]]; then best_github_authenticated="$github_authenticated"; else best_github_authenticated=0; fi
-                fi
-            done <<< "$rows"
-            page=$((page + 1))
-        done
+        done <<< "$rows"
+        page=$((page + 1))
     done
     [[ "$configured" -gt 0 && -n "$best_version" ]] || { print_error 'Aucun paquet DIU admissible trouvé.'; return 1; }
     if ! _diu_update_version_gt "$best_version" "$installed"; then

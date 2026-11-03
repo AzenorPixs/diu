@@ -75,7 +75,9 @@ projects_docker_build() {
     local project_dir
     local project_env
     local selected_project_version=""
-    local -a docker_version_tags=()
+    local -a docker_version_tags=() docker_image_tags=()
+    local replay_tag="${PROJECTS_CICD_DOCKER_TAG:-}"
+    readonly replay_tag
     local image_name
     local -a docker_build_args=()
 
@@ -92,8 +94,8 @@ projects_docker_build() {
     # Définition des chemins
     # --------------------------------------------------------
 
-    project_dir="/home/${DEVOPS_USER}/datas/${project_id}"
-    project_env="${project_dir}/project.env"
+    project_dir="${PROJECTS_CICD_DOCKER_CONTEXT:-${DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}/${project_id}}"
+    project_env="${PROJECTS_CICD_PROJECT_ENV:-${project_dir}/project.env}"
 
     # --------------------------------------------------------
     # Vérification du projet
@@ -171,10 +173,19 @@ projects_docker_build() {
     echo "Projet      : ${PROJECT_NAME:-${project_id}}"
     echo "Répertoire  : ${project_dir}"
     echo "Dockerfile  : ${dockerfile}"
-    echo "Image       : ${image_name}:latest"
+    if [[ -n "$replay_tag" ]]; then
+        if [[ ! "$replay_tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo '❌ Tag Docker de rejeu invalide.' >&2
+            return 1
+        fi
+        docker_image_tags=(--tag "${image_name}:${replay_tag}")
+    else
+        docker_image_tags=(--tag "${image_name}:latest")
+    fi
+    echo "Image       : ${docker_image_tags[1]}"
     echo
 
-    if [[ -n "$selected_project_version" ]]; then
+    if [[ -n "$selected_project_version" && -z "$replay_tag" ]]; then
         docker_version_tags=(--tag "${image_name}:${selected_project_version}")
         echo "Version     : ${selected_project_version}"
     fi
@@ -182,7 +193,7 @@ projects_docker_build() {
     if ! runuser -u "${DEVOPS_USER}" -- \
         docker build \
             --file "${project_dir}/${dockerfile}" \
-            --tag "${image_name}:latest" \
+            "${docker_image_tags[@]}" \
             "${docker_version_tags[@]}" \
             "${docker_build_args[@]}" \
             "${project_dir}"
@@ -193,7 +204,7 @@ projects_docker_build() {
     fi
 
     echo
-    echo "✅ Image Docker construite : ${image_name}:latest"
+    echo "✅ Image Docker construite : ${docker_image_tags[1]}"
 
     return 0
 }

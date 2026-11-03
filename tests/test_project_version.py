@@ -425,7 +425,7 @@ git -C "$2/second" tag --points-at HEAD
         result = self.run_shell(r'''
 source "$1/modules/projects/git.sh"
 git_commit() { printf 'COMMIT:%s|%s|%s\n' "$1" "$2" "$3"; }
-runuser() { printf 'v9.9.9\n'; }
+runuser() { if [[ "$*" == *'show-ref --verify --quiet'* ]]; then return 1; fi; printf 'v9.9.9\n'; }
 cicd_project project 2026.11.02.15.33 v2026.11.02.15.33
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)

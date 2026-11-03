@@ -4,9 +4,12 @@
 . "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"
 
 publish_release_debian() {
+    PROJECTS_DEBIAN_RELEASE_STATUS=""
     local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
+    local display_project_label='Répertoire      '
+    if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]]; then display_project_label='Répertoire isolé'; fi
     project_version_get "$project_env" >/dev/null || return 1
 
     local project_name=""
@@ -424,22 +427,15 @@ publish_release_debian() {
         return 1
     fi
 
-    printf '%-22s : %s\n' \
-        "Projet" "${project_name}"
-    printf '%-22s : %s\n' \
-        "ID projet" "${project_id}"
-    printf '%-22s : %s\n' \
-        "Répertoire" "${project_path}"
-    printf '%-22s : %s\n' \
-        "Type distant" "Forgejo"
-    printf '%-22s : %s\n' \
-        "Dépôt distant" "${remote_name}"
-    printf '%-22s : %s\n' \
-        "URL distante" "${remote_url}"
-    printf '%-22s : %s\n' \
-        "Branche locale" "${local_default_branch}"
-    printf '%-22s : %s\n' \
-        "Branche distante" "${remote_branch_ref}"
+    printf '%s : %s\n' \
+        'Projet          ' "${project_name}" \
+        'ID projet       ' "${project_id}" \
+        "$display_project_label" "${project_path}" \
+        'Type distant    ' 'Forgejo' \
+        'Dépôt distant   ' "${remote_name}" \
+        'URL distante    ' "${remote_url}" \
+        'Branche locale  ' "${local_default_branch}" \
+        'Branche distante' "${remote_branch_ref}"
 
     print_success \
         "Projet validé : ${project_path}"
@@ -589,7 +585,7 @@ publish_release_debian() {
     fi
 
     print_success \
-        "Credentials Forgejo disponibles."
+        "Identifiants Forgejo disponibles."
 
     # ==========================================================
     # Étape 7 - Vérification de la synchronisation Git
@@ -597,7 +593,9 @@ publish_release_debian() {
 
     print_title "Étape 7/11 — Vérification de la synchronisation Git"
 
-    if ! forgejo_git_fetch "${project_path}"; then
+    if ! { if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]]; then
+        forgejo_git_fetch_named "${project_path}" "${remote_name}"
+    else forgejo_git_fetch "${project_path}"; fi; }; then
         print_error \
             "Échec du git fetch authentifié."
         return 1
@@ -650,6 +648,10 @@ publish_release_debian() {
     fi
 
     if [[ "${head_sha}" != "${remote_branch_sha}" ]]; then
+        if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]] &&
+            runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" merge-base --is-ancestor "${head_sha}" "${remote_branch_sha}"; then
+            print_info "Le commit du tag est présent dans ${remote_branch_ref}."
+        else
         print_error \
             "Le dépôt local n'est pas synchronisé avec ${remote_branch_ref}."
 
@@ -663,6 +665,7 @@ publish_release_debian() {
             "Effectuez d'abord le git push."
 
         return 1
+        fi
     fi
 
     head_message="$(
@@ -673,8 +676,9 @@ publish_release_debian() {
             2>/dev/null
     )"
 
-    print_success \
-        "HEAD == ${remote_branch_ref} (${head_sha:0:12})"
+    if [[ "${head_sha}" == "${remote_branch_sha}" ]]; then
+        print_success "HEAD == ${remote_branch_ref} (${head_sha:0:12})"
+    fi
 
     # ==========================================================
     # Étape 8 - Vérification du tag et de la Release
@@ -805,6 +809,9 @@ publish_release_debian() {
                 return 1
             fi
             if [[ "$existing_assets" -eq 1 ]]; then
+                # Statut consommé par le bilan CI/CD.
+                # shellcheck disable=SC2034
+                PROJECTS_DEBIAN_RELEASE_STATUS="déjà publié"
                 print_info "Paquet Debian déjà publié sur Forgejo pour ${tag_name}."
                 return 0
             fi
