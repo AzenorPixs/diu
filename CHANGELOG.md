@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : ajout de `rid diu update`, recherche du paquet le plus récent dans les
+  releases publiques des dépôts configurés et contrôle avant installation.
+  `rid update` exécute cette opération en premier ; `rid update diu` reste un
+  alias. Le `project.env` du projet DIU doit être accessible sur la machine.
+  Version de projet : 1.0.4.
+
 - GitHub : `rid projects github release <ID PROJECT>` publie Docker sur GHCR,
   Debian dans GitHub Releases, ou les deux avec Yes/YES/1. Le paquet suit les
   mêmes contrôles que Forgejo ; release existante refusée, upload binaire

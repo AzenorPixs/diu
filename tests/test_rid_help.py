@@ -21,6 +21,13 @@ class RidHelpTests(unittest.TestCase):
             check=False,
         )
 
+    def test_diu_update_help(self):
+        for arguments in (('diu', 'help'), ('diu', 'update', 'help'), ('update', 'help'), ('update', 'diu', 'help')):
+            with self.subTest(arguments=arguments):
+                result = self.run_rid(*arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('rid diu update', result.stdout)
+
     def run_git_commit_all(self, projects_root, failing_project=''):
         script = '''
 source "$1/modules/projects/git.sh"
