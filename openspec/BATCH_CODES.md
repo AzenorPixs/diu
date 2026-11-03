@@ -30,6 +30,9 @@ Le tableau compte uniquement les 125 correspondances codées ; les quatre entré
 
 Delta SCM du 2026-11-03 : [diu-package-update](changes/archive/2026-11-03-diu-package-update/proposal.md), change archivé le 2026-11-03, **code non attribué** ; contrat strict et six tâches validés. Ce repère ne constitue pas une attribution et ne modifie pas les comptages historiques. Attribution ultérieure à traiter par ACL.
 
+
+Delta SCM du 2026-11-03 : [fix-diu-http-compression](changes/archive/2026-11-03-fix-diu-http-compression/proposal.md), change archivé le 2026-11-03, **code non attribué** ; cinq tâches validées. Ce repère ne constitue pas une attribution et ne modifie pas les comptages historiques. Attribution ultérieure à traiter par ACL.
+
 ## Correspondances vérifiées
 
 Chemins relatifs à `openspec/`. La preuve d’attribution est le titre principal de la proposition liée. La justification de famille repose sur son objectif et ses capacités, rapprochés du cadrage ci-dessus.

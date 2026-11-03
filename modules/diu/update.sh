@@ -67,7 +67,7 @@ update_diu() (
         esac
         page=1; previous_response=''
         while :; do
-            response="$(curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
+            response="$(curl --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
             count="$(jq -er 'if type == "array" then length else error("réponse invalide") end' <<< "$response")" || { print_error "Réponse $provider invalide."; return 1; }
             [[ "$count" -gt 0 ]] || break
             if [[ "$response" == "$previous_response" || "$page" -gt 1000 ]]; then
@@ -106,7 +106,7 @@ update_diu() (
     trap 'rm -rf -- "$temp_dir"' EXIT
     file="$temp_dir/diu_${best_version}_all.deb"
     print_info "Téléchargement DIU $best_version depuis $best_provider."
-    curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" || { print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
+    curl --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" || { print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
     # Les champs dpkg sont des expressions littérales.
     # shellcheck disable=SC2016
     package_name="$(dpkg-deb --show --showformat='${Package}' "$file" 2>/dev/null)" || { print_error 'Lecture du nom du paquet impossible.'; return 1; }
