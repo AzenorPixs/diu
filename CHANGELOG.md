@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Génération de DEVOPS.md : ajout du paragraphe de configuration locale
+  `project.env` avant la légende des sondes ; version documentaire 0.8.
+  Le document local est aligné et la version DIU est portée à 1.0.8.
+
 - CI/CD : ajout d'une version facultative x.y.z, reprise informative des
   versions déjà attribuées et conservation des assets Debian existants.
   Les sélections DIU privilégient les versions stables sans epoch Debian.
