@@ -139,7 +139,14 @@ rid_display_help_context() {
         infos::)
             rid_help_line 'rid infos' 'Affiche les informations de tous les modules.'
             ;;
-        desktop::|diu::|environnements::)
+        diu::)
+            rid_help_line 'rid diu infos' 'Affiche les informations du DIU.'
+            rid_help_line 'rid diu update' 'Met à jour le paquet DIU depuis les dépôts configurés.'
+            ;;
+        diu:update:|update:diu:)
+            rid_help_line 'rid diu update' 'Met à jour le paquet DIU depuis les dépôts configurés.'
+            ;;
+        desktop::|environnements::)
             rid_help_line "rid ${context} infos" 'Affiche les informations du module.'
             ;;
         desktop:infos:|diu:infos:|environnements:infos:|ia:infos:|projects:infos:|softwares:infos:)
@@ -161,6 +168,7 @@ rid_display_help_context() {
             rid_help_line 'rid infos' 'Affiche les informations de tous les modules.'
             rid_help_line 'rid desktop infos' 'Affiche les informations du bureau.'
             rid_help_line 'rid diu infos' 'Affiche les informations et la version du DIU.'
+            rid_help_line 'rid diu update' 'Met à jour le paquet DIU.'
             rid_help_line 'rid environnements infos' 'Affiche les informations des environnements.'
             rid_help_line 'rid ia infos' 'Affiche les informations IA.'
             rid_help_line 'rid projects infos' 'Affiche les informations des projets.'
@@ -303,7 +311,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
             rid_help_line 'rid projects git commit all' 'Commit tous les dépôts Git configurés.'
             rid_help_line 'rid projects docker' 'Gestion Docker des projets.'
-            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute la CI/CD conditionnelle du projet.'
+            rid_help_line 'rid projects cicd <ID PROJECT> [VERSION]' 'Exécute la CI/CD conditionnelle du projet.'
             rid_help_line 'rid projects finds <ID PROJECT>' 'Recherche les conflits de synchronisation.'
             rid_help_line 'rid projects findads <ID PROJECT>' 'Supprime les conflits de synchronisation.'
             rid_help_line 'rid projects git' 'Gestion du dépôt local Git.'
@@ -330,7 +338,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
             ;;
         projects:cicd:|projects:cicd:*)
-            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute les six étapes CI/CD et le bilan des deux builds.'
+            rid_help_line 'rid projects cicd <ID PROJECT> [VERSION]' 'Configure éventuellement PROJECT_VERSION puis exécute les six étapes CI/CD.'
             printf '%s\n' '1. Commit/tag ; 2. Pushes Git ; 3. Build Docker ; 4. Build Debian ; 5. Publications ; 6. Bilan.'
             printf '%s\n' 'Build Debian indépendant de Docker : PROJECT_DEBIAN_PACKAGE=Yes/YES/1 ; même moteur que rid projects build debian <ID PROJECT>.'
             printf '%s\n' 'Un échec du build empêche les releases ; les pushes déjà réalisés restent publiés.'
@@ -398,7 +406,8 @@ rid_display_help_context() {
             rid_help_line "rid ${context} apt <SOFTWARE>" 'Opération sur un logiciel tiers.'
             ;;
         update::)
-            rid_help_line 'rid update' 'Met à jour les modules du DIU, dont tous les modèles des projets configurés via rid projects update.'
+            rid_help_line 'rid update' 'Met à jour le DIU en premier, puis les autres modules et les modèles via rid projects update.'
+            rid_help_line 'rid update diu' 'Alias de rid diu update.'
             ;;
         *)
             rid_display_command_error "$context" "$subcontext" "$leaf"
