@@ -1,10 +1,32 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-03 : [github-only-diu-update](openspec/changes/archive/2026-11-03-github-only-diu-update/proposal.md), code non attribué, archivé ; 1 121 tests exécutés dont 2 ignorés, validation OpenSpec stricte réussie. Les comptages historiques excluent ce delta. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_GH_ONLY["github-only-diu-update — code non attribué — ARCHIVÉ"]
+  class P_DIU_GH_ONLY provisoire
+```
+
+Delta SCM du 2026-11-03 : [harmonize-project-configuration](openspec/changes/archive/2026-11-03-harmonize-project-configuration/proposal.md), code non attribué, archivé ; 62 tests ciblés réussis. Attribution ultérieure par ACL. Les comptages historiques excluent ce delta.
+
+```mermaid
+graph LR
+  P_PROJECT_CONFIG["harmonize-project-configuration — code non attribué — ARCHIVÉ"]
+```
+
 Plan initial validé : `ACL-DIU-20261028-R1`. Relevé et attribution : **2026-10-28**.
 
 Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voie éditoriale directe, le **2026-10-28**. Les codes et états de cycle de vie sont conservés.
 
 ## 1. Périmètre et fraîcheur
+
+Delta SCM du 2026-11-03 : [remove-orchestrated-coding-from-sync](openspec/changes/archive/2026-11-03-remove-orchestrated-coding-from-sync/proposal.md), code non attribué, archivé ; 50 tests ciblés réussis. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-03 : [harmonize-cicd-publication-messages](openspec/changes/archive/2026-11-03-harmonize-cicd-publication-messages/proposal.md), code non attribué, archivé ; 1 119 tests exécutés dont 2 ignorés. Les comptages historiques excluent ce delta ; aucun commit ni changement de version.
+
+Delta SCM du 2026-11-03 : [replay-cicd-existing-version](openspec/changes/archive/2026-11-03-replay-cicd-existing-version/proposal.md), code non attribué, archivé ; 1 119 tests exécutés dont 2 ignorés. Rejeu isolé et préservation des références ; les comptages historiques excluent ce delta.
 
 Delta SCM du 2026-11-03 : [add-devops-project-env-guidance](openspec/changes/archive/2026-11-03-add-devops-project-env-guidance/proposal.md), code non attribué, archivé ; 3 tâches validées, 1 105 tests exécutés dont 2 ignorés, validations OpenSpec strictes réussies. Les comptages historiques excluent ce delta ; attribution ultérieure par ACL.
 

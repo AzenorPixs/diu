@@ -1,7 +1,9 @@
 # software-apt-syncthing Specification
 
 ## Purpose
-TBD - created by archiving change rename-syncthing-variable. Update Purpose after archive.
+Définir la gestion par le DIU de l’installation APT de Syncthing, pilotée par
+`SOFTWARES_APT_SYNCTHING`. La spécification couvre la déclaration de ce réglage
+et le comportement d’installation ; le DIU ne crée ni ne modifie `.stignore`.
 
 ## Requirements
 
@@ -30,15 +32,18 @@ découvrir cette déclaration sans modification.
 
 Les consommateurs SHALL utiliser `SOFTWARES_APT_SYNCTHING` à la place de
 `SYNCTHING`. Une valeur absente SHALL être traitée comme `0`. Une valeur `1`
-SHALL conserver l’installation APT de Syncthing et la préparation de `.stignore`.
+SHALL conserver l’installation APT de Syncthing sans créer ni modifier
+`.stignore`.
 
 #### Scenario: Syncthing désactivé ou absent
 
 - **WHEN** la variable est absente ou vaut `0`
 - **THEN** aucun paquet Syncthing ni fichier `.stignore` spécifique ne SHALL
   être créé sans erreur de variable non définie
+- **AND** un fichier `.stignore` déjà présent SHALL rester inchangé
 
 #### Scenario: Syncthing activé
 
 - **WHEN** la variable vaut `1`
-- **THEN** le DIU SHALL installer Syncthing et générer `.stignore` comme avant
+- **THEN** le DIU SHALL installer Syncthing
+- **AND** SHALL laisser tout fichier `.stignore` existant inchangé

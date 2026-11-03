@@ -10,20 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DiuPackageUpdateTests(unittest.TestCase):
     def test_stable_version_precedes_timestamp_and_can_replace_it(self):
-        config = ('REMOTE_FORGEJO_BASE_URL=https://forge.example\n'
-                  'REMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n')
+        config = ('REMOTE_GITHUB_BASE_URL=https://github.com\n'
+                  'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
         releases = {
-            'https://forge.example/api/v1/repos/team/diu/releases?per_page=100&page=1': [
+            'https://api.github.com/repos/team/diu/releases?per_page=100&page=1': [
                 {'tag_name': 'v2026.11.03.08.38', 'assets': [
                     {'name': 'diu_2026.11.03.08.38_all.deb',
-                     'browser_download_url': 'https://forge.example/old.deb'}]},
+                     'browser_download_url': 'https://github.com/old.deb'}]},
                 {'tag_name': 'v2.0.0', 'assets': [
                     {'name': 'diu_2.0.0_all.deb',
-                     'browser_download_url': 'https://forge.example/stable.deb'}]},
+                     'browser_download_url': 'https://github.com/stable.deb'}]},
             ]}
         result, calls = self.run_update(config, releases, installed='2026.11.03.08.38')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(calls, ['https://forge.example/stable.deb', 'install'])
+        self.assertEqual(calls, ['https://github.com/stable.deb', 'install'])
 
     def run_update(self, configs, releases, installed='1.0.0', failure='', metadata=None):
         with tempfile.TemporaryDirectory() as tmp:
@@ -56,6 +56,7 @@ dpkg-deb() {
 curl() {
   local last="${!#}" output=''
   if [[ "$last" == *releases*'?'* ]]; then
+    [[ "$last" == https://api.github.com/* ]] || { printf "unexpected provider\n" >&2; return 22; }
     [[ "$last" != *"$FAILURE"* || -z "$FAILURE" ]] || return 22
     jq -c --arg url "$last" '.[$url] // []' "$RELEASES"
   else
@@ -76,14 +77,14 @@ diu_update
                                     capture_output=True, check=False)
             return result, calls.read_text().splitlines() if calls.exists() else []
 
-    def test_selects_highest_version_across_providers(self):
+    def test_only_github_is_queried(self):
         config = ('REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=team\n'
-                  'REMOTE_FORGEJO_REPOSITORY=diu\nREMOTE_GITHUB_BASE_URL=https://github.com\n'
+                  'REMOTE_FORGEJO_REPOSITORY=diu\nREMOTE_GITLAB_BASE_URL=invalid value\nREMOTE_GITHUB_BASE_URL=https://github.com\n'
                   'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
         releases = {
             'https://forge.example/api/v1/repos/team/diu/releases?per_page=100&page=1': [
-                {'tag_name': 'v1.9.0', 'assets': [{'name': 'diu_1.9.0_all.deb',
-                  'browser_download_url': 'https://forge.example/team/diu/releases/diu_1.9.0_all.deb'}]}],
+                {'tag_name': 'v9.9.0', 'assets': [{'name': 'diu_9.9.0_all.deb',
+                  'browser_download_url': 'https://forge.example/team/diu/releases/diu_9.9.0_all.deb'}]}],
             'https://api.github.com/repos/team/diu/releases?per_page=100&page=1': [
                 {'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb',
                   'browser_download_url': 'https://github.com/team/diu/releases/diu_2.0.0_all.deb'}]}],
@@ -101,22 +102,25 @@ diu_update
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(calls, [])
 
-    def test_gitlab_and_pagination(self):
-        config = ('REMOTE_GITLAB_BASE_URL=https://gitlab.example\n'
-                  'REMOTE_GITLAB_OWNER=team/group\nREMOTE_GITLAB_REPOSITORY=diu\n')
-        api = 'https://gitlab.example/api/v4/projects/team%2Fgroup%2Fdiu/releases?per_page=100&page='
-        releases = {api + '1': [{'tag_name': 'v1.0.0', 'assets': {'links': []}}],
-                    api + '2': [{'tag_name': 'v3.0.0', 'assets': {'links': [{
+    def test_github_pagination(self):
+        config = ('REMOTE_GITHUB_BASE_URL=https://github.com\n'
+                  'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
+        api = 'https://api.github.com/repos/team/diu/releases?per_page=100&page='
+        releases = {api + '1': [{'tag_name': 'v1.0.0', 'assets': []}],
+                    api + '2': [{'tag_name': 'v3.0.0', 'assets': [{
                         'name': 'diu_3.0.0_all.deb',
-                        'url': 'https://gitlab.example/uploads/diu_3.0.0_all.deb'}]}}]}
+                        'browser_download_url': 'https://github.com/team/diu/3.deb'}]}]}
         result, calls = self.run_update(config, releases, metadata={'PKG_VERSION': '3.0.0'})
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(calls, ['https://gitlab.example/uploads/diu_3.0.0_all.deb', 'install'])
+        self.assertEqual(calls, ['https://github.com/team/diu/3.deb', 'install'])
 
-    def test_partial_configuration_is_rejected(self):
-        result, calls = self.run_update('REMOTE_FORGEJO_BASE_URL=https://forge.example\n', {})
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(calls, [])
+    def test_missing_or_partial_github_configuration_is_rejected(self):
+        for config in ('REMOTE_FORGEJO_BASE_URL=https://forge.example\n',
+                       'REMOTE_GITHUB_BASE_URL=https://github.com\n'):
+            with self.subTest(config=config):
+                result, calls = self.run_update(config, {})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(calls, [])
 
 
 if __name__ == '__main__':

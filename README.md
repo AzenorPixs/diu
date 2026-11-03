@@ -5,11 +5,12 @@ Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
 `rid diu update` recherche le paquet Debian le plus récent dans les releases
-des dépôts Forgejo, GitHub et GitLab configurés dans le `project.env`
+du dépôt GitHub configuré dans le `project.env`
 à la racine du projet DIU (`DEVOPS_PROJECTS_ROOT/diu/project.env`). Ce fichier
 n'est pas livré dans le paquet : il doit être présent sur la machine. Un dépôt
-configuré inaccessible empêche la sélection et l'installation. Le paquet est
-vérifié avant installation ; aucune rétrogradation n'est effectuée.
+GitHub absent, incomplet ou inaccessible empêche la sélection et l'installation ;
+Forgejo et GitLab sont ignorés par cette commande. Le paquet est vérifié avant
+installation ; aucune rétrogradation n'est effectuée.
 Si `config/github.token` existe dans le projet DIU, les releases et le paquet
 GitHub sont consultés avec ce jeton, via le mécanisme d'identifiants existant.
 Sans jeton, l'accès GitHub reste anonyme et un dépôt privé reste inaccessible.
@@ -35,12 +36,12 @@ pour un agent piloté par un orchestrateur. La valeur existante est proposée,
 sinon `No` ; une entrée vide conserve ce défaut. Une variable absente dans
 `project.env` vaut `No`, sans migration globale ni activation automatique.
 
-Lors de la création depuis le modèle et de `rid projects sync <ID PROJECT>`
-(y compris `sync all`), `ORCHESTRATED_CODING.md` est copié et personnalisé
-uniquement si le mode du projet destination vaut `Yes`. Pour `No` ou une
-variable absente ou vide, il n'est pas copié et une version destination
-existante reste intacte. Pour `Yes`, son absence dans le modèle provoque une
-erreur avant la copie des ressources du modèle.
+La création et la mise à jour demandent également le nom, le type (BASH par
+défaut, GO, JAVASCRIPT, PERL et PYTHON sont proposés), les options Docker et
+paquet Debian (`Yes` ou `No`, `No` par défaut) et `PROJECT_VERSION` au format
+`x.y.z`. La mise à jour propose la version existante ; une version est requise
+si elle est absente. La création et la synchronisation ne copient pas
+`ORCHESTRATED_CODING.md` ; les documents existants restent intacts.
 
 `rid projects sync <ID PROJECT>` (y compris `sync all`) initialise aussi
 `DEVELOPMENT_MAP.md` depuis le modèle, avec la personnalisation Markdown,
@@ -88,8 +89,13 @@ Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent l
 
 Le flux `rid projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
 facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
-Une version déjà attribuée à un autre commit est signalée et le traitement
-est interrompu sans déplacer le tag ni republier le contenu courant. Avec un
+Une version `PROJECT_VERSION` déjà attribuée est rejouée depuis une copie isolée du commit de
+son tag : les modifications locales en attente restent disponibles et ne sont
+pas incluses. Le tag n'est jamais déplacé et une branche distante n'est jamais
+ramenée en arrière. Le paquet issu du rejeu est conservé sous
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. La publication Docker
+est ignorée lors du rejeu, DIU ne vérifiant pas l'immutabilité du tag distant ;
+les publications Debian restent indépendantes. Avec un
 arbre inchangé et un tag absent de tous les dépôts vérifiés, le tag peut être
 créé sur le commit courant sans commit vide. La forme historique explicite
 `rid projects cicd <ID PROJECT> <MESSAGE> <TAG>` reste disponible.
@@ -110,6 +116,8 @@ restent publiés. Debian seul peut être publié sur Forgejo/GitLab/GitHub selon
 leur configuration ; les conditions Debian GitHub sont les mêmes que Forgejo.
 Une release Debian cohérente déjà munie de son asset est signalée comme déjà
 publiée ; un asset manquant peut être ajouté sans remplacer les fichiers présents.
+Les messages de publication identifient la forge, le tag et les contrôles
+effectivement réalisés, sans afficher les identifiants secrets.
 `rid projects cicd help` et `rid projects cicd <ID PROJECT> help` décrivent ces
 étapes avant bootstrap. Le détail figure dans [BUILD.md](BUILD.md).
 

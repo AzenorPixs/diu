@@ -4,6 +4,24 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : `rid diu update` recherche et télécharge le paquet uniquement depuis
+  GitHub ; Forgejo et GitLab sont ignorés et aucun repli ne leur est proposé.
+
+- Création et mise à jour des projets : questionnaire harmonisé, validation
+  des options Yes/No et saisie obligatoire de PROJECT_VERSION. Création et
+  synchronisation ne requièrent ni ne copient `ORCHESTRATED_CODING.md` ;
+  les documents déjà présents restent intacts.
+
+- CI/CD : harmonisation des informations affichées pour les publications
+  Debian ; les contrôles réellement effectués et les tags sont identifiés
+  par fournisseur. Alignement visuel des informations du projet.
+
+- CI/CD : rejeu des six étapes sur le commit du tag existant dans un contexte
+  isolé, en préservant l'index et les modifications locales. Les branches et
+  tags distants ne sont pas ramenés en arrière ; le paquet Debian de rejeu est
+  conservé séparément. La publication Docker est ignorée si l'immutabilité du
+  tag distant ne peut pas être confirmée. Version de livraison : 1.0.9.
+
 - Génération de DEVOPS.md : ajout du paragraphe de configuration locale
   `project.env` avant la légende des sondes ; version documentaire 0.8.
   Le document local est aligné et la version DIU est portée à 1.0.8.

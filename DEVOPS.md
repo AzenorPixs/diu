@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-03T10:36:47Z
+Début du relevé (UTC) : 2026-11-03T13:42:13Z
 Environnement d'exécution DIU : PHYSICAL
 
 ## Configuration locale — project.env
@@ -68,7 +68,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # Docker-Compose
 
-  * 5.6.1
+  * 5.7.0
   * /usr/local/bin/docker-compose
 
 

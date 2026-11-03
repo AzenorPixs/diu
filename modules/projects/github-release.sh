@@ -14,11 +14,14 @@ _github_release_created_json() {
 }
 
 projects_github_release_debian() {
+    PROJECTS_DEBIAN_RELEASE_STATUS=""
     local project_id="${1:-}" project_path="" project_env="" tool=""
     local package_name="" package_version="" architecture="" deb_file="" deb_filename=""
     local remote_url="" configured_url="" current_branch="" head_sha="" remote_sha=""
     local api_base="" repository_path="" selected_version="" tag_source="" tag_name=""
     local response="" http_code="" body="" tag_exists=0 object_type="" object_sha="" depth=0
+    local display_project_label='Répertoire      '
+    if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]]; then display_project_label='Répertoire isolé'; fi
     local release_id="" upload_url="" payload="" asset_size="" head_message="" release_existing=0 asset_count=0
     # Ancres consommées par les lecteurs et transports via la portée dynamique Bash.
     # shellcheck disable=SC2034
@@ -101,14 +104,38 @@ projects_github_release_debian() {
     api_base="$(_github_api_base "$REMOTE_GITHUB_BASE_URL")" || return 1
     repository_path="/repos/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}"
 
+    print_info "Publication Debian GitHub : projet $project_id, dépôt ${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}, tag $tag_name."
+    print_info 'GitHub : vérification des identifiants.'
     _github_ensure_api_credentials "$project_path" || return 1
+    print_info 'GitHub : identifiants disponibles.'
     github_git_fetch "$project_path" "$REMOTE_GITHUB_NAME" || return 1
+    print_info "GitHub : récupération Git effectuée depuis $REMOTE_GITHUB_NAME."
     current_branch="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" branch --show-current)" || return 1
     head_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse HEAD)" || return 1
     remote_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse "refs/remotes/${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}")" || return 1
-    if [[ "$current_branch" != "$LOCAL_DEFAULT_BRANCH" || -z "$head_sha" || "$head_sha" != "$remote_sha" ]]; then
+    if [[ "$current_branch" != "$LOCAL_DEFAULT_BRANCH" || -z "$head_sha" || -z "$remote_sha" ]]; then
         print_error 'La branche locale doit être attendue et HEAD synchronisé avec GitHub.'
         return 1
+    fi
+    if [[ "$head_sha" != "$remote_sha" ]] &&
+        { [[ "${PROJECTS_CICD_REPLAY:-0}" != 1 ]] ||
+          ! runuser -u "$DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$head_sha" "$remote_sha"; }; then
+        print_error 'Le commit du tag est absent de la branche GitHub distante.'
+        return 1
+    fi
+    printf '%s : %s\n' \
+        'Projet          ' "$PROJECT_NAME" \
+        'ID projet       ' "$project_id" \
+        "$display_project_label" "$project_path" \
+        'Type distant    ' 'GitHub' \
+        'Dépôt distant   ' "$REMOTE_GITHUB_NAME" \
+        'URL distante    ' "$configured_url" \
+        'Branche locale  ' "$current_branch" \
+        'Branche distante' "$REMOTE_GITHUB_NAME/$REMOTE_GITHUB_BRANCH"
+    if [[ "$head_sha" == "$remote_sha" ]]; then
+        print_info "GitHub : HEAD synchronisé avec ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH} (${head_sha:0:12})."
+    else
+        print_info "GitHub : commit du tag présent dans ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH} (${head_sha:0:12})."
     fi
     head_message="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" log -1 --format=%s)" || return 1
 
@@ -134,8 +161,9 @@ projects_github_release_debian() {
                 print_error 'Le tag distant ne désigne pas HEAD ; aucun déplacement autorisé.'; return 1
             fi
             tag_exists=1
+            print_info "GitHub : tag $tag_name déjà présent et cohérent."
             ;;
-        404) ;;
+        404) print_info "GitHub : tag $tag_name absent." ;;
         *) print_error "Vérification du tag GitHub refusée (HTTP ${http_code})."; return 1 ;;
     esac
     response="$(_github_api_request "$api_base" GET "$repository_path/releases/tags/$tag_name")" || return 1
@@ -154,7 +182,10 @@ projects_github_release_debian() {
             if ! jq -e --arg name "$deb_filename" 'any(.assets[]; .name == $name and .state == "uploaded")' <<< "$body" >/dev/null; then
                 print_error 'Asset GitHub existant incomplet ou incohérent.'; return 1
             fi
-            print_info 'Paquet Debian déjà publié sur GitHub.'
+            print_info "Paquet Debian déjà publié sur GitHub pour $tag_name."
+            # Statut consommé par le bilan CI/CD.
+            # shellcheck disable=SC2034
+            PROJECTS_DEBIAN_RELEASE_STATUS="déjà publié"
             return 0
         fi
         release_id="$(jq -er '.id | numbers | select(. > 0 and floor == .)' <<< "$body")" || return 1
@@ -162,6 +193,8 @@ projects_github_release_debian() {
         release_existing=1
     elif [[ "$http_code" != 404 ]]; then
         print_error "Vérification de release GitHub refusée (HTTP ${http_code})."; return 1
+    else
+        print_info "GitHub : aucune release existante pour $tag_name."
     fi
     if [[ "$tag_exists" == 0 ]]; then
         payload="$(jq -n --arg tag "$tag_name" --arg sha "$head_sha" \
