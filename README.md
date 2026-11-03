@@ -10,6 +10,8 @@ publiques des dépôts Forgejo, GitHub et GitLab configurés dans le `project.en
 n'est pas livré dans le paquet : il doit être présent sur la machine. Un dépôt
 configuré inaccessible empêche la sélection et l'installation. Le paquet est
 vérifié avant installation ; aucune rétrogradation n'est effectuée.
+Les réponses HTTP compressées sont décodées par `curl` selon les formats pris
+en charge par son installation ; un décodage impossible bloque la mise à jour.
 `rid update` lance cette mise à jour en premier, puis les autres modules ;
 `rid update diu` reste un alias de `rid diu update`.
 

@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : décodage des réponses HTTP compressées par `curl` lors de la recherche
+  des releases et du téléchargement du paquet ; une erreur de décodage bloque
+  l'installation. La prise en charge de Zstandard dépend du `curl` installé.
+
 - DIU : ajout de `rid diu update`, recherche du paquet le plus récent dans les
   releases publiques des dépôts configurés et contrôle avant installation.
   `rid update` exécute cette opération en premier ; `rid update diu` reste un
