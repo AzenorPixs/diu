@@ -311,7 +311,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects sync all' 'Synchronise tous les projets configurés.'
             rid_help_line 'rid projects git commit all' 'Commit tous les dépôts Git configurés.'
             rid_help_line 'rid projects docker' 'Gestion Docker des projets.'
-            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute la CI/CD conditionnelle du projet.'
+            rid_help_line 'rid projects cicd <ID PROJECT> [VERSION]' 'Exécute la CI/CD conditionnelle du projet.'
             rid_help_line 'rid projects finds <ID PROJECT>' 'Recherche les conflits de synchronisation.'
             rid_help_line 'rid projects findads <ID PROJECT>' 'Supprime les conflits de synchronisation.'
             rid_help_line 'rid projects git' 'Gestion du dépôt local Git.'
@@ -338,7 +338,7 @@ rid_display_help_context() {
             rid_help_line 'rid projects cicddr <ID PROJECT>' 'Lance la CI/CD du projet.'
             ;;
         projects:cicd:|projects:cicd:*)
-            rid_help_line 'rid projects cicd <ID PROJECT>' 'Exécute les six étapes CI/CD et le bilan des deux builds.'
+            rid_help_line 'rid projects cicd <ID PROJECT> [VERSION]' 'Configure éventuellement PROJECT_VERSION puis exécute les six étapes CI/CD.'
             printf '%s\n' '1. Commit/tag ; 2. Pushes Git ; 3. Build Docker ; 4. Build Debian ; 5. Publications ; 6. Bilan.'
             printf '%s\n' 'Build Debian indépendant de Docker : PROJECT_DEBIAN_PACKAGE=Yes/YES/1 ; même moteur que rid projects build debian <ID PROJECT>.'
             printf '%s\n' 'Un échec du build empêche les releases ; les pushes déjà réalisés restent publiés.'

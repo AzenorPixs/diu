@@ -7,11 +7,11 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 
 ### Requirement: Mise à jour dédiée du paquet DIU
 
-La commande `rid diu update` SHALL rechercher les releases Forgejo, GitHub et GitLab configurés dans le `project.env` du projet DIU situé dans `DEVOPS_PROJECTS_ROOT`. Elle SHALL parcourir toutes les pages et choisir la version Debian valide la plus élevée correspondant à un asset `diu_<version>_all.deb` et un tag `v<version>`. Les brouillons et préversions signalés par Forgejo ou GitHub SHALL être exclus. L'accès GitHub privé SHALL réutiliser le mécanisme d'identifiants GitHub du projet.
+La commande `rid diu update` SHALL rechercher les releases Forgejo, GitHub et GitLab configurés dans le `project.env` du projet DIU situé dans `DEVOPS_PROJECTS_ROOT`. Elle SHALL parcourir toutes les pages et choisir la version stable x.y.z en priorité, puis la version la plus élevée selon dpkg dans sa catégorie, parmi les assets `diu_<version>_all.deb` et tags `v<version>` admissibles. Les brouillons et préversions signalés par Forgejo ou GitHub SHALL être exclus. L'accès GitHub privé SHALL réutiliser le mécanisme d'identifiants GitHub du projet.
 
 #### Scenario: Comparaison entre fournisseurs
 - **WHEN** plusieurs dépôts configurés exposent des paquets DIU admissibles
-- **THEN** la commande sélectionne la version Debian la plus élevée parmi leurs releases admissibles
+- **THEN** la commande privilégie une version stable x.y.z puis sélectionne la version la plus élevée de cette catégorie
 
 #### Scenario: Configuration partielle
 - **WHEN** un bloc fournisseur est partiel ou une réponse invalide
@@ -36,14 +36,14 @@ La commande `rid diu update` SHALL rechercher les releases Forgejo, GitHub et Gi
 
 ### Requirement: Installation contrôlée
 
-La commande SHALL comparer la version sélectionnée à la version installée avec dpkg et ne SHALL NOT rétrograder ni réinstaller une version égale. Avant installation, elle SHALL vérifier le nom, la version et l'architecture du paquet téléchargé. Les téléchargements temporaires SHALL être nettoyés et les erreurs signalées.
+La commande SHALL comparer la version sélectionnée à la version installée selon la priorité DIU puis dpkg dans la même catégorie, et ne SHALL NOT réinstaller une version égale. Avant installation, elle SHALL vérifier le nom, la version et l'architecture du paquet téléchargé. Les téléchargements temporaires SHALL être nettoyés et les erreurs signalées.
 
 #### Scenario: Mise à jour disponible
-- **WHEN** le paquet téléchargé possède les métadonnées attendues et une version supérieure à celle installée
+- **WHEN** le paquet téléchargé possède les métadonnées attendues et une version supérieure à celle installée selon la priorité DIU
 - **THEN** la commande installe ce paquet avec dpkg
 
 #### Scenario: Version déjà installée ou supérieure
-- **WHEN** la version installée est égale ou supérieure au candidat
+- **WHEN** la version installée est égale ou supérieure au candidat selon la priorité DIU
 - **THEN** aucune installation n'est lancée
 
 #### Scenario: Paquet incohérent

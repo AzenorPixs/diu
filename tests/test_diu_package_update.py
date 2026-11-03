@@ -9,6 +9,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DiuPackageUpdateTests(unittest.TestCase):
+    def test_stable_version_precedes_timestamp_and_can_replace_it(self):
+        config = ('REMOTE_FORGEJO_BASE_URL=https://forge.example\n'
+                  'REMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n')
+        releases = {
+            'https://forge.example/api/v1/repos/team/diu/releases?per_page=100&page=1': [
+                {'tag_name': 'v2026.11.03.08.38', 'assets': [
+                    {'name': 'diu_2026.11.03.08.38_all.deb',
+                     'browser_download_url': 'https://forge.example/old.deb'}]},
+                {'tag_name': 'v2.0.0', 'assets': [
+                    {'name': 'diu_2.0.0_all.deb',
+                     'browser_download_url': 'https://forge.example/stable.deb'}]},
+            ]}
+        result, calls = self.run_update(config, releases, installed='2026.11.03.08.38')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, ['https://forge.example/stable.deb', 'install'])
+
     def run_update(self, configs, releases, installed='1.0.0', failure='', metadata=None):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

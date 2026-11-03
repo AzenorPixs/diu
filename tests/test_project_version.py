@@ -12,6 +12,67 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProjectVersionTests(unittest.TestCase):
+    def test_latest_remote_tag_prefers_stable_version(self):
+        result = self.run_shell(r'''
+source "$1/modules/projects/git.sh"
+git() { printf '1111111111111111111111111111111111111111\trefs/tags/v2026.11.03.08.38\n2222222222222222222222222222222222222222\trefs/tags/v1.0.7\n'; }
+git_get_latest_release https://example.test owner project
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'v1.0.7')
+
+    def test_local_stable_tag_precedes_timestamp_for_both_debian_builders(self):
+        (self.project / '.git').mkdir()
+        result = self.run_shell(r'''
+source "$1/modules/projects/diu-packaging.sh"
+source "$1/modules/projects/debian-build.sh"
+runuser() { printf 'v2026.11.03.08.38\nv1.0.7\n'; }
+diu_package_version_from_head "$project"; printf '\n'
+projects_debian_version "$project"; printf '\n'
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, '1.0.7\n1.0.7\n')
+
+    def test_set_version_preserves_other_content_and_permissions(self):
+        self.config.write_bytes(b'OTHER=value\nexport PROJECT_VERSION="1.0.0" # note\nTAIL=no-newline')
+        self.config.chmod(0o640)
+        result = self.run_shell('project_version_set "$project/project.env" 1.0.7')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.config.read_bytes(), b'OTHER=value\nexport PROJECT_VERSION="1.0.7" # note\nTAIL=no-newline')
+        self.assertEqual(self.config.stat().st_mode & 0o777, 0o640)
+        before = self.config.stat().st_mtime_ns
+        result = self.run_shell('project_version_set "$project/project.env" 1.0.7')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.config.stat().st_mtime_ns, before)
+
+    def test_set_version_rejects_ambiguous_or_invalid_config(self):
+        self.config.write_bytes(b'PROJECT_VERSION=1.0.0\nPROJECT_VERSION=1.0.1\n')
+        original = self.config.read_bytes()
+        result = self.run_shell('project_version_set "$project/project.env" 1.0.7')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.config.read_bytes(), original)
+
+    def test_set_version_adds_key_and_rejects_invalid_input(self):
+        self.config.write_bytes(b'UNRELATED=value')
+        bad = self.run_shell('project_version_set "$project/project.env" 01.0.7')
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertEqual(self.config.read_bytes(), b'UNRELATED=value')
+        result = self.run_shell('project_version_set "$project/project.env" 1.0.7')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.config.read_bytes(), b'UNRELATED=value\nPROJECT_VERSION=1.0.7\n')
+
+    def test_cicd_cli_sets_version_before_dispatch_and_keeps_legacy_pair(self):
+        self.config.write_text('OTHER=value\nPROJECT_VERSION=1.0.0\n')
+        result = self.run_shell(r'''
+source <(sed -n '/^manage_project_action() {/,/^}/p' "$1/root-install-debian.sh")
+cicd_project() { printf 'CALL:%s:%s:%s:%s\n' "$1" "$2" "$3" "$(project_version_get "$project/project.env")"; }
+manage_project_action cicd project 1.0.7
+manage_project_action cicd project 'description' vcustom
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('CALL:project:1.0.7:v1.0.7:1.0.7', result.stdout)
+        self.assertIn('CALL:project:description:vcustom:1.0.7', result.stdout)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT, prefix='.version-fixture-')
         self.addCleanup(self.temp.cleanup)
@@ -157,9 +218,58 @@ runuser() { shift 3; "$@"; }
 check_devops_user() { return 0; }
 git_commit project description vother
 ''', GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('existe déjà', result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('existe déjà', result.stdout)
         self.assertEqual(subprocess.check_output(['git', '-C', str(self.project), 'rev-parse', 'HEAD'], text=True).strip(), head)
+
+    def test_clean_tree_creates_new_version_tag_without_empty_commit(self):
+        self.config.write_text('PROJECT_ID=project\nPROJECT_NAME=Fixture\n'
+                               'GIT_USER_NAME=Fixture\nGIT_USER_EMAIL=fixture@example.test\n'
+                               'PROJECT_VERSION=1.0.0\n')
+        (self.project / 'tracked.txt').write_text('first\n')
+        setup = r'''
+source "$1/modules/projects/git.sh"
+runuser() { shift 3; "$@"; }
+check_devops_user() { return 0; }
+git -C "$project" init -q
+git_commit project 1.0.0 v1.0.0
+'''
+        env = {'GIT_CONFIG_GLOBAL': '/dev/null', 'GIT_CONFIG_NOSYSTEM': '1'}
+        self.assertEqual(self.run_shell(setup, **env).returncode, 0)
+        head = subprocess.check_output(['git', '-C', str(self.project), 'rev-parse', 'HEAD'], text=True).strip()
+        self.config.write_text(self.config.read_text().replace('1.0.0', '1.0.1'))
+        subprocess.run(['git', '-C', str(self.project), 'update-index', '--assume-unchanged', 'project.env'], check=True)
+        result = self.run_shell(r'''
+source "$1/modules/projects/git.sh"
+runuser() { shift 3; "$@"; }
+check_devops_user() { return 0; }
+git_commit project 1.0.1 v1.0.1
+''', **env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        target = subprocess.check_output(['git', '-C', str(self.project), 'rev-parse', 'v1.0.1^{commit}'], text=True).strip()
+        self.assertEqual(target, head)
+
+    def test_clean_tree_with_version_tag_on_older_commit_is_informational(self):
+        self.config.write_text('PROJECT_ID=project\nPROJECT_NAME=Fixture\n'
+                               'GIT_USER_NAME=Fixture\nGIT_USER_EMAIL=fixture@example.test\n'
+                               'PROJECT_VERSION=1.0.0\n')
+        (self.project / 'tracked.txt').write_text('first\n')
+        script = r'''
+source "$1/modules/projects/git.sh"
+runuser() { shift 3; "$@"; }
+check_devops_user() { return 0; }
+git -C "$project" init -q
+git_commit project 1.0.0 v1.0.0
+printf second > "$project/tracked.txt"
+git -C "$project" add tracked.txt
+git -C "$project" commit -qm later
+git_commit project 1.0.0 v1.0.0
+printf 'STATUS=%s\n' "$PROJECTS_GIT_COMMIT_STATUS"
+'''
+        result = self.run_shell(script, GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('STATUS=version_deja_attribuee', result.stdout)
+        self.assertIn('déjà attribué', result.stdout)
 
     def test_git_push_three_providers_selects_only_declared_tag(self):
         for provider in ['forgejo', 'gitlab', 'github']:
