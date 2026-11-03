@@ -8,6 +8,8 @@ publish_release_debian() {
     local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
+    local display_project_label='Répertoire      '
+    if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]]; then display_project_label='Répertoire isolé'; fi
     project_version_get "$project_env" >/dev/null || return 1
 
     local project_name=""
@@ -425,22 +427,15 @@ publish_release_debian() {
         return 1
     fi
 
-    printf '%-22s : %s\n' \
-        "Projet" "${project_name}"
-    printf '%-22s : %s\n' \
-        "ID projet" "${project_id}"
-    printf '%-22s : %s\n' \
-        "Répertoire" "${project_path}"
-    printf '%-22s : %s\n' \
-        "Type distant" "Forgejo"
-    printf '%-22s : %s\n' \
-        "Dépôt distant" "${remote_name}"
-    printf '%-22s : %s\n' \
-        "URL distante" "${remote_url}"
-    printf '%-22s : %s\n' \
-        "Branche locale" "${local_default_branch}"
-    printf '%-22s : %s\n' \
-        "Branche distante" "${remote_branch_ref}"
+    printf '%s : %s\n' \
+        'Projet          ' "${project_name}" \
+        'ID projet       ' "${project_id}" \
+        "$display_project_label" "${project_path}" \
+        'Type distant    ' 'Forgejo' \
+        'Dépôt distant   ' "${remote_name}" \
+        'URL distante    ' "${remote_url}" \
+        'Branche locale  ' "${local_default_branch}" \
+        'Branche distante' "${remote_branch_ref}"
 
     print_success \
         "Projet validé : ${project_path}"
@@ -590,7 +585,7 @@ publish_release_debian() {
     fi
 
     print_success \
-        "Credentials Forgejo disponibles."
+        "Identifiants Forgejo disponibles."
 
     # ==========================================================
     # Étape 7 - Vérification de la synchronisation Git

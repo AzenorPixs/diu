@@ -1015,9 +1015,8 @@ _cicd_project_impl() {
 
 cicd_project() (
     local PROJECTS_CICD_REPLAY_ROOT=""
-    local replay_cleanup_user="${DEVOPS_USER:-}"
     local replay_exit_rc=0
-    trap 'replay_exit_rc=$?; if [[ -n "$PROJECTS_CICD_REPLAY_ROOT" ]] && ! runuser -u "$replay_cleanup_user" -- rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT"; then print_error "Nettoyage du contexte de rejeu impossible."; if [[ "$replay_exit_rc" -eq 0 ]]; then replay_exit_rc=1; fi; fi; exit "$replay_exit_rc"' EXIT
+    trap 'replay_exit_rc=$?; if [[ -n "$PROJECTS_CICD_REPLAY_ROOT" ]] && ! rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT"; then print_error "Nettoyage du contexte de rejeu impossible."; if [[ "$replay_exit_rc" -eq 0 ]]; then replay_exit_rc=1; fi; fi; exit "$replay_exit_rc"' EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
     trap 'exit 129' HUP
@@ -3307,11 +3306,9 @@ _git_push_provider() {
         print_error \
             "L'URL Git configurée ne correspond pas à project.env."
 
-        printf '%-22s : %s\n' \
-            "URL configurée" "${configured_remote_url}"
-
-        printf '%-22s : %s\n' \
-            "URL déclarée" "${remote_url}"
+        printf '%s : %s\n' \
+            'URL configurée  ' "${configured_remote_url}" \
+            'URL déclarée    ' "${remote_url}"
 
         return 1
     fi
@@ -3319,23 +3316,21 @@ _git_push_provider() {
     # Informations du projet
     print_title "Dépôt Git"
 
-    printf '%-22s : %s\n' "Projet" "${project_name}"
-    printf '%-22s : %s\n' "ID projet" "${project_id}"
-    printf '%-22s : %s\n' "Répertoire" "${project_path}"
-    printf '%-22s : %s\n' "Utilisateur" "${ENV_DEVOPS_USER}"
-    printf '%-22s : %s\n' "Type distant" "${remote_git_type}"
-    printf '%-22s : %s\n' "Branche locale" "${current_branch}"
-    printf '%-22s : %s\n' "Dépôt distant" "${remote_name}"
-    printf '%-22s : %s\n' "URL distante" "${configured_remote_url}"
-    printf '%-22s : %s\n' \
-        "Branche distante" "${remote_default_branch}"
+    printf '%s : %s\n' \
+        'Projet          ' "${project_name}" \
+        'ID projet       ' "${project_id}" \
+        'Répertoire      ' "${project_path}" \
+        'Utilisateur     ' "${ENV_DEVOPS_USER}" \
+        'Type distant    ' "${remote_git_type}" \
+        'Branche locale  ' "${current_branch}" \
+        'Dépôt distant   ' "${remote_name}" \
+        'URL distante    ' "${configured_remote_url}" \
+        'Branche distante' "${remote_name}/${remote_default_branch}"
 
     if [[ -n "${current_tag}" ]]; then
-        printf '%-22s : %s\n' \
-            "Tag du commit" "${current_tag}"
+        printf '%s : %s\n' 'Tag du commit   ' "${current_tag}"
     else
-        printf '%-22s : %s\n' \
-            "Tag du commit" "Aucun"
+        printf '%s : %s\n' 'Tag du commit   ' "Aucun"
     fi
 
     # git status
@@ -5802,6 +5797,8 @@ projects_github_release_docker() {
 # Publication du paquet Debian d'un projet via une release GitLab.
 projects_gitlab_release_debian() {
     PROJECTS_DEBIAN_RELEASE_STATUS=""
+    local display_project_label='Répertoire      '
+    if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]]; then display_project_label='Répertoire isolé'; fi
     local project_id="${1:-}"
     local project_path=""
     local project_env=""
@@ -5984,6 +5981,16 @@ projects_gitlab_release_debian() {
         fi
     fi
 
+    print_info 'GitLab : configuration déclarée pour la publication Debian.'
+    printf '%s : %s\n' \
+        'Projet          ' "$project_name" \
+        'ID projet       ' "$project_id" \
+        "$display_project_label" "$project_path" \
+        'Type distant    ' 'GitLab' \
+        'Dépôt distant   ' "$REMOTE_GITLAB_NAME" \
+        'Branche distante' "$REMOTE_GITLAB_NAME/$REMOTE_GITLAB_BRANCH" \
+        'Tag             ' "$git_tag"
+    print_info 'GitLab : vérification des identifiants.'
     if ! _gitlab_ensure_credentials "${project_path}" "${REMOTE_GITLAB_NAME:-origin}"; then
         print_error "Impossible d'obtenir les identifiants GitLab."
         return 1
@@ -5995,6 +6002,8 @@ projects_gitlab_release_debian() {
         print_error "Identifiants GitLab incomplets."
         return 1
     fi
+    print_info 'GitLab : identifiants disponibles.'
+    print_info "GitLab : vérification de la release pour ${git_tag}."
 
     remote_api_base="${REMOTE_GITLAB_BASE_URL%/}/api/v4/projects"
     remote_project="${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}"
@@ -6085,6 +6094,7 @@ projects_gitlab_release_debian() {
             print_error 'Release GitLab existante incohérente.'
             return 1
         fi
+        print_info "GitLab : tag ${git_tag} de la release cohérent avec le commit local."
         release_asset_count="$(jq -er --arg name "$deb_filename" '[.assets.links[] | select(.name == $name)] | length' <<< "${release_body%$'\n'*}")" || return 1
         if [[ "$release_asset_count" -gt 1 ]]; then
             print_error 'Assets GitLab ambigus pour cette version.'
@@ -6099,6 +6109,7 @@ projects_gitlab_release_debian() {
         print_error "Impossible de vérifier la release GitLab (HTTP ${release_http_code})."
         return 1
     else
+        print_info "GitLab : aucune release existante pour ${git_tag}."
         release_payload="$(
             jq -n \
                 --arg tag_name "${git_tag}" \

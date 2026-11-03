@@ -49,7 +49,7 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
 
     def write_config(self, mode=None, legacy=False):
         text = ('PROJECT_ID="project with spaces"\nPROJECT_NAME="Test project"\n'
-                'PROJECT_TYPE=BASH\nPROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=No\n'
+                'PROJECT_TYPE=BASH\nPROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=No\nPROJECT_VERSION=1.0.0\n'
                 '# Other settings\nOTHER_SETTING="preserved text"\n'
                 'LOCAL_DEFAULT_BRANCH=main\nGIT_USER_NAME=Tester\n'
                 'GIT_USER_EMAIL=tester@example.test\n')
@@ -131,7 +131,7 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
         self.assertEqual(result.stderr.count('doit valoir Yes ou No'), 2)
 
     def test_update_new_configuration_defaults_to_no(self):
-        result = self.run_shell('update_projects "project with spaces"', 'New project\n\n\n\n\n')
+        result = self.run_shell('update_projects "project with spaces"', 'New project\n\n\n\n\n1.0.0\n')
         self.assert_success(result)
         self.assertIn('PROJECT_ORCHESTRATED_CODING [No]', result.stderr)
         text = self.config.read_text(encoding='utf-8')
@@ -140,7 +140,7 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
 
     def test_update_preserves_existing_yes_and_other_settings(self):
         self.write_config('Yes')
-        result = self.run_shell('update_projects "project with spaces"', '\n' * 5)
+        result = self.run_shell('update_projects "project with spaces"', '\n' * 6)
         self.assert_success(result)
         self.assertIn('PROJECT_ORCHESTRATED_CODING [Yes]', result.stderr)
         text = self.config.read_text(encoding='utf-8')
@@ -151,7 +151,7 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
     def test_update_historical_project_ignores_inherited_yes(self):
         self.write_config()
         result = self.run_shell(
-            'PROJECT_ORCHESTRATED_CODING=Yes\nupdate_projects "project with spaces"', '\n' * 5)
+            'PROJECT_ORCHESTRATED_CODING=Yes\nupdate_projects "project with spaces"', '\n' * 6)
         self.assert_success(result)
         self.assertIn('PROJECT_ORCHESTRATED_CODING [No]', result.stderr)
         self.assertIn('PROJECT_ORCHESTRATED_CODING=No\n', self.config.read_text())
@@ -160,7 +160,7 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
         self.write_config('No')
         for mode in ('Yes', 'No', 'No'):
             with self.subTest(mode=mode):
-                result = self.run_shell('update_projects "project with spaces"', '\n' * 4 + mode + '\n')
+                result = self.run_shell('update_projects "project with spaces"', '\n' * 4 + mode + '\n\n')
                 self.assert_success(result)
                 text = self.config.read_text()
                 self.assertIn(f'PROJECT_ORCHESTRATED_CODING={mode}\n', text)
@@ -172,13 +172,34 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.config.read_text(), before)
         self.assertNotIn('SUCCESS', result.stdout)
-        result = self.run_shell('update_projects "project with spaces"', '\n' * 4 + 'invalid\nYes\n')
+        result = self.run_shell('update_projects "project with spaces"', '\n' * 4 + 'invalid\nYes\n\n')
         self.assert_success(result)
         self.assertIn('PROJECT_ORCHESTRATED_CODING=Yes\n', self.config.read_text())
 
+    def test_update_retries_binary_and_version_inputs_and_preserves_other_settings(self):
+        self.write_config('No')
+        result = self.run_shell(
+            'update_projects "project with spaces"',
+            '\n\ninvalid\nYes\ninvalid\nNo\n\n01.2.3\n2.3.4\n')
+        self.assert_success(result)
+        text = self.config.read_text()
+        self.assertIn('PROJECT_DOCKERED=Yes\n', text)
+        self.assertIn('PROJECT_DEBIAN_PACKAGE=No\n', text)
+        self.assertIn('PROJECT_VERSION=2.3.4\n', text)
+        self.assertIn('OTHER_SETTING="preserved text"', text)
+        self.assertIn('BASH/GO/JAVASCRIPT/PERL/PYTHON', result.stderr)
+
+    def test_eof_at_version_does_not_persist_any_answer(self):
+        before = self.write_config('No')
+        result = self.run_shell('update_projects "project with spaces"',
+                                '\n\nYes\nNo\nYes\n')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.config.read_text(), before)
+        self.assertNotIn('SUCCESS', result.stdout)
+
     def test_update_invalid_stored_mode_fails_without_rewriting(self):
         before = self.write_config('invalid-private-value')
-        result = self.run_shell('update_projects "project with spaces"', '\n' * 5)
+        result = self.run_shell('update_projects "project with spaces"', '\n' * 6)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.config.read_text(), before)
         self.assertNotIn('invalid-private-value', result.stderr)
@@ -189,7 +210,7 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
         other.mkdir()
         (other / 'project.env').write_text('PROJECT_NAME=Other\n', encoding='utf-8')
         result = self.run_shell(
-            'update_projects "project with spaces"\nupdate_projects other', '\n' * 10)
+            'update_projects "project with spaces"\nupdate_projects other', '\n' * 6 + '\n' * 5 + '1.0.0\n')
         self.assert_success(result)
         self.assertIn('PROJECT_ORCHESTRATED_CODING=No\n', (other / 'project.env').read_text())
 
@@ -206,7 +227,7 @@ projects_template_openspec() { :; }
 projects_template_devops() { :; }
 create_project new
 '''
-        result = self.run_shell(script, 'New\n\n\n\n\n')
+        result = self.run_shell(script, 'New\n\n\n\n\n1.0.0\n')
         self.assert_success(result)
         self.assertIn('PROJECT_ORCHESTRATED_CODING [No]', result.stderr)
         self.assertIn('PROJECT_ORCHESTRATED_CODING=No\n', (self.path / 'new' / 'project.env').read_text())

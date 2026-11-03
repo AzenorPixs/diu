@@ -39,7 +39,11 @@ source "$1/modules/projects/git.sh"
 source "$1/modules/projects/debian-build.sh"
 DEVOPS_USER=fixture
 DEVOPS_PROJECTS_ROOT="$2"
-runuser() { shift 3; "$@"; }
+runuser() {
+  shift 3
+  if [[ "$1" == rm ]]; then printf 'permission refusée pour devops\n' >&2; return 1; fi
+  "$@"
+}
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { :; }
@@ -49,6 +53,8 @@ cicd_project fixture automatic vautomatic
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn('permission refusée pour devops', result.stderr)
+            self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
             packages = list((project / 'dist/replay/v1.0.0').glob('*/fixture_1.0.0_all.deb'))
             self.assertEqual(len(packages), 1)
             extract = base / 'extracted'

@@ -213,6 +213,10 @@ class ForgejoPushTests(unittest.TestCase):
     def test_first_push_with_inherited_tracking_publishes_branch_and_tag(self):
         result = self.run_harness('push')
         self.assertEqual(result.returncode, 0, result.stderr)
+        labels = ('Projet', 'ID projet', 'Répertoire', 'Utilisateur', 'Type distant', 'Branche locale', 'Dépôt distant', 'URL distante', 'Branche distante', 'Tag du commit')
+        lines = [line for line in result.stdout.splitlines() if ' : ' in line and line.split(' : ', 1)[0].strip() in labels]
+        self.assertGreaterEqual(len(lines), len(labels))
+        self.assertEqual({line.index(' : ') for line in lines[:len(labels)]}, {16})
         self.assertIn('--force-with-lease=refs/heads/main:', result.stdout)
         self.assertNotIn('FETCH', result.stdout)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main').stdout.strip(), self.head)
