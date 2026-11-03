@@ -141,10 +141,10 @@ rid_display_help_context() {
             ;;
         diu::)
             rid_help_line 'rid diu infos' 'Affiche les informations du DIU.'
-            rid_help_line 'rid diu update' 'Met à jour le paquet DIU depuis GitHub.'
+            rid_help_line 'rid diu update' 'Met à jour DIU depuis GitHub, ou Forgejo en secours.'
             ;;
         diu:update:|update:diu:)
-            rid_help_line 'rid diu update' 'Met à jour le paquet DIU depuis GitHub.'
+            rid_help_line 'rid diu update' 'Met à jour DIU depuis GitHub, ou Forgejo en secours.'
             ;;
         desktop::|environnements::)
             rid_help_line "rid ${context} infos" 'Affiche les informations du module.'

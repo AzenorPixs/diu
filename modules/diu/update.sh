@@ -11,10 +11,10 @@ _diu_update_version_gt() {
     dpkg --compare-versions "$left" gt "$right"
 }
 
-# Lire uniquement les paramètres publics GitHub, sans exécuter project.env.
+# Lire uniquement les paramètres publics du fournisseur demandé, sans exécuter project.env.
 _diu_update_config() {
-    local file="$1" line key value raw
-    local assignment='^[[:blank:]]*(export[[:blank:]]+)?(REMOTE_(GITHUB)_(BASE_URL|OWNER|REPOSITORY))[[:blank:]]*=(.*)$'
+    local file="$1" provider="$2" line key value raw
+    local assignment="^[[:blank:]]*(export[[:blank:]]+)?(REMOTE_(${provider})_(BASE_URL|OWNER|REPOSITORY))[[:blank:]]*=(.*)$"
     local literal="^[[:blank:]]*([A-Za-z0-9._:/%+~-]+|\"[A-Za-z0-9._:/%+~-]+\"|'[A-Za-z0-9._:/%+~-]+')[[:blank:]]*$"
     local -A seen=()
     [[ -f "$file" && -r "$file" && ! -L "$file" ]] || {
@@ -36,39 +36,30 @@ _diu_update_config() {
     done < "$file"
 }
 
-# Exécuter dans un sous-shell afin de limiter configuration et temporaires.
-update_diu() (
-    # Les valeurs sont utilisées par expansion indirecte.
-    # shellcheck disable=SC2034
+# Choisir un candidat dans un seul fournisseur ; les résultats remontent au sous-shell appelant.
+_diu_update_select() {
+    local provider="$1" prefix base_key owner_key repo_key base owner repo api page response previous_response count rows
+    local tag name url version github_authenticated=0
     local REMOTE_GITHUB_BASE_URL='' REMOTE_GITHUB_OWNER='' REMOTE_GITHUB_REPOSITORY=''
-    local provider prefix base_key owner_key repo_key base owner repo api page response previous_response count rows
-    local tag name url version best_version='' best_url='' best_provider='' installed='' status='' temp_dir='' file=''
-    local project_path='' github_token='' github_config='' github_authenticated=0 best_github_authenticated=0
-    local package_version='' package_name='' package_arch='' configured=0
-    local executable
-    for executable in curl jq dpkg dpkg-query dpkg-deb mktemp; do
-        command -v "$executable" >/dev/null 2>&1 || { print_error "Commande indisponible : $executable"; return 1; }
-    done
-    [[ -n "${DEVOPS_PROJECTS_ROOT:-}" ]] || { print_error 'DEVOPS_PROJECTS_ROOT est absent.'; return 1; }
-    project_path="${DEVOPS_PROJECTS_ROOT%/}/diu"
-    _diu_update_config "${project_path}/project.env" || return 1
-    trap '[[ -z "${github_config:-}" ]] || rm -f -- "$github_config"; [[ -z "${temp_dir:-}" ]] || rm -rf -- "$temp_dir"' EXIT
-    # shellcheck disable=SC2016
-    status="$(dpkg-query -W -f='${db:Status-Status} ${Version}' diu 2>/dev/null)" || { print_error 'Version installée du DIU indisponible.'; return 1; }
-    [[ "$status" == 'installed '* ]] || { print_error "Le paquet DIU n'est pas installé."; return 1; }
-    installed="${status#installed }"
-    if [[ -z "$installed" ]] || ! dpkg --validate-version "$installed" >/dev/null 2>&1; then
-        print_error 'Version installée du DIU invalide.'; return 1
-    fi
-    provider=GITHUB
+    local REMOTE_FORGEJO_BASE_URL='' REMOTE_FORGEJO_OWNER='' REMOTE_FORGEJO_REPOSITORY=''
+    # Les paramètres sont résolus par expansion indirecte.
+    # shellcheck disable=SC2034
+    : "$REMOTE_GITHUB_BASE_URL" "$REMOTE_GITHUB_OWNER" "$REMOTE_GITHUB_REPOSITORY" "$REMOTE_FORGEJO_BASE_URL" "$REMOTE_FORGEJO_OWNER" "$REMOTE_FORGEJO_REPOSITORY"
+    _diu_update_config "${project_path}/project.env" "$provider" || return 1
     prefix="REMOTE_${provider}"; base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
     base="${!base_key}"; owner="${!owner_key}"; repo="${!repo_key}"
-    [[ -n "$base$owner$repo" ]] || { print_error "Configuration GITHUB absente."; return 1; }
+    [[ -n "$base$owner$repo" ]] || { print_error "Configuration $provider absente."; return 1; }
     [[ -n "$base" && -n "$owner" && -n "$repo" ]] || { print_error "Configuration $provider incomplète."; return 1; }
     [[ "$base" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~-]+)*/*$ && "$owner" =~ ^[A-Za-z0-9._/-]+$ && "$repo" =~ ^[A-Za-z0-9._-]+$ && "$owner" != *..* && "$repo" != *..* ]] || { print_error "Configuration $provider invalide."; return 1; }
-    configured=$((configured + 1)); base="${base%/}"
-    if [[ "$base" == https://github.com ]]; then api="https://api.github.com/repos/$owner/$repo/releases"; else api="$base/api/v3/repos/$owner/$repo/releases"; fi
-    if [[ -e "$project_path/config/github.token" ]]; then
+    base="${base%/}"
+    if [[ "$provider" == FORGEJO ]]; then
+        api="$base/api/v1/repos/$owner/$repo/releases"
+    elif [[ "$base" == https://github.com ]]; then
+        api="https://api.github.com/repos/$owner/$repo/releases"
+    else
+        api="$base/api/v3/repos/$owner/$repo/releases"
+    fi
+    if [[ "$provider" == GITHUB && -e "$project_path/config/github.token" ]]; then
         set +x
         if ! declare -F _github_read_token >/dev/null || ! _github_read_token "$project_path"; then
             print_error 'Impossible de lire les identifiants GitHub du projet.'; return 1
@@ -118,7 +109,34 @@ update_diu() (
         done <<< "$rows"
         page=$((page + 1))
     done
-    [[ "$configured" -gt 0 && -n "$best_version" ]] || { print_error 'Aucun paquet DIU admissible trouvé.'; return 1; }
+    [[ -n "$best_version" ]] || { print_error 'Aucun paquet DIU admissible trouvé.'; return 1; }
+    return 0
+}
+
+# Exécuter dans un sous-shell afin de limiter configuration et temporaires.
+update_diu() (
+    local best_version='' best_url='' best_provider='' installed='' status='' temp_dir='' file=''
+    local project_path='' github_token='' github_config='' best_github_authenticated=0
+    local package_version='' package_name='' package_arch=''
+    local executable
+    for executable in curl jq dpkg dpkg-query dpkg-deb mktemp; do
+        command -v "$executable" >/dev/null 2>&1 || { print_error "Commande indisponible : $executable"; return 1; }
+    done
+    [[ -n "${DEVOPS_PROJECTS_ROOT:-}" ]] || { print_error 'DEVOPS_PROJECTS_ROOT est absent.'; return 1; }
+    project_path="${DEVOPS_PROJECTS_ROOT%/}/diu"
+    trap '[[ -z "${github_config:-}" ]] || rm -f -- "$github_config"; [[ -z "${temp_dir:-}" ]] || rm -rf -- "$temp_dir"' EXIT
+    # shellcheck disable=SC2016
+    status="$(dpkg-query -W -f='${db:Status-Status} ${Version}' diu 2>/dev/null)" || { print_error 'Version installée du DIU indisponible.'; return 1; }
+    [[ "$status" == 'installed '* ]] || { print_error "Le paquet DIU n'est pas installé."; return 1; }
+    installed="${status#installed }"
+    if [[ -z "$installed" ]] || ! dpkg --validate-version "$installed" >/dev/null 2>&1; then
+        print_error 'Version installée du DIU invalide.'; return 1
+    fi
+    if ! _diu_update_select GITHUB; then
+        best_version=''; best_url=''; best_provider=''; best_github_authenticated=0
+        print_info 'GitHub indisponible ou sans paquet admissible ; tentative Forgejo.'
+        _diu_update_select FORGEJO || { print_error 'Aucun fournisseur DIU disponible avec un paquet admissible.'; return 1; }
+    fi
     if ! _diu_update_version_gt "$best_version" "$installed"; then
         print_info "DIU déjà à jour : $installed (dernière version : $best_version)."
         return 0

@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : GitHub reste prioritaire pour la mise à jour ; Forgejo est consulté
+  en secours si GitHub est absent, inaccessible ou sans paquet admissible.
+  La version locale du projet passe à 1.1.2.
+
 - DIU : `rid diu update` recherche et télécharge le paquet uniquement depuis
   GitHub ; Forgejo et GitLab sont ignorés et aucun repli ne leur est proposé.
 

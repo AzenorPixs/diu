@@ -1,5 +1,14 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-03 : [restore-diu-forgejo-fallback](openspec/changes/archive/2026-11-03-restore-diu-forgejo-fallback/proposal.md), code non attribué, archivé ; 1 124 tests exécutés dont 2 ignorés, OpenSpec strict réussi ; comptages historiques inchangés. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_FORGEJO_FALLBACK["restore-diu-forgejo-fallback — code non attribué — ARCHIVÉ"]
+  class P_DIU_FORGEJO_FALLBACK provisoire
+```
+
 Delta SCM du 2026-11-03 : [github-only-diu-update](openspec/changes/archive/2026-11-03-github-only-diu-update/proposal.md), code non attribué, archivé ; 1 121 tests exécutés dont 2 ignorés, validation OpenSpec stricte réussie. Les comptages historiques excluent ce delta. Attribution ultérieure par ACL.
 
 ```mermaid
