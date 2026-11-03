@@ -6,6 +6,31 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
+Delta SCM-GITHUB-DEBIAN-20261102-R1 : [add-github-debian-release](openspec/changes/archive/2026-11-02-add-github-debian-release/proposal.md),
+ensemble ART, code non attribué. Contrat et publisher validés le 2026-11-02 ; 4/4 tâches
+validées, 1 074 tests globaux et 175 tests ciblés réussis, archivé le 2026-11-02, quatre canons synchronisés dans [tasks.md](openspec/changes/archive/2026-11-02-add-github-debian-release/tasks.md).
+Les comptages historiques excluent ce delta.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_GH_DEB["add-github-debian-release — code non attribué — ARCHIVÉ"]
+  class P_GH_DEB provisoire
+```
+
+Delta SCM-CICD-DEBIAN-20261102-R1 : [add-debian-build-to-projects-cicd](openspec/changes/archive/2026-11-02-add-debian-build-to-projects-cicd/proposal.md),
+ensemble ART, code non attribué. Contrat strict validé le 2026-11-02 ;
+4/4 tâches validées : 1 049 tests globaux et 165 tests ciblés réussis ;
+archivé le 2026-11-02, trois canons synchronisés, preuves dans [tasks.md](openspec/changes/archive/2026-11-02-add-debian-build-to-projects-cicd/tasks.md).
+Les comptages historiques excluent ce delta.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_CICD_DEB["add-debian-build-to-projects-cicd — code non attribué — ARCHIVÉ"]
+  class P_CICD_DEB provisoire
+```
+
 Delta SCM-PROJECT-VERSION-20261102-R1 : [prioritize-project-version](openspec/changes/archive/2026-11-02-prioritize-project-version/proposal.md),
 ensemble ART/GIT, code non attribué. Contrat validé en strict le 2026-11-02 ;
 4/4 tâches validées : 1 034 tests globaux et 74 tests finaux version/aide réussis ;

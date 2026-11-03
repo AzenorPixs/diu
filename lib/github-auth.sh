@@ -299,6 +299,56 @@ _github_api_request() {
     rm -f "${response_file}"
 }
 
+# Upload binaire vers la seule URL d'asset attendue pour cette release.
+_github_upload_release_asset() (
+    local api_base="${1:-}" upload_url="${2:-}" file="${3:-}"
+    local repository_path="${4:-}" release_id="${5:-}"
+    local expected="" encoded_name="" curl_config="" response_file="" http_code="" curl_rc=0
+    if [[ ! "$release_id" =~ ^[0-9]+$ || ! "$repository_path" =~ ^/repos/[A-Za-z0-9-]+/[A-Za-z0-9_.-]+$ ||
+        "$repository_path/" == */../* || "$repository_path/" == */./* ||
+        ! -f "$file" || -L "$file" || ! -r "$file" ]]; then
+        print_error "Paramètres de l’upload GitHub invalides."
+        return 1
+    fi
+    if [[ "$api_base" == https://api.github.com ]]; then
+        expected="https://uploads.github.com${repository_path}/releases/${release_id}/assets"
+    else
+        expected="${api_base}${repository_path}/releases/${release_id}/assets"
+    fi
+    upload_url="${upload_url%%\{*}"
+    if [[ "$api_base" != https://* || "$upload_url" == *[[:space:]]* ||
+        "${upload_url,,}" != "${expected,,}" ]]; then
+        print_error "URL d’upload GitHub inattendue ; aucun identifiant transmis."
+        return 1
+    fi
+    if [[ -z "${github_token:-}" || "${github_token}" == *$'\n'* ||
+        "${github_token}" == *$'\r'* || "${github_token}" == *'"'* || "${github_token}" == *\\* ]]; then
+        print_error 'Identifiant API GitHub absent ou invalide.'
+        return 1
+    fi
+    encoded_name="$(jq -rn --arg name "$(basename -- "$file")" '$name | @uri')" || return 1
+    trap 'rm -f -- "${curl_config:-}" "${response_file:-}"' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    curl_config="$(mktemp)" || return 1
+    response_file="$(mktemp)" || return 1
+    chmod 600 "$curl_config" "$response_file" || return 1
+    printf '%s\n' 'silent' 'show-error' \
+        'header = "Accept: application/vnd.github+json"' \
+        'header = "X-GitHub-Api-Version: 2022-11-28"' \
+        "header = \"Authorization: Bearer ${github_token}\"" > "$curl_config" || return 1
+    http_code="$(curl --config "$curl_config" --request POST \
+        --connect-timeout 10 --max-time 300 --header 'Content-Type: application/octet-stream' \
+        --data-binary "@$file" --output "$response_file" --write-out '%{http_code}' \
+        "${upload_url}?name=${encoded_name}")" || curl_rc=$?
+    if [[ "$curl_rc" -ne 0 ]]; then
+        print_error "Échec du transport de l’asset GitHub (curl=${curl_rc})."
+        return "$curl_rc"
+    fi
+    printf '%s\n' "$http_code"
+    cat "$response_file" || return 1
+)
+
 github_repository_ensure() {
     local project_path="${1:-}"
     local remote_base_url="${2:-}"

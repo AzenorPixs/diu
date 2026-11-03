@@ -18,7 +18,7 @@ au tag `v<VERSION>` de `HEAD`, sans déplacer un tag existant.
 ## Construction générique par recette
 
 ```bash
-rid projects build deb <ID PROJECT>
+rid projects build debian <ID PROJECT>
 ```
 
 Le moteur `modules/projects/debian-build.sh` sélectionne un enfant direct de
@@ -64,9 +64,58 @@ rotation. Une erreur de rotation est signalée même si le nouveau paquet existe
 Cette commande ne lance ni tests, installation, commit, push ou release.
 Le bootstrap commun de `rid` charge et initialise toujours sa configuration.
 
-`rid projects build help`, `rid projects build deb help` et
-`rid projects build deb diu help` (ou `?`) expliquent ce contrat avant bootstrap.
+`rid projects build help`, `rid projects build debian help` et
+`rid projects build debian diu help` (ou `?`) expliquent ce contrat avant bootstrap.
+La syntaxe `rid projects build deb <ID PROJECT>` et ses aides restent des alias compatibles.
 `rid` utilise le moteur installé sous `/root/diu` ; `ridt` utilise celui du dépôt.
+
+## Construction Debian dans la CI/CD générique
+
+`rid projects cicd <ID PROJECT>` suit les six étapes commit/tag, pushes Git,
+build Docker, build Debian, publications et bilan. À l'étape 4, il appelle
+le même moteur que `rid projects build debian <ID PROJECT>`, uniquement pour
+PROJECT_DEBIAN_PACKAGE=Yes/YES/1, même si Docker est désactivé. Les règles
+existantes de recette, version, copie, dépôt et rotation restent celles du
+constructeur déclaratif. Une recette absente ou un échec de build bloque les
+releases ; le bilan indique l'échec et les pushes Git antérieurs sont conservés.
+
+Les publications constituent l'étape 5 et le bilan des deux builds l'étape 6.
+Debian seul utilise les publications Forgejo/GitLab/GitHub, avec les mêmes
+conditions de paquet et de version pour GitHub que sur Forgejo. Les fournisseurs indisponibles ne sont
+pas publiés, mais les builds locaux activés restent exécutés. Les tests utilisent
+uniquement fixtures, paquets locaux et transports simulés, sans CI/CD réelle.
+
+## Publication Debian GitHub
+
+`rid projects github release <ID PROJECT>` sélectionne Docker seul, Debian seul
+ou les deux avec les indicateurs Yes/YES/1. Docker reste publié sur GHCR et
+Debian dans GitHub Releases. Pour les deux, la présence du paquet est vérifiée
+avant Docker ; un échec ultérieur peut laisser une publication partielle,
+explicitement signalée sans rollback automatique.
+
+
+`projects_github_release_debian` dans `modules/projects/github-release.sh`
+publie un paquet déjà construit selon les conditions Forgejo : activation
+PROJECT_DEBIAN_PACKAGE=Yes/YES/1, un seul .deb régulier dans dist, Package égal
+à l'identifiant projet et fichier `<ID>_<VERSION>_all.deb` concordant, architecture
+all. La version utilise le helper commun avec Forgejo et PROJECT_VERSION reste
+prioritaire. Aucune construction n'est déclenchée par la publication.
+
+Le remote déclaré doit correspondre au remote Git réel. Après fetch authentifié,
+la branche courante doit être celle attendue et HEAD doit égaler la branche
+distante configurée. Le tag distant est vérifié jusqu'au commit ; il n'est
+jamais déplacé. En absence de source Git locale, un tag déjà présent est refusé,
+comme sur Forgejo. Un tag absent peut être créé sur le HEAD synchronisé.
+Une release déjà présente provoque un refus sans remplacement d'asset.
+
+GitHub reçoit le paquet par upload binaire via son upload_url. L'origine et le
+chemin sont vérifiés avant transmission des credentials ; le token reste dans
+un fichier temporaire 0600, jamais dans les arguments. Les résultats HTTP/JSON,
+nom, état et taille de l'asset sont vérifiés. Une erreur après création signale
+une release incomplète, sans rollback ou remplacement automatique. Les tests
+simulent les API et les credentials ; seuls les paquets de fixture sont réels.
+Références : [GitHub Releases](https://docs.github.com/en/rest/releases/releases)
+et [assets de release](https://docs.github.com/en/rest/releases/assets).
 
 ## Compatibilité du constructeur historique DIU
 

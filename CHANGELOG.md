@@ -4,6 +4,20 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- GitHub : `rid projects github release <ID PROJECT>` publie Docker sur GHCR,
+  Debian dans GitHub Releases, ou les deux avec Yes/YES/1. Le paquet suit les
+  mêmes contrôles que Forgejo ; release existante refusée, upload binaire
+  authentifié sans exposition du token, erreurs partielles signalées sans
+  remplacement automatique. L'étape 5 et le bilan CI/CD prennent en charge
+  Debian GitHub même sans Docker ; aides mises à jour. Livraison : 1.0.3.
+
+- CI/CD des projets : ajout du build Debian indépendant de Docker à l'étape 4,
+  uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`, avant les publications
+  (étape 5) et le bilan des deux builds (étape 6). Syntaxe
+  `rid projects build debian <ID PROJECT>`, avec alias `build deb` conservé.
+  Un échec du build bloque les releases ; les pushes Git déjà réalisés restent
+  publiés. Les aides décrivent les six étapes. Version de livraison : 1.0.2.
+
 - Version de projet : `PROJECT_VERSION=x.y.z` devient prioritaire pour les
   commits et tags, les pushes Git et les builds/publications Debian et Docker.
   Lecture littérale isolée, refus des valeurs invalides et collisions de tags ;
