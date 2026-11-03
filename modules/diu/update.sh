@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+_diu_update_version_gt() {
+    local left="$1" right="$2" stable='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    if [[ "$left" =~ $stable && ! "$right" =~ $stable ]]; then
+        return 0
+    fi
+    if [[ ! "$left" =~ $stable && "$right" =~ $stable ]]; then
+        return 1
+    fi
+    dpkg --compare-versions "$left" gt "$right"
+}
+
 # Lire uniquement les paramètres publics des fournisseurs, sans exécuter project.env.
 _diu_update_config() {
     local file="$1" line key value raw
@@ -117,7 +128,7 @@ update_diu() (
                 else
                     [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
                 fi
-                if [[ -z "$best_version" ]] || dpkg --compare-versions "$version" gt "$best_version"; then
+                if [[ -z "$best_version" ]] || _diu_update_version_gt "$version" "$best_version"; then
                     best_version="$version"; best_url="$url"; best_provider="$provider"
                     if [[ "$provider" == GITHUB ]]; then best_github_authenticated="$github_authenticated"; else best_github_authenticated=0; fi
                 fi
@@ -126,7 +137,7 @@ update_diu() (
         done
     done
     [[ "$configured" -gt 0 && -n "$best_version" ]] || { print_error 'Aucun paquet DIU admissible trouvé.'; return 1; }
-    if dpkg --compare-versions "$best_version" le "$installed"; then
+    if ! _diu_update_version_gt "$best_version" "$installed"; then
         print_info "DIU déjà à jour : $installed (dernière version : $best_version)."
         return 0
     fi

@@ -1432,7 +1432,7 @@ _gitlab_registry_is_valid git.ec-nantes.fr:5050 || exit 1
 
 
 class GitlabDebianLinkTests(unittest.TestCase):
-    def run_release(self, http_code='201', transport_code='0'):
+    def run_release(self, http_code='201', transport_code='0', existing_asset=False, mismatched_commit=False):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.gitlab-link-fixture-') as directory:
             base = Path(directory)
             project = base / 'project'
@@ -1453,7 +1453,7 @@ print_success() { printf 'SUCCES:%s\n' "$*"; }
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 DEVOPS_USER=fixture
 DEVOPS_PROJECTS_ROOT="$2"
-runuser() { printf 'v1.0\n'; }
+runuser() { if [[ "$*" == *'rev-parse --verify HEAD'* ]]; then printf '%s\n' "$LOCAL_HEAD"; else printf 'v1.0\n'; fi; }
 _gitlab_ensure_credentials() { return 0; }
 _gitlab_read_username() { gitlab_username=fixture-user; }
 _gitlab_read_token() { gitlab_token=fixture-token; }
@@ -1465,7 +1465,10 @@ curl() {
             printf '{"message":"fixture-response-private"}\n%s' "$LINK_HTTP"
             ;;
         *'/uploads'*) printf '{"url":"/uploads/fixture/project.deb"}\n201' ;;
-        *'/releases/'*) printf '{}\n200' ;;
+        *'/releases/'*)
+            if [[ "$EXISTING_ASSET" == yes ]]; then
+                printf '{"tag_name":"v1.0","commit":{"id":"fixture-head"},"assets":{"links":[{"name":"project_1.0_all.deb"}]}}\n200'
+            else printf '{"tag_name":"v1.0","commit":{"id":"fixture-head"},"assets":{"links":[]}}\n200'; fi ;;
         *) return 89 ;;
     esac
 }
@@ -1474,12 +1477,27 @@ projects_gitlab_release_debian project
             result = subprocess.run(
                 ['bash', '-c', script, 'fixture', str(ROOT), str(base)],
                 env={**os.environ, 'TMPDIR': str(base), 'CALLS': str(base/'calls'),
-                     'LINK_HTTP': http_code, 'LINK_TRANSPORT': transport_code},
+                     'LINK_HTTP': http_code, 'LINK_TRANSPORT': transport_code,
+                     'EXISTING_ASSET': 'yes' if existing_asset else 'no',
+                     'LOCAL_HEAD': 'other-head' if mismatched_commit else 'fixture-head'},
                 text=True, capture_output=True, check=False)
             self.assertNotIn('fixture-token', result.stdout + result.stderr)
             self.assertNotIn('fixture-response-private', result.stdout + result.stderr)
-            self.assertEqual((base/'calls').read_text(), 'LINK\n')
+            if existing_asset or mismatched_commit:
+                self.assertFalse((base/'calls').exists())
+            else:
+                self.assertEqual((base/'calls').read_text(), 'LINK\n')
             return result
+
+    def test_existing_asset_is_informational_without_upload(self):
+        result = self.run_release(existing_asset=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('ERREUR:', result.stderr)
+
+    def test_existing_release_on_another_commit_is_rejected(self):
+        result = self.run_release(existing_asset=True, mismatched_commit=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('incohérente', result.stderr)
 
     def test_success_is_announced_only_for_http_success(self):
         for code in ('200', '201', '204'):

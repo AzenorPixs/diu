@@ -71,7 +71,8 @@ La syntaxe `rid projects build deb <ID PROJECT>` et ses aides restent des alias 
 
 ## Construction Debian dans la CI/CD générique
 
-`rid projects cicd <ID PROJECT>` suit les six étapes commit/tag, pushes Git,
+`rid projects cicd <ID PROJECT> [VERSION]` enregistre si fournie la version
+stable dans PROJECT_VERSION avant de suivre les six étapes commit/tag, pushes Git,
 build Docker, build Debian, publications et bilan. À l'étape 4, il appelle
 le même moteur que `rid projects build debian <ID PROJECT>`, uniquement pour
 PROJECT_DEBIAN_PACKAGE=Yes/YES/1, même si Docker est désactivé. Les règles
@@ -106,7 +107,8 @@ la branche courante doit être celle attendue et HEAD doit égaler la branche
 distante configurée. Le tag distant est vérifié jusqu'au commit ; il n'est
 jamais déplacé. En absence de source Git locale, un tag déjà présent est refusé,
 comme sur Forgejo. Un tag absent peut être créé sur le HEAD synchronisé.
-Une release déjà présente provoque un refus sans remplacement d'asset.
+Une release cohérente avec son asset est signalée comme déjà publiée. Un asset
+manquant peut être ajouté sans remplacer les fichiers existants.
 
 GitHub reçoit le paquet par upload binaire via son upload_url. L'origine et le
 chemin sont vérifiés avant transmission des credentials ; le token reste dans

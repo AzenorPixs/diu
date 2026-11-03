@@ -64,7 +64,12 @@ curl() {
             kind=peel; body="$(jq -nc --arg sha "${TAG_COMMIT:-$HEAD_SHA}" '{object:{type:"commit",sha:$sha}}')" ;;
         GET:*'/releases/tags/'*)
             kind=lookup; code=404
-            if [[ "${RELEASE_EXISTS:-}" == yes ]]; then code=200; body='{"id":22}'; fi ;;
+            if [[ "${RELEASE_EXISTS:-}" == yes ]]; then code=200; body='{"id":22}'; fi
+            if [[ "${RELEASE_EXISTS:-}" == complete ]]; then
+                code=200; body='{"id":22,"tag_name":"v1.0.3","assets":[{"name":"project_1.0.3_all.deb","state":"uploaded"}]}'
+            elif [[ "${RELEASE_EXISTS:-}" == incomplete ]]; then
+                code=200; body='{"id":22,"tag_name":"v1.0.3","assets":[],"upload_url":"https://uploads.github.com/repos/owner/project/releases/22/assets{?name,label}"}'
+            fi ;;
         POST:*'/git/tags') kind=create_tag; code=201; body="$(jq -nc --arg sha "$TAG_SHA" '{sha:$sha}')" ;;
         POST:*'/git/refs') kind=create_ref; code=201; body='{"ref":"refs/tags/v1.0.3"}' ;;
         POST:*'/releases')
@@ -92,6 +97,19 @@ projects_github_release_debian project
 
 
 class GithubDebianReleaseTests(unittest.TestCase):
+    def test_existing_complete_release_is_informational(self):
+        result = self.run_release(RELEASE_EXISTS='complete')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('déjà publié', result.stdout)
+        self.assertTrue(all(call['method'] == 'GET' for call in self.calls()))
+
+    def test_existing_incomplete_release_adds_only_missing_asset(self):
+        result = self.run_release(RELEASE_EXISTS='incomplete')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        posts = [call for call in self.calls() if call['method'] == 'POST']
+        self.assertEqual(len(posts), 1)
+        self.assertIn('/assets?name=', posts[0]['url'])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT, prefix='.github-deb-fixture-')
         self.addCleanup(self.temp.cleanup)

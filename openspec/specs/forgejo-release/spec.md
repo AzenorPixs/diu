@@ -362,29 +362,27 @@ AND aucun secret n'est affiché
 
 ### Requirement: Vérification de l'existence de la Release
 
-Avant création, la fonction SHALL vérifier si le tag `v<VERSION>`
-et la Release correspondante existent déjà sur Forgejo.
+Avant création, la fonction SHALL vérifier si le tag `v<VERSION>` et la Release correspondante existent déjà sur Forgejo.
 
 #### Scenario: Tag et Release inexistants
-
-WHEN le tag v<VERSION> n'existe pas sur Forgejo
-AND aucune Release correspondante n'existe
-THEN la fonction continue vers la création de la Release
+- **WHEN** le tag v<VERSION> n'existe pas sur Forgejo et aucune Release correspondante n'existe
+- **THEN** la fonction continue vers la création de la Release
 
 #### Scenario: Tag déjà existant
+- **WHEN** le tag v<VERSION> existe déjà sur Forgejo et désigne HEAD
+- **THEN** la fonction réutilise le tag sans le déplacer, le recréer ou le modifier
 
-WHEN le tag v<VERSION> existe déjà sur Forgejo
-THEN la fonction affiche une erreur explicite
-AND aucune Release n'est créée
-AND le tag existant n'est ni déplacé, ni recréé, ni modifié
-AND la fonction retourne le code 1
+#### Scenario: Tag distant incohérent
+- **WHEN** le tag v<VERSION> existe déjà sur Forgejo et désigne un autre commit
+- **THEN** aucune publication n'est effectuée et le tag reste inchangé
 
 #### Scenario: Release déjà existante
+- **WHEN** une Release cohérente pour le tag v<VERSION> et son asset attendu existent déjà
+- **THEN** la fonction indique que l'asset est déjà publié sans rien écraser ni modifier
 
-WHEN une Release pour le tag v<VERSION> existe déjà
-THEN la fonction affiche une erreur explicite
-AND rien n'est écrasé ni modifié
-AND la fonction retourne le code 1
+#### Scenario: Release incomplète
+- **WHEN** une Release cohérente existe sans l'asset attendu
+- **THEN** la fonction peut ajouter cet asset sans remplacer les autres
 
 ### Requirement: Création de la Release
 
@@ -510,19 +508,11 @@ AND aucun rebuild du paquet n'est déclenché
 
 ### Requirement: Immutabilité des Releases
 
-Une Release déjà publiée SHALL être considérée comme immuable.
-
-La fonction ne SHALL :
-
-- rien écraser
-- rien modifier
-- supprimer automatiquement une Release ou un tag
+Une Release publiée SHALL être conservée. La fonction SHALL NOT écraser un asset ni supprimer automatiquement une Release ou un tag.
 
 #### Scenario: Version déjà publiée
-
-WHEN une Release pour la version demandée existe déjà
-THEN la fonction retourne une erreur
-AND aucune modification n'est effectuée
+- **WHEN** une Release et l'asset attendu existent pour la version demandée
+- **THEN** la fonction signale que la publication est déjà réalisée et ne modifie rien
 
 ### Requirement: Sélection cohérente de la version de release
 

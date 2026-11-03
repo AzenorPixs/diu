@@ -86,7 +86,15 @@ image absente ; les publications Debian refusent un paquet de version différent
 Les aides de commit, push, CICD et build rappellent ce contrat avant bootstrap.
 Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent les contrôles.
 
-Le flux `rid projects cicd <ID PROJECT>` exécute six étapes :
+Le flux `rid projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
+facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
+Une version déjà attribuée à un autre commit est signalée et le traitement
+est interrompu sans déplacer le tag ni republier le contenu courant. Avec un
+arbre inchangé et un tag absent de tous les dépôts vérifiés, le tag peut être
+créé sur le commit courant sans commit vide. La forme historique explicite
+`rid projects cicd <ID PROJECT> <MESSAGE> <TAG>` reste disponible.
+
+Le flux exécute six étapes :
 
 1. Commit et tag.
 2. Pushes Git configurés.
@@ -100,8 +108,15 @@ Le build Debian fonctionne aussi sans Docker et utilise le même moteur que
 activé ou un échec du build empêche les releases ; les pushes déjà réalisés
 restent publiés. Debian seul peut être publié sur Forgejo/GitLab/GitHub selon
 leur configuration ; les conditions Debian GitHub sont les mêmes que Forgejo.
+Une release Debian cohérente déjà munie de son asset est signalée comme déjà
+publiée ; un asset manquant peut être ajouté sans remplacer les fichiers présents.
 `rid projects cicd help` et `rid projects cicd <ID PROJECT> help` décrivent ces
 étapes avant bootstrap. Le détail figure dans [BUILD.md](BUILD.md).
+
+Pour les sélections de versions DIU, une version stable `x.y.z` est prioritaire
+sur un horodatage. Aucun epoch n'est ajouté au paquet Debian : `dpkg` et APT
+conservent leur propre ordre de versions, y compris pour un ancien paquet
+horodaté déjà installé.
 
 Pour construire le paquet Debian d'un projet :
 
