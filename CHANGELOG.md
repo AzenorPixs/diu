@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : `rid update diu` utilise le jeton GitHub du projet lorsqu'il est
+  présent pour les releases et les assets privés ; les accès publics sans
+  jeton restent anonymes et les erreurs d'accès bloquent l'installation.
+
 - DIU : décodage des réponses HTTP compressées par `curl` lors de la recherche
   des releases et du téléchargement du paquet ; une erreur de décodage bloque
   l'installation. La prise en charge de Zstandard dépend du `curl` installé.

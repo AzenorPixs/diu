@@ -1909,7 +1909,7 @@ paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'A
 Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
-`rid diu update` consulte les releases publiques des fournisseurs Forgejo,
+`rid diu update` consulte les releases des fournisseurs Forgejo,
 GitHub et GitLab définis dans `DEVOPS_PROJECTS_ROOT/diu/project.env`, à la
 racine du projet DIU. Ce fichier n'est pas inclus dans le paquet installé et
 doit être disponible sur la machine. Les blocs absents sont ignorés ; un bloc
@@ -1918,8 +1918,14 @@ La commande parcourt les pages, compare les versions Debian des assets
 `diu_<version>_all.deb` associés au tag `v<version>`, puis télécharge la plus
 récente si elle est supérieure à la version installée. Les brouillons et
 préversions signalés par Forgejo et GitHub sont exclus. Le paquet est vérifié
-(nom, version, architecture) avant `dpkg`, sans authentification ; le fichier
-temporaire est supprimé. `rid update diu` est un alias compatible.
+(nom, version, architecture) avant `dpkg` ; le fichier temporaire est
+supprimé. `rid update diu` est un alias compatible.
+Pour GitHub, lorsqu'un jeton existe dans le `config/` du projet DIU, le lecteur
+GitHub existant vérifie ses permissions et l'API est authentifiée. Un asset est
+téléchargé avec son identifiant depuis l'API du dépôt, sans transmettre le
+jeton aux origines de redirection. Sans jeton, le parcours reste anonyme ; un
+dépôt privé inaccessible provoque une erreur sans installation. Forgejo et
+GitLab conservent leur accès public.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de
