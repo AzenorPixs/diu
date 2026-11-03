@@ -1448,7 +1448,7 @@ class GitlabDebianLinkTests(unittest.TestCase):
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-print_info() { :; }
+print_info() { printf 'INFO:%s\n' "$*"; }
 print_success() { printf 'SUCCES:%s\n' "$*"; }
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 DEVOPS_USER=fixture
@@ -1493,6 +1493,14 @@ projects_gitlab_release_debian project
         result = self.run_release(existing_asset=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('ERREUR:', result.stderr)
+        self.assertIn('GitLab : identifiants disponibles.', result.stdout)
+        self.assertIn('tag v1.0 de la release cohérent', result.stdout)
+        self.assertIn('déjà publié sur GitLab pour v1.0', result.stdout)
+        self.assertNotIn('synchronisé avec', result.stdout)
+        labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'Branche distante', 'Tag')
+        rows = [line for line in result.stdout.splitlines() if ' : ' in line and line.split(' : ', 1)[0].strip() in labels]
+        self.assertEqual(len(rows), len(labels))
+        self.assertEqual({line.index(' : ') for line in rows}, {16})
 
     def test_existing_release_on_another_commit_is_rejected(self):
         result = self.run_release(existing_asset=True, mismatched_commit=True)

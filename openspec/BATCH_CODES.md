@@ -1,6 +1,10 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-03 : [harmonize-project-configuration](changes/archive/2026-11-03-harmonize-project-configuration/proposal.md), archivé, **code non attribué**. Comptages historiques inchangés ; attribution ultérieure par ACL.
+
 Plan validé : `ACL-DIU-20261028-R1`. Attribution et vérification documentaire : **2026-10-28**.
+
+Delta SCM du 2026-11-03 : [harmonize-cicd-publication-messages](changes/archive/2026-11-03-harmonize-cicd-publication-messages/proposal.md), archivé, **code non attribué**. Ce repère ne modifie pas les comptages historiques ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-03 : [replay-cicd-existing-version](changes/archive/2026-11-03-replay-cicd-existing-version/proposal.md), archivé, **code non attribué**. Ce repère ne modifie pas les comptages historiques ; attribution ultérieure par ACL.
 

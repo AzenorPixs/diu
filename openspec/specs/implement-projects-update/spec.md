@@ -8,28 +8,19 @@ Définir la mise à jour des variables générales d'un projet DIU.
 
 ### Requirement: mise à jour des variables générales d'un projet
 
-DIU MUST exposer `rid projects update <ID PROJECT>` via `update_projects()`,
-sans changer l'identifiant demandé. La fonction MUST gérer
-`PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`,
-`PROJECT_DOCKERED`, `PROJECT_DEBIAN_PACKAGE` et `PROJECT_ORCHESTRATED_CODING`
-dans `<projet>/project.env`. Elle MUST proposer les valeurs existantes et
-préserver les variables Git locales, distantes, les lignes non ciblées et
-les droits prévus de configuration.
+DIU MUST exposer `rid projects update <ID PROJECT>` via `update_projects()`, sans changer l'identifiant demandé. La fonction MUST gérer `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`, `PROJECT_DOCKERED`, `PROJECT_DEBIAN_PACKAGE`, `PROJECT_ORCHESTRATED_CODING` et `PROJECT_VERSION` dans `<projet>/project.env`. Elle MUST proposer les valeurs existantes et préserver les autres lignes et les droits prévus de configuration.
 
 #### Scenario: création de la configuration générale
 
 - **GIVEN** un répertoire de projet existant sans `project.env`
 - **WHEN** l'utilisateur configure les variables générales
-- **THEN** `PROJECT_ID` vaut l'identifiant demandé, `PROJECT_TYPE` vaut `BASH` par défaut
-- **AND** `PROJECT_DOCKERED`, `PROJECT_DEBIAN_PACKAGE` et `PROJECT_ORCHESTRATED_CODING` sont proposés à `No`
-- **AND** `PROJECT_NAME` est demandé et ne peut pas rester vide
+- **THEN** `PROJECT_TYPE` vaut `BASH` par défaut, les options binaires sont proposées à `No`, et un nom et une version valides sont demandés
 
 #### Scenario: mise à jour ciblée du projet
 
-- **GIVEN** une configuration existante avec `PROJECT_ORCHESTRATED_CODING=Yes`
+- **GIVEN** une configuration existante valide
 - **WHEN** l'utilisateur conserve les valeurs proposées
-- **THEN** la valeur reste `Yes` et les autres variables générales sont conservées
-- **AND** les lignes hors des variables générales sont préservées
+- **THEN** les variables générales et la version sont conservées ainsi que les lignes hors périmètre
 
 ### Requirement: aide des commandes projects
 
@@ -138,57 +129,25 @@ la valeur source, ou son absence historique, sans question supplémentaire.
 - **WHEN** un projet est cloné localement
 - **THEN** la destination conserve la valeur de mode source ou son absence
 
-### Requirement: Copie conditionnelle du protocole de codage piloté
+### Requirement: Questionnaire commun de configuration initiale et mise à jour
 
-Pour la création depuis le modèle et la synchronisation, DIU MUST copier le
-document racine ORCHESTRATED_CODING.md si et seulement si
-project_orchestrated_coding_get retourne Yes depuis le project.env destination.
-La copie MUST suivre la personnalisation Markdown et les règles de propriété
-existantes.
+DIU MUST présenter les types BASH, GO, JAVASCRIPT, PERL et PYTHON sans interdire les autres types. PROJECT_DOCKERED et PROJECT_DEBIAN_PACKAGE MUST accepter exclusivement Yes ou No, avec No par défaut et redemande en cas d'entrée invalide. PROJECT_VERSION MUST être demandée au format x.y.z sans zéro initial et enregistrée ; sa valeur existante valide MUST être proposée à la mise à jour. Sans version existante, une saisie valide MUST être fournie. Toute fin d'entrée MUST échouer avant persistance.
 
-#### Scenario: Projet piloté
+#### Scenario: Configuration initiale
 
-- **WHEN** le mode destination vaut Yes et le document modèle est disponible
-- **THEN** la création ou synchronisation copie le document, avec remplacement de Template et template
-- **AND** une version destination gérée est écrasée à la synchronisation
+- **WHEN** les informations valides sont saisies lors de la création
+- **THEN** les variables générales et la version sont enregistrées dans project.env
 
-#### Scenario: Configuration du modèle ou du shell différente
+#### Scenario: Mise à jour et entrée invalide
 
-- **WHEN** le modèle ou le shell indique Yes et le projet destination indique No ou omet la variable
-- **THEN** le document n'est pas copié et la configuration destination est préservée
+- **WHEN** une réponse binaire ou une version est invalide
+- **THEN** elle est redemandée et ne remplace pas la configuration
 
-### Requirement: Préservation du protocole en mode autonome
+### Requirement: Protocole de codage intégré à CAB
 
-Pour No, une variable absente ou vide, DIU MUST NOT copier, créer, supprimer,
-personnaliser ou changer les attributs d'un document destination existant,
-et MUST NOT exiger le document source lors de la création ou synchronisation.
+La création et la synchronisation MUST NOT exiger ni copier ORCHESTRATED_CODING.md, quel que soit le mode de développement. La synchronisation MUST conserver tout document destination existant.
 
-#### Scenario: Projet autonome ou historique
+#### Scenario: Mode piloté sans document source
 
-- **WHEN** le mode destination vaut No ou est absent ou vide
-- **THEN** le document modèle n'est pas copié et une destination existante reste intacte
-- **AND** une source absente n'empêche pas l'opération
-
-### Requirement: Échec avant copie du modèle
-
-Une valeur de mode invalide MUST provoquer un échec avant toute copie du
-modèle. Pour Yes, une source ORCHESTRATED_CODING.md absente ou non régulière
-MUST provoquer le même échec. La création MAY conserver le répertoire et la
-configuration déjà préparés ; elle MUST NOT annoncer un succès.
-
-#### Scenario: Mode invalide ou source requise indisponible
-
-- **WHEN** le mode est invalide ou vaut Yes avec un document modèle absent ou non régulier
-- **THEN** l'opération échoue avant toute copie du modèle et sans message de succès
-
-### Requirement: Décision du mode pour chaque projet synchronisé
-
-La synchronisation groupée MUST décider de la copie du protocole séparément
-pour chaque projet. Elle MUST conserver la poursuite après échec et son code
-de retour non nul en présence d'un projet en échec.
-
-#### Scenario: Synchronisation groupée de modes différents
-
-- **WHEN** plusieurs projets ont des modes distincts, dont un projet piloté en échec
-- **THEN** chaque projet reçoit uniquement les copies correspondant à son mode
-- **AND** les projets suivants sont traités et le résultat global est non nul
+- **WHEN** un projet piloté est créé ou synchronisé sans document source
+- **THEN** l'absence du document ne provoque pas d'échec et aucune copie n'est effectuée

@@ -65,14 +65,14 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
     def assert_success(self, result):
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_sync_yes_copies_personalizes_overwrites_and_sets_owner(self):
+    def test_sync_yes_preserves_existing_document(self):
         project = self.project('project with spaces', "'Yes'")
         destination = project / 'ORCHESTRATED_CODING.md'
         destination.write_text('old\n', encoding='utf-8')
         result = self.run_shell('sync_project "project with spaces"')
         self.assert_success(result)
-        self.assertEqual(destination.read_text(), 'Projet Test project with spaces\n')
-        self.assertIn(str(destination), (self.path / 'owners.txt').read_text())
+        self.assertEqual(destination.read_text(), 'old\n')
+        self.assertNotIn(str(destination), (self.path / 'owners.txt').read_text())
         self.assertEqual((project / 'project.env').read_text().count('PROJECT_ORCHESTRATED_CODING='), 1)
 
     def test_sync_no_absent_empty_preserve_existing_document_and_attributes(self):
@@ -104,7 +104,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
                     self.assert_success(self.run_shell(f'sync_project {name}'))
                     self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
 
-    def test_sync_yes_missing_or_directory_source_fails_before_any_copy(self):
+    def test_sync_yes_accepts_missing_or_directory_source(self):
         self.source.unlink()
         for directory in (False, True):
             with self.subTest(directory=directory):
@@ -113,11 +113,9 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
                 name = f'project-{directory}'
                 project = self.project(name, 'Yes')
                 result = self.run_shell(f'sync_project {name}')
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn('ORCHESTRATED_CODING.md', result.stderr)
-                self.assertEqual((project / 'AGENTS.md').read_text(), 'original\n')
-                self.assertFalse((project / 'PROMPTS').exists())
-                self.assertNotIn('synchronisé avec succès', result.stdout)
+                self.assert_success(result)
+                self.assertEqual((project / 'AGENTS.md').read_text(), f'Projet Test {name}\n')
+                self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
 
     def test_sync_invalid_mode_fails_before_copy_or_shell_evaluation(self):
         project = self.project('invalid', '$(touch "$TEST_CASE_ROOT/marker")')
@@ -136,18 +134,18 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
         result = self.run_shell('sync_project_all')
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((bad / 'AGENTS.md').read_text(), 'original\n')
-        self.assertEqual((yes / 'ORCHESTRATED_CODING.md').read_text(), 'Projet Test b-piloted\n')
+        self.assertFalse((yes / 'ORCHESTRATED_CODING.md').exists())
         for project in (no, old):
             self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
             self.assertEqual((project / 'AGENTS.md').read_text(), f'Projet Test {project.name}\n')
 
-    def test_sync_all_missing_source_fails_piloted_but_updates_autonomous(self):
+    def test_sync_all_missing_source_updates_both_modes(self):
         self.source.unlink()
         yes = self.project('a-piloted', 'Yes')
         no = self.project('b-autonomous', 'No')
         result = self.run_shell('sync_project_all')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual((yes / 'AGENTS.md').read_text(), 'original\n')
+        self.assert_success(result)
+        self.assertEqual((yes / 'AGENTS.md').read_text(), 'Projet Test a-piloted\n')
         self.assertEqual((no / 'AGENTS.md').read_text(), 'Projet Test b-autonomous\n')
         self.assertFalse((no / 'ORCHESTRATED_CODING.md').exists())
 
@@ -157,13 +155,11 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
                 with self.subTest(mode=mode, project_type=project_type):
                     name = f'new-{mode}-{project_type}'
                     result = self.run_shell(f'create_project {name}',
-                                            f'New\n{project_type}\n\n\n{mode}\n')
+                                            f'New\n{project_type}\n\n\n{mode}\n1.0.0\n')
                     self.assert_success(result)
                     project = self.projects / name
                     destination = project / 'ORCHESTRATED_CODING.md'
-                    self.assertEqual(destination.exists(), mode == 'Yes')
-                    if mode == 'Yes':
-                        self.assertEqual(destination.read_text(), f'New {name}\n')
+                    self.assertFalse(destination.exists())
                     self.assertIn(f'PROJECT_ORCHESTRATED_CODING={mode or "No"}\n',
                                   (project / 'project.env').read_text())
                     self.assertEqual((project / 'pyproject.toml').exists(), project_type == 'PYTHON')
@@ -176,16 +172,11 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
             for mode in ('Yes', 'No'):
                 with self.subTest(mode=mode, directory=directory):
                     name = f'new-{mode}-{directory}'
-                    result = self.run_shell(f'create_project {name}', f'New\n\n\n\n{mode}\n')
+                    result = self.run_shell(f'create_project {name}', f'New\n\n\n\n{mode}\n1.0.0\n')
                     project = self.projects / name
                     self.assertTrue((project / 'project.env').exists())
                     self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
-                    if mode == 'Yes':
-                        self.assertNotEqual(result.returncode, 0)
-                        self.assertFalse((project / 'AGENTS.md').exists())
-                        self.assertNotIn('créé avec succès', result.stdout)
-                    else:
-                        self.assert_success(result)
+                    self.assert_success(result)
 
     def test_creation_invalid_persisted_mode_is_rejected_before_copy(self):
         script = r'''

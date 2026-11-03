@@ -87,6 +87,11 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('déjà publié', result.stdout)
         self.assertEqual(calls, '')
+        lines = [line for line in result.stdout.splitlines() if ' : ' in line]
+        labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'URL distante', 'Branche locale', 'Branche distante')
+        selected = [line for line in lines if line.split(' : ', 1)[0].strip() in labels]
+        self.assertEqual(len(selected), len(labels))
+        self.assertEqual({line.index(' : ') for line in selected}, {16})
 
     def test_missing_asset_is_uploaded_to_existing_release(self):
         result, calls = self.run_release('incomplete')
@@ -101,6 +106,7 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
     def test_replay_allows_ancestor_but_rejects_divergence(self):
         result, calls = self.run_release('complete', remote_sha='c' * 40, replay=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Répertoire isolé :', result.stdout)
         self.assertEqual(calls, '')
         result, calls = self.run_release('complete', remote_sha='c' * 40, replay=True, ancestor=False)
         self.assertNotEqual(result.returncode, 0)
