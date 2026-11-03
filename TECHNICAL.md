@@ -105,7 +105,7 @@ diagnostic explicite. La référence est
 |---|---|---|
 | Racine de développement | `/home/devops/datas/diu` | Sources, Git, OpenSpec et artefacts de développement |
 | Installation de production | `/root/diu` | Application installée et configuration locale |
-| Projet géré | `${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` | Répertoire d'un projet administré par le DIUE |
+| Projet géré | `${ENV_DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` | Répertoire d'un projet administré par le DIUE |
 | Point d'entrée | `root-install-debian.sh` | Bootstrap, aide et dispatch |
 | Configuration historique | `/root/diu/variables.sh` | Variables locales conservées pour compatibilité |
 | Configuration par domaine | `/root/diu/config/<scope>.env` | Valeurs persistantes du nouveau mécanisme |
@@ -247,7 +247,7 @@ La spécification de référence est
 ### Template OpenSpec des projets
 
 `rid projects template openspec <ID PROJECT>` prépare OpenSpec dans
-`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
+`${ENV_DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
 `/home/${ENV_DEVOPS_USER}/datas/<ID PROJECT>`). La fonction
 `projects_template_openspec`, dans `modules/projects/template.sh`, utilise
 `su - "$ENV_DEVOPS_USER" -c` et le shell de connexion pour exécuter :
@@ -423,7 +423,7 @@ rubrique « Python - Outils de compilation », et avant les
 tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
 et son index `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`. Ces chemins
 réutilisent le domicile DevOps construit depuis `ENV_DEVOPS_USER`, indépendamment
-de `DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
+de `ENV_DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
 leur absence n'empêche pas la génération.
 
 ### Matériel TPM dans le document DevOps
@@ -737,6 +737,19 @@ Les consommateurs utilisent `SYSTEM_DEBIAN_RELEASE`,
 ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
 autres anciennes affectations supprimées.
+
+La racine des projets est `ENV_DEVOPS_PROJECTS_ROOT`, déclarée dans le scope
+`environnements` en `STATIC` et `ENABLE`. Une valeur nouvelle configurée
+prévaut; sinon l'ancienne valeur littérale `DEVOPS_PROJECTS_ROOT` est migrée.
+À défaut, le chemin `/home/${ENV_DEVOPS_USER}/datas` est développé puis persisté
+comme littéral; l'indisponibilité de `ENV_DEVOPS_USER` après son initialisation
+est signalée. Si un ancien
+fichier persiste une expression dépendant de cet utilisateur, le chargeur
+prépare sa déclaration littérale avant de sourcer le fichier, quel que soit
+l'ordre des lignes. La déclaration unitaire `env_devops_user.sh` est chargée
+une fois avant `env_devops_projects_root.sh`. Elle est `STATIC/ENABLE`, scope
+`environnements`, avec `root` comme défaut; une valeur existante est conservée.
+Sans utilisateur ni racine déjà définis, le chemin devient `/home/root/datas`.
 
 Le résumé de mise à jour affiche `DIU_VERSION`, déclarée dynamiquement dans le
 scope `diu` depuis la version retournée par `dpkg-query` pour le paquet `diu`.
@@ -1585,7 +1598,7 @@ La référence est `openspec/specs/projects-debian-build/spec.md`.
 ### Métadonnées générales
 
 Un projet géré est identifié par son répertoire sous
-`${DEVOPS_PROJECTS_ROOT}` et par son fichier `project.env`.
+`${ENV_DEVOPS_PROJECTS_ROOT}` et par son fichier `project.env`.
 
 Les variables générales obligatoires sont :
 
@@ -1931,7 +1944,7 @@ Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
 `rid diu update` consulte d'abord les releases GitHub configurées dans
-`DEVOPS_PROJECTS_ROOT/diu/project.env`. Si GitHub fournit un paquet admissible,
+`ENV_DEVOPS_PROJECTS_ROOT/diu/project.env`. Si GitHub fournit un paquet admissible,
 il est retenu même si Forgejo dispose d'une version supérieure ; une version
 installée égale ou supérieure termine sans consulter Forgejo. Si GitHub est
 absent, inaccessible, renvoie une réponse invalide ou ne fournit aucun paquet

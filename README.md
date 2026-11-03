@@ -5,7 +5,7 @@ Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
 `rid diu update` recherche le paquet Debian dans les releases GitHub du projet
-DIU configurées dans `DEVOPS_PROJECTS_ROOT/diu/project.env`. GitHub est prioritaire :
+DIU configurées dans `ENV_DEVOPS_PROJECTS_ROOT/diu/project.env`. GitHub est prioritaire :
 un paquet admissible y est retenu sans consulter Forgejo, même si Forgejo
 propose une version plus récente. Si GitHub est absent, inaccessible ou ne
 fournit aucun paquet admissible, Forgejo est interrogé en secours. GitLab est

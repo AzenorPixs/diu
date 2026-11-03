@@ -94,7 +94,7 @@ projects_docker_build() {
     # Définition des chemins
     # --------------------------------------------------------
 
-    project_dir="${PROJECTS_CICD_DOCKER_CONTEXT:-${DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}/${project_id}}"
+    project_dir="${PROJECTS_CICD_DOCKER_CONTEXT:-${ENV_DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}/${project_id}}"
     project_env="${PROJECTS_CICD_PROJECT_ENV:-${project_dir}/project.env}"
 
     # --------------------------------------------------------

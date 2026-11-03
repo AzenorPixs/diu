@@ -89,7 +89,7 @@ print_error() { printf '%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { printf '%s\n' "$*"; }
 print_title() { :; }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_USER="$DEVOPS_USER"

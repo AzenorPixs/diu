@@ -73,7 +73,7 @@ curl() {
 }
 diu_update
 '''
-            env = {**os.environ, 'ROOT': str(ROOT), 'DEVOPS_PROJECTS_ROOT': tmp,
+            env = {**os.environ, 'ROOT': str(ROOT), 'ENV_DEVOPS_PROJECTS_ROOT': tmp,
                    'RELEASES': str(data), 'CALLS': str(calls), 'REQUESTS': str(requests), 'INSTALLED': installed,
                    'FAILURE': failure, **(metadata or {})}
             result = subprocess.run(['bash', '-c', script], env=env, text=True,

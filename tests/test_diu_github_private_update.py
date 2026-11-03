@@ -115,7 +115,7 @@ curl() {
 }
 diu_update
 '''
-            env = {**os.environ, 'ROOT': str(ROOT), 'DEVOPS_PROJECTS_ROOT': str(root),
+            env = {**os.environ, 'ROOT': str(ROOT), 'ENV_DEVOPS_PROJECTS_ROOT': str(root),
                    'TEST_SERVER': f'http://127.0.0.1:{api.server_port}', 'INSTALLS': str(root / 'installs'),
                    'TRACE': '1' if trace else '0'}
             try:

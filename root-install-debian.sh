@@ -928,14 +928,14 @@ info_network_detect_interfaces() {
 launch_oc_shell() {
 
 	local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 	su - "${DEVOPS_USER}" -c "docker exec -it ${project_id}-opencode sh"
 }
 
 launch_ocro() {
 
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     if [[ ! -e "$project_path/.opencode/share" ]]; then
         echo "❌ Le projet n'existe pas :"
@@ -987,7 +987,7 @@ launch_ocro() {
 
 launch_ocrw() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     local opencode_uid
     local opencode_gid
@@ -1472,7 +1472,7 @@ manage_project_action() {
                             print_error 'Identifiant de projet invalide.'
                             return 1
                         fi
-                        project_version_set "${DEVOPS_PROJECTS_ROOT}/${project_id}/project.env" "$3" || return 1
+                        project_version_set "${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}/project.env" "$3" || return 1
                         commit_name="$3"
                         commit_tag="v$3"
                     else
@@ -1813,7 +1813,7 @@ manage_project_action() {
 
 devops_openspec_list() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec list"
 
@@ -1822,7 +1822,7 @@ devops_openspec_list() {
 
 devops_openspec_show() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c \
         "cd '$project_path' && openspec spec list"
@@ -1831,7 +1831,7 @@ devops_openspec_show() {
 devops_openspec_validate_change() {
     local project_id="$1"
     local spec_name="$2"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type change --strict"
 
@@ -1841,7 +1841,7 @@ devops_openspec_validate_change() {
 devops_openspec_validate_spec() {
     local project_id="$1"
     local spec_name="$2"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type spec --strict"
 
@@ -1850,7 +1850,7 @@ devops_openspec_validate_spec() {
 
 devops_openspec_templates() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec templates"
 
@@ -1859,7 +1859,7 @@ devops_openspec_templates() {
 
 devops_openspec_view() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     su - "$DEVOPS_USER" -c "cd '$project_path' && openspec view"
 

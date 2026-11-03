@@ -22,7 +22,7 @@ rid projects build debian <ID PROJECT>
 ```
 
 Le moteur `modules/projects/debian-build.sh` sélectionne un enfant direct de
-`DEVOPS_PROJECTS_ROOT`. Il lit uniquement `PROJECT_DEBIAN_PACKAGE` dans
+`ENV_DEVOPS_PROJECTS_ROOT`. Il lit uniquement `PROJECT_DEBIAN_PACKAGE` dans
 `project.env`, sans exécuter le fichier : `Yes`, `YES` et `1` activent le build.
 Une valeur absente, vide ou différente affiche que le projet ne produit aucun
 paquet Debian et termine avec succès avant de rechercher la recette.
@@ -150,11 +150,11 @@ Le répertoire d'installation en production est :
 ```
 
 La fonction build_deb_diu accepte un identifiant de projet source optionnel,
-par défaut diu. Elle sélectionne cet enfant direct de DEVOPS_PROJECTS_ROOT,
+par défaut diu. Elle sélectionne cet enfant direct de ENV_DEVOPS_PROJECTS_ROOT,
 refuse un identifiant invalide, un lien symbolique ou une sortie de la racine.
 Le projet doit contenir les sources de production DIU ; le nom du paquet reste diu.
 
-Pour le flux `cicddiu`, `DEVOPS_PROJECTS_ROOT` doit valoir
+Pour le flux `cicddiu`, `ENV_DEVOPS_PROJECTS_ROOT` doit valoir
 `/home/devops/datas`.
 
 ## Point d'entrée et chaîne d'appel
@@ -245,7 +245,7 @@ Avant toute construction, `build_deb_diu` vérifie :
 
 - la présence de la commande `dpkg-deb` ;
 - la prise en charge de l'option `--root-owner-group` ;
-- l'existence du projet `${DEVOPS_PROJECTS_ROOT}/diu` ;
+- l'existence du projet `${ENV_DEVOPS_PROJECTS_ROOT}/diu` ;
 - la présence de `root-install-debian.sh` ;
 - la présence de `lib/` ;
 - la présence de `modules/`.

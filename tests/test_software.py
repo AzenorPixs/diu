@@ -498,9 +498,9 @@ exit "$status"
     def test_diu_installed_version_failure_is_explicit(self):
         result, _, _ = self.run_shell(r"""
 source "$ROOT/modules/diu/update.sh"
-DEVOPS_PROJECTS_ROOT="$TMPDIR"
-mkdir -p "$DEVOPS_PROJECTS_ROOT/diu"
-printf 'REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n' > "$DEVOPS_PROJECTS_ROOT/diu/project.env"
+ENV_DEVOPS_PROJECTS_ROOT="$TMPDIR"
+mkdir -p "$ENV_DEVOPS_PROJECTS_ROOT/diu"
+printf 'REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n' > "$ENV_DEVOPS_PROJECTS_ROOT/diu/project.env"
 dpkg-query() { return 1; }
 if update_diu; then exit 77; else exit 1; fi
 """)

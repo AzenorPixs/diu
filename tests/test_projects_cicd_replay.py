@@ -38,7 +38,7 @@ set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 source "$1/modules/projects/debian-build.sh"
 DEVOPS_USER=fixture
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() {
   shift 3
   if [[ "$1" == rm ]]; then printf 'permission refusée pour devops\n' >&2; return 1; fi
@@ -131,7 +131,7 @@ projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 DEVOPS_USER=fixture
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { shift 3; "$@"; }
 print_error() { :; }
 print_info() { :; }
@@ -225,7 +225,7 @@ printf 'STATUS:%s\n' "$PROJECTS_GIT_PUSH_STATUS"
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 DEVOPS_USER=fixture
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { shift 3; "$@"; }
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
@@ -240,8 +240,8 @@ projects_docker_build() {
   printf 'CONTEXTE-ISOLÉ\n'
 }
 projects_build_deb() {
-  mkdir -p "$DEVOPS_PROJECTS_ROOT/$1/dist"
-  cp "$DEVOPS_PROJECTS_ROOT/$1/tracked" "$DEVOPS_PROJECTS_ROOT/$1/dist/fixture_1.0.0_all.deb"
+  mkdir -p "$ENV_DEVOPS_PROJECTS_ROOT/$1/dist"
+  cp "$ENV_DEVOPS_PROJECTS_ROOT/$1/tracked" "$ENV_DEVOPS_PROJECTS_ROOT/$1/dist/fixture_1.0.0_all.deb"
 }
 publish_release_debian() { printf 'DEBIAN-PUBLIÉ\n'; }
 projects_forgejo_release() { printf 'DOCKER-UNEXPECTED\n'; return 1; }
@@ -276,7 +276,7 @@ cicd_project fixture automatic vautomatic
             (project / 'project.env').write_text(
                 'PROJECT_ID=fixture\nPROJECT_NAME=Fixture\nPROJECT_TYPE=BASH\n'
                 'PROJECT_VERSION=1.0.0\nPROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=Yes\n'
-                'DEVOPS_PROJECTS_ROOT=/unexpected\n'
+                'ENV_DEVOPS_PROJECTS_ROOT=/unexpected\n'
                 'REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=owner\n'
                 'REMOTE_FORGEJO_REPOSITORY=fixture\nREMOTE_FORGEJO_NAME=origin\n'
                 'REMOTE_FORGEJO_BRANCH=main\nREMOTE_FORGEJO_SSL_VERIFY=Yes\n')
@@ -289,7 +289,7 @@ cicd_project fixture automatic vautomatic
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 DEVOPS_USER=fixture
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { shift 3; "$@"; }
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
@@ -297,11 +297,11 @@ print_title() { printf 'TITLE:%s\n' "$*"; }
 git_commit() { printf 'unexpected commit\n' >&2; return 1; }
 projects_cicd_replay_git_provider() { PROJECTS_CICD_REPLAY_GIT_STATUS='déjà en ligne'; }
 projects_build_deb() {
-  mkdir -p "$DEVOPS_PROJECTS_ROOT/$1/dist"
-  cp "$DEVOPS_PROJECTS_ROOT/$1/tracked" "$DEVOPS_PROJECTS_ROOT/$1/dist/fixture_1.0.0_all.deb"
+  mkdir -p "$ENV_DEVOPS_PROJECTS_ROOT/$1/dist"
+  cp "$ENV_DEVOPS_PROJECTS_ROOT/$1/tracked" "$ENV_DEVOPS_PROJECTS_ROOT/$1/dist/fixture_1.0.0_all.deb"
 }
 publish_release_debian() {
-  test "$(cat "$DEVOPS_PROJECTS_ROOT/$1/dist/fixture_1.0.0_all.deb")" = tagged
+  test "$(cat "$ENV_DEVOPS_PROJECTS_ROOT/$1/dist/fixture_1.0.0_all.deb")" = tagged
   printf 'PUBLICATION-ISOLÉE\n'
 }
 cicd_project fixture automatic vautomatic

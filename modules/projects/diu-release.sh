@@ -6,7 +6,7 @@
 publish_release_debian() {
     PROJECTS_DEBIAN_RELEASE_STATUS=""
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local display_project_label='Répertoire      '
     if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]]; then display_project_label='Répertoire isolé'; fi

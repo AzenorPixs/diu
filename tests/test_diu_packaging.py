@@ -14,7 +14,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { printf '%s\n' "$*"; }
 DEVOPS_USER="$(id -un)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() {
     [[ "${GIT_FAIL:-}" != yes ]] || return 71
     printf '%s' "${TAGS:-}"

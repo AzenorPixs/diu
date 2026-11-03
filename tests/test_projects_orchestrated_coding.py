@@ -18,7 +18,7 @@ print_success() { printf 'SUCCESS\n'; }
 chown() { :; }
 DEVOPS_USER=tester
 DEVOPS_GROUP=tester
-DEVOPS_PROJECTS_ROOT="$1"
+ENV_DEVOPS_PROJECTS_ROOT="$1"
 read() {
     if [[ "${2:-}" == -p ]]; then printf 'QUESTION:%s\n' "$3" >&2; fi
     builtin read "$@"
@@ -220,7 +220,7 @@ class ProjectsOrchestratedCodingTests(unittest.TestCase):
         (template / 'README.md').write_text('# Template\n', encoding='utf-8')
         (template / 'project.env').write_text('PROJECT_ORCHESTRATED_CODING=Yes\n', encoding='utf-8')
         script = r'''
-DEVOPS_USER="../${DEVOPS_PROJECTS_ROOT#/}"
+DEVOPS_USER="../${ENV_DEVOPS_PROJECTS_ROOT#/}"
 check_devops_user() { return 0; }
 install() { mkdir -p "${!#}"; }
 projects_template_openspec() { :; }

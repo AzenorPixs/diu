@@ -36,14 +36,14 @@ cicd_project_diu() {
     #   /home/devops/datas/diu
     # ==========================================================
 
-    if [[ "${DEVOPS_PROJECTS_ROOT}" != "/home/devops/datas" ]]; then
+    if [[ "${ENV_DEVOPS_PROJECTS_ROOT}" != "/home/devops/datas" ]]; then
         print_error "La commande CI/CD est interdite dans l'environnement de production."
         print_error "Environnement autorisé : /home/devops/datas/diu"
-        print_error "Environnement détecté : ${DEVOPS_PROJECTS_ROOT}/${project_id}"
+        print_error "Environnement détecté : ${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
         return 1
     fi
 
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
@@ -169,7 +169,7 @@ cicd_project_docker_release() {
     # Définition des chemins
     # ==========================================================
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
@@ -592,9 +592,9 @@ projects_cicd_replay_git_provider() {
 }
 
 _cicd_project_impl() {
-    local original_projects_root="${DEVOPS_PROJECTS_ROOT}"
-    local DEVOPS_PROJECTS_ROOT
-    printf -v DEVOPS_PROJECTS_ROOT '%s' "$original_projects_root"
+    local original_projects_root="${ENV_DEVOPS_PROJECTS_ROOT}"
+    local ENV_DEVOPS_PROJECTS_ROOT
+    printf -v ENV_DEVOPS_PROJECTS_ROOT '%s' "$original_projects_root"
     local project_id="${1:-}"
     local commit_name="${2:-}"
     local commit_tag="${3:-}"
@@ -629,7 +629,7 @@ _cicd_project_impl() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
@@ -669,8 +669,8 @@ _cicd_project_impl() {
             print_error 'Impossible de préparer le contexte isolé du rejeu.'
             return 1
         fi
-        printf -v DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
-        project_path="$DEVOPS_PROJECTS_ROOT/$project_id"
+        printf -v ENV_DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
+        project_path="$ENV_DEVOPS_PROJECTS_ROOT/$project_id"
         project_env="$project_path/project.env"
         # shellcheck disable=SC2034
         PROJECTS_CICD_REPLAY=1
@@ -746,8 +746,8 @@ _cicd_project_impl() {
         return 0
     fi
     if [[ "$replay" == 1 ]]; then
-        printf -v DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
-        project_path="$DEVOPS_PROJECTS_ROOT/$project_id"
+        printf -v ENV_DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
+        project_path="$ENV_DEVOPS_PROJECTS_ROOT/$project_id"
         project_env="$project_path/project.env"
     fi
 
@@ -1026,7 +1026,7 @@ cicd_project() (
 # Analalyse le dépot le local Git pour le projet <PROJECT ID>
 git_analyse() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -1769,7 +1769,7 @@ git_commit() {
     local project_id="$1"
     local commit_name="$2"
     local commit_tag="$3"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local selected_project_version="" tag_check_rc=0
     local head_sha="" tag_sha="" remote="" remote_refs=""
@@ -2103,14 +2103,14 @@ git_commit_all() {
         return 1
     fi
 
-    if [[ ! -d "${DEVOPS_PROJECTS_ROOT}" ]]; then
-        print_error "Répertoire des projets introuvable : ${DEVOPS_PROJECTS_ROOT}"
+    if [[ ! -d "${ENV_DEVOPS_PROJECTS_ROOT}" ]]; then
+        print_error "Répertoire des projets introuvable : ${ENV_DEVOPS_PROJECTS_ROOT}"
         return 1
     fi
 
     print_title "Commit Git de tous les projets configurés"
 
-    for project_path in "${DEVOPS_PROJECTS_ROOT}"/*; do
+    for project_path in "${ENV_DEVOPS_PROJECTS_ROOT}"/*; do
         if [[ ! -d "${project_path}" ]]; then
             continue
         fi
@@ -2282,7 +2282,7 @@ git_safe_directory_system_status() {
 
 git_init() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -2790,7 +2790,7 @@ git_push_provider() {
 _git_push_provider() {
     local project_id="$1"
     local requested_remote_type="${2:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -3867,7 +3867,7 @@ github_remote_ensure() {
 # Vérifie et complète la configuration générale avant la configuration Forgejo.
 forgejo_project_config_ensure() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     if [[ -z "${project_id}" ]]; then
@@ -3899,7 +3899,7 @@ forgejo_project_config_ensure() {
 # Complète uniquement le différentiel de configuration propre à Forgejo.
 forgejo_update() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.forgejo.tmp"
     local remote_forgejo_base_url=""
@@ -4079,7 +4079,7 @@ forgejo_update() {
 # Vérifie et complète la configuration générale avant la configuration GitLab.
 gitlab_project_config_ensure() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     if [[ -z "${project_id}" ]]; then
@@ -4175,7 +4175,7 @@ _gitlab_docker_push_with_retry() {
 # Complète uniquement le différentiel de configuration propre à GitLab.
 gitlab_update() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.gitlab.tmp"
     local remote_gitlab_base_url=""
@@ -4385,7 +4385,7 @@ gitlab_update() {
 # Vérifie et complète la configuration générale avant la configuration GitHub.
 github_project_config_ensure() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     if [[ -z "${project_id}" ]]; then
@@ -4417,7 +4417,7 @@ github_project_config_ensure() {
 # Complète uniquement le différentiel de configuration propre à GitHub.
 github_update() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.github.tmp"
     local remote_github_base_url=""
@@ -4578,7 +4578,7 @@ forgejo_push() {
 
 # Push vers Forgejo de tous les projets configurés.
 forgejo_push_all() {
-    local projects_root="${DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}"
+    local projects_root="${ENV_DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}"
     local project_path=""
     local project_id=""
     local project_env=""
@@ -4690,7 +4690,7 @@ gitlab_push() {
 # Crée un projet depuis le modèle puis fusionne son dépôt GitLab distant.
 gitlab_clone() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local clone_root=""
     local clone_path=""
@@ -4739,7 +4739,7 @@ gitlab_clone() {
         return 1
     fi
 
-    if ! merge_path="$(mktemp -d "${DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-merge.XXXXXX")"; then
+    if ! merge_path="$(mktemp -d "${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-merge.XXXXXX")"; then
         rm -rf -- "${clone_root}"
         print_error "Impossible de préparer la fusion GitLab."
         return 1
@@ -4755,7 +4755,7 @@ gitlab_clone() {
     fi
     rm -rf -- "${clone_root}"
 
-    backup_path="${DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-backup.$$"
+    backup_path="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-backup.$$"
     if [[ -e "${backup_path}" ]] || ! mv "${project_path}" "${backup_path}"; then
         rm -rf -- "${merge_path}"
         print_error "Impossible de préparer le remplacement du projet."
@@ -4790,7 +4790,7 @@ github_push() {
 # Crée un projet depuis le modèle puis fusionne son dépôt GitHub distant.
 github_clone() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local clone_root=""
     local clone_path=""
@@ -4839,7 +4839,7 @@ github_clone() {
         return 1
     fi
 
-    if ! merge_path="$(mktemp -d "${DEVOPS_PROJECTS_ROOT}/.${project_id}.github-merge.XXXXXX")"; then
+    if ! merge_path="$(mktemp -d "${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.github-merge.XXXXXX")"; then
         rm -rf -- "${clone_root}"
         print_error "Impossible de préparer la fusion GitHub."
         return 1
@@ -4855,7 +4855,7 @@ github_clone() {
     fi
     rm -rf -- "${clone_root}"
 
-    backup_path="${DEVOPS_PROJECTS_ROOT}/.${project_id}.github-backup.$$"
+    backup_path="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.github-backup.$$"
     if [[ -e "${backup_path}" ]] || ! mv "${project_path}" "${backup_path}"; then
         rm -rf -- "${merge_path}"
         print_error "Impossible de préparer le remplacement du projet."
@@ -4890,7 +4890,7 @@ projects_forgejo_release() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     if [[ ! -d "${project_path}" ]]; then
@@ -5095,7 +5095,7 @@ projects_gitlab_release() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     if [[ ! -d "${project_path}" ]]; then
@@ -5344,7 +5344,7 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_dir="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_dir}/project.env"
 
     if [[ ! -d "${project_dir}" ]]; then
@@ -5588,10 +5588,10 @@ projects_github_release() {
     local docker_enabled=No debian_enabled=No
     local -a debian_files=()
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
-        "$project_id" == . || "$project_id" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
+        "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
         print_error 'Usage : projects_github_release <project_id>'; return 1
     fi
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="$project_path/project.env"
     if [[ ! -d "$project_path" || -L "$project_path" || ! -f "$project_env" ]]; then
         print_error 'Projet ou project.env introuvable pour la release GitHub.'; return 1
@@ -5655,7 +5655,7 @@ projects_github_release_docker() {
         return 1
     fi
 
-    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_dir="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_dir}/project.env"
 
     if [[ ! -d "${project_dir}" || ! -f "${project_env}" ]]; then
@@ -5834,7 +5834,7 @@ projects_gitlab_release_debian() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
     if [[ ! -d "${project_path}" ]]; then
         print_error "Projet introuvable : ${project_path}"
@@ -6211,7 +6211,7 @@ projects_forgejo_release_docker() {
     # Définition des chemins
     # --------------------------------------------------------
 
-    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_dir="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_dir}/project.env"
 
     # --------------------------------------------------------
@@ -6729,7 +6729,7 @@ projects_forgejo_release_docker() {
 # Donne le status du dépot local Git pour le projet <PROJECT_ID>
 git_status() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -7038,7 +7038,7 @@ git_status() {
 git_update_legacy() {
     local project_id="${1:-}"
     local update_mode="${2:-local}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -7761,7 +7761,7 @@ git_update_legacy() {
 # Génération ou mise à jour des variables du dépôt Git local.
 git_update_local() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local local_default_branch="main"
@@ -7855,17 +7855,17 @@ git_update() {
         return 1
     fi
 
-    git_safe_directory_system_ensure "${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    git_safe_directory_system_ensure "${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 }
 
 # Initialise un dépôt local Git pour le projet <PROJECT ID> à partir d'un clone distant.
 git_init_clone() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
-    local clone_tmp="${DEVOPS_PROJECTS_ROOT}/.${project_id}.clone.$$"
-    local project_env_backup="${DEVOPS_PROJECTS_ROOT}/.${project_id}.project.env.$$"
+    local clone_tmp="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.clone.$$"
+    local project_env_backup="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.project.env.$$"
 
     local project_name=""
     local local_default_branch=""
@@ -7956,10 +7956,10 @@ git_init_clone() {
 
     # Vérification des droits sur la racine des projets
     if ! runuser -u "${DEVOPS_USER}" -- \
-        test -w "${DEVOPS_PROJECTS_ROOT}"; then
+        test -w "${ENV_DEVOPS_PROJECTS_ROOT}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas écrire dans ${DEVOPS_PROJECTS_ROOT}."
+            "${DEVOPS_USER} ne peut pas écrire dans ${ENV_DEVOPS_PROJECTS_ROOT}."
         return 1
     fi
 

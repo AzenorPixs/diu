@@ -22,6 +22,54 @@ class ConfigCleanupTests(unittest.TestCase):
                      DOCKER_CONFIG=str(path.parent / 'docker.env')),
             text=True, capture_output=True)
 
+    def test_projects_root_legacy_literal_and_existing_new_priority(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            path.write_text('DEVOPS_PROJECTS_ROOT="/srv/projets spéciaux"\nOTHER=keep\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(config.read_text(), 'export ENV_DEVOPS_PROJECTS_ROOT=/srv/projets\\ spéciaux\n')
+            path.write_text('DEVOPS_PROJECTS_ROOT=/srv/ancien\n')
+            config.write_text('export ENV_DEVOPS_PROJECTS_ROOT=/srv/nouveau\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(config.read_text(), 'export ENV_DEVOPS_PROJECTS_ROOT=/srv/nouveau\n')
+
+    def test_projects_root_ambiguous_value_is_not_executed(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'DEVOPS_PROJECTS_ROOT="$(touch {sentinel})"\n'
+            path.write_text(original)
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+            self.assertFalse((Path(directory) / 'environnements.env').exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+
+    def test_projects_root_explicit_empty_value_is_preserved(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text("export DEVOPS_PROJECTS_ROOT=''\n")
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual((Path(directory) / 'environnements.env').read_text(),
+                             "export ENV_DEVOPS_PROJECTS_ROOT=''\n")
+
+    def test_projects_root_migrates_legacy_scope_entry(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            path.write_text('OTHER=keep\n')
+            config.write_text('export DEVOPS_PROJECTS_ROOT=/srv/projets\nOTHER=keep\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(config.read_text(), 'OTHER=keep\nexport ENV_DEVOPS_PROJECTS_ROOT=/srv/projets\n')
+
     def test_cleanup_and_idempotence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'

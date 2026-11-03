@@ -29,11 +29,11 @@ projects_github_release_debian() {
     local -a packages=()
 
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
-        "$project_id" == . || "$project_id" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
+        "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
         print_error 'Usage : rid projects github release <ID PROJECT>'
         return 1
     fi
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="$project_path/project.env"
     if [[ ! -d "$project_path" || -L "$project_path" || ! -f "$project_env" ]]; then
         print_error 'Projet ou configuration GitHub introuvable.'
