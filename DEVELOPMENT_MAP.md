@@ -6,6 +6,15 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
+Delta du 2026-11-03 : [authenticate-diu-github-updates](openspec/changes/archive/2026-11-03-authenticate-diu-github-updates/proposal.md), code non attribué, archivé le 2026-11-03 ; six tâches validées et 1 088 tests exécutés dont 2 ignorés. Les comptages historiques excluent ce delta.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_GH_AUTH["authenticate-diu-github-updates — code non attribué — ARCHIVÉ"]
+  class P_DIU_GH_AUTH provisoire
+```
+
 Delta SCM du 2026-11-03 : [fix-diu-http-compression](openspec/changes/archive/2026-11-03-fix-diu-http-compression/proposal.md), code non attribué, archivé le 2026-11-03. Cinq tâches validées ; 1 083 tests exécutés dont 2 ignorés ; preuves dans [tasks.md](openspec/changes/archive/2026-11-03-fix-diu-http-compression/tasks.md). Les comptages historiques excluent ce delta.
 
 ```mermaid
