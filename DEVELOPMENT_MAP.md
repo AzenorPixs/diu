@@ -6,6 +6,8 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
+Delta SCM du 2026-11-03 : [replay-cicd-existing-version](openspec/changes/archive/2026-11-03-replay-cicd-existing-version/proposal.md), code non attribué, archivé ; 1 119 tests exécutés dont 2 ignorés. Rejeu isolé et préservation des références ; les comptages historiques excluent ce delta.
+
 Delta SCM du 2026-11-03 : [add-devops-project-env-guidance](openspec/changes/archive/2026-11-03-add-devops-project-env-guidance/proposal.md), code non attribué, archivé ; 3 tâches validées, 1 105 tests exécutés dont 2 ignorés, validations OpenSpec strictes réussies. Les comptages historiques excluent ce delta ; attribution ultérieure par ACL.
 
 ```mermaid

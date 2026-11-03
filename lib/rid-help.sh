@@ -343,6 +343,8 @@ rid_display_help_context() {
             printf '%s\n' 'Build Debian indépendant de Docker : PROJECT_DEBIAN_PACKAGE=Yes/YES/1 ; même moteur que rid projects build debian <ID PROJECT>.'
             printf '%s\n' 'Un échec du build empêche les releases ; les pushes déjà réalisés restent publiés.'
             printf '%s\n' "À l’étape 5, Debian peut être publié sur Forgejo, GitLab et GitHub selon leur configuration, même sans Docker."
+            printf '%s\n' 'Un tag existant est rejoué depuis son commit isolé ; les modifications locales ne sont pas livrées.'
+            printf '%s\n' "En rejeu, la publication Docker est ignorée : l'immutabilité du tag distant n'est pas vérifiée."
             ;;
         projects:cicddiu:|projects:cicddiu:*)
             rid_help_line 'rid projects cicddiu [COMMIT] [TAG]' 'Exécute la CI/CD du DIU ; PROJECT_VERSION est prioritaire pour le tag.'

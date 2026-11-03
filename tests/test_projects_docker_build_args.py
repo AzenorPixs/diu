@@ -26,10 +26,7 @@ class DockerBuildArgs(unittest.TestCase):
         source = source.replace(
             '. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh"',
             f'. "{ROOT / "lib/project-version.sh"}"', 1)
-        # Rebaser seulement le chemin historique, sans toucher au lecteur testé.
-        old = 'project_dir="/home/${DEVOPS_USER}/datas/${project_id}"'
-        self.assertEqual(source.count(old), 1)
-        self.module.write_text(source.replace(old, 'project_dir="${FIXTURE_ROOT}/${project_id}"'))
+        self.module.write_text(source)
         (self.project / 'project.env').write_text('PROJECT_ID=artifact-fixture\nPROJECT_NAME=Fixture\nPROJECT_DOCKERED=1\n')
         (self.project / 'dockerfile').write_text('# fixture\n')
         (self.project / 'entrypoint.sh').write_text('#!/bin/sh\n')
@@ -45,7 +42,8 @@ docker() { printf '%s\0' "$@" > "$CAPTURE"; return "$DOCKER_STATUS"; }
 DEVOPS_USER=fixture-user
 '''+extra+'\n'+entrypoint+'\n'
         return subprocess.run(['bash', '-c', script, 'fixture', str(self.module)], capture_output=True, timeout=10,
-            env={'PATH': os.defpath, 'FIXTURE_ROOT': str(self.project.parent), 'CAPTURE': str(self.capture),
+            env={'PATH': os.defpath, 'FIXTURE_ROOT': str(self.project.parent),
+                 'DEVOPS_PROJECTS_ROOT': str(self.project.parent), 'CAPTURE': str(self.capture),
                  'USER_CAPTURE': str(self.lab / 'user.capture'), 'DOCKER_STATUS': str(status),
                  'FIXTURE_GIT_MODULE': str(ROOT / 'modules/projects/git.sh'),
                  'ARGS_PATH': str(self.arguments), 'FICTION_ENV_SECRET': 'fiction-environment-value'})
@@ -68,6 +66,16 @@ DEVOPS_USER=fixture-user
         self.assertEqual(self.captured(), self.base() + [str(self.project).encode()])
         user = (self.lab / 'user.capture').read_bytes().split(b'\0')[:-1]
         self.assertEqual(user[:4], [b'-u', b'fixture-user', b'--', b'docker'])
+
+    def test_replay_build_does_not_replace_latest_or_version_tag(self):
+        config = self.project / 'project.env'
+        config.write_text(config.read_text() + 'PROJECT_VERSION=1.0.8\n')
+        result = self.run_build(extra='PROJECTS_CICD_DOCKER_TAG=replay-fixture')
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        args = self.captured()
+        self.assertIn(b'artifact-fixture:replay-fixture', args)
+        self.assertNotIn(b'artifact-fixture:latest', args)
+        self.assertNotIn(b'artifact-fixture:1.0.8', args)
 
     def test_empty_and_comment_only_files(self):
         for content in (b'', b'\n \t\n  # ignored\n# second\n'):
