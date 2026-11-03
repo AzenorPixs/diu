@@ -504,7 +504,16 @@ dispatch_arguments() {
             infos
             ;;
 
-        desktop|diu|environnements)
+        diu)
+            if [[ $# -eq 2 && "$2" == update ]]; then
+                diu_update
+            else
+                printf 'Action inconnue : %s ; voir rid diu help\n' "${2:-}" >&2
+                exit 2
+            fi
+            ;;
+
+        desktop|environnements)
             printf 'Action inconnue : %s ; voir rid %s help\n' "${2:-}" "$argument_class" >&2
             exit 2
             ;;

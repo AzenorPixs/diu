@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 update_all() {
-    local projects_status=0 softwares_status=0
+    local diu_status=0 projects_status=0 softwares_status=0
 
+    diu_update || diu_status=$?
     system_update
-    diu_update
     environments_update
     ia_update
     projects_update || projects_status=$?
@@ -13,6 +13,9 @@ update_all() {
     if [[ "${projects_status}" -ne 0 ]]; then
         return "${projects_status}"
     fi
+    if [[ "${diu_status}" -ne 0 ]]; then
+        return "${diu_status}"
+    fi
     return "${softwares_status}"
 }
 
@@ -20,7 +23,7 @@ manage_update_action() {
     if [[ $# -eq 0 ]]; then
         update_all
     elif [[ "$1" == diu && $# -eq 1 ]]; then
-        update_diu
+        diu_update
     else
         manage_software_action update "$@"
     fi

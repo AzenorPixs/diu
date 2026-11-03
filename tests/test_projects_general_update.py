@@ -102,13 +102,29 @@ manage_update_action
                                         TEST_SOFTWARES_STATUS=softwares)
                 self.assertEqual(result.returncode, expected, result.stderr)
                 self.assertEqual(result.stdout.splitlines(),
-                                 ['system', 'diu', 'environments', 'ia', 'models:0', 'softwares'])
+                                 ['diu', 'system', 'environments', 'ia', 'models:0', 'softwares'])
+
+    def test_global_update_reports_diu_failure_after_other_modules(self):
+        script = r"""
+source "$TEST_ROOT/modules/diu/update-all.sh"
+diu_update() { printf 'diu\n'; return 7; }
+system_update() { printf 'system\n'; }
+environments_update() { printf 'environments\n'; }
+ia_update() { printf 'ia\n'; }
+projects_update() { printf 'projects\n'; }
+softwares_update() { printf 'softwares\n'; }
+manage_update_action
+"""
+        result = self.run_shell(script)
+        self.assertEqual(result.returncode, 7, result.stderr)
+        self.assertEqual(result.stdout.splitlines(),
+                         ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
 
     def test_explicit_diu_and_software_updates_do_not_update_projects(self):
         script = r'''
 source "$TEST_ROOT/modules/diu/update-all.sh"
 projects_update() { printf 'unexpected-projects\n'; return 90; }
-update_diu() { printf 'diu-only\n'; }
+diu_update() { printf 'diu-only\n'; }
 manage_software_action() { printf 'software:%s\n' "$*"; }
 manage_update_action "$@"
 '''
@@ -118,6 +134,20 @@ manage_update_action "$@"
             result = self.run_shell(script, *arguments)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, expected)
+
+    def test_diu_update_dispatch(self):
+        source = ENTRYPOINT.read_text(encoding='utf-8')
+        dispatch = re.search(r'^dispatch_arguments\(\) \{\n.*?^\}', source, re.M | re.S)[0]
+        script = dispatch + r"""
+diu_update() { printf 'diu-only\n'; return 6; }
+dispatch_arguments "$@"
+"""
+        result = self.run_shell(script, 'diu', 'update')
+        self.assertEqual(result.returncode, 6, result.stderr)
+        self.assertEqual(result.stdout, 'diu-only\n')
+        result = self.run_shell(script, 'diu', 'update', 'extra')
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertNotIn('diu-only', result.stdout)
 
     def test_public_dispatch_preserves_failure_codes_and_stops_installation(self):
         source = ENTRYPOINT.read_text(encoding='utf-8')

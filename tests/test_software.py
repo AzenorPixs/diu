@@ -436,14 +436,14 @@ manage_update_action
 printf 'AFTER\n'
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.splitlines(), ['system', 'diu', 'environments', 'ia', 'projects', 'softwares'])
+        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
         self.assertIn('AFTER', result.stdout)
 
     def test_software_failure_keeps_completed_diu(self):
         result, calls, _ = self.run_shell(GLOBAL_MODULES + '\nmanage_update_action\n',
                                           SOFTWARES_FAILURE='1')
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(calls.splitlines(), ['system', 'diu', 'environments', 'ia', 'projects', 'softwares'])
+        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
 
     def test_hermes_installed_but_stopped_is_included(self):
         result, calls, _ = self.run_shell(module_function('modules/ia/hermes.sh', 'ia_update') + r'''
@@ -458,7 +458,7 @@ ia_update
         self.assertEqual(calls.splitlines(), ['hermes'])
 
     def test_diu_specific_route(self):
-        result, calls, _ = self.run_shell('update_diu() { echo diu >> "$CALLS"; }; manage_update_action diu')
+        result, calls, _ = self.run_shell('diu_update() { echo diu >> "$CALLS"; }; manage_update_action diu')
         self.assertEqual(result.returncode, 0)
         self.assertEqual(calls.strip(), 'diu')
 
@@ -498,12 +498,14 @@ exit "$status"
     def test_diu_installed_version_failure_is_explicit(self):
         result, _, _ = self.run_shell(r"""
 source "$ROOT/modules/diu/update.sh"
-git_get_latest_release() { echo v2.0; }
+DEVOPS_PROJECTS_ROOT="$TMPDIR"
+mkdir -p "$DEVOPS_PROJECTS_ROOT/diu"
+printf 'REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n' > "$DEVOPS_PROJECTS_ROOT/diu/project.env"
 dpkg-query() { return 1; }
 if update_diu; then exit 77; else exit 1; fi
 """)
         self.assertEqual(result.returncode, 1)
-        self.assertIn('Impossible de lire la version installée', result.stdout)
+        self.assertIn('Version installée du DIU indisponible', result.stdout)
 
     def test_third_party_dependency_is_not_replaced(self):
         result, calls, _ = self.run_shell('manage_update_action deb foo', BAD_DEPENDENCY='2')

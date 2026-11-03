@@ -4,6 +4,15 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
+`rid diu update` recherche le paquet Debian le plus récent dans les releases
+publiques des dépôts Forgejo, GitHub et GitLab configurés dans le `project.env`
+à la racine du projet DIU (`DEVOPS_PROJECTS_ROOT/diu/project.env`). Ce fichier
+n'est pas livré dans le paquet : il doit être présent sur la machine. Un dépôt
+configuré inaccessible empêche la sélection et l'installation. Le paquet est
+vérifié avant installation ; aucune rétrogradation n'est effectuée.
+`rid update` lance cette mise à jour en premier, puis les autres modules ;
+`rid update diu` reste un alias de `rid diu update`.
+
 Les indicateurs `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` sont
 initialisés indépendamment à `0` dans `/root/diu/config/environnements.env`
 lorsqu'ils sont absents, puis exportés. Les valeurs existantes, même vides,

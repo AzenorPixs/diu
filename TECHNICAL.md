@@ -1909,10 +1909,17 @@ paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'A
 Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
-`update_diu` consulte publiquement la dernière release Forgejo du paquet DIU,
-compare les versions Debian, télécharge l'artefact attendu, vérifie son nom et
-sa version, puis l'installe avec `dpkg`. Ce parcours public n'utilise pas les
-identifiants Forgejo/Git.
+`rid diu update` consulte les releases publiques des fournisseurs Forgejo,
+GitHub et GitLab définis dans `DEVOPS_PROJECTS_ROOT/diu/project.env`, à la
+racine du projet DIU. Ce fichier n'est pas inclus dans le paquet installé et
+doit être disponible sur la machine. Les blocs absents sont ignorés ; un bloc
+partiel ou un dépôt inaccessible interrompt la recherche sans installation.
+La commande parcourt les pages, compare les versions Debian des assets
+`diu_<version>_all.deb` associés au tag `v<version>`, puis télécharge la plus
+récente si elle est supérieure à la version installée. Les brouillons et
+préversions signalés par Forgejo et GitHub sont exclus. Le paquet est vérifié
+(nom, version, architecture) avant `dpkg`, sans authentification ; le fichier
+temporaire est supprimé. `rid update diu` est un alias compatible.
 
 ### Validation HTTP du lien d’asset Debian GitLab
 
@@ -1929,11 +1936,12 @@ n'a pas d'argument. `rid update diu` reste limité à la mise à jour du DIUE.
 Une commande avec moteur explicite reste limitée à ce moteur.
 
 Le parcours actuel dans `modules/diu/update-all.sh` appelle successivement
-`system_update`, `diu_update`, `environments_update`, `ia_update`,
+`diu_update`, `system_update`, `environments_update`, `ia_update`,
 `projects_update` puis `softwares_update`. La mise à jour des projets décrite
 ci-dessus est donc incluse une seule fois. Son échec est mémorisé : le module
 softwares est encore appelé, puis le code non nul projects est rendu. Lorsque
-projects réussit, le code final softwares est conservé.
+projects réussit, une erreur DIU est conservée ; si DIU et projects réussissent,
+le code final softwares est conservé.
 
 Chaque fonction appelée définit ses propres prérequis et traitements.
 `environments_update` retourne actuellement un succès sans opération.
@@ -1942,10 +1950,9 @@ Chaque fonction appelée définit ses propres prérequis et traitements.
 signalement uniforme des modules non applicables ou de bilan global enrichi.
 La spécification de référence est `openspec/specs/universal-update/spec.md`.
 
-La fonction `diu_update` exécute `update_diu` dans un sous-shell. L'installation
-par `exec dpkg --install` remplace ainsi ce sous-processus et permet le retour
-au parcours appelant ; cette isolation propre au DIU ne décrit pas le
-traitement de tous les participants.
+La fonction `diu_update` exécute `update_diu` dans un sous-shell et revient
+au parcours appelant après l’installation ; cette isolation propre au DIU ne
+décrit pas le traitement de tous les participants.
 
 ## Journalisation et diagnostics
 
@@ -1984,7 +1991,7 @@ propriétaire et l'environnement du dépôt.
 
 ## Validation technique
 
-Les fixtures de mise à jour globale suivent le contrat U1 : system, diu,
+Les fixtures de mise à jour globale suivent le contrat courant : diu, system,
 environments, ia, projects puis softwares. Elles simulent et journalisent
 les frontières des modules ; les wrappers DIU/IA sont contrôlés séparément.
 La configuration Git système des tests est redirigée vers des fichiers de
