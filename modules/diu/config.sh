@@ -8,6 +8,7 @@
 
 config_load () {
 
+    local diu_env_devops_user_loaded=0
     config_load_diu
     config_load_desktop
     config_load_devops
@@ -65,8 +66,48 @@ config_load_docker() {
 
 config_load_environments() {
     local config_file_environnements="/root/diu/config/environnements.env"
+    local line raw user_value='' user_found=0 root_uses_user=0
 
     [[ -f "$config_file_environnements" ]] || return 0
+
+    # Une racine historique interpolée peut être triée avant son utilisateur.
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # shellcheck disable=SC2016
+        if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS_PROJECTS_ROOT= ]] &&
+            [[ "$line" == *'${ENV_DEVOPS_USER}'* || "$line" == *'$ENV_DEVOPS_USER'* ]]; then
+            root_uses_user=1
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS_USER= ]]; then
+            ((user_found += 1))
+            raw="${line#*=}"
+            if [[ "$raw" =~ ^[[:blank:]]*([a-z_][a-z0-9_-]*)[[:blank:]]*(#.*)?$ ]]; then
+                user_value="${BASH_REMATCH[1]}"
+            elif [[ "$raw" =~ ^[[:blank:]]*\"([a-z_][a-z0-9_-]*)\"[[:blank:]]*(#.*)?$ ]]; then
+                user_value="${BASH_REMATCH[1]}"
+            elif [[ "$raw" =~ ^[[:blank:]]*\'([a-z_][a-z0-9_-]*)\'[[:blank:]]*(#.*)?$ ]]; then
+                user_value="${BASH_REMATCH[1]}"
+            else
+                user_value=''
+            fi
+        fi
+    done < "$config_file_environnements"
+    if [[ "$root_uses_user" == 1 ]]; then
+        if ((user_found > 1)) || { ((user_found == 1)) && [[ -z "$user_value" ]]; }; then
+            printf '%s\n' 'ENV_DEVOPS_USER : déclaration ambiguë dans la configuration.' >&2
+            return 1
+        fi
+        if ((user_found == 1)); then
+            export ENV_DEVOPS_USER="$user_value"
+        elif [[ -z "${ENV_DEVOPS_USER:-}" ]]; then
+            local user_file="${BASH_SCRIPT_PATH:-}/modules/diu/variables/environnements/env_devops_user.sh"
+            if [[ ! -f "$user_file" || -L "$user_file" ]]; then
+                printf '%s\n' 'ENV_DEVOPS_PROJECTS_ROOT : ENV_DEVOPS_USER est absent.' >&2
+                return 1
+            fi
+            # shellcheck disable=SC1090
+            source "$user_file" || return 1
+            diu_env_devops_user_loaded=1
+        fi
+    fi
 
     # shellcheck disable=SC1090
     source "$config_file_environnements"
@@ -120,13 +161,24 @@ config_load_system() {
 config_generator() {
 
     local variables_directory="${BASH_SCRIPT_PATH}/modules/diu/variables"
+    local devops_user_file="${variables_directory}/environnements/env_devops_user.sh"
+    local projects_root_file="${variables_directory}/environnements/env_devops_projects_root.sh"
+    local devops_user_loaded="${diu_env_devops_user_loaded:-0}" variable_file
 
     [[ -d "${variables_directory}" ]] || return 0
 
     while IFS= read -r variable_file; do
 
+        if [[ "$variable_file" == "$projects_root_file" && "$devops_user_loaded" == 0 && -f "$devops_user_file" && ! -L "$devops_user_file" ]]; then
+            # shellcheck disable=SC1090
+            source "$devops_user_file" || return 1
+            devops_user_loaded=1
+        fi
+        if [[ "$variable_file" == "$devops_user_file" && "$devops_user_loaded" == 1 ]]; then
+            continue
+        fi
         # shellcheck disable=SC1090
-        source "${variable_file}"
+        source "${variable_file}" || return 1
 
     done < <(
         find "${variables_directory}" \

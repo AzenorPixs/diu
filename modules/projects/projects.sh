@@ -29,7 +29,7 @@ sync_project_template_is_valid() {
 
 sync_project() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local template_path="/home/${DEVOPS_USER}/datas/template"
     local staging_path=""
@@ -262,8 +262,8 @@ project_env_set_variables() {
 clone_project() {
     local source_project_id="${1:-}"
     local destination_project_id="${2:-}"
-    local source_project_path="${DEVOPS_PROJECTS_ROOT}/${source_project_id}"
-    local destination_project_path="${DEVOPS_PROJECTS_ROOT}/${destination_project_id}"
+    local source_project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${source_project_id}"
+    local destination_project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${destination_project_id}"
     local source_project_env="${source_project_path}/project.env"
     local staging_path=""
     local project_env_line=""
@@ -421,7 +421,7 @@ update_projects() {
     # shellcheck disable=SC1091
     . "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh" || return 1
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -545,7 +545,7 @@ update_projects() {
 
 create_project() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local template_path="/home/${DEVOPS_USER}/datas/template"
     local project_name=""
@@ -660,7 +660,7 @@ create_project() {
 
 delete_project() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -764,7 +764,7 @@ delete_project() {
     if [[ \
         -z "${project_path}" ||
         "${project_path}" == "/" ||
-        "${project_path}" == "${DEVOPS_PROJECTS_ROOT}" \
+        "${project_path}" == "${ENV_DEVOPS_PROJECTS_ROOT}" \
     ]]; then
 
         print_error \

@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](changes/migrate-env-devops-projects-root/proposal.md), actif, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-03 : [restore-diu-forgejo-fallback](changes/archive/2026-11-03-restore-diu-forgejo-fallback/proposal.md), archivé, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-03 : [github-only-diu-update](changes/archive/2026-11-03-github-only-diu-update/proposal.md), archivé, **code non attribué**. Comptages historiques inchangés ; attribution ultérieure par ACL.

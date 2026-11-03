@@ -70,7 +70,7 @@ case "$5" in
         fi
         ;;
     registry)
-        DEVOPS_PROJECTS_ROOT="${2%/*}"
+        ENV_DEVOPS_PROJECTS_ROOT="${2%/*}"
         projects_gitlab_release_docker "${2##*/}"
         ;;
 esac

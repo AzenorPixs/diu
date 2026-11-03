@@ -16,7 +16,7 @@ source "$1/modules/projects/git.sh"
 DEVOPS_USER=fixture
 ENV_DEVOPS_USER=fixture
 DEVOPS_GROUP=fixture
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 print_title() { :; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { printf 'SUCCESS:%s\n' "$*"; }

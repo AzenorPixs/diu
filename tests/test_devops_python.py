@@ -186,7 +186,7 @@ launch_ocrw demo
 '''
         result = subprocess.run(['/bin/bash', '--noprofile', '--norc', '-c', code],
                                 cwd=ROOT, env=dict(self.environment,
-                                DEVOPS_PROJECTS_ROOT=str(project.parent),
+                                ENV_DEVOPS_PROJECTS_ROOT=str(project.parent),
                                 ENV_DOCKER_IMAGE_OPENCODE='fixture-image',
                                 ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY='never'),
                                 text=True, capture_output=True, timeout=10)

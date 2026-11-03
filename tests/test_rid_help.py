@@ -42,7 +42,7 @@ git_commit() {
         return 1
     fi
 }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 git_commit_all message tag
 '''
         return subprocess.run(
@@ -78,7 +78,7 @@ runuser() {
     return 0
 }
 DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 INITIALIZATION_CREATES_REPOSITORY="$3"
 repository_ready='false'
 git_commit project message tag
@@ -118,11 +118,11 @@ runuser() {
     "$@"
 }
 DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 if ! git_init project; then
     exit 1
 fi
-if ! git -C "$DEVOPS_PROJECTS_ROOT/project" rev-parse --verify HEAD >/dev/null; then
+if ! git -C "$ENV_DEVOPS_PROJECTS_ROOT/project" rev-parse --verify HEAD >/dev/null; then
     exit 1
 fi
 printf 'complete\\n'
@@ -167,7 +167,7 @@ forgejo_push() {
         return 1
     fi
 }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 forgejo_push_all
 '''
         return subprocess.run(
@@ -207,7 +207,7 @@ runuser() {
 DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 FORGEJO_REPOSITORY_STATUS="$3"
 forgejo_push project
 '''
@@ -263,7 +263,7 @@ runuser() {
 DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 git_push_provider project "$PUSH_PROVIDER"
 '''
         return subprocess.run(
@@ -1090,7 +1090,7 @@ class GitCloneArgumentTests(unittest.TestCase):
 print_error() { printf '%s\n' "$*" >&2; }
 mkdir() { printf 'ARG:<%s>\n' "$@"; return "$MKDIR_FAILURE"; }
 check_devops_user() { printf 'CHECKUSER\n'; return 1; }
-DEVOPS_PROJECTS_ROOT="$1/root with spaces[*]"
+ENV_DEVOPS_PROJECTS_ROOT="$1/root with spaces[*]"
 git_init_clone 'project with spaces[*]'
 '''
             return subprocess.run(

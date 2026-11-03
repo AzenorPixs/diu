@@ -68,17 +68,17 @@ build_deb_diu() {
     # ----------------------------------------------------------
 
     if [[ $# -gt 1 || ! "${project_id}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
-        "${project_id}" == . || "${project_id}" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
+        "${project_id}" == . || "${project_id}" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
         print_error "Usage : build_deb_diu [project_id]"
         return 1
     fi
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     if [[ -L "${project_path}" || ! -d "${project_path}" ]]; then
         print_error "Projet source DIU absent ou symbolique."
         return 1
     fi
     local projects_root_real="" project_real=""
-    projects_root_real="$(realpath -e -- "${DEVOPS_PROJECTS_ROOT}")" || return 1
+    projects_root_real="$(realpath -e -- "${ENV_DEVOPS_PROJECTS_ROOT}")" || return 1
     project_real="$(realpath -e -- "${project_path}")" || return 1
     if [[ "$(dirname -- "${project_real}")" != "${projects_root_real}" ]]; then
         print_error "Projet source hors de la racine autorisée."

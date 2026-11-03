@@ -2,7 +2,7 @@
 
 projects_template_openspec() {
     local project_id="${1:-}"
-    local projects_root="${DEVOPS_PROJECTS_ROOT:-/home/${ENV_DEVOPS_USER:-}/datas}"
+    local projects_root="${ENV_DEVOPS_PROJECTS_ROOT:-/home/${ENV_DEVOPS_USER:-}/datas}"
     local project_path="${projects_root}/${project_id}"
     local openspec_command="" command=""
     local opencode="${OPENCODE:-}"
@@ -1602,7 +1602,7 @@ DEVOPS_PROJECT_ENV
 projects_template_devops() {
     local devops_home="/home/${ENV_DEVOPS_USER:-}"
     local project_id="${1:-}"
-    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local projects_root="${ENV_DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
     local template_path="${projects_root}/${project_id}"
     local document="${template_path}/DEVOPS.md" temporary_document="" content=""
     local devops_group=""
@@ -1712,7 +1712,7 @@ PY
 
 projects_template_all_all() {
     local devops_home="/home/${ENV_DEVOPS_USER:-}"
-    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local projects_root="${ENV_DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
     local project_path="" project_id=""
     local selected=0 succeeded=0 ignored=0 failed=0
 
@@ -1783,7 +1783,7 @@ projects_template_all_all() {
 
 projects_template_openspec_all() {
     local devops_home="/home/${ENV_DEVOPS_USER:-}"
-    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local projects_root="${ENV_DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
     local project_path="" project_id=""
     local selected=0 succeeded=0 ignored=0 failed=0
 
@@ -1848,7 +1848,7 @@ projects_template_openspec_all() {
 
 projects_template_devops_all() {
     local devops_home="/home/${ENV_DEVOPS_USER:-}"
-    local projects_root="${DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
+    local projects_root="${ENV_DEVOPS_PROJECTS_ROOT:-${devops_home}/datas}"
     local project_path="" project_id=""
     local selected=0 succeeded=0 ignored=0 failed=0
 

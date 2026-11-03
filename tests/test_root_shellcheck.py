@@ -84,7 +84,7 @@ class RootShellCheckTests(unittest.TestCase):
 
     def test_scalar_argument_preserves_spaces_and_glob(self):
         code = function(self.source, 'launch_oc_shell')
-        code += '\nDEVOPS_PROJECTS_ROOT=/controlled\nDEVOPS_USER="a b*"\n'
+        code += '\nENV_DEVOPS_PROJECTS_ROOT=/controlled\nDEVOPS_USER="a b*"\n'
         code += 'su() { printf "<%s>\\n" "$@"; }\nlaunch_oc_shell demo'
         result = self.run_shell(code)
         self.assertEqual(result.returncode, 0, result.stderr)

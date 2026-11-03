@@ -58,7 +58,7 @@ runuser() { shift 2; [[ "${1:-}" == -- ]] && shift; "$@"; }
 DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_USER="$DEVOPS_USER"
-DEVOPS_PROJECTS_ROOT="$2/projects"
+ENV_DEVOPS_PROJECTS_ROOT="$2/projects"
 PATH="$2/bin:$PATH"
 export PATH TMPDIR="$2/scratch" GIT_CALLS="$2/git-calls"
 "${PUSH_PROVIDER}_push" project
@@ -231,7 +231,7 @@ printf 'SECOND:%s:%s\n' "$?" "$PROJECTS_GIT_PUSH_STATUS"
     def test_git_outside_push_context_retains_code_and_error(self):
         script = HARNESS[:HARNESS.index('"${PUSH_PROVIDER}_push" project')] + r'''
 printf 'diagnostic précédent\n' >&2
-git_with_token "$DEVOPS_PROJECTS_ROOT/project" fixture-user fixture-token push gitlab main:main
+git_with_token "$ENV_DEVOPS_PROJECTS_ROOT/project" fixture-user fixture-token push gitlab main:main
 '''
         result, _ = self.run_push('gitlab', script=script)
         self.assertEqual(result.returncode, 128)

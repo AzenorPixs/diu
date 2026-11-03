@@ -122,8 +122,8 @@ update_diu() (
     for executable in curl jq dpkg dpkg-query dpkg-deb mktemp; do
         command -v "$executable" >/dev/null 2>&1 || { print_error "Commande indisponible : $executable"; return 1; }
     done
-    [[ -n "${DEVOPS_PROJECTS_ROOT:-}" ]] || { print_error 'DEVOPS_PROJECTS_ROOT est absent.'; return 1; }
-    project_path="${DEVOPS_PROJECTS_ROOT%/}/diu"
+    [[ -n "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]] || { print_error 'ENV_DEVOPS_PROJECTS_ROOT est absent.'; return 1; }
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT%/}/diu"
     trap '[[ -z "${github_config:-}" ]] || rm -f -- "$github_config"; [[ -z "${temp_dir:-}" ]] || rm -rf -- "$temp_dir"' EXIT
     # shellcheck disable=SC2016
     status="$(dpkg-query -W -f='${db:Status-Status} ${Version}' diu 2>/dev/null)" || { print_error 'Version installée du DIU indisponible.'; return 1; }

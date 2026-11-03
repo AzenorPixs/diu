@@ -1,5 +1,14 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](openspec/changes/migrate-env-devops-projects-root/proposal.md), code non attribué, actif ; migration et validations en cours. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_ENV_PROJECTS_ROOT["migrate-env-devops-projects-root — code non attribué — ACTIF"]
+  class P_ENV_PROJECTS_ROOT provisoire
+```
+
 Delta SCM du 2026-11-03 : [restore-diu-forgejo-fallback](openspec/changes/archive/2026-11-03-restore-diu-forgejo-fallback/proposal.md), code non attribué, archivé ; 1 124 tests exécutés dont 2 ignorés, OpenSpec strict réussi ; comptages historiques inchangés. Attribution ultérieure par ACL.
 
 ```mermaid

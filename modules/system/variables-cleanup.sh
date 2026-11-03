@@ -62,8 +62,10 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|VERSION_ALIAS|VERSION_VARIABLES|DOCKER_STACK_BUNKERWEB_UPGRADE|DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DEVOPS_PROJECTS_ROOT|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|VERSION_ALIAS|VERSION_VARIABLES|DOCKER_STACK_BUNKERWEB_UPGRADE|DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
+    local projects_root_value='' projects_root_found=0 projects_root_declared=0 projects_root_lines=''
+    [[ -z "${ENV_DEVOPS_PROJECTS_ROOT+x}" ]] || projects_root_declared=1
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
     local files2ram_value='' files2ram_found=0 system_files2ram_declared=0
@@ -125,7 +127,14 @@ config_cleanup() {
         fi
 
         while IFS= read -r line || [[ -n "$line" ]]; do
-        if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?PROXY= ]]; then
+        if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT= ]]; then
+            if ! config_cleanup_parse_fstab_literal "${line#*=}"; then
+                printf '%s\n' 'Erreur : ancienne racine des projets ambiguë ; nettoyage impossible.' >&2
+                return 1
+            fi
+            projects_root_found=1
+            projects_root_value="$REPLY"
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?PROXY= ]]; then
             proxy_found=1
             if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?PROXY=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
                 proxy_value="${BASH_REMATCH[3]}"
@@ -564,6 +573,31 @@ config_cleanup() {
         if [[ ! -f "$environnements_config_file" || ! -r "$environnements_config_file" ]]; then
             printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
             return 1
+        fi
+        if grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS_PROJECTS_ROOT=' "$environnements_config_file" >/dev/null 2>&1; then
+            projects_root_declared=1
+        else
+            status=$?
+            if [[ "$status" != 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
+                return 1
+            fi
+        fi
+        if projects_root_lines="$(grep -E '^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT=' "$environnements_config_file")"; then
+            while IFS= read -r line; do
+                if ! config_cleanup_parse_fstab_literal "${line#*=}"; then
+                    printf '%s\n' 'Erreur : ancienne racine des projets ambiguë ; nettoyage impossible.' >&2
+                    return 1
+                fi
+                projects_root_found=1
+                projects_root_value="$REPLY"
+            done <<< "$projects_root_lines"
+        else
+            status=$?
+            if [[ "$status" != 1 ]]; then
+                printf '%s\n' 'Erreur : lecture de la configuration environnements impossible.' >&2
+                return 1
+            fi
         fi
         if grep -E '^[[:blank:]]*(export[[:blank:]]+)?ENVIRONMENTS_DEVOPS=' \
             "$environnements_config_file" > /dev/null 2>&1; then
@@ -1288,6 +1322,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$projects_root_found" == 1 && "$projects_root_declared" == 0 ]]; then
+        if ! install -d -m 0755 "$(dirname "$environnements_config_file")"; then
+            printf '%s\n' 'Erreur : création de la configuration environnements impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$env_devops_found" == 1 && "$environments_devops_declared" == 0 ]]; then
         if ! install -d -m 0755 "$(dirname "$environnements_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration environnements impossible.' >&2
@@ -1663,6 +1703,12 @@ config_cleanup() {
             return 1
         fi
     fi
+    if [[ "$projects_root_found" == 1 && "$projects_root_declared" == 0 ]]; then
+        if ! printf 'export ENV_DEVOPS_PROJECTS_ROOT=%q\n' "$projects_root_value" >> "$environnements_config_file"; then
+            printf '%s\n' 'Erreur : migration de la racine des projets impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ "$env_devops_found" == 1 && "$environments_devops_declared" == 0 ]]; then
         if ! printf 'export ENVIRONMENTS_DEVOPS=%s\n' "$env_devops_value" >> "$environnements_config_file"; then
             printf '%s\n' 'Erreur : migration de la configuration ENV_DEVOPS impossible.' >&2
@@ -1703,6 +1749,12 @@ config_cleanup() {
         '^[[:blank:]]*(export[[:blank:]]+)?DOCKER_USER=' "$docker_config_file" > /dev/null 2>&1; then
         if ! sed -i -E '/^[[:blank:]]*(export[[:blank:]]+)?DOCKER_USER=/d' "$docker_config_file"; then
             printf '%s\n' 'Erreur : suppression de l ancienne declaration DOCKER_USER impossible.' >&2
+            return 1
+        fi
+    fi
+    if [[ -n "$projects_root_lines" ]]; then
+        if ! sed -i -E '/^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT=/d' "$environnements_config_file"; then
+            printf '%s\n' 'Erreur : suppression de l ancienne racine des projets impossible.' >&2
             return 1
         fi
     fi

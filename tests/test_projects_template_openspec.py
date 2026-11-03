@@ -33,7 +33,7 @@ if [ "$1" = init ]; then mkdir openspec; fi
 ''', encoding='utf-8')
         binary.chmod(0o755)
         self.environment = dict(os.environ, ENV_DEVOPS_USER='devops-test', OPENCODE='1',
-                                DEVOPS_PROJECTS_ROOT=str(self.projects),
+                                ENV_DEVOPS_PROJECTS_ROOT=str(self.projects),
                                 TEST_FAKE_BIN=str(self.binary_directory),
                                 TEST_SU_LOG=str(self.su_log), TEST_TOOL_LOG=str(self.tool_log),
                                 TEST_SU_FAILURE='0', TEST_TOOL_FAILURE='0', TEST_ID_FAILURE='0')
@@ -261,7 +261,7 @@ printf 'OPENCODE-after:%s\n' "${OPENCODE-unset}"
             with self.subTest(opencode=value):
                 self.projects = self.fixture / f'projects-{value}'
                 self.projects.mkdir()
-                self.environment.update(DEVOPS_PROJECTS_ROOT=str(self.projects), OPENCODE=value)
+                self.environment.update(ENV_DEVOPS_PROJECTS_ROOT=str(self.projects), OPENCODE=value)
                 existing = self.configured_project('existing')
                 (existing / 'openspec').mkdir()
                 self.configured_project('all')
@@ -331,13 +331,13 @@ printf 'OPENCODE-after:%s\n' "${OPENCODE-unset}"
             self.environment['TEST_CURRENT_USER'] = 'other-user'
             self.assertNotEqual(self.run_template(batch=True).returncode, 0)
             self.environment.pop('TEST_CURRENT_USER')
-        self.environment['DEVOPS_PROJECTS_ROOT'] = str(self.fixture / 'absent')
+        self.environment['ENV_DEVOPS_PROJECTS_ROOT'] = str(self.fixture / 'absent')
         self.assertNotEqual(self.run_template(batch=True).returncode, 0)
         self.assertFalse(self.su_log.exists())
         self.assertEqual(self.calls(), [])
 
     def test_relative_projects_root_is_resolved_before_login(self):
-        self.environment['DEVOPS_PROJECTS_ROOT'] = os.path.relpath(self.projects, ROOT)
+        self.environment['ENV_DEVOPS_PROJECTS_ROOT'] = os.path.relpath(self.projects, ROOT)
         result = self.run_template('application')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls(), [f'{self.project}|init --tools opencode --profile custom'])
