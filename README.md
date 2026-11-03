@@ -35,12 +35,12 @@ pour un agent piloté par un orchestrateur. La valeur existante est proposée,
 sinon `No` ; une entrée vide conserve ce défaut. Une variable absente dans
 `project.env` vaut `No`, sans migration globale ni activation automatique.
 
-Lors de la création depuis le modèle et de `rid projects sync <ID PROJECT>`
-(y compris `sync all`), `ORCHESTRATED_CODING.md` est copié et personnalisé
-uniquement si le mode du projet destination vaut `Yes`. Pour `No` ou une
-variable absente ou vide, il n'est pas copié et une version destination
-existante reste intacte. Pour `Yes`, son absence dans le modèle provoque une
-erreur avant la copie des ressources du modèle.
+La création et la mise à jour demandent également le nom, le type (BASH par
+défaut, GO, JAVASCRIPT, PERL et PYTHON sont proposés), les options Docker et
+paquet Debian (`Yes` ou `No`, `No` par défaut) et `PROJECT_VERSION` au format
+`x.y.z`. La mise à jour propose la version existante ; une version est requise
+si elle est absente. La création et la synchronisation ne copient pas
+`ORCHESTRATED_CODING.md` ; les documents existants restent intacts.
 
 `rid projects sync <ID PROJECT>` (y compris `sync all`) initialise aussi
 `DEVELOPMENT_MAP.md` depuis le modèle, avec la personnalisation Markdown,
@@ -115,6 +115,8 @@ restent publiés. Debian seul peut être publié sur Forgejo/GitLab/GitHub selon
 leur configuration ; les conditions Debian GitHub sont les mêmes que Forgejo.
 Une release Debian cohérente déjà munie de son asset est signalée comme déjà
 publiée ; un asset manquant peut être ajouté sans remplacer les fichiers présents.
+Les messages de publication identifient la forge, le tag et les contrôles
+effectivement réalisés, sans afficher les identifiants secrets.
 `rid projects cicd help` et `rid projects cicd <ID PROJECT> help` décrivent ces
 étapes avant bootstrap. Le détail figure dans [BUILD.md](BUILD.md).
 

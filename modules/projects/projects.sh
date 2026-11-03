@@ -89,14 +89,6 @@ sync_project() {
         template_files+=(DEVELOPMENT_MAP.md)
     fi
 
-    if [[ "${project_orchestrated_coding}" == Yes ]]; then
-        if [[ ! -f "${template_path}/ORCHESTRATED_CODING.md" ]]; then
-            print_error 'Le fichier modèle ORCHESTRATED_CODING.md est introuvable ou non régulier.'
-            return 1
-        fi
-        template_files+=(ORCHESTRATED_CODING.md)
-    fi
-
     staging_path="$(mktemp -d)" || {
         print_error "Impossible de préparer la synchronisation du projet."
         return 1
@@ -426,6 +418,8 @@ project_orchestrated_coding_prompt() {
 
 # Génération ou mise à jour des variables générales du <PROJECT_ID>.
 update_projects() {
+    # shellcheck disable=SC1091
+    . "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh" || return 1
     local project_id="${1:-}"
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
@@ -435,6 +429,7 @@ update_projects() {
     local project_dockered="No"
     local project_debian_package="No"
     local project_orchestrated_coding="No"
+    local project_version=""
     local value=""
 
     if [[ -z "${project_id}" ]]; then
@@ -474,40 +469,57 @@ update_projects() {
         project_debian_package="${PROJECT_DEBIAN_PACKAGE:-No}"
     fi
 
+    if ! project_version="$(project_version_get "${project_env}")"; then
+        return 1
+    fi
+
     print_title "Configuration du projet ${project_id}"
 
     value=""
-    read -r -p "PROJECT_NAME [${project_name}] : " value
+    read -r -p "PROJECT_NAME [${project_name}] : " value || return 1
     if [[ -n "${value}" ]]; then
         project_name="${value}"
     fi
 
     while [[ -z "${project_name}" ]]; do
         print_error "PROJECT_NAME ne peut pas être vide."
-        read -r -p "PROJECT_NAME : " project_name
+        read -r -p "PROJECT_NAME : " project_name || return 1
     done
 
     value=""
-    read -r -p "PROJECT_TYPE [${project_type}] : " value
+    read -r -p "PROJECT_TYPE (BASH/GO/JAVASCRIPT/PERL/PYTHON) [${project_type}] : " value || return 1
     if [[ -n "${value}" ]]; then
         project_type="${value}"
     fi
 
-    value=""
-    read -r -p "PROJECT_DOCKERED [${project_dockered}] : " value
-    if [[ -n "${value}" ]]; then
-        project_dockered="${value}"
-    fi
-
-    value=""
-    read -r -p "PROJECT_DEBIAN_PACKAGE [${project_debian_package}] : " value
-    if [[ -n "${value}" ]]; then
-        project_debian_package="${value}"
-    fi
-
+    while true; do
+        read -r -p "PROJECT_DOCKERED [${project_dockered}] (Yes/No) : " value || return 1
+        value="${value:-${project_dockered}}"
+        case "${value}" in
+            Yes|No) project_dockered="${value}"; break ;;
+            *) print_error 'PROJECT_DOCKERED doit valoir Yes ou No.' ;;
+        esac
+    done
+    while true; do
+        read -r -p "PROJECT_DEBIAN_PACKAGE [${project_debian_package}] (Yes/No) : " value || return 1
+        value="${value:-${project_debian_package}}"
+        case "${value}" in
+            Yes|No) project_debian_package="${value}"; break ;;
+            *) print_error 'PROJECT_DEBIAN_PACKAGE doit valoir Yes ou No.' ;;
+        esac
+    done
     if ! project_orchestrated_coding="$(project_orchestrated_coding_prompt "${project_orchestrated_coding}")"; then
         return 1
     fi
+    while true; do
+        read -r -p "PROJECT_VERSION [${project_version}] (x.y.z) : " value || return 1
+        value="${value:-${project_version}}"
+        if [[ "${value}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] && (( ${#value} <= 128 )); then
+            project_version="${value}"
+            break
+        fi
+        print_error 'PROJECT_VERSION doit respecter le format x.y.z sans zéro initial.'
+    done
 
     if ! project_env_set_variables \
         "${project_env}" \
@@ -516,7 +528,8 @@ update_projects() {
         PROJECT_TYPE "${project_type}" \
         PROJECT_DOCKERED "${project_dockered}" \
         PROJECT_DEBIAN_PACKAGE "${project_debian_package}" \
-        PROJECT_ORCHESTRATED_CODING "${project_orchestrated_coding}"; then
+        PROJECT_ORCHESTRATED_CODING "${project_orchestrated_coding}" \
+        PROJECT_VERSION "${project_version}"; then
         return 1
     fi
 
@@ -539,8 +552,7 @@ create_project() {
     local project_name_sed=""
     local project_id_sed=""
     local markdown_file=""
-    local project_orchestrated_coding=""
-    local -a template_exclusions=()
+    local -a template_exclusions=(! -name ORCHESTRATED_CODING.md)
 
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : create_project <project_id>"
@@ -582,16 +594,8 @@ create_project() {
         return 1
     fi
 
-    if ! project_orchestrated_coding="$(project_orchestrated_coding_get "${project_env}")"; then
+    if ! project_orchestrated_coding_get "${project_env}" >/dev/null; then
         return 1
-    fi
-    if [[ "${project_orchestrated_coding}" == Yes ]]; then
-        if [[ ! -f "${template_path}/ORCHESTRATED_CODING.md" ]]; then
-            print_error 'Le fichier modèle ORCHESTRATED_CODING.md est introuvable ou non régulier.'
-            return 1
-        fi
-    else
-        template_exclusions+=(! -name ORCHESTRATED_CODING.md)
     fi
 
     unset PROJECT_ID PROJECT_NAME PROJECT_TYPE

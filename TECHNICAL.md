@@ -1523,6 +1523,11 @@ uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes`, `YES` ou `1`. Les clés absentes,
 vides ou différentes n'appellent pas le builder Debian ; le bilan l'indique.
 Les deux activations sont indépendantes, sans fuite vers le projet suivant.
 
+Les sorties de publication Debian utilisent des libellés de projet alignés.
+Chaque fournisseur annonce uniquement les contrôles effectivement réalisés ;
+le tag figure dans les messages de release et de paquet déjà présent. Le
+répertoire temporaire du rejeu est explicitement identifié comme isolé.
+
 Lors d'un rejeu, le clone temporaire privé est nettoyé à la fin du flux. Le
 contexte Docker provient des fichiers suivis du commit et ne contient ni `.git`,
 ni configuration locale, ni identifiants de forge ; le build lit la configuration
@@ -1656,20 +1661,18 @@ partage le questionnaire entre `update_projects` et `git_update_legacy`.
 Le parcours historique conserve le mode dans son résumé et sa réécriture ;
 la configuration Git locale et le clonage local le préservent.
 
-La création depuis le modèle et `rid projects sync <ID PROJECT>` utilisent
-ce lecteur sur la configuration destination avant la copie. Le document
-racine `ORCHESTRATED_CODING.md` est copié, personnalisé et reçoit le
-propriétaire prévu seulement pour `Yes`. Pour `No`, absence ou valeur vide,
-la source n'est pas requise et une destination existante reste intacte,
-y compris ses attributs. Pour `Yes`, une source absente ou non régulière
-provoque un échec avant toute copie du modèle. À la création, le répertoire
-et la configuration déjà préparés sont conservés en cas d'échec. `sync all`
-décide séparément pour chaque projet et poursuit après échec avec un résultat
-global non nul. Les commandes `template openspec`, `template devops` et
-`template all` restent indépendantes de cette copie documentaire.
+La création et la mise à jour utilisent le même questionnaire : le type
+propose BASH, GO, JAVASCRIPT, PERL et PYTHON sans interdire les autres valeurs ;
+les options Docker et paquet Debian acceptent `Yes` ou `No`. La version
+`PROJECT_VERSION` est obligatoire et conforme au format `x.y.z` sans zéro
+initial ; une version existante est proposée par défaut. Une saisie invalide
+est redemandée et une fin d'entrée interrompt la configuration avant écriture.
+La création et la synchronisation ne copient pas `ORCHESTRATED_CODING.md` et
+la synchronisation conserve les documents déjà présents. Le lecteur du mode
+continue à valider la configuration avant copie.
 
 `rid projects sync` synchronise `AGENTS.md`, `.gitignore`
-et le protocole conditionnel décrit ci-dessus. Il copie également
+et copie également
 `DEVELOPMENT_MAP.md` depuis le modèle seulement si aucune entrée de ce nom
 n'existe à la racine du projet, indépendamment du mode de pilotage. Cette
 nouvelle copie est personnalisée et reçoit le propriétaire prévu. Une entrée

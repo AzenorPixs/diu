@@ -4,6 +4,15 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Création et mise à jour des projets : questionnaire harmonisé, validation
+  des options Yes/No et saisie obligatoire de PROJECT_VERSION. Création et
+  synchronisation ne requièrent ni ne copient `ORCHESTRATED_CODING.md` ;
+  les documents déjà présents restent intacts.
+
+- CI/CD : harmonisation des informations affichées pour les publications
+  Debian ; les contrôles réellement effectués et les tags sont identifiés
+  par fournisseur. Alignement visuel des informations du projet.
+
 - CI/CD : rejeu des six étapes sur le commit du tag existant dans un contexte
   isolé, en préservant l'index et les modifications locales. Les branches et
   tags distants ne sont pas ramenés en arrière ; le paquet Debian de rejeu est

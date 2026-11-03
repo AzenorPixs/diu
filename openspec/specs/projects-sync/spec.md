@@ -69,8 +69,7 @@ exiger `PROMPTS`, `DEVOPS.md`, les répertoires OpenCode du modèle ou la source
 
 ### Requirement: Copie ciblée et autoritaire du modèle
 
-DIU MUST écraser AGENTS.md et .gitignore depuis le modèle, et
-ORCHESTRATED_CODING.md uniquement pour Yes lu selon implement-projects-update.
+DIU MUST écraser AGENTS.md et .gitignore depuis le modèle, et MUST NOT consulter ni copier ORCHESTRATED_CODING.md.
 DIU MUST copier DEVELOPMENT_MAP.md uniquement si sa destination est absente,
 selon les règles de copie initiale. DIU MUST préserver les autres destinations
 et MUST NOT copier, créer, personnaliser, supprimer ou modifier les droits ou
@@ -99,13 +98,13 @@ le propriétaire de DEVOPS.md à la racine, en mode unitaire ou groupé.
 
 #### Scenario: Copie du protocole pour un projet piloté
 
-- **WHEN** le mode destination vaut Yes et le document modèle est disponible
-- **THEN** ORCHESTRATED_CODING.md est copié, personnalisé et reçoit le propriétaire du projet
+- **WHEN** la synchronisation unitaire ou groupée concerne un projet dont le mode vaut Yes
+- **THEN** ORCHESTRATED_CODING.md n'est pas requis dans le modèle et toute destination existante reste intacte
 
 #### Scenario: Préservation du protocole pour un projet autonome
 
-- **WHEN** le mode destination vaut No ou est absent ou vide
-- **THEN** ORCHESTRATED_CODING.md n'est pas copié et sa destination existante reste intacte
+- **WHEN** la synchronisation unitaire ou groupée concerne un projet dont le mode vaut No ou est absent ou vide
+- **THEN** ORCHESTRATED_CODING.md n'est pas requis dans le modèle et toute destination existante reste intacte
 
 ### Requirement: Préservation des prompts exclus
 
