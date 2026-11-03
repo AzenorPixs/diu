@@ -2,7 +2,7 @@
 
 ### Requirement: Version du paquet
 
-La version SHALL être l'unique version Debian valide déduite des tags de HEAD, en retirant un préfixe v éventuel. Sans métadonnées Git ou sans tag, elle SHALL être l'horodatage local YYYY.MM.DD.HH.MM. Un tag inexploitable ou plusieurs versions distinctes SHALL provoquer un échec. Une erreur de consultation Git SHALL NOT être traitée comme une absence de tag.
+PROJECT_VERSION, lorsqu'elle est déclarée et valide, SHALL déterminer la version du paquet. Sinon la version SHALL être l'unique version Debian valide déduite des tags de HEAD après priorité des versions stables sur les horodatages, en retirant un préfixe v éventuel. Sans métadonnées Git ou sans tag, elle SHALL être l'horodatage local YYYY.MM.DD.HH.MM. Un tag inexploitable ou plusieurs versions distinctes après cette priorité SHALL provoquer un échec. Une erreur de consultation Git SHALL NOT être traitée comme une absence de tag.
 
 #### Scenario: Version générée
 
@@ -17,8 +17,13 @@ AND la version est affichée lors de la construction
 
 #### Scenario: Versions de tags ambiguës
 
-- **WHEN** HEAD possède plusieurs versions distinctes ou un tag inexploitable
+- **WHEN** HEAD possède plusieurs versions distinctes après application de la priorité stable ou un tag inexploitable
 - **THEN** le build échoue avant publication et préserve dist/
+
+#### Scenario: Tag stable et horodaté
+
+- **WHEN** HEAD porte une seule version stable et un ou plusieurs tags horodatés
+- **THEN** le constructeur retient la version stable
 
 ### Requirement: Commande rid proj deb
 

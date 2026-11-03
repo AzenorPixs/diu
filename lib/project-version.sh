@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 # Sélection explicite de version, sans exécuter la configuration du projet.
 
+# Conserver les tags non horodatés lorsque des versions stables sont présentes.
+project_version_prefer_stable_tags() {
+    local tag="" has_stable=0
+    local stable='^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local timestamp='^v?[0-9]{4}(\.[0-9]{2}){4}$'
+    local -a version_tags_buffer=()
+    while IFS= read -r tag; do
+        [[ -n "$tag" ]] || continue
+        version_tags_buffer+=("$tag")
+        [[ "$tag" =~ $stable ]] && has_stable=1
+    done
+    for tag in "${version_tags_buffer[@]}"; do
+        if [[ "$has_stable" == 1 && "$tag" =~ $timestamp ]]; then continue; fi
+        printf '%s\n' "$tag"
+    done
+}
+
 project_version_get() {
     local project_env="${1:-}" line="" raw="" value="" found=0
     local assignment='^[[:blank:]]*(export[[:blank:]]+)?PROJECT_VERSION[[:blank:]]*=(.*)$'
@@ -32,6 +49,65 @@ project_version_get() {
         found=1
     done < "$project_env"
     printf '%s' "$value"
+}
+
+# Modifier uniquement la version, sans interpréter le reste de la configuration.
+project_version_set() {
+    local file="${1:-}" version="${2:-}" current=""
+    local pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    if [[ ! "$version" =~ $pattern || ${#version} -gt 128 || ! -f "$file" || -L "$file" ]]; then
+        printf '%s\n' 'Erreur : version ou configuration du projet invalide.' >&2
+        return 1
+    fi
+    current="$(project_version_get "$file")" || return 1
+    if [[ "$current" == "$version" ]]; then
+        printf '%s\n' 'ℹ️  PROJECT_VERSION est déjà configurée à cette version.'
+        return 0
+    fi
+    if ! command -v python3 >/dev/null 2>&1; then
+        printf '%s\n' 'Erreur : python3 est nécessaire pour modifier PROJECT_VERSION.' >&2
+        return 1
+    fi
+    python3 - "$file" "$version" <<'PY'
+import os, re, stat, sys, tempfile
+path, version = sys.argv[1:]
+tmp = None
+try:
+    with open(path, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        data = stream.read()
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError('configuration non régulière')
+    assignment = re.compile(rb'''(?m)^([ \t]*(?:export[ \t]+)?PROJECT_VERSION[ \t]*=[ \t]*)([0-9.]+|"[0-9.]+"|'[0-9.]+')([ \t]*(?:\#[^\n]*)?)(\n|$)''')
+    matches = list(assignment.finditer(data))
+    if len(matches) > 1:
+        raise ValueError('version dupliquée')
+    replacement = b'PROJECT_VERSION=' + version.encode('ascii')
+    if matches:
+        match = matches[0]
+        previous = match.group(2)
+        quote = previous[:1] if previous[:1] in (b"'", b'"') else b''
+        updated = match.group(1) + quote + version.encode('ascii') + quote + match.group(3) + match.group(4)
+        result = data[:match.start()] + updated + data[match.end():]
+    else:
+        result = data + (b'\n' if data and not data.endswith(b'\n') else b'') + replacement + b'\n'
+    fd, tmp = tempfile.mkstemp(prefix='.project-version-', dir=os.path.dirname(path) or '.')
+    with os.fdopen(fd, 'wb') as stream:
+        os.fchown(stream.fileno(), before.st_uid, before.st_gid)
+        os.fchmod(stream.fileno(), stat.S_IMODE(before.st_mode))
+        stream.write(result)
+    now = os.lstat(path)
+    if (now.st_dev, now.st_ino, now.st_mtime_ns, now.st_size) != (before.st_dev, before.st_ino, before.st_mtime_ns, before.st_size):
+        raise ValueError('configuration modifiée simultanément')
+    os.replace(tmp, path)
+    tmp = None
+except (OSError, ValueError) as error:
+    print('Erreur : impossible de mettre à jour PROJECT_VERSION : ' + str(error), file=sys.stderr)
+    sys.exit(1)
+finally:
+    if tmp is not None:
+        os.unlink(tmp)
+PY
 }
 
 # Références vers les paramètres locaux du commit ou du flux appelant.

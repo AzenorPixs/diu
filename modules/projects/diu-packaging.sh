@@ -16,6 +16,7 @@ diu_package_version_from_head() {
         print_error "Impossible de consulter les tags du projet source."
         return 1
     fi
+    tags="$(printf '%s\n' "$tags" | project_version_prefer_stable_tags)" || return 1
     while IFS= read -r tag; do
         [[ -n "${tag}" ]] || continue
         candidate="${tag#v}"

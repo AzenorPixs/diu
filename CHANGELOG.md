@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- CI/CD : ajout d'une version facultative x.y.z, reprise informative des
+  versions déjà attribuées et conservation des assets Debian existants.
+  Les sélections DIU privilégient les versions stables sans epoch Debian.
+  Les tags et releases DIU horodatés en 2026 ont été retirés après sauvegarde.
+  Livraison : 1.0.7.
+
 - DIU : `rid update diu` utilise le jeton GitHub du projet lorsqu'il est
   présent pour les releases et les assets privés ; les accès publics sans
   jeton restent anonymes et les erreurs d'accès bloquent l'installation.

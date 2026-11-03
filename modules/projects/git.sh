@@ -438,11 +438,20 @@ cicd_project() {
     fi
 
     print_title "Étape 1/6 — Commit et tag"
+    PROJECTS_GIT_COMMIT_STATUS=""
     if ! git_commit "${project_id}" "${commit_name}" "${commit_tag}"; then
         workflow_status="échec"
         cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
         print_error "Échec du commit Git."
         return 1
+    fi
+    if [[ "${PROJECTS_GIT_COMMIT_STATUS:-}" == version_deja_attribuee ]]; then
+        print_info 'Version déjà attribuée : aucune publication du contenu courant.'
+        cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" \
+            'version déjà attribuée, traitement ignoré' \
+            'non exécuté' 'non exécuté' 'non exécuté' 'non exécuté' \
+            'non exécutée' 'non exécutée' 'non exécutée' 'non exécuté'
+        return 0
     fi
 
     local selected_project_version=""
@@ -454,6 +463,7 @@ cicd_project() {
         effective_commit_tag="$(
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_path}" tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 head -n 1
         )"
     
@@ -1417,6 +1427,8 @@ git_commit() {
     local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local selected_project_version="" tag_check_rc=0
+    local head_sha="" tag_sha="" remote="" remote_refs=""
+    PROJECTS_GIT_COMMIT_STATUS=""
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
     selected_project_version="$(project_version_get "$project_env")" || return 1
 
@@ -1625,14 +1637,44 @@ git_commit() {
         --cached --quiet; then
 
         print_info "Aucune modification à enregistrer."
+        if [[ -n "$selected_project_version" ]]; then
+            head_sha="$(runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" rev-parse --verify HEAD)" || return 1
+            if tag_sha="$(runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" rev-parse --verify "refs/tags/${commit_tag}^{commit}" 2>/dev/null)"; then
+                if [[ "$tag_sha" != "$head_sha" ]]; then
+                    PROJECTS_GIT_COMMIT_STATUS=version_deja_attribuee
+                    print_info "Le tag ${commit_tag} est déjà attribué à un autre commit."
+                else
+                    print_info "Le tag ${commit_tag} désigne déjà HEAD."
+                fi
+                return 0
+            fi
+            while IFS= read -r remote; do
+                [[ -n "$remote" ]] || continue
+                if ! remote_refs="$(runuser -u "$DEVOPS_USER" -- env -u GIT_COMMON_DIR GIT_TERMINAL_PROMPT=0 git -C "$project_path" ls-remote --tags "$remote" "refs/tags/$commit_tag" "refs/tags/$commit_tag^{}")"; then
+                    print_error "Impossible de vérifier le tag sur le dépôt ${remote}."
+                    return 1
+                fi
+                if [[ -n "$remote_refs" ]]; then
+                    PROJECTS_GIT_COMMIT_STATUS=version_deja_attribuee
+                    print_info "Le tag ${commit_tag} existe déjà sur ${remote} ; aucune recréation locale."
+                    return 0
+                fi
+            done < <(runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" remote)
+            if ! runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" tag -a "$commit_tag" -m "$commit_name"; then
+                print_error "Échec de la création du tag ${commit_tag}."
+                return 1
+            fi
+            print_info "Tag ${commit_tag} créé sur le commit existant."
+        fi
         return 0
     fi
 
     if [[ -n "$selected_project_version" ]]; then
         if runuser -u "${DEVOPS_USER}" -- "${git_local_command[@]}" -C "$project_path" \
             show-ref --verify --quiet "refs/tags/$commit_tag"; then
-            print_error 'Le tag de PROJECT_VERSION existe déjà ; incrémenter la version avant un nouveau commit.'
-            return 1
+            PROJECTS_GIT_COMMIT_STATUS=version_deja_attribuee
+            print_info 'Le tag de PROJECT_VERSION existe déjà ; incrémenter la version avant un nouveau commit.'
+            return 0
         else
             tag_check_rc=$?
             if [[ "$tag_check_rc" -ne 1 ]]; then
@@ -2279,9 +2321,14 @@ git_get_latest_release() {
         awk '
             $2 !~ /\^\{\}$/ {
                 sub("^refs/tags/", "", $2)
-                print $2
-                exit
+                if (first == "") first = $2
+                if ($2 ~ /^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/) {
+                    print $2
+                    found = 1
+                    exit
+                }
             }
+            END { if (!found && first != "") print first }
         '
     )"
 
@@ -2871,6 +2918,7 @@ _git_push_provider() {
             runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" \
                 tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 head -n 1
         )"
     fi
@@ -5028,6 +5076,7 @@ projects_gitlab_release_docker() {
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 sed '/^[[:space:]]*$/d' |
                 wc -l
         )"
@@ -5049,6 +5098,7 @@ projects_gitlab_release_docker() {
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 head -n 1
         )"
     
@@ -5318,6 +5368,7 @@ projects_github_release_docker() {
         git_tags_count="$(
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_dir}" tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 sed '/^[[:space:]]*$/d' |
                 wc -l
         )"
@@ -5423,6 +5474,8 @@ projects_gitlab_release_debian() {
     local link_payload=""
     local release_body=""
     local release_http_code=""
+    local release_head_sha=""
+    local release_asset_count=0
     local upload_http_code=""
     local link_http_code=""
     local link_response=""
@@ -5501,6 +5554,7 @@ projects_gitlab_release_debian() {
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_path}" \
                 tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 sed '/^[[:space:]]*$/d' |
                 wc -l
         )"
@@ -5522,6 +5576,7 @@ projects_gitlab_release_debian() {
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_path}" \
                 tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 head -n 1
         )"
     
@@ -5677,6 +5732,24 @@ projects_gitlab_release_debian() {
 
     if [[ "${release_http_code}" == "200" ]]; then
         print_info "Release GitLab '${git_tag}' existante détectée."
+        release_head_sha="$(runuser -u "${DEVOPS_USER}" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
+        if ! jq -e --arg tag "$git_tag" --arg sha "$release_head_sha" \
+            'type == "object" and .tag_name == $tag and .commit.id == $sha and (.assets.links | type == "array")' <<< "${release_body%$'\n'*}" >/dev/null; then
+            print_error 'Release GitLab existante incohérente.'
+            return 1
+        fi
+        release_asset_count="$(jq -er --arg name "$deb_filename" '[.assets.links[] | select(.name == $name)] | length' <<< "${release_body%$'\n'*}")" || return 1
+        if [[ "$release_asset_count" -gt 1 ]]; then
+            print_error 'Assets GitLab ambigus pour cette version.'
+            return 1
+        fi
+        if [[ "$release_asset_count" -eq 1 ]]; then
+            print_info "Paquet Debian déjà publié sur GitLab pour ${git_tag}."
+            return 0
+        fi
+    elif [[ "${release_http_code}" != "404" ]]; then
+        print_error "Impossible de vérifier la release GitLab (HTTP ${release_http_code})."
+        return 1
     else
         release_payload="$(
             jq -n \
@@ -5869,6 +5942,7 @@ projects_forgejo_release_docker() {
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 sed '/^[[:space:]]*$/d' |
                 wc -l
         )"
@@ -5894,6 +5968,7 @@ projects_forgejo_release_docker() {
             runuser -u "${DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
+                project_version_prefer_stable_tags |
                 head -n 1
         )"
     

@@ -44,6 +44,7 @@ publish_release_debian() {
     local remote_tag_exists=0
 
     local release_id=""
+    local release_existing=0 existing_assets=0
     local release_notes=""
 
     local api_response=""
@@ -707,6 +708,10 @@ publish_release_debian() {
             remote_tag_exists=1
 
             if [[ "${tag_source}" == "git" ]]; then
+                if ! jq -e --arg sha "$head_sha" '.commit.sha == $sha' <<< "$http_body" >/dev/null; then
+                    print_error "Le tag Forgejo ${tag_name} ne désigne pas HEAD."
+                    return 1
+                fi
 
                 print_success \
                     "Le tag ${tag_name} existe déjà sur Forgejo."
@@ -789,13 +794,23 @@ publish_release_debian() {
     case "${http_code}" in
 
         200)
-            print_error \
-                "Une Release ${tag_name} existe déjà sur Forgejo."
-
-            print_error \
-                "Aucune Release existante ne sera modifiée."
-
-            return 1
+            if [[ "$remote_tag_exists" -ne 1 ]] || ! jq -e --arg tag "$tag_name" \
+                'type == "object" and .tag_name == $tag and (.assets | type == "array")' <<< "$http_body" >/dev/null; then
+                print_error 'Release Forgejo existante incohérente.'
+                return 1
+            fi
+            existing_assets="$(jq -er --arg name "$deb_filename" '[.assets[] | select(.name == $name)] | length' <<< "$http_body")" || return 1
+            if [[ "$existing_assets" -gt 1 ]]; then
+                print_error 'Assets Forgejo ambigus pour cette version.'
+                return 1
+            fi
+            if [[ "$existing_assets" -eq 1 ]]; then
+                print_info "Paquet Debian déjà publié sur Forgejo pour ${tag_name}."
+                return 0
+            fi
+            release_id="$(jq -er '.id | numbers | select(. > 0 and floor == .)' <<< "$http_body")" || return 1
+            release_existing=1
+            print_info "Release ${tag_name} existante : ajout de l'asset manquant."
             ;;
 
         404)
@@ -914,6 +929,7 @@ publish_release_debian() {
             "${head_message}"
     )"
 
+    if [[ "$release_existing" -eq 0 ]]; then
     api_response="$(
         _forgejo_release_api \
             POST \
@@ -995,6 +1011,7 @@ publish_release_debian() {
 
     print_success \
         "Release créée : DIU ${deb_version} (ID ${release_id})."
+    fi
 
     # ==========================================================
     # Étape 11 - Upload du paquet

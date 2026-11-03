@@ -1467,8 +1467,18 @@ manage_project_action() {
                     ;;
                 *)
                     commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
-                    commit_name="${3:-${commit_timestamp}}"
-                    commit_tag="${4:-v${commit_timestamp}}"
+                    if [[ $# -eq 3 ]]; then
+                        if [[ ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ || "$project_id" == .. ]]; then
+                            print_error 'Identifiant de projet invalide.'
+                            return 1
+                        fi
+                        project_version_set "${DEVOPS_PROJECTS_ROOT}/${project_id}/project.env" "$3" || return 1
+                        commit_name="$3"
+                        commit_tag="v$3"
+                    else
+                        commit_name="${3:-${commit_timestamp}}"
+                        commit_tag="${4:-v${commit_timestamp}}"
+                    fi
                     cicd_project \
                         "${project_id}" \
                         "${commit_name}" \

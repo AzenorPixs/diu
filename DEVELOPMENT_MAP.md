@@ -6,6 +6,8 @@ Maintenance documentaire validée : `ACSM-DIU-20261028-R1`, volets P1 à P4, voi
 
 ## 1. Périmètre et fraîcheur
 
+Delta SCM du 2026-11-03 : [cicd-version-idempotence-cleanup](openspec/changes/archive/2026-11-03-cicd-version-idempotence-cleanup/proposal.md), code non attribué, archivé ; 1 103 tests exécutés dont 2 ignorés. Sauvegarde et nettoyage des tags et releases 2026 effectués ; les comptages historiques excluent ce delta.
+
 Delta du 2026-11-03 : [authenticate-diu-github-updates](openspec/changes/archive/2026-11-03-authenticate-diu-github-updates/proposal.md), code non attribué, archivé le 2026-11-03 ; six tâches validées et 1 088 tests exécutés dont 2 ignorés. Les comptages historiques excluent ce delta.
 
 ```mermaid

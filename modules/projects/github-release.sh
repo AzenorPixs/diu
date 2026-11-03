@@ -19,7 +19,7 @@ projects_github_release_debian() {
     local remote_url="" configured_url="" current_branch="" head_sha="" remote_sha=""
     local api_base="" repository_path="" selected_version="" tag_source="" tag_name=""
     local response="" http_code="" body="" tag_exists=0 object_type="" object_sha="" depth=0
-    local release_id="" upload_url="" payload="" asset_size="" head_message=""
+    local release_id="" upload_url="" payload="" asset_size="" head_message="" release_existing=0 asset_count=0
     # Ancres consommées par les lecteurs et transports via la portée dynamique Bash.
     # shellcheck disable=SC2034
     local github_username="" github_token=""
@@ -141,8 +141,25 @@ projects_github_release_debian() {
     response="$(_github_api_request "$api_base" GET "$repository_path/releases/tags/$tag_name")" || return 1
     http_code="${response%%$'\n'*}"
     if [[ "$http_code" == 200 ]]; then
-        print_error 'Une release existe déjà sur GitHub ; aucune release ni aucun asset ne sera remplacé.'
-        return 1
+        body="${response#*$'\n'}"
+        if [[ "$tag_exists" != 1 ]] || ! jq -e --arg tag "$tag_name" \
+            'type == "object" and .tag_name == $tag and (.assets | type == "array")' <<< "$body" >/dev/null; then
+            print_error 'Release GitHub existante incohérente.'; return 1
+        fi
+        asset_count="$(jq -er --arg name "$deb_filename" '[.assets[] | select(.name == $name)] | length' <<< "$body")" || return 1
+        if [[ "$asset_count" -gt 1 ]]; then
+            print_error 'Assets GitHub ambigus pour cette version.'; return 1
+        fi
+        if [[ "$asset_count" -eq 1 ]]; then
+            if ! jq -e --arg name "$deb_filename" 'any(.assets[]; .name == $name and .state == "uploaded")' <<< "$body" >/dev/null; then
+                print_error 'Asset GitHub existant incomplet ou incohérent.'; return 1
+            fi
+            print_info 'Paquet Debian déjà publié sur GitHub.'
+            return 0
+        fi
+        release_id="$(jq -er '.id | numbers | select(. > 0 and floor == .)' <<< "$body")" || return 1
+        upload_url="$(jq -er '.upload_url | strings | select(length > 0)' <<< "$body")" || return 1
+        release_existing=1
     elif [[ "$http_code" != 404 ]]; then
         print_error "Vérification de release GitHub refusée (HTTP ${http_code})."; return 1
     fi
@@ -156,6 +173,7 @@ projects_github_release_debian() {
         response="$(_github_api_request "$api_base" POST "$repository_path/git/refs" "$payload")" || return 1
         _github_release_created_json "$response" >/dev/null || return 1
     fi
+    if [[ "$release_existing" == 0 ]]; then
     payload="$(jq -n --arg tag "$tag_name" --arg sha "$head_sha" \
         --arg name "$PROJECT_NAME $package_version" --arg message "$head_message" \
         '{tag_name:$tag,target_commitish:$sha,name:$name,body:("Version : "+$tag+"\nCommit : "+$sha+"\nMessage : "+$message),draft:false,prerelease:false}')" || return 1
@@ -171,6 +189,7 @@ projects_github_release_debian() {
     upload_url="$(jq -er '.upload_url | strings | select(length > 0)' <<< "$body")" || {
         print_error "Release créée sans URL d’upload valide ; publication incomplète."; return 1;
     }
+    fi
     response="$(_github_upload_release_asset "$api_base" "$upload_url" "$deb_file" "$repository_path" "$release_id")" || {
         print_error "Release GitHub créée mais incomplète après échec d’upload ; aucun rollback automatique."; return 1;
     }

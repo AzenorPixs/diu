@@ -1494,8 +1494,10 @@ Une clé absente conserve la sélection historique de chaque fonction.
 Le contrat transversal est `openspec/specs/project-version/spec.md`.
 Les règles de packaging sont détaillées dans BUILD.md.
 Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
-une description explicite est conservée. Une collision est refusée avant le
-nouveau commit, sans remplacement de tag. Un arbre inchangé ne crée rien.
+une description explicite est conservée. Une version déjà attribuée interrompt
+le traitement de manière informative avant un nouveau commit, sans remplacer le
+tag. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
+dépôts vérifiés, il peut être créé sur HEAD.
 Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
 qu'il désigne HEAD avant tout transport ; les branches et protections restent
 inchangées (leases Forgejo/GitHub, push normal GitLab).
@@ -1505,6 +1507,10 @@ ou un paquet de version différente bloque la publication. Les autres tags de
 HEAD ne déterminent pas la version lorsque PROJECT_VERSION est présente.
 Les aides décrivent ces règles avant bootstrap. La clé est relue pour chaque
 projet, sans réutilisation de la variable shell éventuellement chargée avant.
+L'argument facultatif de `rid projects cicd <ID PROJECT> [VERSION]` valide et
+met à jour la seule affectation PROJECT_VERSION sans interpréter le fichier.
+Les sélecteurs DIU privilégient les versions stables sur les horodatages ;
+les comparaisons natives dpkg/APT conservent leur ordre et aucun epoch n'est ajouté.
 
 
 ### CI/CD générique et artefacts indépendants
