@@ -208,12 +208,18 @@ ENV_DEVOPS_USER="$1"
                         content.index('# Tests navigateurs extérieurs en mode headless\n'))
         self.assertFalse(prompts.exists())
 
+    def test_configuration_locale_precedes_probe_legend(self):
+        content = self.successful_document(self.run_generation())
+        expected = '## Configuration locale — project.env\n\nLe fichier `project.env`, situé à la racine du projet, est une configuration\nlocale protégée. Sa consultation par les agents relève des sections 9 et 10\nd’AGENTS.md.\n\nPour le travail autorisé, l’agent peut extraire localement les variables\nnon secrètes nécessaires, notamment `PROJECT_*`, `LOCAL_DEFAULT_BRANCH`,\n`GIT_*` et `REMOTE_*`, sans limitation à ces familles. Seul un processus\nlocal parcourt le fichier et restitue les noms et valeurs validés comme\nnon secrets.\n\nLa lecture brute, l’exécution du fichier et son chargement dans\nl’environnement par l’agent sont interdits. L’agent ne doit ni créer,\nni modifier, ni régénérer ce fichier. Aucun secret ne doit être restitué,\naffiché, journalisé ou transmis au modèle.\n\nLes mentions de chargement de variables dans cet inventaire décrivent\nleur utilisation par les outils locaux. Elles n’accordent aucun droit\nsupplémentaire de consultation à l’agent, notamment pour les variables\nd’authentification SSH, OpenCode ou PostgreSQL.\n'
+        self.assertEqual(content.count(expected), 1)
+        self.assertIn(expected + "\nLes sondes système concernent le contexte d'exécution DIU.", content)
+
     def test_hostname_follows_os_with_exact_arguments_and_one_call(self):
         content = self.successful_document(self.run_generation())
         self.assertRegex(content, r"# Système d'exploitation\n\n  \* [^\n]+\n"
                                   r"  \* hvp1\.pixs\.fr\n\n\n# Matériel\n")
         self.assertEqual(self.hostname_log.read_text().splitlines(), ['-f'])
-        self.assertIn('Version : 0.7\n', content)
+        self.assertIn('Version : 0.8\n', content)
 
     def test_hostname_is_refreshed_without_a_hardcoded_value(self):
         first = self.successful_document(self.run_generation())
@@ -308,7 +314,7 @@ ENV_DEVOPS_USER="$1"
         ordered.extend(('# OpenSSH & SSHPASS\n', '# Docker-Compose\n'))
         for before, after in zip(ordered, ordered[1:]):
             self.assertLess(content.index(before), content.index(after))
-        self.assertIn('Version : 0.7\n', content)
+        self.assertIn('Version : 0.8\n', content)
 
     def assert_ssh_section(self, content, ssh_version='10.0p2', sshpass_version='1.10'):
         title = '# OpenSSH & SSHPASS\n'
@@ -455,14 +461,15 @@ ssh() { container_forbidden; }
             'Python - Gestionnaire de paquets', 'Prompts',
             'Tests navigateurs extérieurs en mode headless',
         ])
-        self.assertEqual(re.findall(r'^## (.+)$', content, re.M), ['TPM', 'Chromium', 'Firefox'])
+        self.assertEqual(re.findall(r'^## (.+)$', content, re.M),
+                         ['Configuration locale — project.env', 'TPM', 'Chromium', 'Firefox'])
         for title, version, binary in (('Chromium', '134.0.6998.88', 'chromium'),
                                        ('Firefox', '140.0.4esr', 'firefox')):
             self.assertIn(f'## {title}\n\n  * {version}\n  * {self.host_bin / binary}\n'
                           '  * Mode headless : --headless\n', content)
         self.assertIn('La détection ne vérifie pas le fonctionnement du mode headless.', content)
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
-        self.assertIn('Version : 0.7', content)
+        self.assertIn('Version : 0.8', content)
         self.assert_prompts_section(content)
         opencode_source = "La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env"
         self.assertIn('# OpenCode\n\n  * 1.2.8\n'
@@ -690,7 +697,7 @@ esac
     def test_report_provenance_utc_and_capture_before_probes(self):
         self.environment.update(TZ='Pacific/Kiritimati', SYSTEM_DEBIAN_ENVIRONNEMENT='DOCKER')
         content = self.successful_document(self.run_generation())
-        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.7\n', content)
+        self.assertIn('# DEVOPS.md — Template\n\nVersion : 0.8\n', content)
         expected = (
             'Généré automatiquement par Debian Installeur Unifié (DIU).',
             'Début du relevé (UTC) : 2026-10-09T06:30:00Z',
@@ -1180,7 +1187,7 @@ exit
                 self.assertLess(content.index('# Python - Outils de compilation\n'),
                                 content.index('# Prompts\n'))
                 self.assertEqual(manifest.read_bytes(), initial)
-                self.assertIn('Version : 0.7\n', content)
+                self.assertIn('Version : 0.8\n', content)
                 self.assertNotIn('Cython : 9.9', content)
 
     def test_cython_undeclared_never_discovers_or_probes_environments(self):
@@ -2482,7 +2489,7 @@ exit $?
                     self.assert_test_container_sections(content, True, True)
                     self.assertEqual(content.count('## Dépendances JavaScript du projet\n'), 1)
                     self.assertIn('creation-fixture : déclarée 1.0.0', content)
-                    self.assertIn('Version : 0.7\n', content)
+                    self.assertIn('Version : 0.8\n', content)
                     self.assertIn('  * hvp1.pixs.fr\n', content)
                     self.assert_prompts_section(content)
                     self.assertIn('Début du relevé (UTC) : 2026-10-09T06:30:00Z\n', content)
@@ -2687,7 +2694,7 @@ projects_template_devops() {
             for project in ('template', 'all', 'python-app'):
                 path = root / project
                 content = (path / 'DEVOPS.md').read_bytes()
-                self.assertIn(b'Version : 0.7\n', content)
+                self.assertIn(b'Version : 0.8\n', content)
                 self.assert_test_container_sections(content.decode('utf-8'), True, True)
                 self.assertIn(b'  * hvp1.pixs.fr\n', content)
                 self.assert_prompts_section(content.decode('utf-8'))
@@ -2808,7 +2815,7 @@ projects_template_devops application
                 self.assertIn(f'# Prompts\n\n  * Dossier des prompts : /home/{user}/datas/prompts\n'
                               f'  * Index des prompts : /home/{user}/datas/prompts/INDEX.md\n', content)
                 self.assertNotIn(str(projects_root / 'prompts'), content)
-                self.assertIn('Version : 0.7\n', content)
+                self.assertIn('Version : 0.8\n', content)
 
     def test_real_go_version_from_inaccessible_caller_directory(self):
         if os.geteuid() == 0:
