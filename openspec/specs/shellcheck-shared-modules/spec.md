@@ -1,7 +1,7 @@
 # shellcheck-shared-modules Specification
 
 ## Purpose
-TBD - created by archiving change migrate-env-devops-projects-root. Update Purpose after archive.
+Garantir la validation statique des modules partagés concernés tout en préservant leurs comportements utiles.
 
 ## Requirements
 
