@@ -16,7 +16,7 @@ source "$1/modules/projects/debian-build.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { printf '%s\n' "$*"; }
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { [[ "${GIT_FAIL:-}" != yes ]] || return 71; printf '%s' "${TAGS-v1.2.3}"; }
 date() { printf '2026.11.02.12.00\n'; }

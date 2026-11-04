@@ -19,7 +19,7 @@ check_devops_user() { return 0; }
 install() { mkdir -p -- "${!#}"; }
 projects_template_openspec() { :; }
 projects_template_devops() { :; }
-DEVOPS_USER="../${TEST_CASE_ROOT#/}"
+ENV_DEVOPS_USER="../${TEST_CASE_ROOT#/}"
 DEVOPS_GROUP=tester
 ENV_DEVOPS_PROJECTS_ROOT="$TEST_CASE_ROOT/datas"
 PROJECT_ORCHESTRATED_CODING=Yes

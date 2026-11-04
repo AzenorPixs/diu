@@ -34,7 +34,7 @@ projects_debian_enabled() {
 projects_debian_version() {
     local project_path="$1" tags="" tag="" candidate="" version=""
     if [[ ! -e "$project_path/.git" ]]; then return 0; fi
-    if ! tags="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" tag --points-at HEAD)"; then
+    if ! tags="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" tag --points-at HEAD)"; then
         print_error 'Impossible de consulter les tags du projet source.' >&2
         return 1
     fi

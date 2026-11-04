@@ -44,7 +44,7 @@ github_git_clone() {
 }
 chown() { :; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 github_clone project
@@ -90,7 +90,7 @@ github_update() {
 github_git_clone() { [[ "$3" == merge ]] && mkdir -p "$4"; [[ "$3" != clone ]]; }
 cp() { [[ "$3" != merge ]]; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 github_clone project
@@ -141,7 +141,7 @@ gitlab_git_clone() {
 }
 chown() { :; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 gitlab_clone project
@@ -185,7 +185,7 @@ gitlab_update() {
 }
 gitlab_git_clone() { return 1; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 gitlab_clone project
@@ -226,7 +226,7 @@ gitlab_update() {
 gitlab_git_clone() { mkdir -p "$4"; }
 cp() { return 1; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 gitlab_clone project
@@ -285,7 +285,7 @@ source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*"; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 clone_project source destination
@@ -364,7 +364,7 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 clone_project source destination
@@ -415,7 +415,7 @@ source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$3"
 sync_project projet-test
@@ -504,7 +504,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 print_info() { :; }
 chown() { printf '%s\n' "$@"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$3"
 if [[ "$4" == all ]]; then
@@ -544,7 +544,7 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$3"
 sync_project projet-test
@@ -592,8 +592,8 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_info() { :; }
 sync_project() { printf '%s\n' "$1"; }
-DEVOPS_USER="$2"
-ENV_DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"
+ENV_DEVOPS_USER="$2"
+ENV_DEVOPS_PROJECTS_ROOT="/home/${ENV_DEVOPS_USER}/datas"
 sync_project_all
 '''
             result = subprocess.run(
@@ -642,7 +642,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 print_info() { :; }
 chown() { printf '%s\n' "$@"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$3"
 if [[ "$4" == all ]]; then
@@ -693,7 +693,7 @@ print_error() { :; }
 print_info() { :; }
 sync_project_template_is_valid() { return 0; }
 sync_project() { printf '%s\n' "$1"; [[ "$1" != first ]]; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 sync_project_all
 '''
             result = subprocess.run(
@@ -767,7 +767,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 print_info() { :; }
 chown() { printf '%s\n' "$@"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$3"
 if [[ "$4" == all ]]; then
@@ -816,7 +816,7 @@ set -euo pipefail
 source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 sync_project_all
 '''
                     result = subprocess.run(
@@ -846,7 +846,7 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 check_devops_user() { return 0; }
 install() { printf 'install-called\n'; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$3"
 create_project projet-test
@@ -904,7 +904,7 @@ update_projects() {
 projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
 git() { printf 'unexpected-git-call\n'; return 99; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
 ENV_DEVOPS_PROJECTS_ROOT="$3"
 create_project projet-test
@@ -1015,7 +1015,7 @@ _gitlab_read_username() { gitlab_username=user; }
 _gitlab_read_token() { gitlab_token=token; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
 sleep() { :; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 PATH="$3:$PATH"
@@ -1185,7 +1185,7 @@ projects_docker_build() { :; }
 projects_forgejo_release() { :; }
 projects_gitlab_release() { :; }
 projects_github_release() { :; }
-DEVOPS_USER=test
+ENV_DEVOPS_USER=test
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 cicd_project project 2026.09.23.13.38 v2026.09.23.13.38
 '''
@@ -1281,7 +1281,7 @@ print_success() { :; }
 _github_read_username() { github_username=GitHubUser; }
 _github_read_token() { github_token=token; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 PATH="$3:$PATH"
 export PATH DOCKER_LOG="$4"
@@ -1335,7 +1335,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
 sleep() { printf '%s\n' "$1" >> "$SLEEP_LOG"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 PATH="$2:$PATH"
 export PATH DOCKER_LOG DOCKER_PUSH_STATE SLEEP_LOG
 _gitlab_docker_push_with_retry 'git.ec-nantes.fr:5050/adema261/pfd:1.0' "$3"
@@ -1387,7 +1387,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
 sleep() { printf '%s\n' "$1" >> "$SLEEP_LOG"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 PATH="$2:$PATH"
 export PATH DOCKER_LOG SLEEP_LOG
 _gitlab_docker_push_with_retry 'git.ec-nantes.fr:5050/adema261/pfd:1.0' "$3"
@@ -1451,7 +1451,7 @@ source "$1/modules/projects/git.sh"
 print_info() { printf 'INFO:%s\n' "$*"; }
 print_success() { printf 'SUCCES:%s\n' "$*"; }
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { if [[ "$*" == *'rev-parse --verify HEAD'* ]]; then printf '%s\n' "$LOCAL_HEAD"; else printf 'v1.0\n'; fi; }
 _gitlab_ensure_credentials() { return 0; }

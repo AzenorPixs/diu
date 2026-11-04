@@ -72,7 +72,7 @@ projects_github_release_debian() {
     done
     if ! check_devops_user; then return 1; fi
     remote_url="${REMOTE_GITHUB_BASE_URL%/}/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}.git"
-    configured_url="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" remote get-url "$REMOTE_GITHUB_NAME")" || return 1
+    configured_url="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" remote get-url "$REMOTE_GITHUB_NAME")" || return 1
     if [[ "$configured_url" != "$remote_url" ]]; then
         print_error 'Le remote GitHub ne correspond pas à project.env.'
         return 1
@@ -110,16 +110,16 @@ projects_github_release_debian() {
     print_info 'GitHub : identifiants disponibles.'
     github_git_fetch "$project_path" "$REMOTE_GITHUB_NAME" || return 1
     print_info "GitHub : récupération Git effectuée depuis $REMOTE_GITHUB_NAME."
-    current_branch="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" branch --show-current)" || return 1
-    head_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse HEAD)" || return 1
-    remote_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse "refs/remotes/${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}")" || return 1
+    current_branch="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" branch --show-current)" || return 1
+    head_sha="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse HEAD)" || return 1
+    remote_sha="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse "refs/remotes/${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH}")" || return 1
     if [[ "$current_branch" != "$LOCAL_DEFAULT_BRANCH" || -z "$head_sha" || -z "$remote_sha" ]]; then
         print_error 'La branche locale doit être attendue et HEAD synchronisé avec GitHub.'
         return 1
     fi
     if [[ "$head_sha" != "$remote_sha" ]] &&
         { [[ "${PROJECTS_CICD_REPLAY:-0}" != 1 ]] ||
-          ! runuser -u "$DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$head_sha" "$remote_sha"; }; then
+          ! runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$head_sha" "$remote_sha"; }; then
         print_error 'Le commit du tag est absent de la branche GitHub distante.'
         return 1
     fi
@@ -137,7 +137,7 @@ projects_github_release_debian() {
     else
         print_info "GitHub : commit du tag présent dans ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH} (${head_sha:0:12})."
     fi
-    head_message="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" log -1 --format=%s)" || return 1
+    head_message="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" log -1 --format=%s)" || return 1
 
     response="$(_github_api_request "$api_base" GET "$repository_path/git/ref/tags/$tag_name")" || return 1
     http_code="${response%%$'\n'*}"; body="${response#*$'\n'}"

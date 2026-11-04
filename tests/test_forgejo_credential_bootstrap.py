@@ -13,7 +13,7 @@ source "$1/modules/projects/git.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { :; }
 print_success() { :; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 _forgejo_resolve_remote() {
     forgejo_host=forge.example.test

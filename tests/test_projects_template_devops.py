@@ -2423,7 +2423,7 @@ projects_template_devops_javascript() {
         self.configure_tpm()
         projects_source = (ROOT / 'modules/projects/projects.sh').read_text()
         projects_source = projects_source.replace(
-            'local template_path="/home/${DEVOPS_USER}/datas/template"',
+            'local template_path="/home/${ENV_DEVOPS_USER}/datas/template"',
             'local template_path="$TEST_DEVOPS_HOME/datas/template"')
         (self.template / 'README.md').write_text('# Template\n')
         self.javascript_manifest('frontend/package.json', dependencies={'creation-fixture': '1.0.0'})
@@ -2447,7 +2447,7 @@ projects_template_devops() {
     if [[ "$TEST_CREATE_FAILURE" == 1 ]]; then return 9; fi
     original_template_devops "$@"
 }
-DEVOPS_USER="$ENV_DEVOPS_USER"
+ENV_DEVOPS_USER="$ENV_DEVOPS_USER"
 DEVOPS_GROUP="$(id -gn)"
 ENV_DEVOPS_PROJECTS_ROOT="$TEST_DEVOPS_HOME/datas"
 create_project "$TEST_CREATED_PROJECT"

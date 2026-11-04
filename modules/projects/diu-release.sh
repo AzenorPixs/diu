@@ -214,11 +214,11 @@ publish_release_debian() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour ${DEVOPS_USER}."
+            "Git n'est pas accessible pour ${ENV_DEVOPS_USER}."
         return 1
     fi
 
@@ -382,7 +382,7 @@ publish_release_debian() {
     remote_branch_ref="${remote_name}/${remote_default_branch}"
 
     # Vérification du dépôt Git local
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
@@ -395,7 +395,7 @@ publish_release_debian() {
     configured_remote_url=""
 
     if configured_remote_url="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             remote get-url "${remote_name}" 2>/dev/null
     )"; then
@@ -605,7 +605,7 @@ publish_release_debian() {
         "git fetch ${remote_name} authentifié effectué."
 
     current_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             branch --show-current \
             2>/dev/null
@@ -617,7 +617,7 @@ publish_release_debian() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" \
         rev-parse --verify \
         "${remote_branch_ref}" >/dev/null 2>&1; then
@@ -628,14 +628,14 @@ publish_release_debian() {
     fi
 
     head_sha="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             rev-parse HEAD \
             2>/dev/null
     )"
 
     remote_branch_sha="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             rev-parse "${remote_branch_ref}" \
             2>/dev/null
@@ -649,7 +649,7 @@ publish_release_debian() {
 
     if [[ "${head_sha}" != "${remote_branch_sha}" ]]; then
         if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]] &&
-            runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" merge-base --is-ancestor "${head_sha}" "${remote_branch_sha}"; then
+            runuser -u "${ENV_DEVOPS_USER}" -- git -C "${project_path}" merge-base --is-ancestor "${head_sha}" "${remote_branch_sha}"; then
             print_info "Le commit du tag est présent dans ${remote_branch_ref}."
         else
         print_error \
@@ -669,7 +669,7 @@ publish_release_debian() {
     fi
 
     head_message="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             log -1 \
             --format='%s' \

@@ -116,7 +116,7 @@ réel. Les bibliothèques et les modules distribués avec l'application sont
 ensuite chargés avec des chemins relatifs à cette racine.
 
 Les opérations nécessitant un dépôt de projet ou Git sont normalement
-exécutées sous `DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. Le
+exécutées sous `ENV_DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. Le
 script principal vérifie également que l'exécution globale dispose des droits
 root lorsque l'opération modifie le système.
 
@@ -750,6 +750,12 @@ l'ordre des lignes. La déclaration unitaire `env_devops_user.sh` est chargée
 une fois avant `env_devops_projects_root.sh`. Elle est `STATIC/ENABLE`, scope
 `environnements`, avec `root` comme défaut; une valeur existante est conservée.
 Sans utilisateur ni racine déjà définis, le chemin devient `/home/root/datas`.
+Si seul l'ancien `DEVOPS_USER` est défini, sa valeur est reprise pour
+`ENV_DEVOPS_USER`; les consommateurs du code utilisent le nouveau nom.
+Une racine historique utilisant `${DEVOPS_USER}` est conservée jusqu'à ce que
+sa valeur issue du chargement habituel soit persistée sous le nouveau nom,
+puis son ancienne affectation est retirée au passage suivant. Les substitutions
+de commande et autres expressions ambiguës restent refusées.
 
 Le résumé de mise à jour affiche `DIU_VERSION`, déclarée dynamiquement dans le
 scope `diu` depuis la version retournée par `dpkg-query` pour le paquet `diu`.
@@ -1699,7 +1705,7 @@ En mode unitaire ou groupé,
 une destination existante est préservée, y compris ses droits et son propriétaire,
 et une destination absente n'est pas créée. Les ressources
 OpenCode et CAB du projet (`.opencode/{commands,config,skills,broker}`) et le
-broker global `/home/${DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
+broker global `/home/${ENV_DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
 droits, propriétaire et caches `__pycache__` compris. Leurs sources ne sont
 pas consultées ni exigées ; leurs destinations absentes ne sont pas créées.
 Le document `DEVOPS.md` reste préservé et n'est pas exigé dans le modèle.
@@ -1724,7 +1730,7 @@ Les configurations de fournisseurs sont différentielles. Chaque fonction
 `<provider>_update` valide d'abord les variables générales, puis ne modifie que
 son propre bloc dans `project.env`. L'écriture passe par un fichier temporaire
 et un remplacement atomique ; le fichier final reste propriété de
-`DEVOPS_USER:DEVOPS_GROUP` avec le mode `660`.
+`ENV_DEVOPS_USER:DEVOPS_GROUP` avec le mode `660`.
 
 ### Arguments publics de construction Docker
 
@@ -1823,7 +1829,7 @@ Son mécanisme est le suivant :
 2. créer un répertoire temporaire de mode `700` ;
 3. créer un fichier credentials de mode `600` ;
 4. fournir à Git un script `GIT_ASKPASS` temporaire ne contenant pas le token ;
-5. exécuter Git sous `DEVOPS_USER` avec `GIT_TERMINAL_PROMPT=0` ;
+5. exécuter Git sous `ENV_DEVOPS_USER` avec `GIT_TERMINAL_PROMPT=0` ;
 6. supprimer systématiquement les ressources temporaires par `trap`.
 
 Le token n'est ni placé dans les arguments de Git, ni exposé par une invite
@@ -1882,7 +1888,7 @@ peuvent lire et modifier les identifiants ; les permissions des répertoires
 et les ACL restent inchangées.
 
 Les nouveaux fichiers restent créés en `600` via un fichier temporaire puis
-installés avec les droits de `DEVOPS_USER:DEVOPS_GROUP`. Les fichiers secrets
+installés avec les droits de `ENV_DEVOPS_USER:DEVOPS_GROUP`. Les fichiers secrets
 temporaires Git et curl restent en `600` et les répertoires temporaires privés
 en `700`, avec nettoyage après utilisation, y compris en cas d'échec.
 
@@ -2031,7 +2037,7 @@ doivent être ni lus à des fins documentaires, ni inscrits dans les sources,
 les spécifications ou les journaux.
 
 Les opérations nécessitant root doivent rester explicites. Les opérations Git
-sur les projets sont exécutées sous `DEVOPS_USER` afin de préserver le
+sur les projets sont exécutées sous `ENV_DEVOPS_USER` afin de préserver le
 propriétaire et l'environnement du dépôt.
 
 ## Validation technique
@@ -2085,7 +2091,7 @@ Les vérifications doivent couvrir, lorsque pertinent :
 - l'absence de modification hors périmètre.
 
 Les opérations OpenSpec du projet sont exécutées depuis la racine du projet,
-sous l'utilisateur `DEVOPS_USER`. Les commandes de validation strictes
+sous l'utilisateur `ENV_DEVOPS_USER`. Les commandes de validation strictes
 exposées par le DIUE sont notamment :
 
 ```bash

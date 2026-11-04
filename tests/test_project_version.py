@@ -90,9 +90,9 @@ print_info() { printf '%s\n' "$*"; }
 print_success() { printf '%s\n' "$*"; }
 print_title() { :; }
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-ENV_DEVOPS_USER="$DEVOPS_USER"
+ENV_DEVOPS_USER="$ENV_DEVOPS_USER"
 project="$2/project"
 '''
         return subprocess.run(['bash', '-c', prefix + script, 'fixture', str(ROOT), str(self.base)],

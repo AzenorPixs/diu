@@ -26,10 +26,17 @@ alphabétique les présente dans l'ordre inverse. En son absence, une valeur
 utilisateur déjà chargée reste utilisable; sinon le diagnostic prévu s'applique.
 
 La déclaration `ENV_DEVOPS_USER` est `STATIC/ENABLE`, scope `environnements`,
-avec `root` par défaut; une valeur déjà définie reste prioritaire. Si une
+avec `root` par défaut; une valeur déjà définie reste prioritaire, puis la
+valeur historique `DEVOPS_USER` est reprise si elle existe. Si une
 expression persistée requiert cet utilisateur avant le générateur, la
 déclaration utilisateur est chargée en amont et ne sera pas relue dans ce
 même cycle. Le défaut de racine issu de `root` vaut `/home/root/datas`.
+
+Le modèle historique de racine contenant `${DEVOPS_USER}` est accepté sans
+`eval` ni substitution de commande : il reste en place au premier passage,
+sa valeur est produite par le chargement historique puis persistée sous le
+nouveau nom; un passage ultérieur retire l'ancienne affectation. Les autres
+expressions nécessitant une interprétation restent refusées.
 
 L'inventaire ciblé des déclarations `modules/diu/variables/` au 2026-11-03
 identifie cette dépendance au sein des variables `ENV_*`; les autres

@@ -31,7 +31,7 @@ sync_project() {
     local project_id="${1:-}"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
-    local template_path="/home/${DEVOPS_USER}/datas/template"
+    local template_path="/home/${ENV_DEVOPS_USER}/datas/template"
     local staging_path=""
     local project_name_sed=""
     local project_id_sed=""
@@ -130,7 +130,7 @@ sync_project() {
         synchronized_files+=("${project_path}/${template_file}")
     done
 
-    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" \
+    if ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${synchronized_files[@]}"; then
 
         rm -rf -- "${staging_path}"
@@ -143,7 +143,7 @@ sync_project() {
 }
 
 sync_project_all() {
-    local projects_root="/home/${DEVOPS_USER}/datas"
+    local projects_root="/home/${ENV_DEVOPS_USER}/datas"
     local template_path="${projects_root}/template"
     local project_path=""
     local project_id=""
@@ -342,7 +342,7 @@ clone_project() {
         return 1
     fi
 
-    if ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${staging_path}"; then
+    if ! chown -R "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${staging_path}"; then
         rm -rf -- "${staging_path}"
         print_error "Impossible de définir le propriétaire du projet cloné."
         return 1
@@ -533,7 +533,7 @@ update_projects() {
         return 1
     fi
 
-    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+    if ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
         ! chmod 660 "${project_env}"; then
         print_error "Impossible de définir les droits de ${project_env}."
         return 1
@@ -547,7 +547,7 @@ create_project() {
     local project_id="${1:-}"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
-    local template_path="/home/${DEVOPS_USER}/datas/template"
+    local template_path="/home/${ENV_DEVOPS_USER}/datas/template"
     local project_name=""
     local project_name_sed=""
     local project_id_sed=""
@@ -575,7 +575,7 @@ create_project() {
     fi
 
     if ! install -d \
-        -o "${DEVOPS_USER}" \
+        -o "${ENV_DEVOPS_USER}" \
         -g "${DEVOPS_GROUP}" \
         -m 2770 \
         "${project_path}"; then
@@ -639,7 +639,7 @@ create_project() {
         fi
     done < <(find "${project_path}" -type f -name '*.md' -print0)
 
-    if ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_path}"; then
+    if ! chown -R "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${project_path}"; then
         print_error "Impossible de définir le propriétaire du projet : ${project_path}"
         return 1
     fi

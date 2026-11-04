@@ -10,6 +10,9 @@ variable_config_file="/root/diu/config/${scope}.env"
 
 if [[ "$state" == ENABLE ]]; then
     if [[ -z "${ENV_DEVOPS_USER+x}" ]]; then
+        if [[ -n "${DEVOPS_USER+x}" ]]; then
+            default_value="$DEVOPS_USER"
+        fi
         if ! install -d -m 0755 "$(dirname "$variable_config_file")"; then
             printf '%s\n' 'ENV_DEVOPS_USER : création du répertoire impossible.' >&2
             return 1
