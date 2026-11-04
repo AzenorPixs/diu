@@ -89,10 +89,10 @@ print_error() { printf '%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { printf '%s\n' "$*"; }
 print_title() { :; }
-DEVOPS_PROJECTS_ROOT="$2"
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-ENV_DEVOPS_USER="$DEVOPS_USER"
+ENV_DEVOPS_USER="$ENV_DEVOPS_USER"
 project="$2/project"
 '''
         return subprocess.run(['bash', '-c', prefix + script, 'fixture', str(ROOT), str(self.base)],
@@ -138,6 +138,8 @@ printf '%s|%s' "$name" "$tag"
     def prepare_debian_sources(self):
         (self.project / 'lib').mkdir()
         (self.project / 'modules').mkdir()
+        (self.project / 'config').mkdir()
+        (self.project / 'config/hosts.json').write_text('[]\n')
         (self.project / 'root-install-debian.sh').write_text('#!/usr/bin/env bash\nexit 0\n')
         (self.project / 'build').mkdir()
         recipe = json.loads((ROOT / 'build/debian-package.json').read_text())

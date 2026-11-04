@@ -20,10 +20,10 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 create_project() {
     printf 'create\n'
-    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
-    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/replaced.txt"
-    printf 'kept\n' > "${DEVOPS_PROJECTS_ROOT}/$1/template-only.txt"
-    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+    mkdir -p "${ENV_DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/replaced.txt"
+    printf 'kept\n' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/template-only.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 github_update() {
     printf 'update\n'
@@ -32,7 +32,7 @@ github_update() {
         'REMOTE_GITHUB_OWNER=owner' \
         'REMOTE_GITHUB_REPOSITORY=repository' \
         'REMOTE_GITHUB_BRANCH=main' \
-        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+        > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 github_git_clone() {
     printf 'clone\n'
@@ -44,9 +44,9 @@ github_git_clone() {
 }
 chown() { :; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 github_clone project
 '''
             result = subprocess.run(
@@ -75,9 +75,9 @@ source "$1/modules/projects/git.sh"
 print_error() { :; }
 print_success() { :; }
 create_project() {
-    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
-    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
-    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+    mkdir -p "${ENV_DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 github_update() {
     printf '%s\n' \
@@ -85,14 +85,14 @@ github_update() {
         'REMOTE_GITHUB_OWNER=owner' \
         'REMOTE_GITHUB_REPOSITORY=repository' \
         'REMOTE_GITHUB_BRANCH=main' \
-        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+        > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 github_git_clone() { [[ "$3" == merge ]] && mkdir -p "$4"; [[ "$3" != clone ]]; }
 cp() { [[ "$3" != merge ]]; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 github_clone project
 '''.replace('$3', failing_step)
                 result = subprocess.run(
@@ -117,10 +117,10 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 create_project() {
     printf 'create\n'
-    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
-    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/replaced.txt"
-    printf 'kept\n' > "${DEVOPS_PROJECTS_ROOT}/$1/template-only.txt"
-    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+    mkdir -p "${ENV_DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/replaced.txt"
+    printf 'kept\n' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/template-only.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 gitlab_update() {
     printf 'update\n'
@@ -129,7 +129,7 @@ gitlab_update() {
         'REMOTE_GITLAB_OWNER=owner' \
         'REMOTE_GITLAB_REPOSITORY=repository' \
         'REMOTE_GITLAB_BRANCH=main' \
-        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+        > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 gitlab_git_clone() {
     printf 'clone\n'
@@ -141,9 +141,9 @@ gitlab_git_clone() {
 }
 chown() { :; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 gitlab_clone project
 '''
             result = subprocess.run(
@@ -171,9 +171,9 @@ source "$1/modules/projects/git.sh"
 print_error() { :; }
 print_success() { :; }
 create_project() {
-    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
-    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
-    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+    mkdir -p "${ENV_DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 gitlab_update() {
     printf '%s\n' \
@@ -181,13 +181,13 @@ gitlab_update() {
         'REMOTE_GITLAB_OWNER=owner' \
         'REMOTE_GITLAB_REPOSITORY=repository' \
         'REMOTE_GITLAB_BRANCH=main' \
-        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+        > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 gitlab_git_clone() { return 1; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 gitlab_clone project
 '''
             result = subprocess.run(
@@ -211,9 +211,9 @@ source "$1/modules/projects/git.sh"
 print_error() { :; }
 print_success() { :; }
 create_project() {
-    mkdir -p "${DEVOPS_PROJECTS_ROOT}/$1"
-    printf 'template\n' > "${DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
-    printf 'PROJECT_ID=%s\n' "$1" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+    mkdir -p "${ENV_DEVOPS_PROJECTS_ROOT}/$1"
+    printf 'template\n' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/kept.txt"
+    printf 'PROJECT_ID=%s\n' "$1" > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 gitlab_update() {
     printf '%s\n' \
@@ -221,14 +221,14 @@ gitlab_update() {
         'REMOTE_GITLAB_OWNER=owner' \
         'REMOTE_GITLAB_REPOSITORY=repository' \
         'REMOTE_GITLAB_BRANCH=main' \
-        > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+        > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 gitlab_git_clone() { mkdir -p "$4"; }
 cp() { return 1; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 gitlab_clone project
 '''
             result = subprocess.run(
@@ -285,9 +285,9 @@ source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*"; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 clone_project source destination
 '''
             result = subprocess.run(
@@ -364,9 +364,9 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 clone_project source destination
 '''
             destination_path = projects_root / 'destination'
@@ -415,9 +415,9 @@ source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 sync_project projet-test
 '''
             result = subprocess.run(
@@ -504,9 +504,9 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 print_info() { :; }
 chown() { printf '%s\n' "$@"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 if [[ "$4" == all ]]; then
     sync_project_all
     sync_project_all
@@ -544,9 +544,9 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_success() { :; }
 chown() { :; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 sync_project projet-test
 '''
             result = subprocess.run(
@@ -592,8 +592,8 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 print_info() { :; }
 sync_project() { printf '%s\n' "$1"; }
-DEVOPS_USER="$2"
-DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"
+ENV_DEVOPS_USER="$2"
+ENV_DEVOPS_PROJECTS_ROOT="/home/${ENV_DEVOPS_USER}/datas"
 sync_project_all
 '''
             result = subprocess.run(
@@ -642,9 +642,9 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 print_info() { :; }
 chown() { printf '%s\n' "$@"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 if [[ "$4" == all ]]; then
     sync_project_all
     sync_project_all
@@ -693,7 +693,7 @@ print_error() { :; }
 print_info() { :; }
 sync_project_template_is_valid() { return 0; }
 sync_project() { printf '%s\n' "$1"; [[ "$1" != first ]]; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 sync_project_all
 '''
             result = subprocess.run(
@@ -767,9 +767,9 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_success() { :; }
 print_info() { :; }
 chown() { printf '%s\n' "$@"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 if [[ "$4" == all ]]; then
     sync_project_all
     sync_project_all
@@ -816,7 +816,7 @@ set -euo pipefail
 source "$1/modules/projects/projects.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 sync_project_all
 '''
                     result = subprocess.run(
@@ -846,9 +846,9 @@ source "$1/modules/projects/projects.sh"
 print_error() { :; }
 check_devops_user() { return 0; }
 install() { printf 'install-called\n'; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 create_project projet-test
 '''
             result = subprocess.run(
@@ -899,14 +899,14 @@ check_devops_user() { return 0; }
 install() { mkdir -p "${!#}"; }
 chown() { :; }
 update_projects() {
-    printf 'PROJECT_ID=%q\nPROJECT_NAME=%q\n' "$1" 'Projet & modèle' > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+    printf 'PROJECT_ID=%q\nPROJECT_NAME=%q\n' "$1" 'Projet & modèle' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
 git() { printf 'unexpected-git-call\n'; return 99; }
-DEVOPS_USER="$2"
+ENV_DEVOPS_USER="$2"
 DEVOPS_GROUP=devops
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 create_project projet-test
 '''
             result = subprocess.run(
@@ -996,7 +996,7 @@ print_info() { :; }
 print_success() { :; }
 gitlab_update() {
     printf 'gitlab_update\n'
-    cat > "${DEVOPS_PROJECTS_ROOT}/$1/project.env" <<'EOF'
+    cat > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env" <<'EOF'
 PROJECT_ID=pfd
 PROJECT_NAME=PFD
 PROJECT_TYPE=docker
@@ -1015,9 +1015,9 @@ _gitlab_read_username() { gitlab_username=user; }
 _gitlab_read_token() { gitlab_token=token; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
 sleep() { :; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 PATH="$3:$PATH"
 export PATH
 export DOCKER_LOG="$4"
@@ -1081,7 +1081,7 @@ projects_docker_build() { printf 'docker_build\n'; }
 projects_forgejo_release() { printf 'forgejo_release\n'; }
 projects_gitlab_release() { printf 'gitlab_release\n'; }
 projects_github_release() { printf 'github_release\n'; }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 cicd_project project commit vcommit
 '''
             result = subprocess.run(
@@ -1118,7 +1118,7 @@ projects_docker_build() { printf 'unexpected\n'; }
 projects_forgejo_release() { printf 'unexpected\n'; }
 projects_gitlab_release() { printf 'unexpected\n'; }
 projects_github_release() { printf 'unexpected\n'; }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 cicd_project project commit vcommit
 '''
             result = subprocess.run(
@@ -1185,8 +1185,8 @@ projects_docker_build() { :; }
 projects_forgejo_release() { :; }
 projects_gitlab_release() { :; }
 projects_github_release() { :; }
-DEVOPS_USER=test
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=test
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 cicd_project project 2026.09.23.13.38 v2026.09.23.13.38
 '''
             result = subprocess.run(
@@ -1221,7 +1221,7 @@ print_title() { :; }
 print_error() { :; }
 git_commit() { :; }
 forgejo_push() { return 1; }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 cicd_project project commit v1.2.3
 '''
             result = subprocess.run(
@@ -1281,8 +1281,8 @@ print_success() { :; }
 _github_read_username() { github_username=GitHubUser; }
 _github_read_token() { github_token=token; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 PATH="$3:$PATH"
 export PATH DOCKER_LOG="$4"
 projects_github_release project || exit $?
@@ -1335,7 +1335,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
 sleep() { printf '%s\n' "$1" >> "$SLEEP_LOG"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 PATH="$2:$PATH"
 export PATH DOCKER_LOG DOCKER_PUSH_STATE SLEEP_LOG
 _gitlab_docker_push_with_retry 'git.ec-nantes.fr:5050/adema261/pfd:1.0' "$3"
@@ -1387,7 +1387,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
 runuser() { shift 2; [[ "${1:-}" == "--" ]] && shift; "$@"; }
 sleep() { printf '%s\n' "$1" >> "$SLEEP_LOG"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 PATH="$2:$PATH"
 export PATH DOCKER_LOG SLEEP_LOG
 _gitlab_docker_push_with_retry 'git.ec-nantes.fr:5050/adema261/pfd:1.0' "$3"
@@ -1451,8 +1451,8 @@ source "$1/modules/projects/git.sh"
 print_info() { printf 'INFO:%s\n' "$*"; }
 print_success() { printf 'SUCCES:%s\n' "$*"; }
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
-DEVOPS_USER=fixture
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=fixture
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { if [[ "$*" == *'rev-parse --verify HEAD'* ]]; then printf '%s\n' "$LOCAL_HEAD"; else printf 'v1.0\n'; fi; }
 _gitlab_ensure_credentials() { return 0; }
 _gitlab_read_username() { gitlab_username=fixture-user; }

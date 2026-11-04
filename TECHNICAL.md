@@ -105,7 +105,7 @@ diagnostic explicite. La référence est
 |---|---|---|
 | Racine de développement | `/home/devops/datas/diu` | Sources, Git, OpenSpec et artefacts de développement |
 | Installation de production | `/root/diu` | Application installée et configuration locale |
-| Projet géré | `${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` | Répertoire d'un projet administré par le DIUE |
+| Projet géré | `${ENV_DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` | Répertoire d'un projet administré par le DIUE |
 | Point d'entrée | `root-install-debian.sh` | Bootstrap, aide et dispatch |
 | Configuration historique | `/root/diu/variables.sh` | Variables locales conservées pour compatibilité |
 | Configuration par domaine | `/root/diu/config/<scope>.env` | Valeurs persistantes du nouveau mécanisme |
@@ -113,12 +113,22 @@ diagnostic explicite. La référence est
 
 `root-install-debian.sh` calcule `BASH_SCRIPT_PATH` depuis son emplacement
 réel. Les bibliothèques et les modules distribués avec l'application sont
-ensuite chargés avec des chemins relatifs à cette racine.
+ensuite chargés avec des chemins relatifs à cette racine. Le paquet crée
+`/usr/local/bin/diu` vers le point d'entrée installé si le nom est libre. Après
+chargement de la configuration et vérification des droits, DIU crée
+`/usr/local/bin/diut` vers `${ENV_DEVOPS_PROJECTS_ROOT}/diu/root-install-debian.sh`
+si ce fichier existe et si le nom est libre. Toute entrée existante, même un
+lien pendant, est conservée ; une erreur de création est signalée. Les alias
+`rid` et `ridt` restent disponibles pendant la transition.
 
 Les opérations nécessitant un dépôt de projet ou Git sont normalement
-exécutées sous `DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. Le
+exécutées sous `ENV_DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. Le
 script principal vérifie également que l'exécution globale dispose des droits
 root lorsque l'opération modifie le système.
+
+Le provisionnement des comptes techniques DevOps, Docker et IA ne définit
+pas de mot de passe et conserve celui des comptes existants. Les commandes
+exécutées par root sous ces identités ne nécessitent pas leur mot de passe.
 
 ### Accès sudo sans mot de passe au compte DevOps
 
@@ -247,7 +257,7 @@ La spécification de référence est
 ### Template OpenSpec des projets
 
 `rid projects template openspec <ID PROJECT>` prépare OpenSpec dans
-`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
+`${ENV_DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
 `/home/${ENV_DEVOPS_USER}/datas/<ID PROJECT>`). La fonction
 `projects_template_openspec`, dans `modules/projects/template.sh`, utilise
 `su - "$ENV_DEVOPS_USER" -c` et le shell de connexion pour exécuter :
@@ -423,7 +433,7 @@ rubrique « Python - Outils de compilation », et avant les
 tests navigateurs, indique le dossier `/home/${ENV_DEVOPS_USER}/datas/prompts`
 et son index `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`. Ces chemins
 réutilisent le domicile DevOps construit depuis `ENV_DEVOPS_USER`, indépendamment
-de `DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
+de `ENV_DEVOPS_PROJECTS_ROOT`. La rubrique ne lit, ne sonde ni ne crée ces ressources ;
 leur absence n'empêche pas la génération.
 
 ### Matériel TPM dans le document DevOps
@@ -738,6 +748,25 @@ ci-dessus, les valeurs historiques ne sont pas transférées. Le nettoyage
 intervient à la prochaine exécution du DIU, sans sauvegarde automatique des
 autres anciennes affectations supprimées.
 
+La racine des projets est `ENV_DEVOPS_PROJECTS_ROOT`, déclarée dans le scope
+`environnements` en `STATIC` et `ENABLE`. Une valeur nouvelle configurée
+prévaut; sinon l'ancienne valeur littérale `DEVOPS_PROJECTS_ROOT` est migrée.
+À défaut, le chemin `/home/${ENV_DEVOPS_USER}/datas` est développé puis persisté
+comme littéral; l'indisponibilité de `ENV_DEVOPS_USER` après son initialisation
+est signalée. Si un ancien
+fichier persiste une expression dépendant de cet utilisateur, le chargeur
+prépare sa déclaration littérale avant de sourcer le fichier, quel que soit
+l'ordre des lignes. La déclaration unitaire `env_devops_user.sh` est chargée
+une fois avant `env_devops_projects_root.sh`. Elle est `STATIC/ENABLE`, scope
+`environnements`, avec `root` comme défaut; une valeur existante est conservée.
+Sans utilisateur ni racine déjà définis, le chemin devient `/home/root/datas`.
+Si seul l'ancien `DEVOPS_USER` est défini, sa valeur est reprise pour
+`ENV_DEVOPS_USER`; les consommateurs du code utilisent le nouveau nom.
+Une racine historique utilisant `${DEVOPS_USER}` est conservée jusqu'à ce que
+sa valeur issue du chargement habituel soit persistée sous le nouveau nom,
+puis son ancienne affectation est retirée au passage suivant. Les substitutions
+de commande et autres expressions ambiguës restent refusées.
+
 Le résumé de mise à jour affiche `DIU_VERSION`, déclarée dynamiquement dans le
 scope `diu` depuis la version retournée par `dpkg-query` pour le paquet `diu`.
 L’ancienne valeur `VERSION_ALIAS` n’est pas transférée.
@@ -770,7 +799,7 @@ valeur distincte `POSTFIX_RELAY_HOST` continue à configurer le relais.
 Le contrôle de `qemu-guest-agent` utilise `SOFTWARES_APT_QEMU_GUEST_AGENT` dans
 `softwares.env`; le paquet reste désactivé par défaut.
 Le contrôle Syncthing utilise `SOFTWARES_APT_SYNCTHING` dans `softwares.env`
-pour l’installation du paquet et le rendu conditionnel de `.stignore`.
+pour l’installation du paquet ; le DIU ne crée ni ne modifie `.stignore`.
 Le contrôle Webmin utilise `SOFTWARES_APT_WEBMIN` dans `softwares.env`; son
 dépôt APT reste contrôlé séparément par `SYSTEM_APT_WEBMIN`.
 Le contrôle de l’agent Wazuh utilise `SOFTWARES_APT_WAZUH_AGENT` dans
@@ -974,8 +1003,8 @@ du point d'entrée utilisent ce contrôle.
 `DOCKER_STACK_TRAEFIK_DOCKHAND` en `STATIC`, `ENABLE`, scope `docker`, défaut
 `0`. Une valeur existante `0` ou `1` est conservée; une valeur absente est
 persistée dans `/root/diu/config/docker.env` avec le défaut `0`. Les
-consommateurs existants de la stack gardent ce nom; `1` active la stack et les
-entrées d’hôtes associées.
+consommateurs existants de la stack gardent ce nom; `1` active la stack.
+La génération système de `/etc/hosts` ne crée plus les entrées de cette stack.
 Le réglage de mise à jour est `DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE`, déclaré
 en `STATIC`, `ENABLE`, scope `docker`, défaut `0`; l’ancienne valeur
 `DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=0|1` est migrée vers `docker.env`.
@@ -986,7 +1015,8 @@ en `STATIC`, `ENABLE`, scope `docker`, défaut `0`; l’ancienne valeur
 `DOCKER_STACK_DEVOPS` en `STATIC`, `ENABLE`, scope `docker`, défaut `0`. Une
 valeur existante `0` ou `1` est conservée; une valeur absente est persistée
 dans `/root/diu/config/docker.env` avec le défaut `0`. Le consommateur
-existant conserve le même nom; `1` active l’ajout des noms d’hôtes DevOps.
+existant conserve le même nom. La génération système de `/etc/hosts`
+ne crée plus les noms d’hôtes DevOps.
 
 ### Mise à jour de la stack Docker BunkerWeb
 
@@ -1369,8 +1399,7 @@ variable; les valeurs `KEY_SSH_*` restent distinctes.
 `SOFTWARES_APT_SYNCTHING` en `STATIC`, `ENABLE`, scope `softwares`, défaut
 `0`. L’ancienne valeur littérale `SYNCTHING=0|1` est transférée exactement
 vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
-point d’entrée conserve l’installation APT et le rendu conditionnel de
-`.stignore`.
+point d’entrée conserve l’installation APT sans créer ni modifier `.stignore`.
 
 ### Webmin par APT
 
@@ -1586,7 +1615,7 @@ La référence est `openspec/specs/projects-debian-build/spec.md`.
 ### Métadonnées générales
 
 Un projet géré est identifié par son répertoire sous
-`${DEVOPS_PROJECTS_ROOT}` et par son fichier `project.env`.
+`${ENV_DEVOPS_PROJECTS_ROOT}` et par son fichier `project.env`.
 
 Les variables générales obligatoires sont :
 
@@ -1687,7 +1716,7 @@ En mode unitaire ou groupé,
 une destination existante est préservée, y compris ses droits et son propriétaire,
 et une destination absente n'est pas créée. Les ressources
 OpenCode et CAB du projet (`.opencode/{commands,config,skills,broker}`) et le
-broker global `/home/${DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
+broker global `/home/${ENV_DEVOPS_USER}/.opencode/broker` restent intacts : contenu,
 droits, propriétaire et caches `__pycache__` compris. Leurs sources ne sont
 pas consultées ni exigées ; leurs destinations absentes ne sont pas créées.
 Le document `DEVOPS.md` reste préservé et n'est pas exigé dans le modèle.
@@ -1712,7 +1741,7 @@ Les configurations de fournisseurs sont différentielles. Chaque fonction
 `<provider>_update` valide d'abord les variables générales, puis ne modifie que
 son propre bloc dans `project.env`. L'écriture passe par un fichier temporaire
 et un remplacement atomique ; le fichier final reste propriété de
-`DEVOPS_USER:DEVOPS_GROUP` avec le mode `660`.
+`ENV_DEVOPS_USER:DEVOPS_GROUP` avec le mode `660`.
 
 ### Arguments publics de construction Docker
 
@@ -1811,7 +1840,7 @@ Son mécanisme est le suivant :
 2. créer un répertoire temporaire de mode `700` ;
 3. créer un fichier credentials de mode `600` ;
 4. fournir à Git un script `GIT_ASKPASS` temporaire ne contenant pas le token ;
-5. exécuter Git sous `DEVOPS_USER` avec `GIT_TERMINAL_PROMPT=0` ;
+5. exécuter Git sous `ENV_DEVOPS_USER` avec `GIT_TERMINAL_PROMPT=0` ;
 6. supprimer systématiquement les ressources temporaires par `trap`.
 
 Le token n'est ni placé dans les arguments de Git, ni exposé par une invite
@@ -1870,7 +1899,7 @@ peuvent lire et modifier les identifiants ; les permissions des répertoires
 et les ACL restent inchangées.
 
 Les nouveaux fichiers restent créés en `600` via un fichier temporaire puis
-installés avec les droits de `DEVOPS_USER:DEVOPS_GROUP`. Les fichiers secrets
+installés avec les droits de `ENV_DEVOPS_USER:DEVOPS_GROUP`. Les fichiers secrets
 temporaires Git et curl restent en `600` et les répertoires temporaires privés
 en `700`, avec nettoyage après utilisation, y compris en cas d'échec.
 
@@ -1893,7 +1922,8 @@ tests/test_forgejo_credential_bootstrap.py.
 
 Les modules `lib/forgejo-auth.sh`, `lib/gitlab-auth.sh` et
 `lib/github-auth.sh` résolvent le remote HTTPS, vérifient les identifiants et
-délèguent les opérations Git au cœur commun. Le token ne doit apparaître ni
+délèguent les opérations Git au cœur commun. L’autorité du remote GitLab est
+traitée littéralement, y compris pour les adresses IPv6 entre crochets. Le token ne doit apparaître ni
 dans les journaux, ni dans les diagnostics, ni dans les URL.
 
 Forgejo dispose en plus de fonctions API authentifiées pour les opérations de
@@ -1931,23 +1961,28 @@ paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'A
 Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
-`rid diu update` consulte les releases des fournisseurs Forgejo,
-GitHub et GitLab définis dans `DEVOPS_PROJECTS_ROOT/diu/project.env`, à la
-racine du projet DIU. Ce fichier n'est pas inclus dans le paquet installé et
-doit être disponible sur la machine. Les blocs absents sont ignorés ; un bloc
-partiel ou un dépôt inaccessible interrompt la recherche sans installation.
-La commande parcourt les pages, compare les versions Debian des assets
-`diu_<version>_all.deb` associés au tag `v<version>`, puis télécharge la plus
-récente si elle est supérieure à la version installée. Les brouillons et
-préversions signalés par Forgejo et GitHub sont exclus. Le paquet est vérifié
-(nom, version, architecture) avant `dpkg` ; le fichier temporaire est
-supprimé. `rid update diu` est un alias compatible.
-Pour GitHub, lorsqu'un jeton existe dans le `config/` du projet DIU, le lecteur
-GitHub existant vérifie ses permissions et l'API est authentifiée. Un asset est
-téléchargé avec son identifiant depuis l'API du dépôt, sans transmettre le
-jeton aux origines de redirection. Sans jeton, le parcours reste anonyme ; un
-dépôt privé inaccessible provoque une erreur sans installation. Forgejo et
-GitLab conservent leur accès public.
+`rid diu update` consulte d'abord anonymement les releases publiques de
+`https://github.com/AzenorPixs/diu`, sans checkout, configuration ni jeton
+GitHub. Curl ignore sa configuration personnelle pour éviter toute authentification
+implicite. Si GitHub fournit un paquet admissible, il est retenu même si Forgejo
+dispose d'une version supérieure ; une version installée égale ou supérieure
+termine sans consulter Forgejo. Si GitHub est inaccessible, renvoie une réponse
+invalide ou ne fournit aucun paquet admissible, le bloc Forgejo du projet local
+est analysé indépendamment s'il est disponible et ses releases publiques sont
+consultées en secours. GitLab est ignoré. Sans candidat, la commande échoue.
+
+Avec `rid diu update <VERSION>`, la version Debian exacte est recherchée dans
+les releases GitHub publiques seulement. Un candidat admissible est installé
+même si la version locale est égale ou supérieure ; une version invalide,
+absente ou inaccessible échoue sans secours Forgejo. Les métadonnées du paquet
+restent vérifiées avant installation. Les arguments supplémentaires sont refusés.
+
+Chaque source est paginée ; les brouillons et préversions sont exclus et les
+versions stables x.y.z sont prioritaires avant comparaison Debian des assets
+`diu_<version>_all.deb` associés au tag `v<version>`. Le paquet est vérifié
+(nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
+Toute erreur après sélection (téléchargement, validation ou installation) bloque
+sans essai sur l'autre source. `rid update diu` est un alias compatible.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de
@@ -2019,7 +2054,7 @@ doivent être ni lus à des fins documentaires, ni inscrits dans les sources,
 les spécifications ou les journaux.
 
 Les opérations nécessitant root doivent rester explicites. Les opérations Git
-sur les projets sont exécutées sous `DEVOPS_USER` afin de préserver le
+sur les projets sont exécutées sous `ENV_DEVOPS_USER` afin de préserver le
 propriétaire et l'environnement du dépôt.
 
 ## Validation technique
@@ -2036,8 +2071,10 @@ le générateur. Le pipeline APT est vérifié par nombre d’appels, contenu tr
 et préservation des trousseaux ; l’ordre de démarrage curl/gpg n’est pas imposé.
 
 Les annotations ShellCheck locales distinguent les usages indirects Bash
-(portée dynamique de forgejo_username) et les marqueurs littéraux de dpkg-deb
-(Package et Version). Aucune désactivation globale n’est appliquée.
+(portée dynamique, variables chargées par source et résultats des modules),
+les expansions volontairement différées et les diagnostics dont la structure
+existante est conservée. Les marqueurs de dpkg-deb (Package et Version) sont
+littéraux. Aucune désactivation globale n’est appliquée.
 
 
 Les tests isolés sont regroupés dans `tests/test_*.py`. Ils couvrent notamment
@@ -2073,7 +2110,7 @@ Les vérifications doivent couvrir, lorsque pertinent :
 - l'absence de modification hors périmètre.
 
 Les opérations OpenSpec du projet sont exécutées depuis la racine du projet,
-sous l'utilisateur `DEVOPS_USER`. Les commandes de validation strictes
+sous l'utilisateur `ENV_DEVOPS_USER`. Les commandes de validation strictes
 exposées par le DIUE sont notamment :
 
 ```bash
@@ -2212,3 +2249,10 @@ APT partiellement effectuée ou un service déjà arrêté ne sont pas annulés
 automatiquement. Une nouvelle exécution reprend à partir de l'état constaté.
 Les commandes ne valident pas l'activation des écrans dans GNOME ; celle-ci
 reste à contrôler sur le poste.
+
+### Configuration des hôtes réseau
+
+`system_network_hosts` utilise `config/hosts.json` à côté du point d'entrée
+réel. Il crée un tableau vide absent, valide les couples `ip` et `fqdn` avant
+la génération et les ajoute dans l'ordre. Un JSON invalide préserve le fichier
+`/etc/hosts`. Le paquet inclut un modèle vide comme conffile Debian.

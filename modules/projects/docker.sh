@@ -94,7 +94,7 @@ projects_docker_build() {
     # Définition des chemins
     # --------------------------------------------------------
 
-    project_dir="${PROJECTS_CICD_DOCKER_CONTEXT:-${DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}/${project_id}}"
+    project_dir="${PROJECTS_CICD_DOCKER_CONTEXT:-${ENV_DEVOPS_PROJECTS_ROOT:-/home/${ENV_DEVOPS_USER}/datas}/${project_id}}"
     project_env="${PROJECTS_CICD_PROJECT_ENV:-${project_dir}/project.env}"
 
     # --------------------------------------------------------
@@ -190,7 +190,7 @@ projects_docker_build() {
         echo "Version     : ${selected_project_version}"
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker build \
             --file "${project_dir}/${dockerfile}" \
             "${docker_image_tags[@]}" \

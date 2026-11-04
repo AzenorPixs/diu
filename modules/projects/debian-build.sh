@@ -34,7 +34,7 @@ projects_debian_enabled() {
 projects_debian_version() {
     local project_path="$1" tags="" tag="" candidate="" version=""
     if [[ ! -e "$project_path/.git" ]]; then return 0; fi
-    if ! tags="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" tag --points-at HEAD)"; then
+    if ! tags="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" tag --points-at HEAD)"; then
         print_error 'Impossible de consulter les tags du projet source.' >&2
         return 1
     fi
@@ -67,15 +67,15 @@ projects_build_deb() (
     local project_id="${1:-}" project_path="" projects_root="" recipe="" enabled=""
     local package="" architecture="" maintainer="" description="" depends="" version=""
     local staging_dir="" build_dir="" package_file="" source="" destination="" real_source=""
-    local forbidden="" row="" previous="" tool=""
-    local -a sources=() destinations=()
+    local forbidden="" row="" previous="" tool="" conffile="" empty_json=""
+    local -a sources=() destinations=() conffiles=() empty_jsons=()
 
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
-        "$project_id" == . || "$project_id" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
+        "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
         print_error 'Usage : rid projects build debian <ID PROJECT>'
         return 2
     fi
-    projects_root="$(realpath -e -- "$DEVOPS_PROJECTS_ROOT")" || return 1
+    projects_root="$(realpath -e -- "$ENV_DEVOPS_PROJECTS_ROOT")" || return 1
     project_path="$projects_root/$project_id"
     if [[ -L "$project_path" || ! -d "$project_path" ]]; then
         print_error "Projet absent ou symbolique : $project_id"
@@ -119,8 +119,10 @@ projects_build_deb() (
         ((has("version") | not) or (.version | text)) and
         ((has("depends") | not) or (.depends | type == "array" and all(.[]; text))) and
         (.files | type == "array" and length > 0 and all(.[];
-            type == "object" and keys == ["destination","source"] and
-            (.source | text) and (.destination | text)))
+            type == "object" and ((keys - ["destination","source","conffile","empty_json"]) | length == 0) and
+            (.source | text) and (.destination | text) and
+            ((has("conffile") | not) or (.conffile | type == "boolean")) and
+            ((has("empty_json") | not) or (.empty_json | type == "boolean"))))
         ' "$recipe" >/dev/null 2>&1; then
         print_error 'Recette Debian invalide : métadonnées ou copies incorrectes.'
         return 1
@@ -150,6 +152,8 @@ projects_build_deb() (
     while IFS= read -r row; do
         source="$(jq -r '.source' <<< "$row")"
         destination="$(jq -r '.destination' <<< "$row")"
+        conffile="$(jq -r '.conffile // false' <<< "$row")"
+        empty_json="$(jq -r '.empty_json // false' <<< "$row")"
         if [[ "$source" == /* || "$destination" != /* || "$destination" == /DEBIAN ||
             "$destination" == /DEBIAN/* ]] ||
             ! projects_debian_path_valid "$source" || ! projects_debian_path_valid "$destination"; then
@@ -163,6 +167,14 @@ projects_build_deb() (
             "$real_source" == "$project_path/dist" || "$real_source" == "$project_path/dist/"* ||
             "$recipe" == "$real_source" || "$recipe" == "$real_source/"* ]]; then
             print_error 'Source Debian hors périmètre ou incluant la recette ou dist.'
+            return 1
+        fi
+        if [[ ( "$conffile" == true || "$empty_json" == true ) && ! -f "$real_source" ]]; then
+            print_error 'Les options conffile et empty_json exigent un fichier régulier.'
+            return 1
+        fi
+        if [[ "$empty_json" == true ]] && ! jq -se 'length == 1 and .[0] == []' "$real_source" >/dev/null 2>&1; then
+            print_error 'Le modèle JSON doit contenir un tableau vide.'
             return 1
         fi
         for previous in "${destinations[@]}"; do
@@ -188,7 +200,7 @@ projects_build_deb() (
         if [[ "$real_source" != "$project_path/$source" ]]; then
             print_error 'Source Debian traversant un lien symbolique.'; return 1
         fi
-        sources+=("$real_source"); destinations+=("$destination")
+        sources+=("$real_source"); destinations+=("$destination"); conffiles+=("$conffile"); empty_jsons+=("$empty_json")
     done < <(jq -c '.files[]' "$recipe")
 
     trap 'rm -rf -- "${staging_dir:-}" "${build_dir:-}"' EXIT
@@ -202,6 +214,13 @@ projects_build_deb() (
         destination="$staging_dir${destinations[$index]}"
         mkdir -p -- "$(dirname -- "$destination")" || return 1
         cp -R -- "${sources[$index]}" "$destination" || return 1
+        if [[ "${empty_jsons[$index]}" == true ]] && ! jq -se 'length == 1 and .[0] == []' "$destination" >/dev/null 2>&1; then
+            print_error 'Le modèle JSON copié doit contenir un tableau vide.'
+            return 1
+        fi
+        if [[ "${conffiles[$index]}" == true ]]; then
+            printf '%s\n' "${destinations[$index]}" >> "$staging_dir/DEBIAN/conffiles" || return 1
+        fi
     done
     {
         printf 'Package: %s\nVersion: %s\nArchitecture: %s\nMaintainer: %s\nDescription: %s\n' \

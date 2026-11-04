@@ -60,7 +60,7 @@ _forgejo_resolve_remote() {
     fi
 
     remote_url="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" remote get-url "${remote_name}" 2>/dev/null
     )"
 

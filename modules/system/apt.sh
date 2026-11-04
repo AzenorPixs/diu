@@ -256,8 +256,9 @@ system_apt_update() {
 }
 
 system_update() {
-    system_apt_update
-    system_flatpak_apply
+    system_apt_update || return $?
+    system_flatpak_apply || return $?
+    system_network_update
 }
 
 system_flatpak_package_state() {
@@ -412,6 +413,17 @@ system_apt_remove_repository() {
 manage_system_action() {
     local action="${1:-}" repository=""
     case "$action" in
+        network)
+            shift
+            if [[ $# -eq 1 && "$1" == update ]]; then
+                system_network_update
+            elif [[ $# -eq 2 && "$1" == hosts && "$2" == update ]]; then
+                system_network_hosts
+            else
+                print_error 'Usage : rid system network {update|hosts update}'
+                return 2
+            fi
+            ;;
         drivers)
             [[ $# -eq 3 && "${3:-}" == displaylink ]] || {
                 print_error 'Usage : rid system drivers {install|remove} displaylink ; voir rid system drivers help'
@@ -480,6 +492,6 @@ manage_system_action() {
             system_apt_update
             ;;
         '') system_update ;;
-        *) print_error "Usage : diu system {install|remove} {flatpak|apt <repository>} | update [flatpak|apt [debian]]"; return 2 ;;
+        *) print_error "Usage : diu system {install|remove} {flatpak|apt <repository>} | update [flatpak|apt [debian]] | network {update|hosts update}"; return 2 ;;
     esac
 }

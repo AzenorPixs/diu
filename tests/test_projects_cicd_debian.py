@@ -11,8 +11,8 @@ HARNESS = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 source "$1/modules/projects/debian-build.sh"
-DEVOPS_PROJECTS_ROOT="$2"
-DEVOPS_USER=fixture
+ENV_DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=fixture
 print_title() { printf 'TITLE:%s\n' "$*"; }
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
@@ -36,7 +36,7 @@ if [[ "${REAL_BUILD:-}" != yes ]]; then
 fi
 fixture_release() {
     if [[ "${REAL_BUILD:-}" == yes && "$1" == *_debian ]]; then
-        [[ -f "$DEVOPS_PROJECTS_ROOT/$2/dist/project_2.3.4_all.deb" ]] || return 91
+        [[ -f "$ENV_DEVOPS_PROJECTS_ROOT/$2/dist/project_2.3.4_all.deb" ]] || return 91
     fi
     printf 'OP:%s:%s\n' "$1" "$2"
     [[ "${FAIL_OPERATION:-}" != "$1" ]]

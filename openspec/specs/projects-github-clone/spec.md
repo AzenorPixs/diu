@@ -9,7 +9,7 @@ Créer et fusionner de manière sûre un projet depuis un dépôt GitHub distant
 
 Le système MUST fournir `rid projects github clone <ID PROJECT>`. Il MUST
 créer le projet, appeler `github_update`, cloner le dépôt GitHub configuré
-sous `DEVOPS_USER`, puis fusionner son contenu sans métadonnée Git.
+sous `ENV_DEVOPS_USER`, puis fusionner son contenu sans métadonnée Git.
 
 #### Scenario: Fusion prioritaire et sûre
 

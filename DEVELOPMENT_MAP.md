@@ -1,5 +1,69 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [configure-system-hosts-json](openspec/changes/archive/2026-11-04-configure-system-hosts-json/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  HOSTS_JSON["configure-system-hosts-json — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class HOSTS_JSON provisoire
+```
+
+Delta SCM du 2026-11-04 : [manage-system-network-hosts](openspec/changes/archive/2026-11-04-manage-system-network-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  HOSTS["manage-system-network-hosts — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class HOSTS provisoire
+```
+
+Delta SCM du 2026-11-04 : [diu-command-links](openspec/changes/diu-command-links/proposal.md), code non attribué, actif ; trois tâches validées sur preuves ciblées ; suite globale en échec sur le packaging de configure-system-hosts-json le 2026-11-04 ; validation finale et archivage bloqués, voir [bilan](openspec/changes/diu-command-links/BLOCKERS.md). Dépendance : [migrate-env-devops-projects-root](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/tasks.md), validée et archivée le 2026-11-04. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart LR
+  P_DIU_LINKS["diu-command-links — code non attribué — ACTIF BLOQUÉ"]
+  P_DIU_ROOT["migrate-env-devops-projects-root — code non attribué — ARCHIVÉ"] --> P_DIU_LINKS
+  classDef provisional fill:#fff3cd,stroke:#856404,stroke-dasharray: 5 5;
+  class P_DIU_LINKS,P_DIU_ROOT provisional;
+```
+
+Delta SCM du 2026-11-04 : [stop-setting-technical-account-passwords](openspec/changes/archive/2026-11-04-stop-setting-technical-account-passwords/proposal.md), code non attribué, archivé ; 1 149 tests exécutés dont 2 ignorés, OpenSpec strict réussi. Publication différée. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_TECH_ACCOUNTS["stop-setting-technical-account-passwords — code non attribué — ARCHIVÉ"]
+  class P_TECH_ACCOUNTS provisoire
+```
+
+Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/proposal.md), code non attribué, archivé le 2026-11-04 ; 1 164 tests dont 2 ignorés et ShellCheck réussis, voir [bilan](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/STATISTICS.md). Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_ENV_PROJECTS_ROOT["migrate-env-devops-projects-root — code non attribué — ARCHIVÉ"]
+  class P_ENV_PROJECTS_ROOT provisoire
+```
+
+Delta SCM du 2026-11-03 : [restore-diu-forgejo-fallback](openspec/changes/archive/2026-11-03-restore-diu-forgejo-fallback/proposal.md), code non attribué, archivé ; 1 124 tests exécutés dont 2 ignorés, OpenSpec strict réussi ; comptages historiques inchangés. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_FORGEJO_FALLBACK["restore-diu-forgejo-fallback — code non attribué — ARCHIVÉ"]
+  class P_DIU_FORGEJO_FALLBACK provisoire
+```
+
+Delta SCM du 2026-11-03 : [github-only-diu-update](openspec/changes/archive/2026-11-03-github-only-diu-update/proposal.md), code non attribué, archivé ; 1 121 tests exécutés dont 2 ignorés, validation OpenSpec stricte réussie. Les comptages historiques excluent ce delta. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_GH_ONLY["github-only-diu-update — code non attribué — ARCHIVÉ"]
+  class P_DIU_GH_ONLY provisoire
+```
+
 Delta SCM du 2026-11-03 : [harmonize-project-configuration](openspec/changes/archive/2026-11-03-harmonize-project-configuration/proposal.md), code non attribué, archivé ; 62 tests ciblés réussis. Attribution ultérieure par ACL. Les comptages historiques excluent ce delta.
 
 ```mermaid
@@ -880,3 +944,7 @@ Mermaid : syntaxe élémentaire flowchart, identifiants et références contrôl
 - Repère « code non attribué » : entrée provisoire, ni code ni réservation ; dix dans le relevé actuel (trois actives et sept archivées), avec style discontinu et libellé textuel.
 - Ratios documentaires, validations, intégration, qualification, livraison et activation restent distincts.
 - **A → B signifie que A dépend de B.** Flèches directes étiquetées ; aucune relation transitive déduite.
+
+Delta SCM du 2026-11-04 : [public-github-diu-update](openspec/changes/archive/2026-11-04-public-github-diu-update/proposal.md), code non attribué, archivé ; contrat et validations réussis ; 1 147 tests dont 2 ignorés. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [force-diu-update-version](openspec/changes/archive/2026-11-04-force-diu-update-version/proposal.md), code non attribué, archivé ; sélection exacte et validation globale réussies (1 152 tests, 2 ignorés). Attribution ultérieure par ACL.

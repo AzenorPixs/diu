@@ -14,7 +14,7 @@ serveur PostgreSQL configuré, avec un manifeste minimal conditionnel pour Pytho
 DIU SHALL fournir `projects_template_devops`, appelée par la commande
 `rid projects template devops <ID PROJECT>`, avec un identifiant obligatoire. La CLI SHALL exiger le sélecteur devops avant l'identifiant et SHALL rejeter
 les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide. La fonction SHALL générer ou actualiser
-`${DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`.
+`${ENV_DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`.
 
 #### Scenario: Dossier absent
 
@@ -46,7 +46,7 @@ les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide
 ### Requirement: Validation et racine du projet ciblé
 
 La racine SHALL utiliser
-DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon /home/${ENV_DEVOPS_USER}/datas. La fonction SHALL valider le nom d'utilisateur et l'identifiant de projet,
+ENV_DEVOPS_PROJECTS_ROOT lorsqu'elle est définie, sinon /home/${ENV_DEVOPS_USER}/datas. La fonction SHALL valider le nom d'utilisateur et l'identifiant de projet,
 SHALL refuser les chemins, les identifiants . et .. et les liens symboliques
 du dossier cible, et SHALL NOT créer le dossier du projet. L'ancienne syntaxe
 sans identifiant SHALL être rejetée avec la nouvelle utilisation.
@@ -313,7 +313,7 @@ un code non nul, signaler cet échec et conserver le projet déjà préparé. Un
 
 ### Requirement: Génération DevOps de tous les projets configurés
 
-DIU SHALL exposer rid projects template devops all et projects_template_devops_all. La fonction SHALL utiliser DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
+DIU SHALL exposer rid projects template devops all et projects_template_devops_all. La fonction SHALL utiliser ENV_DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
 et parcourir uniquement ses dossiers directs, y compris les dossiers cachés. Elle SHALL sélectionner les project.env ordinaires dont les affectations
 littérales PROJECT_ID, PROJECT_NAME, PROJECT_TYPE, PROJECT_DOCKERED et
 PROJECT_DEBIAN_PACKAGE sont toutes non vides.
@@ -738,7 +738,7 @@ une seule rubrique de niveau 1 « Prompts », après le gestionnaire de paquets
 Python et avant les tests navigateurs. Ses puces « Dossier des prompts » et
 « Index des prompts » SHALL indiquer /home/${ENV_DEVOPS_USER}/datas/prompts
 et son fichier INDEX.md, avec la valeur réelle du compte validé, indépendamment
-de DEVOPS_PROJECTS_ROOT.
+de ENV_DEVOPS_PROJECTS_ROOT.
 
 #### Scenario: Compte DevOps configuré
 
@@ -747,9 +747,9 @@ de DEVOPS_PROJECTS_ROOT.
 
 #### Scenario: Autre compte et racine de projets distincte
 
-- **WHEN** ENV_DEVOPS_USER désigne un autre compte valide et DEVOPS_PROJECTS_ROOT désigne une racine de projets distincte
+- **WHEN** ENV_DEVOPS_USER désigne un autre compte valide et ENV_DEVOPS_PROJECTS_ROOT désigne une racine de projets distincte
 - **THEN** les deux chemins utilisent /home suivi du compte configuré, puis datas/prompts et datas/prompts/INDEX.md
-- **AND THEN** aucun chemin de prompts n'est dérivé de DEVOPS_PROJECTS_ROOT ni du nom du projet
+- **AND THEN** aucun chemin de prompts n'est dérivé de ENV_DEVOPS_PROJECTS_ROOT ni du nom du projet
 
 ### Requirement: Références Prompts passives
 

@@ -3,10 +3,11 @@
   "architecture": "all",
   "maintainer": "Anthony DEMARD <postmaster@pixs.fr>",
   "description": "Debian Installeur Unifié",
-  "depends": ["awk"],
+  "depends": ["awk", "python3"],
   "files": [
     {"source": "root-install-debian.sh", "destination": "/root/diu/root-install-debian.sh"},
     {"source": "lib", "destination": "/root/diu/lib"},
-    {"source": "modules", "destination": "/root/diu/modules"}
+    {"source": "modules", "destination": "/root/diu/modules"},
+    {"source": "config/hosts.json", "destination": "/root/diu/config/hosts.json", "conffile": true, "empty_json": true}
   ]
 }

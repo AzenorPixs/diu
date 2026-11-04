@@ -12,7 +12,7 @@ diu_package_version_from_head() {
     if [[ ! -e "${project_path}/.git" ]]; then
         return 0
     fi
-    if ! tags="$(runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" tag --points-at HEAD)"; then
+    if ! tags="$(runuser -u "${ENV_DEVOPS_USER}" -- git -C "${project_path}" tag --points-at HEAD)"; then
         print_error "Impossible de consulter les tags du projet source."
         return 1
     fi
@@ -68,17 +68,17 @@ build_deb_diu() {
     # ----------------------------------------------------------
 
     if [[ $# -gt 1 || ! "${project_id}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
-        "${project_id}" == . || "${project_id}" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
+        "${project_id}" == . || "${project_id}" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
         print_error "Usage : build_deb_diu [project_id]"
         return 1
     fi
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     if [[ -L "${project_path}" || ! -d "${project_path}" ]]; then
         print_error "Projet source DIU absent ou symbolique."
         return 1
     fi
     local projects_root_real="" project_real=""
-    projects_root_real="$(realpath -e -- "${DEVOPS_PROJECTS_ROOT}")" || return 1
+    projects_root_real="$(realpath -e -- "${ENV_DEVOPS_PROJECTS_ROOT}")" || return 1
     project_real="$(realpath -e -- "${project_path}")" || return 1
     if [[ "$(dirname -- "${project_real}")" != "${projects_root_real}" ]]; then
         print_error "Projet source hors de la racine autorisée."
@@ -116,6 +116,12 @@ build_deb_diu() {
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         print_error "Éléments manquants dans le projet : ${missing[*]}"
+        return 1
+    fi
+
+    if [[ -L "${project_path}/config/hosts.json" || ! -f "${project_path}/config/hosts.json" ]] ||
+        ! python3 -B -c 'import json,sys; data=json.load(open(sys.argv[1], encoding="utf-8")); sys.exit(0 if isinstance(data, list) and not data else 1)' "${project_path}/config/hosts.json"; then
+        print_error "Le modèle config/hosts.json doit être un tableau JSON vide."
         return 1
     fi
 
@@ -175,6 +181,25 @@ build_deb_diu() {
         return 1
     fi
 
+    if ! cat > "${staging_dir}/DEBIAN/postinst" <<'EOF'
+#!/usr/bin/env bash
+set -e
+if [[ "${1:-}" == configure ]]; then
+    . /root/diu/lib/diu-links.sh
+    diu_create_link /root/diu/root-install-debian.sh /usr/local/bin/diu
+fi
+EOF
+    then
+        print_error "Échec de la génération de DEBIAN/postinst."
+        rm -rf "${staging_dir}"
+        return 1
+    fi
+    if ! chmod 0755 "${staging_dir}/DEBIAN/postinst"; then
+        print_error "Impossible de préparer les permissions de postinst."
+        rm -rf "${staging_dir}"
+        return 1
+    fi
+
     # ----------------------------------------------------------
     # Copie de la liste blanche
     # ----------------------------------------------------------
@@ -205,7 +230,7 @@ build_deb_diu() {
     fi
 
     # ----------------------------------------------------------
-    # Vérification que variables.sh et config/ ne sont pas présents
+    # Vérification de variables.sh et préparation du seul modèle config/
     # dans le staging
     # ----------------------------------------------------------
 
@@ -215,8 +240,11 @@ build_deb_diu() {
         return 1
     fi
 
-    if [[ -d "${staging_dir}/root/diu/config" ]]; then
-        print_error "config/ ne doit pas être présent dans le paquet."
+    if ! mkdir -p "${staging_dir}/root/diu/config" ||
+        ! cp "${project_path}/config/hosts.json" "${staging_dir}/root/diu/config/hosts.json" ||
+        ! python3 -B -c 'import json,sys; data=json.load(open(sys.argv[1], encoding="utf-8")); sys.exit(0 if isinstance(data, list) and not data else 1)' "${staging_dir}/root/diu/config/hosts.json" ||
+        ! printf '%s\n' '/root/diu/config/hosts.json' > "${staging_dir}/DEBIAN/conffiles"; then
+        print_error "Impossible de préparer le modèle hosts.json et son statut conffile."
         rm -rf "${staging_dir}"
         return 1
     fi
@@ -295,7 +323,7 @@ Version: ${package_version}
 Architecture: all
 Maintainer: ${diu_maintainer}
 Description: Debian Installeur Unifié
-Depends: awk
+Depends: awk, python3
 EOF
     then
         print_error "Échec de la génération de DEBIAN/control."

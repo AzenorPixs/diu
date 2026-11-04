@@ -29,8 +29,8 @@ class DiuHttpCompressionTests(unittest.TestCase):
             project = root / 'diu'
             project.mkdir()
             (project / 'project.env').write_text(
-                'REMOTE_FORGEJO_BASE_URL=https://forge.example\n'
-                'REMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n', encoding='utf-8')
+                'REMOTE_GITHUB_BASE_URL=https://github.example\n'
+                'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n', encoding='utf-8')
             staging = root / 'package'
             (staging / 'DEBIAN').mkdir(parents=True)
             (staging / 'DEBIAN').chmod(0o755)
@@ -44,7 +44,7 @@ class DiuHttpCompressionTests(unittest.TestCase):
             def compress(data):
                 return subprocess.run(['zstd', '-q', '-c'], input=data, capture_output=True, check=True).stdout
 
-            asset = 'https://forge.example/team/diu/releases/download/v2.0.0/diu_2.0.0_all.deb'
+            asset = 'https://github.com/AzenorPixs/diu/releases/download/v2.0.0/diu_2.0.0_all.deb'
             releases = json.dumps([{'tag_name': 'v2.0.0', 'assets': [
                 {'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]).encode()
             requests = []
@@ -52,7 +52,7 @@ class DiuHttpCompressionTests(unittest.TestCase):
             class Handler(BaseHTTPRequestHandler):
                 def do_GET(self):
                     requests.append(self.path)
-                    if self.path.startswith('/api/'):
+                    if self.path.startswith('/repos/'):
                         data = b'[]' if 'page=2' in self.path else releases
                         kind = 'api'
                     else:
@@ -86,7 +86,8 @@ curl() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --proto|--proto-redir) shift 2 ;;
-            https://forge.example/*) args+=("$TEST_SERVER${1#https://forge.example}"); shift ;;
+            https://api.github.com/*) args+=("$TEST_SERVER${1#https://api.github.com}"); shift ;;
+            https://github.com/*) args+=("$TEST_SERVER${1#https://github.com}"); shift ;;
             *) args+=("$1"); shift ;;
         esac
     done
@@ -94,7 +95,7 @@ curl() {
 }
 diu_update
 '''
-            env = {**os.environ, 'ROOT': str(ROOT), 'DEVOPS_PROJECTS_ROOT': str(root),
+            env = {**os.environ, 'ROOT': str(ROOT), 'ENV_DEVOPS_PROJECTS_ROOT': str(root),
                    'TEST_SERVER': f'http://127.0.0.1:{server.server_port}',
                    'INSTALLS': str(root / 'installs')}
             try:
@@ -110,7 +111,7 @@ diu_update
     def test_zstd_api_and_package_are_decoded_before_install(self):
         result, requests, installs = self.run_update()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(any(path.startswith('/api/') for path in requests))
+        self.assertTrue(any(path.startswith('/repos/') for path in requests))
         self.assertTrue(any('/releases/download/' in path for path in requests))
         self.assertEqual(installs, 'installed\n')
 

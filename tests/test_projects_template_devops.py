@@ -62,7 +62,7 @@ class ProjectsTemplateDevopsTests(unittest.TestCase):
                                 TEST_TPM_LOG=str(self.tpm_log),
                                 TEST_TPM_PROPERTIES=str(self.fixture / 'tpm-properties'),
                                 TEST_TPM_PCRS=str(self.fixture / 'tpm-pcrs'))
-        self.environment.pop('DEVOPS_PROJECTS_ROOT', None)
+        self.environment.pop('ENV_DEVOPS_PROJECTS_ROOT', None)
         self.environment.pop('SYSTEM_DEBIAN_ENVIRONNEMENT', None)
         self.executable(self.host_bin / 'date', r'''
 [ "$#" -eq 2 ] && [ "$1" = -u ] && [ "$2" = +%Y-%m-%dT%H:%M:%SZ ] || exit 9
@@ -186,7 +186,7 @@ ENV_DEVOPS_USER="$1"
         script += extra + '\nshift\n' + function + ' "$@"\n'
         environment = dict(self.environment)
         if projects_root is not None:
-            environment['DEVOPS_PROJECTS_ROOT'] = str(projects_root)
+            environment['ENV_DEVOPS_PROJECTS_ROOT'] = str(projects_root)
         return subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script, 'bash',
                                getpass.getuser() if user is None else user,
                                *(arguments if arguments is not None else (() if batch else (project,)))],
@@ -2423,7 +2423,7 @@ projects_template_devops_javascript() {
         self.configure_tpm()
         projects_source = (ROOT / 'modules/projects/projects.sh').read_text()
         projects_source = projects_source.replace(
-            'local template_path="/home/${DEVOPS_USER}/datas/template"',
+            'local template_path="/home/${ENV_DEVOPS_USER}/datas/template"',
             'local template_path="$TEST_DEVOPS_HOME/datas/template"')
         (self.template / 'README.md').write_text('# Template\n')
         self.javascript_manifest('frontend/package.json', dependencies={'creation-fixture': '1.0.0'})
@@ -2435,7 +2435,7 @@ check_devops_user() { return 0; }
 install() { mkdir -p "${!#}"; }
 chown() { printf 'rights\n' >> "$TEST_DEVOPS_HOME/order"; }
 update_projects() {
-    printf 'PROJECT_ID=%s\nPROJECT_NAME="Application"\nPROJECT_TYPE=%s\n' "$1" "$TEST_PROJECT_TYPE" > "${DEVOPS_PROJECTS_ROOT}/$1/project.env"
+    printf 'PROJECT_ID=%s\nPROJECT_NAME="Application"\nPROJECT_TYPE=%s\n' "$1" "$TEST_PROJECT_TYPE" > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
 projects_template_openspec() {
     printf 'openspec:%s\n' "$1" >> "$TEST_DEVOPS_HOME/order"
@@ -2447,9 +2447,9 @@ projects_template_devops() {
     if [[ "$TEST_CREATE_FAILURE" == 1 ]]; then return 9; fi
     original_template_devops "$@"
 }
-DEVOPS_USER="$ENV_DEVOPS_USER"
+ENV_DEVOPS_USER="$ENV_DEVOPS_USER"
 DEVOPS_GROUP="$(id -gn)"
-DEVOPS_PROJECTS_ROOT="$TEST_DEVOPS_HOME/datas"
+ENV_DEVOPS_PROJECTS_ROOT="$TEST_DEVOPS_HOME/datas"
 create_project "$TEST_CREATED_PROJECT"
 exit $?
 '''
@@ -2776,7 +2776,7 @@ class ProjectsTemplateDevopsRuntimeTests(unittest.TestCase):
         script = r'''
 source "$1"
 ENV_DEVOPS_USER="$2"
-DEVOPS_PROJECTS_ROOT="$3"
+ENV_DEVOPS_PROJECTS_ROOT="$3"
 id() {
     case "$1" in
         -u) printf '1234\n' ;;

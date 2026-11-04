@@ -39,11 +39,11 @@ set -euo pipefail
 source "$1"
 runuser() { printf '%s\0' "$@" > "$USER_CAPTURE"; shift 3; "$@"; }
 docker() { printf '%s\0' "$@" > "$CAPTURE"; return "$DOCKER_STATUS"; }
-DEVOPS_USER=fixture-user
+ENV_DEVOPS_USER=fixture-user
 '''+extra+'\n'+entrypoint+'\n'
         return subprocess.run(['bash', '-c', script, 'fixture', str(self.module)], capture_output=True, timeout=10,
             env={'PATH': os.defpath, 'FIXTURE_ROOT': str(self.project.parent),
-                 'DEVOPS_PROJECTS_ROOT': str(self.project.parent), 'CAPTURE': str(self.capture),
+                 'ENV_DEVOPS_PROJECTS_ROOT': str(self.project.parent), 'CAPTURE': str(self.capture),
                  'USER_CAPTURE': str(self.lab / 'user.capture'), 'DOCKER_STATUS': str(status),
                  'FIXTURE_GIT_MODULE': str(ROOT / 'modules/projects/git.sh'),
                  'ARGS_PATH': str(self.arguments), 'FICTION_ENV_SECRET': 'fiction-environment-value'})
@@ -181,7 +181,7 @@ DEVOPS_USER=fixture-user
         (self.project / 'project.env').write_text('PROJECT_ID=artifact-fixture\nPROJECT_NAME=Fixture\nPROJECT_DOCKERED=Yes\n')
         script = r'''
 source "$FIXTURE_GIT_MODULE"
-DEVOPS_PROJECTS_ROOT="$FIXTURE_ROOT"
+ENV_DEVOPS_PROJECTS_ROOT="$FIXTURE_ROOT"
 print_error() { printf '%s\n' "$1" >&2; }
 print_title() { :; }
 git_commit() { return 0; }

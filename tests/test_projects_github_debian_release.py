@@ -14,8 +14,8 @@ HARNESS = r'''
 set -Eeuo pipefail
 source "$1/lib/github-auth.sh"
 source "$1/modules/projects/github-release.sh"
-DEVOPS_PROJECTS_ROOT="$2"
-DEVOPS_USER=fixture
+ENV_DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=fixture
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { printf 'SUCCESS:%s\n' "$*"; }

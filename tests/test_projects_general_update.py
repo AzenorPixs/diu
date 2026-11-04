@@ -145,7 +145,10 @@ dispatch_arguments "$@"
         result = self.run_shell(script, 'diu', 'update')
         self.assertEqual(result.returncode, 6, result.stderr)
         self.assertEqual(result.stdout, 'diu-only\n')
-        result = self.run_shell(script, 'diu', 'update', 'extra')
+        result = self.run_shell(script, 'diu', 'update', '1.1.7')
+        self.assertEqual(result.returncode, 6, result.stderr)
+        self.assertEqual(result.stdout, 'diu-only\n')
+        result = self.run_shell(script, 'diu', 'update', '1.1.7', 'extra')
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertNotIn('diu-only', result.stdout)
 
@@ -196,7 +199,7 @@ projects_template_devops() { printf 'devops:%s\n' "$1"; }
 manage_project_action update
 '''
             result = self.run_shell(script, ENV_DEVOPS_USER=getpass.getuser(),
-                                    DEVOPS_PROJECTS_ROOT=str(projects))
+                                    ENV_DEVOPS_PROJECTS_ROOT=str(projects))
             self.assertEqual(result.returncode, 1, result.stderr)
             calls = [line for line in result.stdout.splitlines()
                      if line.startswith(('openspec:', 'devops:'))]
@@ -218,7 +221,7 @@ projects_template_devops() { printf 'unexpected-model\n'; return 90; }
 projects_update
 '''
             result = self.run_shell(script, ENV_DEVOPS_USER=getpass.getuser(),
-                                    DEVOPS_PROJECTS_ROOT=temporary)
+                                    ENV_DEVOPS_PROJECTS_ROOT=temporary)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Aucun projet éligible', result.stdout)
             self.assertIn('0 sélectionné(s), 0 réussi(s), 0 ignoré(s), 0 échoué(s)', result.stdout)

@@ -4,6 +4,38 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Réseau système : les couples IP/FQDN de `config/hosts.json` sont ajoutés à
+  `/etc/hosts`. Un tableau vide est créé si nécessaire ; les données invalides
+  empêchent la réécriture. Le paquet inclut un modèle vide comme conffile.
+
+- Modules GitLab, Docker et projets : qualification des diagnostics ShellCheck,
+  maintien des usages indirects et résolution littérale de l’autorité HTTPS,
+  notamment pour les adresses IPv6.
+
+- Réseau système : `system network hosts update` et `system network update` reconstruisent `/etc/hosts` ; cette opération est incluse dans les mises à jour système et globale. Les anciennes entrées et les noms Docker ne sont pas conservés.
+
+- Commandes `diu` et `diut` : création conditionnelle de liens dans
+  `/usr/local/bin`, résolution du point d’entrée réel et conservation des
+  entrées existantes et des alias historiques. `diut` dépend de la présence
+  du script sous la racine de projets configurée.
+
+- DIU : `rid diu update <VERSION>` installe la version GitHub exacte, y compris
+  pour une réinstallation ou un retour à une version antérieure.
+
+- DIU : mise à jour anonyme depuis les releases publiques AzenorPixs/diu,
+  sans configuration GitHub locale ; Forgejo configuré reste un secours.
+
+- Comptes DevOps, Docker et IA : DIU ne définit plus leur mot de passe ;
+  les comptes existants conservent leur mot de passe.
+
+- Variables : migration de la racine des projets vers
+  `ENV_DEVOPS_PROJECTS_ROOT`, avec reprise de l'ancienne valeur explicite et
+  chargement ordonné de sa dépendance `ENV_DEVOPS_USER`, déclarée statiquement
+  avec `root` comme défaut. Les consommateurs du compte DevOps utilisent le
+  nouveau nom; l'ancienne valeur et le modèle historique de chemin sont repris.
+
+- DIU : la version locale du projet passe à 1.1.2.
+
 - Création et mise à jour des projets : questionnaire harmonisé, validation
   des options Yes/No et saisie obligatoire de PROJECT_VERSION. Création et
   synchronisation ne requièrent ni ne copient `ORCHESTRATED_CODING.md` ;

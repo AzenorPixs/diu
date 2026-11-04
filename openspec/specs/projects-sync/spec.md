@@ -9,7 +9,7 @@ d'un projet géré depuis le modèle local de l'utilisateur DevOps.
 ### Requirement: Commande de synchronisation d'un projet
 
 DIU MUST accepter `rid projects sync <ID PROJECT>` pour synchroniser le
-projet désigné depuis `/home/${DEVOPS_USER}/datas/template`. La commande MUST
+projet désigné depuis `/home/${ENV_DEVOPS_USER}/datas/template`. La commande MUST
 refuser un identifiant absent, un projet destination absent, un fichier
 `project.env` absent ou une configuration dont `PROJECT_ID` ne correspond pas
 à l'identifiant demandé. Elle MUST obtenir `PROJECT_NAME` depuis cette
@@ -33,7 +33,7 @@ copie.
 ### Requirement: Source de synchronisation contrôlée
 
 Avant toute copie, DIU MUST vérifier l'existence du répertoire modèle
-`/home/${DEVOPS_USER}/datas/template`, des fichiers `AGENTS.md` et
+`/home/${ENV_DEVOPS_USER}/datas/template`, des fichiers `AGENTS.md` et
 `.gitignore`. Une source conservée indisponible
 ou de type incorrect MUST faire échouer la commande avec un code non nul
 avant toute copie. Pour la synchronisation unitaire ou groupée, DIU MUST NOT
@@ -152,7 +152,7 @@ En mode unitaire ou groupé, DIU MUST NOT consulter les sources OpenCode/CAB
 exclues, ni copier, créer, personnaliser, supprimer ou changer le contenu,
 les droits ou le propriétaire des ressources projet
 `.opencode/{commands,config,skills,broker}` ou du broker global
-`/home/${DEVOPS_USER}/.opencode/broker`, caches `__pycache__` inclus.
+`/home/${ENV_DEVOPS_USER}/.opencode/broker`, caches `__pycache__` inclus.
 Une destination absente MUST rester absente.
 
 #### Scenario: Ressources exclues existantes

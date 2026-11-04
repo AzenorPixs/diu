@@ -22,7 +22,7 @@ rid projects build debian <ID PROJECT>
 ```
 
 Le moteur `modules/projects/debian-build.sh` sélectionne un enfant direct de
-`DEVOPS_PROJECTS_ROOT`. Il lit uniquement `PROJECT_DEBIAN_PACKAGE` dans
+`ENV_DEVOPS_PROJECTS_ROOT`. Il lit uniquement `PROJECT_DEBIAN_PACKAGE` dans
 `project.env`, sans exécuter le fichier : `Yes`, `YES` et `1` activent le build.
 Une valeur absente, vide ou différente affiche que le projet ne produit aucun
 paquet Debian et termine avec succès avant de rechercher la recette.
@@ -42,7 +42,10 @@ facultatif `depends`. Chaque copie de `files` définit une `source` relative au
 projet et une `destination` absolue dans le paquet. Un champ facultatif
 `version` fournit une version Debian littérale, après PROJECT_VERSION. Sans
 ces deux valeurs, les règles de tags et de repli calendaire ci-dessous s'appliquent.
-Les sources sont les fichiers de travail, y compris non committés.
+Les sources sont les fichiers de travail, y compris non committés. Pour une
+copie de fichier, `conffile: true` déclare sa destination comme fichier de
+configuration Debian ; `empty_json: true` exige un tableau JSON vide, contrôlé
+avant et après copie.
 
 Les champs inconnus et les caractères de contrôle sont refusés. Sources et
 recette doivent être non symboliques ; les liens et fichiers spéciaux dans les
@@ -150,11 +153,11 @@ Le répertoire d'installation en production est :
 ```
 
 La fonction build_deb_diu accepte un identifiant de projet source optionnel,
-par défaut diu. Elle sélectionne cet enfant direct de DEVOPS_PROJECTS_ROOT,
+par défaut diu. Elle sélectionne cet enfant direct de ENV_DEVOPS_PROJECTS_ROOT,
 refuse un identifiant invalide, un lien symbolique ou une sortie de la racine.
 Le projet doit contenir les sources de production DIU ; le nom du paquet reste diu.
 
-Pour le flux `cicddiu`, `DEVOPS_PROJECTS_ROOT` doit valoir
+Pour le flux `cicddiu`, `ENV_DEVOPS_PROJECTS_ROOT` doit valoir
 `/home/devops/datas`.
 
 ## Point d'entrée et chaîne d'appel
@@ -245,7 +248,7 @@ Avant toute construction, `build_deb_diu` vérifie :
 
 - la présence de la commande `dpkg-deb` ;
 - la prise en charge de l'option `--root-owner-group` ;
-- l'existence du projet `${DEVOPS_PROJECTS_ROOT}/diu` ;
+- l'existence du projet `${ENV_DEVOPS_PROJECTS_ROOT}/diu` ;
 - la présence de `root-install-debian.sh` ;
 - la présence de `lib/` ;
 - la présence de `modules/`.
@@ -286,6 +289,7 @@ uniquement :
 root-install-debian.sh
 lib/
 modules/
+config/hosts.json (tableau JSON vide)
 ```
 
 Ces éléments sont placés sous :
@@ -295,11 +299,15 @@ Ces éléments sont placés sous :
 ```
 
 Le paquet installe donc son contenu applicatif sous `/root/diu`.
+Lors de sa configuration, il crée `/usr/local/bin/diu` vers le point d'entrée
+installé si ce chemin est libre ; toute entrée existante est conservée. Le
+lien de développement `diut` est créé ultérieurement par DIU après chargement
+de la configuration lorsque sa cible existe.
 
 Les éléments suivants ne sont pas embarqués :
 
 - `variables.sh` ;
-- `config/` ;
+- les autres fichiers de `config/` ;
 - `deb/` ;
 - `dist/` ;
 - `.git/` ;
@@ -310,8 +318,9 @@ Les éléments suivants ne sont pas embarqués :
 - les fichiers de secrets ou d'identifiants reconnus par le contrôle du
   staging.
 
-L'exclusion de `variables.sh` et de `config/` évite d'écraser la configuration
-locale d'une machine lors de l'installation ou de la mise à jour du paquet.
+Le modèle `config/hosts.json` doit contenir un tableau JSON vide ; le paquet le
+déclare comme conffile Debian. Les autres fichiers de configuration locale et
+`variables.sh` restent exclus.
 La nouvelle gestion des variables distribuée avec le module `diu` initialise
 et met à jour cette configuration au moment de l'exécution du DIU.
 
@@ -353,7 +362,7 @@ Version: <version>
 Architecture: all
 Maintainer: Anthony DEMARD <postmaster@pixs.fr>
 Description: Debian Installeur Unifié
-Depends: awk
+Depends: awk, python3
 ```
 
 `Architecture: all` indique que le paquet distribue des scripts et ne contient
@@ -421,7 +430,7 @@ Les vérifications minimales portent sur :
 - la version et sa concordance avec le nom du fichier ;
 - l'architecture `all` ;
 - le mainteneur ;
-- la dépendance `awk` ;
+- les dépendances `awk` et `python3` ;
 - la présence de `root-install-debian.sh`, `lib/` et `modules/` sous
   `/root/diu` ;
 - l'absence des configurations locales, sources de développement, secrets,

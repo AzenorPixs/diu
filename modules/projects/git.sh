@@ -36,14 +36,14 @@ cicd_project_diu() {
     #   /home/devops/datas/diu
     # ==========================================================
 
-    if [[ "${DEVOPS_PROJECTS_ROOT}" != "/home/devops/datas" ]]; then
+    if [[ "${ENV_DEVOPS_PROJECTS_ROOT}" != "/home/devops/datas" ]]; then
         print_error "La commande CI/CD est interdite dans l'environnement de production."
         print_error "Environnement autorisé : /home/devops/datas/diu"
-        print_error "Environnement détecté : ${DEVOPS_PROJECTS_ROOT}/${project_id}"
+        print_error "Environnement détecté : ${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
         return 1
     fi
 
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
@@ -169,7 +169,7 @@ cicd_project_docker_release() {
     # Définition des chemins
     # ==========================================================
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
@@ -416,26 +416,26 @@ _projects_cicd_replay_prepare_internal() {
         print_error 'Projet de rejeu invalide ou symbolique.'
         return 1
     fi
-    commit="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/tags/${tag}^{commit}")" || return 1
-    branch="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" branch --show-current)" || return 1
+    commit="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/tags/${tag}^{commit}")" || return 1
+    branch="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" branch --show-current)" || return 1
     [[ -n "$branch" ]] || { print_error 'Branche locale indisponible pour le rejeu.'; return 1; }
-    PROJECTS_CICD_REPLAY_ROOT="$(runuser -u "$DEVOPS_USER" -- mktemp -d -p "${TMPDIR:-/tmp}" diu-cicd-replay.XXXXXXXX)" || return 1
+    PROJECTS_CICD_REPLAY_ROOT="$(runuser -u "$ENV_DEVOPS_USER" -- mktemp -d -p "${TMPDIR:-/tmp}" diu-cicd-replay.XXXXXXXX)" || return 1
     replay_project="$PROJECTS_CICD_REPLAY_ROOT/$project_id"
-    if ! runuser -u "$DEVOPS_USER" -- git clone --quiet --no-hardlinks --no-checkout "$project_path" "$replay_project" ||
-        ! runuser -u "$DEVOPS_USER" -- git -C "$replay_project" checkout --quiet -B "$branch" "$commit" ||
-        ! runuser -u "$DEVOPS_USER" -- git -C "$replay_project" remote remove origin; then
+    if ! runuser -u "$ENV_DEVOPS_USER" -- git clone --quiet --no-hardlinks --no-checkout "$project_path" "$replay_project" ||
+        ! runuser -u "$ENV_DEVOPS_USER" -- git -C "$replay_project" checkout --quiet -B "$branch" "$commit" ||
+        ! runuser -u "$ENV_DEVOPS_USER" -- git -C "$replay_project" remote remove origin; then
         print_error 'Impossible de préparer le clone du commit versionné.'
         return 1
     fi
     while IFS= read -r remote; do
         [[ -n "$remote" ]] || continue
-        url="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" remote get-url "$remote")" || return 1
+        url="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" remote get-url "$remote")" || return 1
         if [[ "$url" == *://*@* ]]; then
             print_error "Le remote $remote contient une identité intégrée interdite."
             return 1
         fi
-        runuser -u "$DEVOPS_USER" -- git -C "$replay_project" remote add "$remote" "$url" || return 1
-    done < <(runuser -u "$DEVOPS_USER" -- git -C "$project_path" remote)
+        runuser -u "$ENV_DEVOPS_USER" -- git -C "$replay_project" remote add "$remote" "$url" || return 1
+    done < <(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" remote)
     if [[ -L "$project_path/project.env" || ! -f "$project_path/project.env" ]]; then
         print_error 'Configuration de projet absente ou symbolique.'
         return 1
@@ -444,7 +444,7 @@ _projects_cicd_replay_prepare_internal() {
         print_error 'La configuration locale entrerait en conflit avec le contenu du commit.'
         return 1
     fi
-    runuser -u "$DEVOPS_USER" -- cp -p -- "$project_path/project.env" "$replay_project/project.env" || return 1
+    runuser -u "$ENV_DEVOPS_USER" -- cp -p -- "$project_path/project.env" "$replay_project/project.env" || return 1
     if [[ -L "$project_path/config" ]]; then
         print_error 'Répertoire de configuration source symbolique.'
         return 1
@@ -453,8 +453,8 @@ _projects_cicd_replay_prepare_internal() {
         print_error 'Répertoire de configuration symbolique ou invalide.'
         return 1
     fi
-    runuser -u "$DEVOPS_USER" -- mkdir -p -- "$replay_project/config" || return 1
-    runuser -u "$DEVOPS_USER" -- chmod 700 -- "$replay_project/config" || return 1
+    runuser -u "$ENV_DEVOPS_USER" -- mkdir -p -- "$replay_project/config" || return 1
+    runuser -u "$ENV_DEVOPS_USER" -- chmod 700 -- "$replay_project/config" || return 1
     for credential in forgejo.username forgejo.token github.username github.token gitlab.username gitlab.token; do
         if [[ -e "$project_path/config/$credential" || -L "$project_path/config/$credential" ]]; then
             if [[ -L "$project_path/config/$credential" || ! -f "$project_path/config/$credential" ]]; then
@@ -465,7 +465,7 @@ _projects_cicd_replay_prepare_internal() {
                 print_error 'Un identifiant de forge entrerait en conflit avec le contenu du commit.'
                 return 1
             fi
-            runuser -u "$DEVOPS_USER" -- cp -p -- "$project_path/config/$credential" "$replay_project/config/$credential" || return 1
+            runuser -u "$ENV_DEVOPS_USER" -- cp -p -- "$project_path/config/$credential" "$replay_project/config/$credential" || return 1
         fi
     done
 }
@@ -474,7 +474,7 @@ projects_cicd_replay_prepare() {
     PROJECTS_CICD_REPLAY_ROOT=""
     if ! _projects_cicd_replay_prepare_internal "$@"; then
         if [[ -n "$PROJECTS_CICD_REPLAY_ROOT" ]]; then
-            runuser -u "$DEVOPS_USER" -- rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT" || return 1
+            runuser -u "$ENV_DEVOPS_USER" -- rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT" || return 1
             PROJECTS_CICD_REPLAY_ROOT=""
         fi
         return 1
@@ -509,12 +509,12 @@ _projects_cicd_replay_git_provider() {
     PROJECTS_CICD_REPLAY_GIT_STATUS="déjà en ligne"
     base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
     expected_url="${!base_key%/}/${!owner_key}/${!repo_key}.git"
-    actual_url="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" remote get-url "$remote")" || return 1
+    actual_url="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" remote get-url "$remote")" || return 1
     if [[ "$actual_url" != "$expected_url" ]]; then
         print_error "Le remote $remote ne correspond pas à la configuration du projet."
         return 1
     fi
-    head_sha="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
+    head_sha="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
     refs="$(projects_cicd_replay_git_transport "$provider" "$project_path" ls-remote "$remote" \
         "refs/heads/$branch" "refs/tags/$tag" "refs/tags/$tag^{}")" || return 1
     while IFS=$'\t' read -r sha ref; do
@@ -536,13 +536,13 @@ _projects_cicd_replay_git_provider() {
     if [[ -n "$branch_sha" ]]; then
         projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
             "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
-        if [[ "$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/remotes/$remote/$branch")" != "$branch_sha" ]]; then
+        if [[ "$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/remotes/$remote/$branch")" != "$branch_sha" ]]; then
             print_error "La branche $remote/$branch a changé pendant la vérification."
             return 1
         fi
     fi
     if [[ -n "$branch_sha" && "$branch_sha" != "$head_sha" ]]; then
-        if runuser -u "$DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$branch_sha" "$head_sha"; then
+        if runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$branch_sha" "$head_sha"; then
             projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" "HEAD:refs/heads/$branch" || return 1
             projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
                 "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
@@ -592,9 +592,9 @@ projects_cicd_replay_git_provider() {
 }
 
 _cicd_project_impl() {
-    local original_projects_root="${DEVOPS_PROJECTS_ROOT}"
-    local DEVOPS_PROJECTS_ROOT
-    printf -v DEVOPS_PROJECTS_ROOT '%s' "$original_projects_root"
+    local original_projects_root="${ENV_DEVOPS_PROJECTS_ROOT}"
+    local ENV_DEVOPS_PROJECTS_ROOT
+    printf -v ENV_DEVOPS_PROJECTS_ROOT '%s' "$original_projects_root"
     local project_id="${1:-}"
     local commit_name="${2:-}"
     local commit_tag="${3:-}"
@@ -629,7 +629,7 @@ _cicd_project_impl() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
@@ -643,7 +643,7 @@ _cicd_project_impl() {
     local requested_version="" replay_tag_exists=0 tag_probe_rc=0
     requested_version="$(project_version_get "$project_env")" || return 1
     if [[ -n "$requested_version" && -e "$project_path/.git" ]]; then
-        if runuser -u "$DEVOPS_USER" -- git -C "$project_path" \
+        if runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" \
             show-ref --verify --quiet "refs/tags/$commit_tag" 2>/dev/null; then
             replay_tag_exists=1
         else
@@ -657,7 +657,7 @@ _cicd_project_impl() {
     if [[ "$replay_tag_exists" == 1 ]]; then
         original_project_path="$project_path"
         print_info "Version $requested_version déjà attribuée : rejeu sur le commit du tag."
-        replay_pending_changes="$(runuser -u "$DEVOPS_USER" -- git -C "$project_path" status --porcelain=v1 --untracked-files=normal)" || {
+        replay_pending_changes="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" status --porcelain=v1 --untracked-files=normal)" || {
             print_error "Impossible de vérifier les modifications locales avant le rejeu."
             return 1
         }
@@ -669,8 +669,8 @@ _cicd_project_impl() {
             print_error 'Impossible de préparer le contexte isolé du rejeu.'
             return 1
         fi
-        printf -v DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
-        project_path="$DEVOPS_PROJECTS_ROOT/$project_id"
+        printf -v ENV_DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
+        project_path="$ENV_DEVOPS_PROJECTS_ROOT/$project_id"
         project_env="$project_path/project.env"
         # shellcheck disable=SC2034
         PROJECTS_CICD_REPLAY=1
@@ -703,7 +703,7 @@ _cicd_project_impl() {
         docker_version="$selected_project_version"
     else
         effective_commit_tag="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
                 head -n 1
@@ -746,8 +746,8 @@ _cicd_project_impl() {
         return 0
     fi
     if [[ "$replay" == 1 ]]; then
-        printf -v DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
-        project_path="$DEVOPS_PROJECTS_ROOT/$project_id"
+        printf -v ENV_DEVOPS_PROJECTS_ROOT '%s' "$PROJECTS_CICD_REPLAY_ROOT"
+        project_path="$ENV_DEVOPS_PROJECTS_ROOT/$project_id"
         project_env="$project_path/project.env"
     fi
 
@@ -833,8 +833,8 @@ _cicd_project_impl() {
             # Le contexte contient uniquement les fichiers suivis au commit du tag.
             # shellcheck disable=SC2034
             PROJECTS_CICD_DOCKER_CONTEXT="$PROJECTS_CICD_REPLAY_ROOT/docker-context"
-            if ! runuser -u "$DEVOPS_USER" -- mkdir -m 700 -- "$PROJECTS_CICD_DOCKER_CONTEXT" ||
-                ! runuser -u "$DEVOPS_USER" -- git -C "$project_path" checkout-index \
+            if ! runuser -u "$ENV_DEVOPS_USER" -- mkdir -m 700 -- "$PROJECTS_CICD_DOCKER_CONTEXT" ||
+                ! runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" checkout-index \
                     --all --prefix="$PROJECTS_CICD_DOCKER_CONTEXT/"; then
                 print_error 'Impossible de préparer le contexte Docker du commit versionné.'
                 return 1
@@ -875,7 +875,7 @@ _cicd_project_impl() {
                 print_error 'Destination des paquets de rejeu symbolique.'
                 return 1
             fi
-            runuser -u "$DEVOPS_USER" -- mkdir -p -- "$replay_target" || return 1
+            runuser -u "$ENV_DEVOPS_USER" -- mkdir -p -- "$replay_target" || return 1
             for replay_artifact in "$project_path"/dist/*.deb; do
                 [[ -f "$replay_artifact" && ! -L "$replay_artifact" ]] || continue
                 replay_hash="$(sha256sum < "$replay_artifact")" || return 1
@@ -885,11 +885,11 @@ _cicd_project_impl() {
                 if [[ -L "$replay_digest_target" ]]; then
                     print_error 'Destination du paquet de rejeu symbolique.'; return 1
                 fi
-                runuser -u "$DEVOPS_USER" -- mkdir -p -- "$replay_digest_target" || return 1
+                runuser -u "$ENV_DEVOPS_USER" -- mkdir -p -- "$replay_digest_target" || return 1
                 if [[ -L "$replay_digest_target/${replay_artifact##*/}" ]]; then
                     print_error 'Fichier de paquet de rejeu symbolique.'; return 1
                 fi
-                runuser -u "$DEVOPS_USER" -- cp -n -- "$replay_artifact" "$replay_digest_target/" || return 1
+                runuser -u "$ENV_DEVOPS_USER" -- cp -n -- "$replay_artifact" "$replay_digest_target/" || return 1
                 if ! cmp -s -- "$replay_artifact" "$replay_digest_target/${replay_artifact##*/}"; then
                     print_error 'Le paquet sauvegardé ne correspond pas au paquet construit.'; return 1
                 fi
@@ -1026,7 +1026,7 @@ cicd_project() (
 # Analalyse le dépot le local Git pour le projet <PROJECT ID>
 git_analyse() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -1069,11 +1069,11 @@ git_analyse() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour ${DEVOPS_USER}."
+            "Git n'est pas accessible pour ${ENV_DEVOPS_USER}."
         return 1
     fi
 
@@ -1162,16 +1162,16 @@ git_analyse() {
     print_title "Analyse du dépôt Git"
 
     # Vérification des droits d'accès
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         test -r "${project_path}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
+            "${ENV_DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
         return 1
     fi
 
     # Vérification du dépôt Git
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
@@ -1182,13 +1182,13 @@ git_analyse() {
 
     # Informations générales
     git_root="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" rev-parse \
             --show-toplevel 2>/dev/null
     )"
 
     current_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" branch \
             --show-current 2>/dev/null
     )"
@@ -1200,7 +1200,7 @@ git_analyse() {
     upstream_branch=""
 
     if upstream_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" rev-parse \
             --abbrev-ref \
             --symbolic-full-name \
@@ -1211,7 +1211,7 @@ git_analyse() {
 
     # Calcul des statistiques
     tracked_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" ls-files \
             2>/dev/null |
             wc -l |
@@ -1219,7 +1219,7 @@ git_analyse() {
     )"
 
     untracked_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" ls-files \
             --others \
             --exclude-standard \
@@ -1229,7 +1229,7 @@ git_analyse() {
     )"
 
     ignored_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" ls-files \
             --others \
             --ignored \
@@ -1240,7 +1240,7 @@ git_analyse() {
     )"
 
     modified_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" diff \
             --name-only \
             2>/dev/null |
@@ -1249,7 +1249,7 @@ git_analyse() {
     )"
 
     staged_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" diff \
             --cached \
             --name-only \
@@ -1258,12 +1258,12 @@ git_analyse() {
             tr -d ' '
     )"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --verify HEAD >/dev/null 2>&1; then
 
         commit_count="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" rev-list \
                 --count HEAD 2>/dev/null
         )"
@@ -1276,10 +1276,10 @@ git_analyse() {
     printf 'Identifiant        : %s\n' "${project_id}"
     printf 'Répertoire         : %s\n' "${project_path}"
     printf 'Racine Git         : %s\n' "${git_root}"
-    printf 'Utilisateur Git    : %s\n' "${DEVOPS_USER}"
+    printf 'Utilisateur Git    : %s\n' "${ENV_DEVOPS_USER}"
 
     printf 'Version Git        : %s\n' "$(
-        runuser -u "${DEVOPS_USER}" -- git --version
+        runuser -u "${ENV_DEVOPS_USER}" -- git --version
     )"
 
     printf 'Branche courante   : %s\n' "${current_branch}"
@@ -1290,7 +1290,7 @@ git_analyse() {
         printf 'Branche de suivi   : aucune\n'
     fi
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-bare-repository 2>/dev/null |
         grep -qx 'true'; then
@@ -1300,12 +1300,12 @@ git_analyse() {
         printf 'Type de dépôt      : dépôt de travail\n'
     fi
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-shallow-repository >/dev/null 2>&1; then
 
         printf 'Dépôt superficiel  : %s\n' "$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" rev-parse \
                 --is-shallow-repository
         )"
@@ -1324,14 +1324,14 @@ git_analyse() {
     # État du dépôt
     print_title "État du dépôt"
 
-    runuser -u "${DEVOPS_USER}" -- \
+    runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" status \
         --short \
         --branch \
         --untracked-files=all
 
     if [[ -z "$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" status \
             --porcelain=v1
     )" ]]; then
@@ -1343,7 +1343,7 @@ git_analyse() {
     print_title "Fichiers suivis"
 
     if [[ "${tracked_count}" -gt 0 ]]; then
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" ls-files
     else
         printf 'Aucun fichier suivi.\n'
@@ -1352,15 +1352,15 @@ git_analyse() {
     # Modifications non indexées
     print_title "Modifications non indexées"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" diff --quiet; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" diff --stat
 
         printf '\n'
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" diff --name-status
     else
         printf 'Aucune modification non indexée.\n'
@@ -1369,17 +1369,17 @@ git_analyse() {
     # Modifications indexées
     print_title "Modifications indexées pour le prochain commit"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" diff \
         --cached --quiet; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" diff \
             --cached --stat
 
         printf '\n'
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" diff \
             --cached --name-status
     else
@@ -1390,7 +1390,7 @@ git_analyse() {
     print_title "Fichiers non suivis"
 
     if [[ "${untracked_count}" -gt 0 ]]; then
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" ls-files \
             --others \
             --exclude-standard
@@ -1401,14 +1401,14 @@ git_analyse() {
     # Configuration Git locale
     print_title "Configuration Git locale"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config \
         --local \
         --list \
         --show-origin |
         grep -q .; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" config \
             --local \
             --list \
@@ -1422,7 +1422,7 @@ git_analyse() {
     # Configuration Git effective
     print_title "Configuration Git effective"
 
-    runuser -u "${DEVOPS_USER}" -- \
+    runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config \
         --list \
         --show-origin \
@@ -1434,14 +1434,14 @@ git_analyse() {
     print_title "Identité Git"
 
     printf 'Nom   : %s\n' "$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" config \
             user.name 2>/dev/null ||
             printf 'non défini'
     )"
 
     printf 'Email : %s\n' "$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" config \
             user.email 2>/dev/null ||
             printf 'non défini'
@@ -1450,11 +1450,11 @@ git_analyse() {
     # Dépôts distants
     print_title "Dépôts distants"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote |
         grep -q .; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" remote -v |
             sed -E \
                 's#(https?://)[^/@:]+:[^/@]+@#\1***:***@#g'
@@ -1466,7 +1466,7 @@ git_analyse() {
 
             printf '\n--- %s ---\n' "${remote_name}"
 
-            if ! runuser -u "${DEVOPS_USER}" -- \
+            if ! runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" remote \
                 show -n "${remote_name}" 2>/dev/null; then
 
@@ -1475,7 +1475,7 @@ git_analyse() {
             fi
 
         done < <(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" remote
         )
     else
@@ -1485,12 +1485,12 @@ git_analyse() {
     # Branches locales
     print_title "Branches locales"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" branch \
         --list |
         grep -q .; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" branch \
             --verbose \
             --verbose \
@@ -1502,13 +1502,13 @@ git_analyse() {
     # Branches distantes
     print_title "Branches distantes"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" branch \
         --remotes \
         --list |
         grep -q .; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" branch \
             --remotes \
             --verbose \
@@ -1525,7 +1525,7 @@ git_analyse() {
         ahead_count="0"
 
         if ahead_count="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" rev-list \
                 --count \
                 "${upstream_branch}..HEAD" 2>/dev/null
@@ -1538,7 +1538,7 @@ git_analyse() {
         behind_count="0"
 
         if behind_count="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" rev-list \
                 --count \
                 "HEAD..${upstream_branch}" 2>/dev/null
@@ -1558,12 +1558,12 @@ git_analyse() {
     # Tags
     print_title "Tags"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" tag \
         --list |
         grep -q .; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" tag \
             --list \
             --sort=-creatordate \
@@ -1575,11 +1575,11 @@ git_analyse() {
     # Historique des commits
     print_title "Historique des commits"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --verify HEAD >/dev/null 2>&1; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" log \
             --all \
             --date=iso-local \
@@ -1595,11 +1595,11 @@ git_analyse() {
     # Graphe des commits
     print_title "Graphe des commits"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --verify HEAD >/dev/null 2>&1; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" log \
             --graph \
             --decorate \
@@ -1613,11 +1613,11 @@ git_analyse() {
     # Dernier commit
     print_title "Dernier commit"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --verify HEAD >/dev/null 2>&1; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" show \
             --stat \
             --summary \
@@ -1639,13 +1639,13 @@ Objet        : %s
     # Horodatage du dépôt
     print_title "Horodatage du dépôt"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --verify HEAD >/dev/null 2>&1; then
 
         printf 'Premier commit :\n'
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" log \
             --reverse \
             --max-count=1 \
@@ -1654,7 +1654,7 @@ Objet        : %s
 
         printf '\n\nDernier commit :\n'
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" log \
             -1 \
             --date=iso-local \
@@ -1668,11 +1668,11 @@ Objet        : %s
     # Contributions par auteur
     print_title "Contributions par auteur"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --verify HEAD >/dev/null 2>&1; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" shortlog \
             --summary \
             --numbered \
@@ -1685,7 +1685,7 @@ Objet        : %s
     # Taille et objets du dépôt
     print_title "Taille et objets du dépôt"
 
-    runuser -u "${DEVOPS_USER}" -- \
+    runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" count-objects \
         --verbose \
         --human-readable
@@ -1695,7 +1695,7 @@ Objet        : %s
 
     if [[ -f "${project_path}/.gitmodules" ]]; then
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" submodule \
             status 2>/dev/null; then
 
@@ -1711,7 +1711,7 @@ Objet        : %s
     hooks_path=""
 
     if hooks_path="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" config \
             --path core.hooksPath 2>/dev/null
     )"; then
@@ -1720,7 +1720,7 @@ Objet        : %s
 
     if [[ -z "${hooks_path}" ]]; then
         hooks_path="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" rev-parse \
                 --git-path hooks
         )"
@@ -1730,9 +1730,9 @@ Objet        : %s
 
     printf 'Répertoire des hooks : %s\n' "${hooks_path}"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         test -d "${hooks_path}" &&
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             find "${hooks_path}" \
             -maxdepth 1 \
             -type f \
@@ -1740,7 +1740,7 @@ Objet        : %s
             ! -name '*.sample' |
             grep -q .; then
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             find "${hooks_path}" \
             -maxdepth 1 \
             -type f \
@@ -1759,7 +1759,7 @@ Objet        : %s
         "${project_name}"
 
     print_success \
-        "Dépôt analysé avec l'utilisateur ${DEVOPS_USER}."
+        "Dépôt analysé avec l'utilisateur ${ENV_DEVOPS_USER}."
 
     return 0
 }
@@ -1769,7 +1769,7 @@ git_commit() {
     local project_id="$1"
     local commit_name="$2"
     local commit_tag="$3"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local selected_project_version="" tag_check_rc=0
     local head_sha="" tag_sha="" remote="" remote_refs=""
@@ -1813,11 +1813,11 @@ git_commit() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour ${DEVOPS_USER}."
+            "Git n'est pas accessible pour ${ENV_DEVOPS_USER}."
         return 1
     fi
 
@@ -1920,7 +1920,7 @@ git_commit() {
     print_title "Commit Git ${project_name} : ${project_path}"
 
     # Vérification du dépôt Git local
-    if [[ "$(runuser -u "${DEVOPS_USER}" -- \
+    if [[ "$(runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" rev-parse \
         --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
 
@@ -1931,7 +1931,7 @@ git_commit() {
             return 1
         fi
 
-        if [[ "$(runuser -u "${DEVOPS_USER}" -- \
+        if [[ "$(runuser -u "${ENV_DEVOPS_USER}" -- \
             "${git_local_command[@]}" -C "${project_path}" rev-parse \
             --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
 
@@ -1941,16 +1941,16 @@ git_commit() {
     fi
 
     # Vérification des droits
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         test -w "${project_path}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas écrire dans ${project_path}"
+            "${ENV_DEVOPS_USER} ne peut pas écrire dans ${project_path}"
         return 1
     fi
 
     # Configuration de l'identité Git locale du projet
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         user.name "${git_user_name}"; then
 
@@ -1958,7 +1958,7 @@ git_commit() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         user.email "${git_user_email}"; then
 
@@ -1969,7 +1969,7 @@ git_commit() {
     # Ajout des fichiers
     print_info "Ajout des modifications..."
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" add .; then
 
         print_error "Échec du git add."
@@ -1977,14 +1977,14 @@ git_commit() {
     fi
 
     # Vérification des modifications
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" diff \
         --cached --quiet; then
 
         print_info "Aucune modification à enregistrer."
         if [[ -n "$selected_project_version" ]]; then
-            head_sha="$(runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" rev-parse --verify HEAD)" || return 1
-            if tag_sha="$(runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" rev-parse --verify "refs/tags/${commit_tag}^{commit}" 2>/dev/null)"; then
+            head_sha="$(runuser -u "$ENV_DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" rev-parse --verify HEAD)" || return 1
+            if tag_sha="$(runuser -u "$ENV_DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" rev-parse --verify "refs/tags/${commit_tag}^{commit}" 2>/dev/null)"; then
                 if [[ "$tag_sha" != "$head_sha" ]]; then
                     PROJECTS_GIT_COMMIT_STATUS=version_deja_attribuee
                     print_info "Le tag ${commit_tag} est déjà attribué à un autre commit."
@@ -1995,7 +1995,7 @@ git_commit() {
             fi
             while IFS= read -r remote; do
                 [[ -n "$remote" ]] || continue
-                if ! remote_refs="$(runuser -u "$DEVOPS_USER" -- env -u GIT_COMMON_DIR GIT_TERMINAL_PROMPT=0 git -C "$project_path" ls-remote --tags "$remote" "refs/tags/$commit_tag" "refs/tags/$commit_tag^{}")"; then
+                if ! remote_refs="$(runuser -u "$ENV_DEVOPS_USER" -- env -u GIT_COMMON_DIR GIT_TERMINAL_PROMPT=0 git -C "$project_path" ls-remote --tags "$remote" "refs/tags/$commit_tag" "refs/tags/$commit_tag^{}")"; then
                     print_error "Impossible de vérifier le tag sur le dépôt ${remote}."
                     return 1
                 fi
@@ -2004,8 +2004,8 @@ git_commit() {
                     print_info "Le tag ${commit_tag} existe déjà sur ${remote} ; aucune recréation locale."
                     return 0
                 fi
-            done < <(runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" remote)
-            if ! runuser -u "$DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" tag -a "$commit_tag" -m "$commit_name"; then
+            done < <(runuser -u "$ENV_DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" remote)
+            if ! runuser -u "$ENV_DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" tag -a "$commit_tag" -m "$commit_name"; then
                 print_error "Échec de la création du tag ${commit_tag}."
                 return 1
             fi
@@ -2015,7 +2015,7 @@ git_commit() {
     fi
 
     if [[ -n "$selected_project_version" ]]; then
-        if runuser -u "${DEVOPS_USER}" -- "${git_local_command[@]}" -C "$project_path" \
+        if runuser -u "${ENV_DEVOPS_USER}" -- "${git_local_command[@]}" -C "$project_path" \
             show-ref --verify --quiet "refs/tags/$commit_tag"; then
             PROJECTS_GIT_COMMIT_STATUS=version_deja_attribuee
             print_info 'Le tag de PROJECT_VERSION existe déjà ; incrémenter la version avant un nouveau commit.'
@@ -2032,7 +2032,7 @@ git_commit() {
     # Résumé avant commit
     print_title "Résumé des modifications"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" status --short; then
 
         print_error \
@@ -2043,7 +2043,7 @@ git_commit() {
     # Création du commit
     print_title "Création du commit"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" commit \
         -m "${commit_name}"; then
 
@@ -2054,7 +2054,7 @@ git_commit() {
     # Création du tag
     print_title "Création du tag Git"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" tag \
         -a "${commit_tag}" \
         -m "${commit_name}"; then
@@ -2070,7 +2070,7 @@ git_commit() {
     # Vérification finale
     print_title "Historique Git"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" log \
         --oneline \
         --decorate \
@@ -2103,14 +2103,14 @@ git_commit_all() {
         return 1
     fi
 
-    if [[ ! -d "${DEVOPS_PROJECTS_ROOT}" ]]; then
-        print_error "Répertoire des projets introuvable : ${DEVOPS_PROJECTS_ROOT}"
+    if [[ ! -d "${ENV_DEVOPS_PROJECTS_ROOT}" ]]; then
+        print_error "Répertoire des projets introuvable : ${ENV_DEVOPS_PROJECTS_ROOT}"
         return 1
     fi
 
     print_title "Commit Git de tous les projets configurés"
 
-    for project_path in "${DEVOPS_PROJECTS_ROOT}"/*; do
+    for project_path in "${ENV_DEVOPS_PROJECTS_ROOT}"/*; do
         if [[ ! -d "${project_path}" ]]; then
             continue
         fi
@@ -2282,7 +2282,7 @@ git_safe_directory_system_status() {
 
 git_init() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -2316,11 +2316,11 @@ git_init() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour l'utilisateur ${DEVOPS_USER}."
+            "Git n'est pas accessible pour l'utilisateur ${ENV_DEVOPS_USER}."
         return 1
     fi
 
@@ -2429,19 +2429,19 @@ git_init() {
     git_user_email="${GIT_USER_EMAIL}"
 
     # Vérification des droits
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         test -r "${project_path}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
+            "${ENV_DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         test -w "${project_path}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
+            "${ENV_DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
         return 1
     fi
 
@@ -2450,7 +2450,7 @@ git_init() {
     fi
 
     # Vérification d'un dépôt Git local existant
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
@@ -2458,7 +2458,7 @@ git_init() {
     fi
 
     # Initialisation du dépôt Git local
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" \
         init --quiet -b "${local_default_branch}" >/dev/null 2>&1; then
 
@@ -2468,7 +2468,7 @@ git_init() {
     fi
 
     # Configuration de user.name
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         user.name "${git_user_name}"; then
 
@@ -2478,7 +2478,7 @@ git_init() {
     fi
 
     # Configuration de user.email
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         user.email "${git_user_email}"; then
 
@@ -2488,7 +2488,7 @@ git_init() {
     fi
 
     # Configuration de core.fileMode
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         core.fileMode false; then
 
@@ -2498,7 +2498,7 @@ git_init() {
     fi
 
     # Configuration de core.autocrlf
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         core.autocrlf false; then
 
@@ -2508,7 +2508,7 @@ git_init() {
     fi
 
     # Configuration de core.eol
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         core.eol lf; then
 
@@ -2518,7 +2518,7 @@ git_init() {
     fi
 
     # Configuration de i18n.commitEncoding
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         i18n.commitEncoding utf-8; then
 
@@ -2528,7 +2528,7 @@ git_init() {
     fi
 
     # Configuration de i18n.logOutputEncoding
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" config --local \
         i18n.logOutputEncoding utf-8; then
 
@@ -2538,20 +2538,20 @@ git_init() {
     fi
 
     # Vérification de l'absence de dépôt distant
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" remote |
         grep -q .; then
 
         print_error \
             "Un dépôt distant est déjà configuré alors que l'initialisation doit rester locale."
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             "${git_local_command[@]}" -C "${project_path}" remote -v
 
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" add .; then
 
         print_error \
@@ -2560,7 +2560,7 @@ git_init() {
     fi
 
     # Vérification du contenu du premier commit
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" diff \
         --cached --quiet; then
 
@@ -2569,7 +2569,7 @@ git_init() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         "${git_local_command[@]}" -C "${project_path}" commit \
         --quiet -m "Initialisation du projet ${project_name}" >/dev/null 2>&1; then
 
@@ -2790,7 +2790,7 @@ git_push_provider() {
 _git_push_provider() {
     local project_id="$1"
     local requested_remote_type="${2:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -2841,7 +2841,7 @@ _git_push_provider() {
 
     selected_project_version="$(project_version_get "$project_env")" || return 1
     if [[ -n "$selected_project_version" ]]; then
-        current_tag="$(project_version_tag_for_head "$project_path" "$selected_project_version" "${ENV_DEVOPS_USER:-${DEVOPS_USER}}")" || return 1
+        current_tag="$(project_version_tag_for_head "$project_path" "$selected_project_version" "${ENV_DEVOPS_USER:-${ENV_DEVOPS_USER}}")" || return 1
     fi
 
     # Vérification de Git
@@ -2850,11 +2850,11 @@ _git_push_provider() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour ${DEVOPS_USER}."
+            "Git n'est pas accessible pour ${ENV_DEVOPS_USER}."
         return 1
     fi
 
@@ -3729,9 +3729,9 @@ forgejo_remote_ensure() {
         return 1
     fi
 
-    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+    if ! configured_url="$(runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url --all "${remote_name}" 2>/dev/null)"; then
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" remote add "${remote_name}" "${expected_url}"; then
             print_error \
                 "Impossible d'ajouter le remote Forgejo '${remote_name}'."
@@ -3743,7 +3743,7 @@ forgejo_remote_ensure() {
 
     if [[ "${configured_url}" != "${expected_url}" ]]; then
         print_info "Réalignement de l'URL de récupération Forgejo '${remote_name}' sur project.env."
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" config --local --replace-all \
             "remote.${remote_name}.url" "${expected_url}"; then
             print_error "Impossible de réaligner l'URL de récupération Forgejo '${remote_name}'."
@@ -3752,7 +3752,7 @@ forgejo_remote_ensure() {
         remote_updated="Yes"
     fi
 
-    if ! configured_push_url="$(runuser -u "${DEVOPS_USER}" -- \
+    if ! configured_push_url="$(runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url --push --all "${remote_name}")"; then
         print_error "Impossible de lire l'URL de publication Forgejo '${remote_name}'."
         return 1
@@ -3760,7 +3760,7 @@ forgejo_remote_ensure() {
 
     if [[ "${configured_push_url}" != "${expected_url}" ]]; then
         print_info "Réalignement de l'URL de publication Forgejo '${remote_name}' sur project.env."
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" config --local --replace-all \
             "remote.${remote_name}.pushurl" "${expected_url}"; then
             print_error "Impossible de réaligner l'URL de publication Forgejo '${remote_name}'."
@@ -3769,9 +3769,9 @@ forgejo_remote_ensure() {
         remote_updated="Yes"
     fi
 
-    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+    if ! configured_url="$(runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url --all "${remote_name}")" ||
-        ! configured_push_url="$(runuser -u "${DEVOPS_USER}" -- \
+        ! configured_push_url="$(runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url --push --all "${remote_name}")"; then
         print_error "Impossible de vérifier les URL du remote Forgejo '${remote_name}'."
         return 1
@@ -3804,9 +3804,9 @@ gitlab_remote_ensure() {
         return 1
     fi
 
-    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+    if ! configured_url="$(runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url --push "${remote_name}" 2>/dev/null)"; then
-        if runuser -u "${DEVOPS_USER}" -- \
+        if runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" remote add "${remote_name}" "${expected_url}"; then
             print_info \
                 "Remote GitLab '${remote_name}' ajouté au dépôt local."
@@ -3840,9 +3840,9 @@ github_remote_ensure() {
         return 1
     fi
 
-    if ! configured_url="$(runuser -u "${DEVOPS_USER}" -- \
+    if ! configured_url="$(runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url --push "${remote_name}" 2>/dev/null)"; then
-        if runuser -u "${DEVOPS_USER}" -- \
+        if runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" remote add "${remote_name}" "${expected_url}"; then
             print_info \
                 "Remote GitHub '${remote_name}' ajouté au dépôt local."
@@ -3867,7 +3867,7 @@ github_remote_ensure() {
 # Vérifie et complète la configuration générale avant la configuration Forgejo.
 forgejo_project_config_ensure() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     if [[ -z "${project_id}" ]]; then
@@ -3899,7 +3899,7 @@ forgejo_project_config_ensure() {
 # Complète uniquement le différentiel de configuration propre à Forgejo.
 forgejo_update() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.forgejo.tmp"
     local remote_forgejo_base_url=""
@@ -4064,7 +4064,7 @@ forgejo_update() {
         return 1
     fi
 
-    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+    if ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
         ! chmod 660 "${project_env}"; then
         print_error \
             "Impossible de préserver les droits de project.env."
@@ -4079,7 +4079,7 @@ forgejo_update() {
 # Vérifie et complète la configuration générale avant la configuration GitLab.
 gitlab_project_config_ensure() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     if [[ -z "${project_id}" ]]; then
@@ -4144,7 +4144,7 @@ _gitlab_docker_push_with_retry() {
             return 1
         }
 
-        if runuser -u "${DEVOPS_USER}" -- \
+        if runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" \
             docker push "${image}" 2>"${push_error_file}"; then
             rm -f "${push_error_file}"
@@ -4175,7 +4175,7 @@ _gitlab_docker_push_with_retry() {
 # Complète uniquement le différentiel de configuration propre à GitLab.
 gitlab_update() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.gitlab.tmp"
     local remote_gitlab_base_url=""
@@ -4370,7 +4370,7 @@ gitlab_update() {
         return 1
     fi
 
-    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+    if ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
         ! chmod 660 "${project_env}"; then
         print_error \
             "Impossible de préserver les droits de project.env."
@@ -4385,7 +4385,7 @@ gitlab_update() {
 # Vérifie et complète la configuration générale avant la configuration GitHub.
 github_project_config_ensure() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     if [[ -z "${project_id}" ]]; then
@@ -4417,7 +4417,7 @@ github_project_config_ensure() {
 # Complète uniquement le différentiel de configuration propre à GitHub.
 github_update() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local project_env_tmp="${project_env}.github.tmp"
     local remote_github_base_url=""
@@ -4552,7 +4552,7 @@ github_update() {
         return 1
     fi
 
-    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+    if ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
         ! chmod 660 "${project_env}"; then
         print_error \
             "Impossible de préserver les droits de project.env."
@@ -4578,7 +4578,7 @@ forgejo_push() {
 
 # Push vers Forgejo de tous les projets configurés.
 forgejo_push_all() {
-    local projects_root="${DEVOPS_PROJECTS_ROOT:-/home/${DEVOPS_USER}/datas}"
+    local projects_root="${ENV_DEVOPS_PROJECTS_ROOT:-/home/${ENV_DEVOPS_USER}/datas}"
     local project_path=""
     local project_id=""
     local project_env=""
@@ -4690,7 +4690,7 @@ gitlab_push() {
 # Crée un projet depuis le modèle puis fusionne son dépôt GitLab distant.
 gitlab_clone() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local clone_root=""
     local clone_path=""
@@ -4726,7 +4726,7 @@ gitlab_clone() {
     fi
 
     remote_url="${REMOTE_GITLAB_BASE_URL%/}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}.git"
-    if ! clone_root="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)"; then
+    if ! clone_root="$(runuser -u "${ENV_DEVOPS_USER}" -- mktemp -d)"; then
         print_error "Impossible de créer le répertoire temporaire de clonage."
         return 1
     fi
@@ -4739,7 +4739,7 @@ gitlab_clone() {
         return 1
     fi
 
-    if ! merge_path="$(mktemp -d "${DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-merge.XXXXXX")"; then
+    if ! merge_path="$(mktemp -d "${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-merge.XXXXXX")"; then
         rm -rf -- "${clone_root}"
         print_error "Impossible de préparer la fusion GitLab."
         return 1
@@ -4748,14 +4748,14 @@ gitlab_clone() {
     if ! cp -a "${project_path}/." "${merge_path}/" ||
         ! cp -a --remove-destination "${clone_path}/." "${merge_path}/" ||
         ! find "${merge_path}" -name .git -prune -exec rm -rf -- {} + ||
-        ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${merge_path}"; then
+        ! chown -R "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${merge_path}"; then
         rm -rf -- "${clone_root}" "${merge_path}"
         print_error "Échec de la préparation de la fusion GitLab."
         return 1
     fi
     rm -rf -- "${clone_root}"
 
-    backup_path="${DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-backup.$$"
+    backup_path="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.gitlab-backup.$$"
     if [[ -e "${backup_path}" ]] || ! mv "${project_path}" "${backup_path}"; then
         rm -rf -- "${merge_path}"
         print_error "Impossible de préparer le remplacement du projet."
@@ -4790,7 +4790,7 @@ github_push() {
 # Crée un projet depuis le modèle puis fusionne son dépôt GitHub distant.
 github_clone() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
     local clone_root=""
     local clone_path=""
@@ -4826,7 +4826,7 @@ github_clone() {
     fi
 
     remote_url="${REMOTE_GITHUB_BASE_URL%/}/${REMOTE_GITHUB_OWNER}/${REMOTE_GITHUB_REPOSITORY}.git"
-    if ! clone_root="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)"; then
+    if ! clone_root="$(runuser -u "${ENV_DEVOPS_USER}" -- mktemp -d)"; then
         print_error "Impossible de créer le répertoire temporaire de clonage."
         return 1
     fi
@@ -4839,7 +4839,7 @@ github_clone() {
         return 1
     fi
 
-    if ! merge_path="$(mktemp -d "${DEVOPS_PROJECTS_ROOT}/.${project_id}.github-merge.XXXXXX")"; then
+    if ! merge_path="$(mktemp -d "${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.github-merge.XXXXXX")"; then
         rm -rf -- "${clone_root}"
         print_error "Impossible de préparer la fusion GitHub."
         return 1
@@ -4848,14 +4848,14 @@ github_clone() {
     if ! cp -a "${project_path}/." "${merge_path}/" ||
         ! cp -a --remove-destination "${clone_path}/." "${merge_path}/" ||
         ! find "${merge_path}" -name .git -prune -exec rm -rf -- {} + ||
-        ! chown -R "${DEVOPS_USER}:${DEVOPS_GROUP}" "${merge_path}"; then
+        ! chown -R "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${merge_path}"; then
         rm -rf -- "${clone_root}" "${merge_path}"
         print_error "Échec de la préparation de la fusion GitHub."
         return 1
     fi
     rm -rf -- "${clone_root}"
 
-    backup_path="${DEVOPS_PROJECTS_ROOT}/.${project_id}.github-backup.$$"
+    backup_path="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.github-backup.$$"
     if [[ -e "${backup_path}" ]] || ! mv "${project_path}" "${backup_path}"; then
         rm -rf -- "${merge_path}"
         print_error "Impossible de préparer le remplacement du projet."
@@ -4890,7 +4890,7 @@ projects_forgejo_release() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     if [[ ! -d "${project_path}" ]]; then
@@ -5025,7 +5025,7 @@ projects_forgejo_release() {
     fi
 
     if [[ "${docker_enabled}" == "Yes" ]]; then
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             docker image inspect "${PROJECT_ID}:latest" >/dev/null 2>&1; then
             print_error "Image Docker locale introuvable : ${PROJECT_ID}:latest"
             return 1
@@ -5095,7 +5095,7 @@ projects_gitlab_release() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
 
     if [[ ! -d "${project_path}" ]]; then
@@ -5255,7 +5255,7 @@ projects_gitlab_release() {
     fi
 
     if [[ "${docker_enabled}" == "Yes" ]]; then
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             docker image inspect "${PROJECT_ID}:latest" >/dev/null 2>&1; then
             print_error "Image Docker locale introuvable : ${PROJECT_ID}:latest"
             return 1
@@ -5344,7 +5344,7 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_dir="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_dir}/project.env"
 
     if [[ ! -d "${project_dir}" ]]; then
@@ -5402,7 +5402,7 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_dir}" \
         rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         print_error "Le projet n'est pas un dépôt Git valide : ${project_dir}"
@@ -5414,7 +5414,7 @@ projects_gitlab_release_docker() {
         docker_version="$selected_project_version"
     else
         git_tags_count="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
@@ -5429,14 +5429,14 @@ projects_gitlab_release_docker() {
     
         if [[ "${git_tags_count}" -gt 1 ]]; then
             print_error "Plusieurs tags Git sont associés au dernier commit."
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD
             return 1
         fi
     
         git_tag="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
@@ -5463,7 +5463,7 @@ projects_gitlab_release_docker() {
     remote_image_version="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:${docker_version}"
     remote_image_latest="${remote_registry}/${remote_gitlab_owner}/${remote_gitlab_repository}:latest"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker image inspect "${local_image}" >/dev/null 2>&1; then
         print_error "Image Docker locale introuvable : ${local_image}"
         return 1
@@ -5495,7 +5495,7 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker tag \
             "${local_image}" \
             "${remote_image_version}"; then
@@ -5504,7 +5504,7 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker tag \
             "${local_image}" \
             "${remote_image_latest}"; then
@@ -5513,7 +5513,7 @@ projects_gitlab_release_docker() {
         return 1
     fi
 
-    docker_config="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)" || {
+    docker_config="$(runuser -u "${ENV_DEVOPS_USER}" -- mktemp -d)" || {
         print_error "Impossible de créer le DOCKER_CONFIG temporaire."
         unset gitlab_token
         return 1
@@ -5539,7 +5539,7 @@ projects_gitlab_release_docker() {
         trap 'rm -rf "${docker_config}"' EXIT
 
         if ! printf '%s' "${gitlab_token}" | \
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 env "DOCKER_CONFIG=${docker_config}" \
                 docker login \
                     "${remote_registry}" \
@@ -5588,10 +5588,10 @@ projects_github_release() {
     local docker_enabled=No debian_enabled=No
     local -a debian_files=()
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
-        "$project_id" == . || "$project_id" == .. || -z "${DEVOPS_PROJECTS_ROOT:-}" ]]; then
+        "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
         print_error 'Usage : projects_github_release <project_id>'; return 1
     fi
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="$project_path/project.env"
     if [[ ! -d "$project_path" || -L "$project_path" || ! -f "$project_env" ]]; then
         print_error 'Projet ou project.env introuvable pour la release GitHub.'; return 1
@@ -5655,7 +5655,7 @@ projects_github_release_docker() {
         return 1
     fi
 
-    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_dir="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_dir}/project.env"
 
     if [[ ! -d "${project_dir}" || ! -f "${project_env}" ]]; then
@@ -5696,7 +5696,7 @@ projects_github_release_docker() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_dir}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         print_error "Le projet n'est pas un dépôt Git valide : ${project_dir}"
         return 1
@@ -5707,7 +5707,7 @@ projects_github_release_docker() {
         docker_version="$selected_project_version"
     else
         git_tags_count="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_dir}" tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
                 sed '/^[[:space:]]*$/d' |
@@ -5719,7 +5719,7 @@ projects_github_release_docker() {
             return 1
         fi
     
-        git_tag="$(runuser -u "${DEVOPS_USER}" -- \
+        git_tag="$(runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_dir}" tag --points-at HEAD 2>/dev/null | head -n 1)"
         docker_version="${git_tag#v}"
         if [[ -z "${docker_version}" ]]; then
@@ -5735,7 +5735,7 @@ projects_github_release_docker() {
     remote_image_version="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:${docker_version}"
     remote_image_latest="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:latest"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker image inspect "${local_image}" >/dev/null 2>&1; then
         print_error "Image Docker locale introuvable : ${local_image}"
         return 1
@@ -5746,16 +5746,16 @@ projects_github_release_docker() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker tag "${local_image}" "${remote_image_version}" ||
-        ! runuser -u "${DEVOPS_USER}" -- \
+        ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker tag "${local_image}" "${remote_image_latest}"; then
         print_error "Échec du tag Docker GitHub."
         unset github_token
         return 1
     fi
 
-    docker_config="$(runuser -u "${DEVOPS_USER}" -- mktemp -d)" || {
+    docker_config="$(runuser -u "${ENV_DEVOPS_USER}" -- mktemp -d)" || {
         print_error "Impossible de créer le DOCKER_CONFIG temporaire."
         unset github_token
         return 1
@@ -5771,15 +5771,15 @@ projects_github_release_docker() {
     (
         trap 'rm -rf -- "${docker_config}"' EXIT
 
-        if ! printf '%s' "${github_token}" | runuser -u "${DEVOPS_USER}" -- \
+        if ! printf '%s' "${github_token}" | runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" docker login ghcr.io \
             --username "${github_username}" --password-stdin; then
             exit 1
         fi
 
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" docker push "${remote_image_version}" || exit 1
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" docker push "${remote_image_latest}"
     ) || docker_publish_rc=$?
 
@@ -5834,7 +5834,7 @@ projects_gitlab_release_debian() {
         return 1
     fi
 
-    project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_path}/project.env"
     if [[ ! -d "${project_path}" ]]; then
         print_error "Projet introuvable : ${project_path}"
@@ -5887,7 +5887,7 @@ projects_gitlab_release_debian() {
     if [[ -n "$selected_project_version" ]]; then
         git_tag="$(project_version_tag_for_head "$project_path" "$selected_project_version")" || return 1
     else
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             tag --points-at HEAD >/dev/null 2>&1; then
             print_error "Impossible de lire les tags Git du projet."
@@ -5895,7 +5895,7 @@ projects_gitlab_release_debian() {
         fi
     
         git_tags_count="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" \
                 tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
@@ -5910,14 +5910,14 @@ projects_gitlab_release_debian() {
     
         if [[ "${git_tags_count}" -gt 1 ]]; then
             print_error "Plusieurs tags Git sont associés au dernier commit."
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" \
                 tag --points-at HEAD
             return 1
         fi
     
         git_tag="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" \
                 tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
@@ -6088,7 +6088,7 @@ projects_gitlab_release_debian() {
 
     if [[ "${release_http_code}" == "200" ]]; then
         print_info "Release GitLab '${git_tag}' existante détectée."
-        release_head_sha="$(runuser -u "${DEVOPS_USER}" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
+        release_head_sha="$(runuser -u "${ENV_DEVOPS_USER}" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
         if ! jq -e --arg tag "$git_tag" --arg sha "$release_head_sha" \
             'type == "object" and .tag_name == $tag and .commit.id == $sha and (.assets.links | type == "array")' <<< "${release_body%$'\n'*}" >/dev/null; then
             print_error 'Release GitLab existante incohérente.'
@@ -6211,7 +6211,7 @@ projects_forgejo_release_docker() {
     # Définition des chemins
     # --------------------------------------------------------
 
-    project_dir="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    project_dir="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     project_env="${project_dir}/project.env"
 
     # --------------------------------------------------------
@@ -6272,15 +6272,15 @@ projects_forgejo_release_docker() {
     # Vérification de Git
     # --------------------------------------------------------
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour ${DEVOPS_USER}."
+            "Git n'est pas accessible pour ${ENV_DEVOPS_USER}."
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_dir}" \
         rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 
@@ -6298,7 +6298,7 @@ projects_forgejo_release_docker() {
         docker_version="$selected_project_version"
     else
         git_tags_count="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
@@ -6316,7 +6316,7 @@ projects_forgejo_release_docker() {
             print_error \
                 "Plusieurs tags Git sont associés au dernier commit."
     
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD
     
@@ -6324,7 +6324,7 @@ projects_forgejo_release_docker() {
         fi
     
         git_tag="$(
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_dir}" \
                 tag --points-at HEAD 2>/dev/null |
                 project_version_prefer_stable_tags |
@@ -6370,7 +6370,7 @@ projects_forgejo_release_docker() {
     # Vérification de l'image locale
     # --------------------------------------------------------
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker image inspect "${local_image}" >/dev/null 2>&1; then
 
         print_error \
@@ -6534,7 +6534,7 @@ projects_forgejo_release_docker() {
     print_info \
         "Création du tag Docker versionné."
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker tag \
             "${local_image}" \
             "${remote_image_version}"; then
@@ -6553,7 +6553,7 @@ projects_forgejo_release_docker() {
     print_info \
         "Création du tag Docker latest."
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         docker tag \
             "${local_image}" \
             "${remote_image_latest}"; then
@@ -6597,11 +6597,11 @@ projects_forgejo_release_docker() {
     fi
 
     if ! chown \
-        "${DEVOPS_USER}:${DEVOPS_GROUP}" \
+        "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${docker_config}"; then
 
         print_error \
-            "Impossible d'attribuer ${docker_config} à ${DEVOPS_USER}."
+            "Impossible d'attribuer ${docker_config} à ${ENV_DEVOPS_USER}."
 
         rm -rf "${docker_config}"
         unset forgejo_token
@@ -6629,7 +6629,7 @@ projects_forgejo_release_docker() {
         print_title "Authentification Docker Forgejo"
 
         if ! printf '%s' "${forgejo_token}" | \
-            runuser -u "${DEVOPS_USER}" -- \
+            runuser -u "${ENV_DEVOPS_USER}" -- \
                 env "DOCKER_CONFIG=${docker_config}" \
                 docker login \
                     "${remote_registry}" \
@@ -6652,7 +6652,7 @@ projects_forgejo_release_docker() {
         print_title \
             "Publication Docker ${docker_version}"
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" \
             docker push "${remote_image_version}"; then
 
@@ -6672,7 +6672,7 @@ projects_forgejo_release_docker() {
         print_title \
             "Publication Docker latest"
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" \
             docker push "${remote_image_latest}"; then
 
@@ -6729,7 +6729,7 @@ projects_forgejo_release_docker() {
 # Donne le status du dépot local Git pour le projet <PROJECT_ID>
 git_status() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -6770,11 +6770,11 @@ git_status() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour ${DEVOPS_USER}."
+            "Git n'est pas accessible pour ${ENV_DEVOPS_USER}."
         return 1
     fi
 
@@ -6863,7 +6863,7 @@ git_status() {
     print_title "État du dépôt Git"
 
     # Vérification du dépôt Git
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
@@ -6874,7 +6874,7 @@ git_status() {
 
     # Récupération de la branche locale courante
     current_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             branch --show-current 2>/dev/null
     )"
@@ -6887,7 +6887,7 @@ git_status() {
     upstream_branch=""
 
     if upstream_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             rev-parse \
             --abbrev-ref \
@@ -6899,7 +6899,7 @@ git_status() {
 
     # Récupération de l'état des fichiers
     if ! status_output="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             status \
             --short \
@@ -6913,7 +6913,7 @@ git_status() {
 
     # Nombre de fichiers suivis
     tracked_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             ls-files |
             wc -l |
@@ -6922,7 +6922,7 @@ git_status() {
 
     # Nombre de fichiers modifiés
     modified_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             diff \
             --name-only |
@@ -6932,7 +6932,7 @@ git_status() {
 
     # Nombre de fichiers indexés
     staged_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             diff \
             --cached \
@@ -6943,7 +6943,7 @@ git_status() {
 
     # Nombre de fichiers non suivis
     untracked_count="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" \
             ls-files \
             --others \
@@ -6956,7 +6956,7 @@ git_status() {
     printf '%-22s : %s\n' "Projet" "${project_name}"
     printf '%-22s : %s\n' "ID projet" "${project_id}"
     printf '%-22s : %s\n' "Répertoire" "${project_path}"
-    printf '%-22s : %s\n' "Utilisateur Git" "${DEVOPS_USER}"
+    printf '%-22s : %s\n' "Utilisateur Git" "${ENV_DEVOPS_USER}"
     printf '%-22s : %s\n' "Branche courante" "${current_branch}"
 
     if [[ -n "${upstream_branch}" ]]; then
@@ -6990,11 +6990,11 @@ git_status() {
     # Dernier commit
     print_title "Dernier commit"
 
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --verify HEAD >/dev/null 2>&1; then
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" log \
             -1 \
             --date=iso-local \
@@ -7010,7 +7010,7 @@ git_status() {
         # Historique récent
         print_title "Historique récent"
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" log \
             --oneline \
             --decorate \
@@ -7038,7 +7038,7 @@ git_status() {
 git_update_legacy() {
     local project_id="${1:-}"
     local update_mode="${2:-local}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local project_name=""
@@ -7738,11 +7738,11 @@ git_update_legacy() {
 
     # Attribution des droits
     if ! chown \
-        "${DEVOPS_USER}:${DEVOPS_GROUP}" \
+        "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_env}"; then
 
         print_error \
-            "Impossible d'attribuer project.env à ${DEVOPS_USER}:${DEVOPS_GROUP}."
+            "Impossible d'attribuer project.env à ${ENV_DEVOPS_USER}:${DEVOPS_GROUP}."
         return 1
     fi
 
@@ -7761,7 +7761,7 @@ git_update_legacy() {
 # Génération ou mise à jour des variables du dépôt Git local.
 git_update_local() {
     local project_id="${1:-}"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
     local local_default_branch="main"
@@ -7837,7 +7837,7 @@ git_update_local() {
         return 1
     fi
 
-    if ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
+    if ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${project_env}" ||
         ! chmod 660 "${project_env}"; then
         print_error "Impossible de définir les droits de ${project_env}."
         return 1
@@ -7855,17 +7855,17 @@ git_update() {
         return 1
     fi
 
-    git_safe_directory_system_ensure "${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    git_safe_directory_system_ensure "${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 }
 
 # Initialise un dépôt local Git pour le projet <PROJECT ID> à partir d'un clone distant.
 git_init_clone() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
     local project_env="${project_path}/project.env"
 
-    local clone_tmp="${DEVOPS_PROJECTS_ROOT}/.${project_id}.clone.$$"
-    local project_env_backup="${DEVOPS_PROJECTS_ROOT}/.${project_id}.project.env.$$"
+    local clone_tmp="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.clone.$$"
+    local project_env_backup="${ENV_DEVOPS_PROJECTS_ROOT}/.${project_id}.project.env.$$"
 
     local project_name=""
     local local_default_branch=""
@@ -7918,16 +7918,16 @@ git_init_clone() {
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git --version >/dev/null 2>&1; then
 
         print_error \
-            "Git n'est pas accessible pour l'utilisateur ${DEVOPS_USER}."
+            "Git n'est pas accessible pour l'utilisateur ${ENV_DEVOPS_USER}."
         return 1
     fi
 
     # Vérification immédiate d'un dépôt Git local existant
-    if runuser -u "${DEVOPS_USER}" -- \
+    if runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
@@ -7938,28 +7938,28 @@ git_init_clone() {
     fi
 
     # Vérification des droits sur le projet
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         test -r "${project_path}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
+            "${ENV_DEVOPS_USER} ne peut pas lire le projet : ${project_path}"
         return 1
     fi
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         test -w "${project_path}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
+            "${ENV_DEVOPS_USER} ne peut pas écrire dans le projet : ${project_path}"
         return 1
     fi
 
     # Vérification des droits sur la racine des projets
-    if ! runuser -u "${DEVOPS_USER}" -- \
-        test -w "${DEVOPS_PROJECTS_ROOT}"; then
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
+        test -w "${ENV_DEVOPS_PROJECTS_ROOT}"; then
 
         print_error \
-            "${DEVOPS_USER} ne peut pas écrire dans ${DEVOPS_PROJECTS_ROOT}."
+            "${ENV_DEVOPS_USER} ne peut pas écrire dans ${ENV_DEVOPS_PROJECTS_ROOT}."
         return 1
     fi
 
@@ -8184,7 +8184,7 @@ git_init_clone() {
         "Répertoire" "${project_path}"
 
     printf '%-30s : %s\n' \
-        "Utilisateur Linux" "${DEVOPS_USER}"
+        "Utilisateur Linux" "${ENV_DEVOPS_USER}"
 
     printf '%-30s : %s\n' \
         "Utilisateur Git" "${git_user_name}"
@@ -8271,7 +8271,7 @@ git_init_clone() {
     print_title \
         "Clonage du dépôt Git distant"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git clone \
         --origin "${remote_clone_name}" \
         --branch "${remote_clone_default_branch}" \
@@ -8338,11 +8338,11 @@ git_init_clone() {
 
     # Attribution des droits sur project.env
     if ! chown \
-        "${DEVOPS_USER}:${DEVOPS_GROUP}" \
+        "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" \
         "${project_env}"; then
 
         print_error \
-            "Impossible d'attribuer project.env à ${DEVOPS_USER}:${DEVOPS_GROUP}."
+            "Impossible d'attribuer project.env à ${ENV_DEVOPS_USER}:${DEVOPS_GROUP}."
         return 1
     fi
 
@@ -8355,7 +8355,7 @@ git_init_clone() {
     fi
 
     # Vérification du dépôt cloné
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" rev-parse \
         --is-inside-work-tree >/dev/null 2>&1; then
 
@@ -8366,7 +8366,7 @@ git_init_clone() {
 
     # Détermination de la branche locale
     current_branch="$(
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" branch --show-current
     )"
 
@@ -8380,7 +8380,7 @@ git_init_clone() {
     # Renommage éventuel de la branche locale
     if [[ "${current_branch}" != "${local_default_branch}" ]]; then
 
-        if ! runuser -u "${DEVOPS_USER}" -- \
+        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
             git -C "${project_path}" branch \
             -m "${local_default_branch}"; then
 
@@ -8391,7 +8391,7 @@ git_init_clone() {
     fi
 
     # Configuration de user.name
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config --local \
         user.name "${git_user_name}"; then
 
@@ -8401,7 +8401,7 @@ git_init_clone() {
     fi
 
     # Configuration de user.email
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config --local \
         user.email "${git_user_email}"; then
 
@@ -8411,7 +8411,7 @@ git_init_clone() {
     fi
 
     # Configuration de core.fileMode
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config --local \
         core.fileMode false; then
 
@@ -8421,7 +8421,7 @@ git_init_clone() {
     fi
 
     # Configuration de core.autocrlf
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config --local \
         core.autocrlf false; then
 
@@ -8431,7 +8431,7 @@ git_init_clone() {
     fi
 
     # Configuration de core.eol
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config --local \
         core.eol lf; then
 
@@ -8441,7 +8441,7 @@ git_init_clone() {
     fi
 
     # Configuration de i18n.commitEncoding
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config --local \
         i18n.commitEncoding utf-8; then
 
@@ -8451,7 +8451,7 @@ git_init_clone() {
     fi
 
     # Configuration de i18n.logOutputEncoding
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config --local \
         i18n.logOutputEncoding utf-8; then
 
@@ -8461,7 +8461,7 @@ git_init_clone() {
     fi
 
     # Vérification du remote source
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url \
         "${remote_clone_name}" >/dev/null 2>&1; then
 
@@ -8472,7 +8472,7 @@ git_init_clone() {
 
     # Le remote de publication reste volontairement libre
     if [[ -n "${remote_name}" ]] && \
-        runuser -u "${DEVOPS_USER}" -- \
+        runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote get-url \
         "${remote_name}" >/dev/null 2>&1; then
 
@@ -8485,7 +8485,7 @@ git_init_clone() {
     print_title \
         "Configuration Git locale"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" config \
         --list --local; then
 
@@ -8498,7 +8498,7 @@ git_init_clone() {
     print_title \
         "Dépôts Git distants"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" remote -v; then
 
         print_error \
@@ -8510,7 +8510,7 @@ git_init_clone() {
     print_title \
         "Branches Git"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" branch -vv; then
 
         print_error \
@@ -8522,7 +8522,7 @@ git_init_clone() {
     print_title \
         "Historique Git"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" log \
         --oneline \
         --decorate \
@@ -8537,7 +8537,7 @@ git_init_clone() {
     print_title \
         "État du dépôt Git"
 
-    if ! runuser -u "${DEVOPS_USER}" -- \
+    if ! runuser -u "${ENV_DEVOPS_USER}" -- \
         git -C "${project_path}" status --short; then
 
         print_error \
@@ -8548,7 +8548,7 @@ git_init_clone() {
     printf '\n'
 
     print_success \
-        "Dépôt Git cloné et fusionné avec succès par ${DEVOPS_USER}."
+        "Dépôt Git cloné et fusionné avec succès par ${ENV_DEVOPS_USER}."
 
     return 0
 }
@@ -8622,9 +8622,9 @@ git_with_token() {
         printf '%s\n%s\n' "${git_username}" "${token}" > "${credentials_file}"
         chmod 600 "${credentials_file}"
 
-        # Transférer la propriété à DEVOPS_USER si exécuté en root
-        if [[ "$(id -u)" -eq 0 ]] && id "${DEVOPS_USER}" >/dev/null 2>&1; then
-            chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${tmp_dir}" "${credentials_file}"
+        # Transférer la propriété à ENV_DEVOPS_USER si exécuté en root
+        if [[ "$(id -u)" -eq 0 ]] && id "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
+            chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${tmp_dir}" "${credentials_file}"
         fi
 
         # ----------------------------------------------------------
@@ -8659,12 +8659,12 @@ ASKPASS_EOF
 
         chmod 700 "${askpass_file}"
 
-        if [[ "$(id -u)" -eq 0 ]] && id "${DEVOPS_USER}" >/dev/null 2>&1; then
-            chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${askpass_file}"
+        if [[ "$(id -u)" -eq 0 ]] && id "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
+            chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${askpass_file}"
         fi
 
         # ----------------------------------------------------------
-        # Exécution de la commande Git sous DEVOPS_USER
+        # Exécution de la commande Git sous ENV_DEVOPS_USER
         # ----------------------------------------------------------
 
         local git_rc=0
@@ -8679,11 +8679,11 @@ ASKPASS_EOF
         fi
 
         local git_command=(
-            runuser -u "${DEVOPS_USER}" --
+            runuser -u "${ENV_DEVOPS_USER}" --
             env "LC_ALL=C"
                 "GIT_ASKPASS=${askpass_file}"
                 "GIT_TERMINAL_PROMPT=0"
-                "HOME=$(eval echo "~${DEVOPS_USER}")"
+                "HOME=$(eval echo "~${ENV_DEVOPS_USER}")"
             git -C "${project_path}" "${git_args[@]}"
         )
         if [[ -n "${git_error_output}" ]]; then
@@ -8869,12 +8869,12 @@ forgejo_credentials_setup() (
                 return 1
             fi
         else
-            if [[ -z "${DEVOPS_USER:-}" || -z "${DEVOPS_GROUP:-}" ]]; then
+            if [[ -z "${ENV_DEVOPS_USER:-}" || -z "${DEVOPS_GROUP:-}" ]]; then
                 print_error "Compte DevOps absent pour la persistance Forgejo."
                 return 1
             fi
             chmod 600 "${staging}/config/forgejo.${kind}" || return 1
-            chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${staging}/config/forgejo.${kind}" || return 1
+            chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${staging}/config/forgejo.${kind}" || return 1
             ln -- "${staging}/config/forgejo.${kind}" "${destination}" || return 1
             installed+=("${kind}")
         fi

@@ -28,6 +28,24 @@ class RidHelpTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('rid diu update', result.stdout)
 
+    def test_diu_update_version_help_and_dispatch(self):
+        result = self.run_rid('diu', 'update', 'help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('rid diu update <VERSION>', result.stdout)
+        self.assertIn('rid diu update 1.1.7', result.stdout)
+        source = ENTRYPOINT.read_text(encoding='utf-8')
+        dispatch = source.split('dispatch_arguments() {', 1)[1].split('\n}\n', 1)[0]
+        script = 'dispatch_arguments() {' + dispatch + '\n}\n' + r'''
+diu_update() { printf 'ARG:%s\n' "$@"; }
+dispatch_arguments "$@"
+'''
+        for args, expected in ((('diu', 'update', '1.1.7'), 0), (('diu', 'update', '1.1.7', 'extra'), 2)):
+            with self.subTest(args=args):
+                result = subprocess.run(['bash', '-c', script, 'bash', *args], text=True, capture_output=True, check=False)
+                self.assertEqual(result.returncode, expected, result.stderr)
+                if expected == 0:
+                    self.assertEqual(result.stdout.strip(), 'ARG:1.1.7')
+
     def run_git_commit_all(self, projects_root, failing_project=''):
         script = '''
 source "$1/modules/projects/git.sh"
@@ -42,7 +60,7 @@ git_commit() {
         return 1
     fi
 }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 git_commit_all message tag
 '''
         return subprocess.run(
@@ -77,8 +95,8 @@ runuser() {
     esac
     return 0
 }
-DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=devops
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 INITIALIZATION_CREATES_REPOSITORY="$3"
 repository_ready='false'
 git_commit project message tag
@@ -117,12 +135,12 @@ runuser() {
     shift
     "$@"
 }
-DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=devops
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 if ! git_init project; then
     exit 1
 fi
-if ! git -C "$DEVOPS_PROJECTS_ROOT/project" rev-parse --verify HEAD >/dev/null; then
+if ! git -C "$ENV_DEVOPS_PROJECTS_ROOT/project" rev-parse --verify HEAD >/dev/null; then
     exit 1
 fi
 printf 'complete\\n'
@@ -167,7 +185,7 @@ forgejo_push() {
         return 1
     fi
 }
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 forgejo_push_all
 '''
         return subprocess.run(
@@ -204,10 +222,10 @@ runuser() {
         *) return 0 ;;
     esac
 }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 FORGEJO_REPOSITORY_STATUS="$3"
 forgejo_push project
 '''
@@ -260,10 +278,10 @@ runuser() {
         *) return 0 ;;
     esac
 }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 git_push_provider project "$PUSH_PROVIDER"
 '''
         return subprocess.run(
@@ -1090,7 +1108,7 @@ class GitCloneArgumentTests(unittest.TestCase):
 print_error() { printf '%s\n' "$*" >&2; }
 mkdir() { printf 'ARG:<%s>\n' "$@"; return "$MKDIR_FAILURE"; }
 check_devops_user() { printf 'CHECKUSER\n'; return 1; }
-DEVOPS_PROJECTS_ROOT="$1/root with spaces[*]"
+ENV_DEVOPS_PROJECTS_ROOT="$1/root with spaces[*]"
 git_init_clone 'project with spaces[*]'
 '''
             return subprocess.run(

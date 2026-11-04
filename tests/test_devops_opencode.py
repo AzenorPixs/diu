@@ -66,7 +66,7 @@ rm() { printf 'RM_ARG=<%s>\n' "$*"; }
                 'PATH': os.defpath,
                 'LC_ALL': 'C.UTF-8',
                 'OPENCODE': enabled,
-                'DEVOPS_USER': 'devops-test',
+                'ENV_DEVOPS_USER': 'devops-test',
                 'TEST_INSTALL_DIR': str(install_dir),
                 'TEST_CURL_FAIL_PAGE': str(curl_fail_page),
                 'TEST_CURL_STATUS': str(curl_status),
