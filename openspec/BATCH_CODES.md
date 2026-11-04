@@ -1,5 +1,23 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [configure-system-hosts-json](changes/archive/2026-11-04-configure-system-hosts-json/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [manage-system-network-hosts](changes/archive/2026-11-04-manage-system-network-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+- [diu-command-links](changes/diu-command-links/proposal.md) : code non attribué ; change actif, validation finale et archivage bloqués ; voir [bilan](changes/diu-command-links/BLOCKERS.md) ; dépendance `migrate-env-devops-projects-root` archivée ; attribution à traiter par ACL.
+
+Delta SCM du 2026-11-04 : [force-diu-update-version](changes/archive/2026-11-04-force-diu-update-version/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [public-github-diu-update](changes/archive/2026-11-04-public-github-diu-update/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [stop-setting-technical-account-passwords](changes/archive/2026-11-04-stop-setting-technical-account-passwords/proposal.md), archivé, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](changes/archive/2026-11-04-migrate-env-devops-projects-root/proposal.md), archivé, **code non attribué** ; validation réussie : 1 164 tests dont 2 ignorés et ShellCheck ; voir [bilan](changes/archive/2026-11-04-migrate-env-devops-projects-root/STATISTICS.md) ; comptages historiques inchangés, attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-03 : [restore-diu-forgejo-fallback](changes/archive/2026-11-03-restore-diu-forgejo-fallback/proposal.md), archivé, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-03 : [github-only-diu-update](changes/archive/2026-11-03-github-only-diu-update/proposal.md), archivé, **code non attribué**. Comptages historiques inchangés ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-03 : [harmonize-project-configuration](changes/archive/2026-11-03-harmonize-project-configuration/proposal.md), archivé, **code non attribué**. Comptages historiques inchangés ; attribution ultérieure par ACL.
 
 Plan validé : `ACL-DIU-20261028-R1`. Attribution et vérification documentaire : **2026-10-28**.

@@ -1,5 +1,6 @@
 """Paquets réels sur fixtures locales, sans bootstrap ni publication."""
 import json
+import io
 import os
 from pathlib import Path
 import re
@@ -16,8 +17,8 @@ source "$1/modules/projects/debian-build.sh"
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { printf '%s\n' "$*"; }
-DEVOPS_USER=fixture
-DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=fixture
+ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { [[ "${GIT_FAIL:-}" != yes ]] || return 71; printf '%s' "${TAGS-v1.2.3}"; }
 date() { printf '2026.11.02.12.00\n'; }
 if [[ "${BUILD_FAIL:-}" == yes ]]; then
@@ -186,6 +187,8 @@ class ProjectsBuildDebTests(unittest.TestCase):
     def test_diu_recipe_matches_historical_builder(self):
         self.recipe = json.loads((ROOT / 'build/debian-package.json').read_text())
         self.save_recipe()
+        (self.project / 'config').mkdir()
+        (self.project / 'config/hosts.json').write_text('[]\n')
         (self.project / 'root-install-debian.sh').write_text('#!/usr/bin/env bash\nexit 0\n')
         (self.project / 'root-install-debian.sh').chmod(0o755)
         for directory in ['lib', 'modules']:
@@ -202,6 +205,27 @@ class ProjectsBuildDebTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(old_manifest, self.archive_manifest(package))
         self.assertEqual(old_metadata, subprocess.check_output(['dpkg-deb', '-f', str(package)]))
+        control = subprocess.check_output(['dpkg-deb', '--ctrl-tarfile', str(package)])
+        with tarfile.open(fileobj=io.BytesIO(control)) as archive:
+            entry = next(member for member in archive.getmembers() if member.name.endswith('/conffiles'))
+            self.assertEqual(archive.extractfile(entry).read().decode(), '/root/diu/config/hosts.json\n')
+        (self.project / 'config/hosts.json').write_text('[{"ip":"127.0.0.1","fqdn":"test.example"}]')
+        self.assertNotEqual(self.run_build().returncode, 0)
+        self.assertEqual(old_manifest, self.archive_manifest(package))
+
+    def test_configuration_flags_require_valid_files_and_boolean_values(self):
+        self.recipe['files'][0]['conffile'] = True
+        self.save_recipe()
+        self.assertNotEqual(self.run_build().returncode, 0)  # payload is a directory
+        self.recipe['files'][0]['conffile'] = 'true'
+        self.save_recipe()
+        self.assertNotEqual(self.run_build().returncode, 0)
+        self.recipe['files'][0] = {'source': 'payload/file with spaces',
+                                   'destination': '/usr/share/example.json', 'empty_json': True}
+        for value in ('[] []', '{}', '[1]'):
+            (self.project / 'payload/file with spaces').write_text(value)
+            self.save_recipe()
+            self.assertNotEqual(self.run_build().returncode, 0)
 
     def test_help_levels_and_invalid_arguments_before_bootstrap(self):
         result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'projects', 'help'],

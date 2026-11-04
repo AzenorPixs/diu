@@ -14,9 +14,9 @@ print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { :; }
 print_success() { printf '%s\n' "$*"; }
 chown() { printf '%s\n' "$@" >> "$TEST_CASE_ROOT/owners.txt"; }
-DEVOPS_USER="../${TEST_CASE_ROOT#/}"
+ENV_DEVOPS_USER="../${TEST_CASE_ROOT#/}"
 DEVOPS_GROUP=tester
-DEVOPS_PROJECTS_ROOT="$TEST_CASE_ROOT/datas"
+ENV_DEVOPS_PROJECTS_ROOT="$TEST_CASE_ROOT/datas"
 '''
 
 
@@ -172,7 +172,7 @@ class ProjectsDevelopmentMapTests(unittest.TestCase):
         project = self.project()
         result = self.run_shell(r'''
 cp() {
-    if [[ "$3" == */DEVELOPMENT_MAP.md && "$4" == "$DEVOPS_PROJECTS_ROOT/project with spaces/" ]]; then
+    if [[ "$3" == */DEVELOPMENT_MAP.md && "$4" == "$ENV_DEVOPS_PROJECTS_ROOT/project with spaces/" ]]; then
         return 1
     fi
     command cp "$@"

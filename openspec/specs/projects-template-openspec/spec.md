@@ -53,7 +53,7 @@ DIU SHALL exposer `rid projects template openspec <ID PROJECT>` et
 sélecteur openspec après template SHALL être prioritaire sur le routage
 DevOps. L'ancienne syntaxe SHALL être rejetée lorsqu'elle ne correspond pas
 déjà à une commande valide avec sélecteur openspec ou devops. Le chemin SHALL
-utiliser DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas. La fonction
+utiliser ENV_DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas. La fonction
 SHALL refuser les identifiants vides, chemins, points et caractères de contrôle,
 un utilisateur DevOps absent ou invalide, un projet absent ou symbolique, et
 une cible openspec symbolique ou non répertoire. La fonction individuelle
@@ -203,4 +203,3 @@ réussis, ignorés et échoués et rendre un code non nul si une opération éch
 Sans projet éligible, elle SHALL afficher ce fait et un bilan puis rendre un
 succès. Les trois commandes individuelles, leur compte su et leur appel
 avant DevOps lors de create SHALL être conservés.
-

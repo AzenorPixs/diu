@@ -11,7 +11,8 @@ set -Eeuo pipefail
 # Paquet a supprimer pour les Debian Trixie --> neofetch
 
 # Le chemin où je me trouve est
-BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
+BASH_SCRIPT_FILE=$(readlink -f -- "${BASH_SOURCE[0]}") || { printf "%s\n" "Impossible de résoudre le point d’entrée DIU." >&2; exit 1; }
+BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "$BASH_SCRIPT_FILE" )" &> /dev/null && pwd)
 
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
@@ -116,6 +117,8 @@ config_cleanup || exit 1
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/system/apt.sh"
+# shellcheck disable=SC1091 source=modules/system/network.sh
+. "$BASH_SCRIPT_PATH/modules/system/network.sh"
 # shellcheck disable=SC1091 source=modules/system/drivers.sh
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
@@ -204,6 +207,10 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/lib/diu-links.sh"
+diu_create_development_link "${ENV_DEVOPS_PROJECTS_ROOT:-}" /usr/local/bin/diut || exit 1
+
 ###########################################
 ###### GESTION DES FONCTIONS DU DIU #######
 ###########################################
@@ -211,8 +218,8 @@ fi
 # Appelée par les fonctions Git/projets des modules sourcés.
 # shellcheck disable=SC2317
 check_devops_user() {
-    if ! id "$DEVOPS_USER" >/dev/null 2>&1; then
-        echo "❌ L'utilisateur '$DEVOPS_USER' n'existe pas."
+    if ! id "$ENV_DEVOPS_USER" >/dev/null 2>&1; then
+        echo "❌ L'utilisateur '$ENV_DEVOPS_USER' n'existe pas."
         exit 1
     fi
 
@@ -320,87 +327,11 @@ configure_docker_sudoers() {
     configure_environment_sudoers docker "${1:-/etc/passwd}" "${2:-/etc/login.defs}" "${3:-/etc/sudoers.d}"
 }
 
-config_host () {
-
-  local hosts_ip=""
-
-  if [[ "${INTERFACE_ETHERNET1_STATE}" == "UP" ]] \
-      && [[ "${INTERFACE_ETHERNET1_IP}" != "NONE" ]] \
-      && [[ "${INTERFACE_ETHERNET1_IP}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-
-      hosts_ip="${INTERFACE_ETHERNET1_IP}"
-
-  elif [[ "${INTERFACE_ETHERNET2_STATE}" == "UP" ]] \
-      && [[ "${INTERFACE_ETHERNET2_IP}" != "NONE" ]] \
-      && [[ "${INTERFACE_ETHERNET2_IP}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-
-      hosts_ip="${INTERFACE_ETHERNET2_IP}"
-  fi
-
-  cat > /etc/hosts <<EOF
-127.0.0.1       localhost
-EOF
-
-  if [[ -n "${hosts_ip}" ]]; then
-      printf '%s\t%s\t%s\n' \
-          "${hosts_ip}" \
-          "${HOSTNAME_FQDN}" \
-          "${HOSTNAME}" >> /etc/hosts
-  fi
-
-  cat >> /etc/hosts <<'EOF'
-
-# The following lines are desirable for IPv6 capable hosts
-::1     localhost ip6-localhost ip6-loopback
-ff02::1 ip6-allnodes
-ff02::2 ip6-allrouters
-EOF
-
-  # Ajout des domaines de la Stack Docker Traefik / Dockhand
-  if [[ "${DOCKER_STACK_TRAEFIK_DOCKHAND}" == "1" ]]; then
-      {
-          printf '\n'
-          printf '# Stack Docker Traefik / Dockhand\n'
-          printf '127.0.0.1\t%s\n' "dockhand.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "dozzle.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "hawser.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "librespeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "myspeed.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "traefik.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "traefik-manager.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "whoami.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '130.66.41.80\t%s\n' "dockhand.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "dozzle.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "traefik.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "traefik-manager.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "ost.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "whoami.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "ldap.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "fd.test.ec-nantes.fr"
-          printf '130.66.41.80\t%s\n' "pgadmin.test.ec-nantes.fr"
-      } >> /etc/hosts
-  fi
-
-  # Ajout des domaines de la Stack Docker DevOps
-  if [[ "${DOCKER_STACK_DEVOPS}" == "1" ]]; then
-      {
-          printf '\n'
-          printf '# Stack Docker DevOps\n'
-          printf '127.0.0.1\t%s\n' "forgejo.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "fd.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "g4f.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "ldap.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-          printf '127.0.0.1\t%s\n' "pgadmin.${DOCKER_STACK_TRAEFIK_DOCKHAND_DOMAIN}"
-      } >> /etc/hosts
-  fi
-
-}
-
 devops_info () {
 
     # Expansion différée dans le shell utilisateur.
     # shellcheck disable=SC2016
-    su - "${DEVOPS_USER}" -c '
+    su - "${ENV_DEVOPS_USER}" -c '
 
         # ==============================================
         # Récupération des versions
@@ -505,8 +436,8 @@ dispatch_arguments() {
             ;;
 
         diu)
-            if [[ $# -eq 2 && "$2" == update ]]; then
-                diu_update
+            if [[ $# -ge 2 && $# -le 3 && "$2" == update ]]; then
+                diu_update "${@:3}"
             else
                 printf 'Action inconnue : %s ; voir rid diu help\n' "${2:-}" >&2
                 exit 2
@@ -928,14 +859,14 @@ info_network_detect_interfaces() {
 launch_oc_shell() {
 
 	local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
-	su - "${DEVOPS_USER}" -c "docker exec -it ${project_id}-opencode sh"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
+	su - "${ENV_DEVOPS_USER}" -c "docker exec -it ${project_id}-opencode sh"
 }
 
 launch_ocro() {
 
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     if [[ ! -e "$project_path/.opencode/share" ]]; then
         echo "❌ Le projet n'existe pas :"
@@ -987,7 +918,7 @@ launch_ocro() {
 
 launch_ocrw() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
     local opencode_uid
     local opencode_gid
@@ -1472,7 +1403,7 @@ manage_project_action() {
                             print_error 'Identifiant de projet invalide.'
                             return 1
                         fi
-                        project_version_set "${DEVOPS_PROJECTS_ROOT}/${project_id}/project.env" "$3" || return 1
+                        project_version_set "${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}/project.env" "$3" || return 1
                         commit_name="$3"
                         commit_tag="v$3"
                     else
@@ -1813,27 +1744,27 @@ manage_project_action() {
 
 devops_openspec_list() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec list"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec list"
 
     exit 0
 }
 
 devops_openspec_show() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c \
+    su - "$ENV_DEVOPS_USER" -c \
         "cd '$project_path' && openspec spec list"
 }
 
 devops_openspec_validate_change() {
     local project_id="$1"
     local spec_name="$2"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type change --strict"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type change --strict"
 
     exit 0
 }
@@ -1841,27 +1772,27 @@ devops_openspec_validate_change() {
 devops_openspec_validate_spec() {
     local project_id="$1"
     local spec_name="$2"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type spec --strict"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type spec --strict"
 
     exit 0
 }
 
 devops_openspec_templates() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec templates"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec templates"
 
     exit 0
 }
 
 devops_openspec_view() {
     local project_id="$1"
-    local project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec view"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec view"
 
     exit 0
 }
@@ -3142,7 +3073,7 @@ fi
 
 ### NETWORK ###
 
-config_host
+system_network_hosts
 
 
 ### SYSTEMD ###
@@ -4095,10 +4026,8 @@ then
 	if id -u "$ENV_DEVOPS_USER"> /dev/null 2>&1 
 	then
 	  echo "USER FOR DEVOPS $ENV_DEVOPS_USER IS OK ✅"
-	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	else
 	  useradd -m "$ENV_DEVOPS_USER" --gid "$ENV_DEVOPS_GROUP" -s /bin/bash
-	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	fi
 
 	usermod -aG "$ENV_DEVOPS_GROUP" "$ENV_DEVOPS_USER"
@@ -4134,32 +4063,6 @@ then
 	fi
 
 	install -d -o "$ENV_DEVOPS_USER" -g "$ENV_DEVOPS_GROUP" -m 2770 "/home/$ENV_DEVOPS_USER/.local/npm" "/home/$ENV_DEVOPS_USER/.local/npm/bin" "/home/$ENV_DEVOPS_USER/.opencode/bin" "/home/$ENV_DEVOPS_USER/datas" "/home/$ENV_DEVOPS_USER/syncthing"
-
-  if [[ "${SOFTWARES_APT_SYNCTHING:-0}" == "1" ]]; then
-      cat > /home/devops/datas/.stignore <<'EOF'
-# Dépôts Git
-**/.git/
-
-# Données OpenCode
-**/.opencode/cache/
-
-# Cache OpenSpec
-**/openspec/.cache/
-
-# Journaux
-**/*.log
-
-# Fichiers temporaires
-**/*.tmp
-**/*~
-**/.DS_Store
-
-# Secrets
-**/*.token
-**/*.username
-EOF
-  fi
-
 	if dpkg -s direnv &>/dev/null
 	then
 
@@ -4175,7 +4078,7 @@ EOF
 	if [ "$GO" -eq 1 ]
 	then
 
-		GO_BASE="/home/$DEVOPS_USER/go"
+		GO_BASE="/home/$ENV_DEVOPS_USER/go"
 		INSTALL_DIR="$GO_BASE/versions"
 		CURRENT_LINK="$GO_BASE/current"
 		GO_LATEST=$(git ls-remote --tags https://github.com/golang/go.git | awk -F/ '{print $3}' | sed 's/^go//' | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -1)
@@ -4229,7 +4132,7 @@ EOF
 
 			ln -sfn "$TARGET_DIR" "$CURRENT_LINK"
 
-			chown -R "$DEVOPS_USER:$DEVOPS_GROUP" "$GO_BASE"
+			chown -R "$ENV_DEVOPS_USER:$DEVOPS_GROUP" "$GO_BASE"
 
 		else
 
@@ -4248,8 +4151,8 @@ EOF
     then
 
         REPO="https://github.com/aandrew-me/tgpt.git"
-        BINARY="/home/$DEVOPS_USER/go/bin/tgpt"
-        GO_BIN="/home/$DEVOPS_USER/go/current/bin/go"
+        BINARY="/home/$ENV_DEVOPS_USER/go/bin/tgpt"
+        GO_BIN="/home/$ENV_DEVOPS_USER/go/current/bin/go"
 
         LATEST=$(
             git ls-remote --tags --refs "$REPO" |
@@ -4272,7 +4175,7 @@ EOF
 
             apt install libx11-dev libxmu-dev libxtst-dev -y
 
-            if su - "$DEVOPS_USER" -c \
+            if su - "$ENV_DEVOPS_USER" -c \
                 "\"$GO_BIN\" install github.com/aandrew-me/tgpt/v2@latest"
             then
                 echo "✅ TGPT mis à jour avec succès ($LATEST)"
@@ -4293,7 +4196,7 @@ EOF
   if [ "$NODEJS" -eq 1 ]
   then
 
-    NODE_BASE="/home/$DEVOPS_USER/node"
+    NODE_BASE="/home/$ENV_DEVOPS_USER/node"
     INSTALL_DIR="$NODE_BASE/versions"
     CURRENT_LINK="$NODE_BASE/current"
 
@@ -4418,7 +4321,7 @@ EOF
 
         ln -sfn "$TARGET_DIR" "$CURRENT_LINK"
 
-        chown -R "$DEVOPS_USER:$DEVOPS_GROUP" "$NODE_BASE"
+        chown -R "$ENV_DEVOPS_USER:$DEVOPS_GROUP" "$NODE_BASE"
 
     else
 
@@ -4454,14 +4357,14 @@ EOF
     #
 
     install -d \
-        -o "$DEVOPS_USER" \
+        -o "$ENV_DEVOPS_USER" \
         -g "$DEVOPS_GROUP" \
         -m 2770 \
-        "/home/$DEVOPS_USER/.local/npm" \
-        "/home/$DEVOPS_USER/.local/npm/bin"
+        "/home/$ENV_DEVOPS_USER/.local/npm" \
+        "/home/$ENV_DEVOPS_USER/.local/npm/bin"
 
-    if ! su - "$DEVOPS_USER" -c \
-        "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+    if ! su - "$ENV_DEVOPS_USER" -c \
+        "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
         \"$NPM_BIN\" config set prefix \"\$HOME/.local/npm\" --location=user"
     then
 
@@ -4488,8 +4391,8 @@ EOF
       NODE_VERSION="$("$NODE_BIN" --version)"
       NPM_VERSION="$("$NPM_BIN" --version)"
       NPM_PREFIX="$(
-          su - "$DEVOPS_USER" -c \
-          "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+          su - "$ENV_DEVOPS_USER" -c \
+          "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
           \"$NPM_BIN\" config get prefix"
       )"
 
@@ -4502,7 +4405,7 @@ EOF
 	if [ "$OPENCODE" -eq 1 ]
 	then
 
-		OPENCODE_USER=$DEVOPS_USER
+		OPENCODE_USER=$ENV_DEVOPS_USER
 		INSTALL_DIR="/home/${OPENCODE_USER}/.opencode/bin"
 		API="https://api.github.com/repos/anomalyco/opencode/releases?per_page=100&page="
 		INSTALLER="https://opencode.ai/v2/install"
@@ -4578,7 +4481,7 @@ EOF
       if [ -z "$NPM_BIN" ] || [ ! -x "$NPM_BIN" ]
       then
 
-          echo "❌ ERREUR : npm est introuvable pour l'utilisateur $DEVOPS_USER"
+          echo "❌ ERREUR : npm est introuvable pour l'utilisateur $ENV_DEVOPS_USER"
           exit 1
 
       fi
@@ -4722,7 +4625,7 @@ EOF
 			echo "PYTHON 3 SYSTEM OK ✅ ($PYTHON_SYSTEM_VERSION)"
 		fi
 
-		INSTALL_PYTHON_ROOT="/home/$DEVOPS_USER/python"
+		INSTALL_PYTHON_ROOT="/home/$ENV_DEVOPS_USER/python"
 		BUILD_DIR="/usr/local/src/python-build"
 
 		mkdir -p "$INSTALL_PYTHON_ROOT" "$BUILD_DIR"
@@ -4845,7 +4748,7 @@ EOF
 # DevOps environment PATH
 # Managed by DIU
 
-if [ "\$USER" = "$DEVOPS_USER" ]; then
+if [ "\$USER" = "$ENV_DEVOPS_USER" ]; then
 
     DEVOPS_PATH=""
 
@@ -4921,10 +4824,8 @@ then
   if id -u "$ENV_DOCKER_USER"> /dev/null 2>&1 
   then
     echo "USER FOR DOCKER $ENV_DOCKER_USER IS OK ✅"
-    echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
   else
     useradd -m "$ENV_DOCKER_USER" --gid "$ENV_DOCKER_GROUP" -s /bin/bash
-    echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
   fi
 
   usermod -aG "$ENV_DOCKER_GROUP" "$ENV_DOCKER_USER"
@@ -5597,10 +5498,8 @@ then
 	if id -u "$ENV_IA_USER"> /dev/null 2>&1 
 	then
 	  echo "USER FOR IA $ENV_IA_USER IS OK ✅"
-	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
 	else
 	  useradd -m "$ENV_IA_USER" --gid "$ENV_IA_GROUP" -s /bin/bash
-	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
 	fi
 
 	usermod -aG "$ENV_IA_GROUP" "$ENV_IA_USER"
@@ -6568,8 +6467,8 @@ then
   if [ "$GO" -eq 1 ]
   then
 
-      GO_BIN="/home/$DEVOPS_USER/go/current/bin/go"
-      SESH_BIN="/home/$DEVOPS_USER/go/bin/sesh"
+      GO_BIN="/home/$ENV_DEVOPS_USER/go/current/bin/go"
+      SESH_BIN="/home/$ENV_DEVOPS_USER/go/bin/sesh"
 
       if [ -x "$SESH_BIN" ]
       then
@@ -6581,17 +6480,17 @@ then
           if [ ! -x "$GO_BIN" ]
           then
 
-              echo "	💥 Go n'est pas installé pour $DEVOPS_USER. Abandon."
+              echo "	💥 Go n'est pas installé pour $ENV_DEVOPS_USER. Abandon."
               exit 1
 
           fi
 
           echo "	🔧 INSTALL SESH"
 
-          runuser -u "$DEVOPS_USER" -- \
+          runuser -u "$ENV_DEVOPS_USER" -- \
               env \
-                  HOME="/home/$DEVOPS_USER" \
-                  GOPATH="/home/$DEVOPS_USER/go" \
+                  HOME="/home/$ENV_DEVOPS_USER" \
+                  GOPATH="/home/$ENV_DEVOPS_USER/go" \
                   "$GO_BIN" install github.com/joshmedeski/sesh@latest
 
       fi

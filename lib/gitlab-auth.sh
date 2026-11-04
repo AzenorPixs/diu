@@ -15,7 +15,7 @@ _gitlab_resolve_remote() {
         return 1
     fi
 
-    if ! remote_url="$(runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" remote get-url "${remote_name}" 2>/dev/null)"; then
+    if ! remote_url="$(runuser -u "${ENV_DEVOPS_USER}" -- git -C "${project_path}" remote get-url "${remote_name}" 2>/dev/null)"; then
         print_error "Impossible de déterminer le remote GitLab du projet."
         return 1
     fi
@@ -27,7 +27,7 @@ _gitlab_resolve_remote() {
 
     remote_authority="${remote_url#https://}"
     remote_authority="${remote_authority%%/*}"
-    remote_path="${remote_url#https://${remote_authority}/}"
+    remote_path="${remote_url#https://"${remote_authority}"/}"
 
     if [[ "${remote_authority}" == *"@" || -z "${remote_authority}" || "${remote_path}" == "${remote_url}" ]]; then
         print_error "Le remote GitLab ne respecte pas le format HTTPS attendu."
@@ -41,8 +41,12 @@ _gitlab_resolve_remote() {
     fi
 
     gitlab_host="${remote_authority}"
+    # Ces valeurs font partie du résultat accessible aux appelants du module.
+    # shellcheck disable=SC2034
     gitlab_owner="${remote_parts[0]}"
+    # shellcheck disable=SC2034
     gitlab_repository="${remote_parts[1]%.git}"
+    # shellcheck disable=SC2034
     gitlab_base_url="https://${gitlab_host}"
 }
 
@@ -102,7 +106,7 @@ _gitlab_initialize_credentials() {
     fi
 
     if [[ ! -d "${config_dir}" ]]; then
-        if ! install -d -m 700 -o "${DEVOPS_USER}" -g "${DEVOPS_GROUP}" "${config_dir}"; then
+        if ! install -d -m 700 -o "${ENV_DEVOPS_USER}" -g "${DEVOPS_GROUP}" "${config_dir}"; then
             print_error "Impossible de créer le répertoire de configuration GitLab."
             return 1
         fi
@@ -120,7 +124,7 @@ _gitlab_initialize_credentials() {
             print_error "Impossible de préparer le fichier utilisateur GitLab."
             return 1
         fi
-        if ! printf '%s\n' "${username_input}" > "${temporary_file}" || ! chmod 600 "${temporary_file}" || ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${temporary_file}" || ! mv -f "${temporary_file}" "${username_file}"; then
+        if ! printf '%s\n' "${username_input}" > "${temporary_file}" || ! chmod 600 "${temporary_file}" || ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${temporary_file}" || ! mv -f "${temporary_file}" "${username_file}"; then
             rm -f "${temporary_file}"
             print_error "Impossible d'enregistrer le nom d'utilisateur GitLab."
             return 1
@@ -147,7 +151,7 @@ _gitlab_initialize_credentials() {
         print_error "Impossible de préparer le fichier token GitLab."
         return 1
     fi
-    if ! printf '%s\n' "${token_input}" > "${temporary_file}" || ! chmod 600 "${temporary_file}" || ! chown "${DEVOPS_USER}:${DEVOPS_GROUP}" "${temporary_file}" || ! mv -f "${temporary_file}" "${token_file}"; then
+    if ! printf '%s\n' "${token_input}" > "${temporary_file}" || ! chmod 600 "${temporary_file}" || ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${temporary_file}" || ! mv -f "${temporary_file}" "${token_file}"; then
         rm -f "${temporary_file}"
         print_error "Impossible d'enregistrer le token GitLab."
         return 1

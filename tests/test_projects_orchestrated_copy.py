@@ -19,9 +19,9 @@ check_devops_user() { return 0; }
 install() { mkdir -p -- "${!#}"; }
 projects_template_openspec() { :; }
 projects_template_devops() { :; }
-DEVOPS_USER="../${TEST_CASE_ROOT#/}"
+ENV_DEVOPS_USER="../${TEST_CASE_ROOT#/}"
 DEVOPS_GROUP=tester
-DEVOPS_PROJECTS_ROOT="$TEST_CASE_ROOT/datas"
+ENV_DEVOPS_PROJECTS_ROOT="$TEST_CASE_ROOT/datas"
 PROJECT_ORCHESTRATED_CODING=Yes
 '''
 
@@ -182,7 +182,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
         script = r'''
 update_projects() {
     printf 'PROJECT_ID=new\nPROJECT_NAME=New\nPROJECT_ORCHESTRATED_CODING=invalid\n' \
-        > "$DEVOPS_PROJECTS_ROOT/new/project.env"
+        > "$ENV_DEVOPS_PROJECTS_ROOT/new/project.env"
 }
 create_project new
 '''

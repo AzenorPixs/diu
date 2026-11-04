@@ -60,11 +60,11 @@ class ProjectsGitSafeDirectoryTests(unittest.TestCase):
 set -Eeuo pipefail
 source "$1/modules/projects/projects.sh"
 source "$1/modules/projects/git.sh"
-DEVOPS_PROJECTS_ROOT="$2"
-DEVOPS_USER=testdevops
+ENV_DEVOPS_PROJECTS_ROOT="$2"
+ENV_DEVOPS_USER=testdevops
 DEVOPS_GROUP=testdevops
 project_id="$3"
-project_path="${DEVOPS_PROJECTS_ROOT}/${project_id}"
+project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 print_title() { printf '%s\\n' "$*"; }
 print_info() { printf '%s\\n' "$*"; }
 print_success() { printf '%s\\n' "$*"; }
@@ -161,7 +161,7 @@ update_projects() {
     def test_symbolic_link_uses_the_real_project_path(self):
         alias = self.projects / 'alias'
         alias.symlink_to(self.project, target_is_directory=True)
-        self.assert_success(self.shell('git_safe_directory_system_ensure "$DEVOPS_PROJECTS_ROOT/alias"'))
+        self.assert_success(self.shell('git_safe_directory_system_ensure "$ENV_DEVOPS_PROJECTS_ROOT/alias"'))
         self.assert_success(self.shell('git_safe_directory_system_ensure "$project_path"'))
         self.assertEqual(self.entries(), [str(self.project)])
 
@@ -170,7 +170,7 @@ update_projects() {
             with self.subTest(name=name):
                 path = self.projects / name
                 path.mkdir()
-                result = self.shell('git_safe_directory_system_ensure "$DEVOPS_PROJECTS_ROOT/$NAME"',
+                result = self.shell('git_safe_directory_system_ensure "$ENV_DEVOPS_PROJECTS_ROOT/$NAME"',
                                     setup='NAME=' + "'" + name + "'")
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('safe.directory', result.stderr)
@@ -231,7 +231,7 @@ runuser() {
         *rev-parse*) return 1 ;;
         *'init --quiet'*)
             git config --system --fixed-value --get-all safe.directory "$project_path" >/dev/null
-            printf 'initialization\\n' > "$DEVOPS_PROJECTS_ROOT/initialization.marker"
+            printf 'initialization\\n' > "$ENV_DEVOPS_PROJECTS_ROOT/initialization.marker"
             ;;
         *'diff --cached --quiet'*) return 1 ;;
     esac

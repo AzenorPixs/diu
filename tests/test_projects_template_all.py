@@ -23,7 +23,7 @@ class ProjectsTemplateAllTests(unittest.TestCase):
         self.projects.mkdir(parents=True)
         self.events = self.fixture / 'events'
         self.environment = dict(os.environ, ENV_DEVOPS_USER='devops-test', OPENCODE='1',
-                                DEVOPS_PROJECTS_ROOT=str(self.projects),
+                                ENV_DEVOPS_PROJECTS_ROOT=str(self.projects),
                                 TEST_EVENTS=str(self.events), TEST_ID_FAILURE='0',
                                 TEST_DEVOPS_HOME=str(self.projects.parent))
 
@@ -56,7 +56,7 @@ projects_template_devops_all() { return 90; }
 projects_template_devops() {
     printf 'devops:%s\n' "$1" >> "$TEST_EVENTS"
     [[ "$1" != "${TEST_DEVOPS_FAILED_PROJECT:-}" ]] || return 7
-    printf 'prepared\n' > "${DEVOPS_PROJECTS_ROOT:-$TEST_DEVOPS_HOME/datas}/$1/DEVOPS.md"
+    printf 'prepared\n' > "${ENV_DEVOPS_PROJECTS_ROOT:-$TEST_DEVOPS_HOME/datas}/$1/DEVOPS.md"
 }
 '''
         if not real_openspec:
@@ -171,13 +171,13 @@ projects_template_openspec() {
             self.environment['TEST_CURRENT_USER'] = 'another-user'
             self.assertNotEqual(self.run_models().returncode, 0)
             self.environment.pop('TEST_CURRENT_USER')
-        self.environment['DEVOPS_PROJECTS_ROOT'] = str(self.fixture / 'missing')
+        self.environment['ENV_DEVOPS_PROJECTS_ROOT'] = str(self.fixture / 'missing')
         self.assertNotEqual(self.run_models().returncode, 0)
         self.assertEqual(self.calls(), [])
 
     def test_default_root_uses_the_same_selection(self):
         self.configured_project('application')
-        self.environment.pop('DEVOPS_PROJECTS_ROOT')
+        self.environment.pop('ENV_DEVOPS_PROJECTS_ROOT')
         result = self.run_models()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls(), ['openspec:application', 'devops:application'])
@@ -197,7 +197,7 @@ su() {
     }; eval "$1"' bash "$4"
 }
 projects_template_devops() {
-    [[ -d "$DEVOPS_PROJECTS_ROOT/$1/openspec" ]] || return 91
+    [[ -d "$ENV_DEVOPS_PROJECTS_ROOT/$1/openspec" ]] || return 91
     printf 'devops:%s\n' "$1" >> "$TEST_EVENTS"
 }
 '''

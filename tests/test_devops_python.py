@@ -43,7 +43,7 @@ class DevopsPythonTests(unittest.TestCase):
             'PATH': str(self.tools) + ':' + os.defpath,
             'LC_ALL': 'C.UTF-8',
             'ENVIRONMENTS_DEVOPS': '1', 'PYTHON': '1', 'PYTHON_SERIES': '3.14',
-            'DEVOPS_USER': 'devops-fixture', 'ENV_DEVOPS_USER': 'devops-fixture',
+            'ENV_DEVOPS_USER': 'devops-fixture', 'ENV_DEVOPS_USER': 'devops-fixture',
             'TEST_STATE': str(self.state), 'TEST_CALLS': str(self.calls),
             'TEST_AVAILABLE': '3.3.5', 'TEST_FAULT': '',
         }
@@ -186,7 +186,7 @@ launch_ocrw demo
 '''
         result = subprocess.run(['/bin/bash', '--noprofile', '--norc', '-c', code],
                                 cwd=ROOT, env=dict(self.environment,
-                                DEVOPS_PROJECTS_ROOT=str(project.parent),
+                                ENV_DEVOPS_PROJECTS_ROOT=str(project.parent),
                                 ENV_DOCKER_IMAGE_OPENCODE='fixture-image',
                                 ENV_DOCKER_IMAGE_OPENCODE_UPDATE_POLICY='never'),
                                 text=True, capture_output=True, timeout=10)

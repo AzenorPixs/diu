@@ -9,7 +9,7 @@ Créer et fusionner de manière sûre un projet depuis un dépôt GitLab distant
 
 Le système MUST fournir `rid projects gitlab clone <ID PROJECT>`. Il MUST
 créer le projet, appeler `gitlab_update`, cloner le dépôt GitLab configuré
-sous `DEVOPS_USER`, puis fusionner son contenu sans métadonnée Git.
+sous `ENV_DEVOPS_USER`, puis fusionner son contenu sans métadonnée Git.
 
 #### Scenario: Fusion prioritaire et sûre
 

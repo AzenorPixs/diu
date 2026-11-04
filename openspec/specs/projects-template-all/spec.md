@@ -46,7 +46,7 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **WHEN** la fonction sélectionne les projets pour tous les modèles
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
-La fonction SHALL utiliser DEVOPS_PROJECTS_ROOT, sinon
+La fonction SHALL utiliser ENV_DEVOPS_PROJECTS_ROOT, sinon
 /home/${ENV_DEVOPS_USER}/datas, et réutiliser le contrôle de sélection DevOps
 existant. Elle SHALL parcourir les dossiers directs, cachés compris, avec
 project.env ordinaire et cinq affectations littérales non vides : PROJECT_ID,
@@ -123,4 +123,3 @@ réussis, ignorés et échoués. Un projet SHALL compter réussi uniquement si
 tous ses modèles réussissent et échoué une seule fois si une étape échoue.
 Au moins un échec SHALL produire un code non nul ; sans projet éligible,
 la fonction SHALL afficher ce fait et le bilan puis rendre un succès.
-

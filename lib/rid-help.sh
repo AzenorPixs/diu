@@ -46,6 +46,18 @@ rid_display_help_context() {
         return 0
     fi
 
+    if [[ "$context:$subcontext" == system:network ]]; then
+        if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != update && "$leaf" != hosts ) ||
+              ( "$leaf" == update && -n "$target" ) ||
+              ( "$leaf" == hosts && -n "$target" && "$target" != update ) ]]; then
+            rid_display_command_error system network
+            return 2
+        fi
+        rid_help_line 'rid system network update' 'Met à jour la configuration réseau.'
+        rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts depuis config/hosts.json ; les entrées existantes sont remplacées.'
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == system:drivers ]]; then
         if [[ $# -gt 4 || ( -n "$target" && "$target" != displaylink ) ]]; then
             rid_display_command_error system drivers
@@ -141,10 +153,12 @@ rid_display_help_context() {
             ;;
         diu::)
             rid_help_line 'rid diu infos' 'Affiche les informations du DIU.'
-            rid_help_line 'rid diu update' 'Met à jour le paquet DIU depuis les dépôts configurés.'
+            rid_help_line 'rid diu update [VERSION]' 'Met à jour DIU ou installe une version exacte de GitHub.'
             ;;
         diu:update:|update:diu:)
-            rid_help_line 'rid diu update' 'Met à jour le paquet DIU depuis les dépôts configurés.'
+            rid_help_line 'rid diu update' 'Met à jour DIU depuis GitHub, ou Forgejo en secours.'
+            rid_help_line 'rid diu update <VERSION>' 'Installe la version exacte de GitHub, même déjà installée ou plus ancienne.'
+            rid_help_line 'rid diu update 1.1.7' 'Exemple de réinstallation de la version 1.1.7 disponible sur GitHub.'
             ;;
         desktop::|environnements::)
             rid_help_line "rid ${context} infos" 'Affiche les informations du module.'
@@ -225,6 +239,8 @@ rid_display_help_context() {
             rid_help_line 'rid system drivers remove displaylink' 'Supprime le pilote DisplayLink.'
             rid_help_line 'rid system infos' 'Affiche les informations du module.'
             rid_help_line 'rid system infos network' 'Affiche les informations réseau.'
+            rid_help_line 'rid system network update' 'Met à jour la configuration réseau et reconstruit /etc/hosts.'
+            rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts.'
             rid_help_line 'rid system infos debian' 'Affiche la configuration Debian, APT et Flatpak.'
             rid_help_line 'rid system infos drivers' "Affiche l’état DisplayLink et la version du pilote installé."
             rid_help_line 'rid system install apt <Dépôt>' 'Installe un dépôt APT.'
@@ -243,6 +259,7 @@ rid_display_help_context() {
             rid_help_line "rid system ${subcontext} ${leaf}" "Exécute l'opération système demandée."
             ;;
         system:update:)
+            rid_help_line 'rid system network update' 'Inclus dans la mise à jour système ; reconstruit /etc/hosts.'
             rid_help_line 'rid system update flatpak' 'Met à jour le paquet Flatpak.'
             rid_help_line 'rid system update apt' 'Met à jour APT.'
             rid_help_line 'rid system update apt debian' 'Met à jour les paquets Debian.'

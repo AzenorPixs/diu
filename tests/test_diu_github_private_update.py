@@ -23,6 +23,7 @@ class GithubPrivateUpdateTests(unittest.TestCase):
     def run_update(self, token=True, permissions=0o600, fail_asset=False, invalid_token=False, trace=False):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
+            (root / '.curlrc').write_text('header = "Authorization: Bearer fixture-curlrc"\n', encoding='utf-8')
             project = root / 'diu'
             (project / 'config').mkdir(parents=True)
             (project / 'project.env').write_text(
@@ -62,11 +63,7 @@ class GithubPrivateUpdateTests(unittest.TestCase):
                 def do_GET(self):
                     authorization = self.headers.get('Authorization')
                     observed.append(('api', authorization))
-                    if authorization != 'Bearer ' + TOKEN:
-                        self.send_response(404)
-                        self.end_headers()
-                        return
-                    if '/releases/assets/' in self.path:
+                    if '/releases/download/' in self.path:
                         if fail_asset:
                             self.send_response(403)
                         else:
@@ -75,7 +72,8 @@ class GithubPrivateUpdateTests(unittest.TestCase):
                         self.end_headers()
                         return
                     data = [] if 'page=2' in self.path else [{
-                        'tag_name': 'v2.0.0', 'assets': [{'id': 123, 'name': 'diu_2.0.0_all.deb'}]}]
+                        'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb',
+                        'browser_download_url': 'https://github.com/AzenorPixs/diu/releases/download/v2.0.0/diu_2.0.0_all.deb'}]}]
                     body = json.dumps(data).encode()
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
@@ -103,19 +101,21 @@ dpkg() {
     command dpkg "$@"
 }
 curl() {
+    [[ "$1" == --disable ]] || return 99
     local -a args=()
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --proto|--proto-redir) shift 2 ;;
             https://api.github.com/*) args+=("$TEST_SERVER${1#https://api.github.com}"); shift ;;
+            https://github.com/*) args+=("$TEST_SERVER${1#https://github.com}"); shift ;;
             *) args+=("$1"); shift ;;
         esac
     done
-    command curl --noproxy '*' "${args[@]}"
+    command curl "${args[@]}" --noproxy '*'
 }
 diu_update
 '''
-            env = {**os.environ, 'ROOT': str(ROOT), 'DEVOPS_PROJECTS_ROOT': str(root),
+            env = {**os.environ, 'HOME': str(root), 'ROOT': str(ROOT), 'ENV_DEVOPS_PROJECTS_ROOT': str(root),
                    'TEST_SERVER': f'http://127.0.0.1:{api.server_port}', 'INSTALLS': str(root / 'installs'),
                    'TRACE': '1' if trace else '0'}
             try:
@@ -131,36 +131,21 @@ diu_update
             self.assertNotIn(TOKEN, result.stdout + result.stderr)
             return result, observed, installs
 
-    def test_private_release_and_asset_authenticate_without_leaking_on_redirect(self):
-        result, observed, installs = self.run_update()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(installs, 'installed\n')
-        self.assertIn(('download', None), observed)
-        self.assertTrue(all(auth == 'Bearer ' + TOKEN for kind, auth in observed if kind == 'api'))
+    def test_public_access_ignores_token_and_never_authenticates(self):
+        for options in ({}, {'token': False}, {'permissions': 0o644}, {'invalid_token': True, 'trace': True}):
+            with self.subTest(options=options):
+                result, observed, installs = self.run_update(**options)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(installs, 'installed\n')
+                self.assertTrue(observed)
+                self.assertTrue(all(auth is None for _, auth in observed))
+                self.assertIn(('download', None), observed)
 
-    def test_private_repository_without_token_stops(self):
-        result, observed, installs = self.run_update(token=False)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(installs, '')
-        self.assertIn(('api', None), observed)
-
-    def test_invalid_token_permissions_stop_before_network(self):
-        result, observed, installs = self.run_update(permissions=0o644)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(observed, [])
-        self.assertEqual(installs, '')
-
-    def test_private_asset_failure_does_not_install(self):
+    def test_asset_failure_does_not_install(self):
         result, observed, installs = self.run_update(fail_asset=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(installs, '')
         self.assertFalse(any(kind == 'download' for kind, _ in observed))
-
-    def test_invalid_token_stops_without_exposing_it_under_trace(self):
-        result, observed, installs = self.run_update(invalid_token=True, trace=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertTrue(any(kind == 'api' for kind, _ in observed))
-        self.assertEqual(installs, '')
 
 
 if __name__ == '__main__':
