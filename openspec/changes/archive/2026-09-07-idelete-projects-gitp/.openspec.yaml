@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-07
+goal: Remplacer le parcours générique par forgejo_push et retirer git_push
+  sans régression des parcours Forgejo, GitLab, GitHub, commit, init, release
+  et update.

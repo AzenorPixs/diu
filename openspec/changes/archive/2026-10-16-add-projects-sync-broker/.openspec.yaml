@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-15
+goal: Limiter sync_project et sync_project_all à AGENTS.md, .gitignore et
+  PROMPTS, sans synchronisation OpenCode ni CAB locale ou globale.

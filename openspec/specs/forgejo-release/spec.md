@@ -1,0 +1,529 @@
+# Publication d’une Release Forgejo
+
+## Purpose
+
+Publier une Release Forgejo contenant le paquet Debian DIU construit par
+`build_deb()`, en vérifiant la cohérence du paquet, la synchronisation
+Git et l'authentification, puis en créant le tag, la Release et en
+uploadant l'asset via l'API REST Forgejo.
+
+## Requirements
+
+### Requirement: Sélection du paquet dans dist/
+
+La fonction `publish_release()` SHALL identifier le paquet Debian à
+publier dans le répertoire `dist/` du projet.
+
+Le paquet attendu SHALL avoir pour nom `diu_*_all.deb`.
+
+La fonction SHALL appliquer une politique fail-closed :
+
+- 0 paquet trouvé : erreur explicite, aucun appel API, code retour 1
+- exactement 1 paquet trouvé : continuer
+- plus de 1 paquet trouvé : erreur explicite, aucun appel API, code retour 1
+
+Les autres fichiers éventuellement présents dans `dist/` SHALL être
+ignorés.
+
+#### Scenario: Exactement un paquet valide trouvé
+
+WHEN dist/ contient exactement un fichier diu_*_all.deb
+THEN la fonction identifie ce paquet comme cible de publication
+AND la fonction continue vers la vérification des métadonnées
+
+#### Scenario: Aucun paquet trouvé
+
+WHEN dist/ ne contient aucun fichier diu_*_all.deb
+THEN la fonction affiche un message d'erreur explicite
+AND aucun appel API n'est effectué
+AND la fonction retourne le code 1
+
+#### Scenario: Plusieurs paquets trouvés
+
+WHEN dist/ contient plus d'un fichier diu_*_all.deb
+THEN la fonction affiche un message d'erreur identifiant les paquets trouvés
+AND aucun appel API n'est effectué
+AND la fonction retourne le code 1
+
+### Requirement: Vérification des métadonnées du paquet
+
+La fonction SHALL vérifier la cohérence entre le nom du fichier `.deb`
+et les métadonnées contenues dans le paquet.
+
+Le champ `Package` du fichier `control` extrait du paquet SHALL être
+identique à `diu`.
+
+Le champ `Version` du fichier `control` extrait du paquet SHALL
+correspondre exactement à la version contenue dans le nom du fichier.
+
+#### Scenario: Métadonnées cohérentes
+
+WHEN le nom du fichier est diu_2026.08.12.12.23_all.deb
+AND le champ Package du paquet vaut diu
+AND le champ Version du paquet vaut 2026.08.12.12.23
+THEN la vérification passe avec succès
+AND la fonction continue
+
+#### Scenario: Package incohérent
+
+WHEN le champ Package du paquet ne vaut pas diu
+THEN la fonction affiche un message d'erreur identifiant l'incohérence
+AND la fonction retourne le code 1
+
+#### Scenario: Version incohérente
+
+WHEN le champ Version du paquet ne correspond pas à la version du nom de fichier
+THEN la fonction affiche un message d'erreur identifiant l'incohérence
+AND la fonction retourne le code 1
+
+### Requirement: Vérification Git avant publication
+
+La fonction SHALL conserver les contrôles Git préalables et la politique de
+bootstrap ci-dessous, en acceptant les tokens existants en `600` ou `660`. Lors du rejeu isolé, le commit du tag MAY être un ancêtre vérifié de la branche distante sans modifier cette dernière.
+
+#### Scenario: Contrôles préalables conservés
+
+WHEN une publication Forgejo est demandée
+THEN les contrôles suivants restent obligatoires.
+
+Avant toute publication Forgejo, la fonction SHALL vérifier que le
+dépôt local est dans un état valide pour la publication.
+
+La séquence obligatoire de la phase Git SHALL être :
+
+1. validation du projet et du paquet ;
+2. déduction des informations Forgejo depuis le remote (host, owner, repo) ;
+3. vérification de l'existence de `config/forgejo.token` ;
+4. politique d'accès au token (voir ci-dessous) ;
+5. `git fetch origin` exécuté via `forgejo-auth`/`git-auth` avec le token ;
+6. vérification HEAD == origin/main, ou ancêtre vérifié en rejeu isolé ;
+7. réutilisation du même token validé pour les appels API Release
+   (vérification tag, création Release, upload asset).
+
+**Politique d'accès au token :**
+
+Le setup explicite SHALL être proposé uniquement lorsque la paire locale
+est absente ou incomplète, après contrôle des fichiers déjà présents.
+Il SHALL obtenir le consentement avant écriture et préserver la moitié existante.
+
+Les fichiers déjà présents SHALL être contrôlés localement avant setup.
+Une paire complète refusée, un fichier vide ou un mode invalide SHALL
+provoquer un échec sans setup. Une paire partielle dont le fichier restant
+est localement valide SHALL pouvoir être complétée après consentement,
+sans remplacement ; la validation distante SHALL précéder la publication.
+
+| État local pertinent                    | Comportement                                      |
+|------------------------------------------|---------------------------------------------------|
+| Paire absente ou incomplète               | Setup explicite après consentement                    |
+| Paire complète, modes 600 ou 660, contenus valides | Utilisation directe                               |
+| Présent, permissions autres que 600 ou 660               | Fail-closed, erreur explicite, aucun bootstrap    |
+| Présent, contenu vide                    | Fail-closed, erreur explicite, aucun bootstrap    |
+| Présent, token refusé par Forgejo        | Fail-closed, erreur explicite, aucun bootstrap    |
+
+Dans tous les cas, aucun fallback silencieux vers Username/Password
+interactif ne SHALL être introduit.
+
+Le setup reste la responsabilité du parcours de release via forgejo_credentials_setup.
+Le provider `forgejo-auth` ne relance jamais de bootstrap.
+
+Les vérifications Git obligatoires sont :
+
+- le projet est un dépôt Git valide
+- le remote origin existe
+- la branche courante est main
+- origin/main existe
+- HEAD et origin/main pointent sur le même commit après fetch, sauf ancêtre vérifié en rejeu isolé authentifié
+
+#### Scenario: Séquence complète avec token existant et valide
+
+WHEN le dépôt est un dépôt Git valide
+AND origin existe et est HTTPS
+AND la branche courante est main
+AND `config/forgejo.token` existe avec des permissions 600 ou 660 et un contenu non vide
+AND le token est accepté par Forgejo
+THEN les informations Forgejo sont déduites depuis le remote
+AND le token est lu et validé
+AND `git fetch origin` est exécuté via forgejo-auth/git-auth
+AND HEAD == origin/main est vérifié après fetch
+AND le même token est réutilisé pour les appels API Release
+AND aucune invite Username/Password n'est affichée
+
+#### Scenario: Dépôt synchronisé
+
+WHEN le dépôt est un dépôt Git valide
+AND origin existe et est HTTPS
+AND la branche courante est main
+AND origin/main existe
+AND `git fetch origin` authentifié est exécuté avec succès
+AND HEAD et origin/main pointent sur le même commit après fetch
+THEN la vérification passe avec succès
+AND la fonction continue vers la réutilisation du token pour les appels API Release
+AND aucune invite Username/Password n'est affichée
+
+#### Scenario: Fichier token absent — bootstrap automatique
+
+WHEN le dépôt est un dépôt Git valide
+AND origin existe et est HTTPS
+AND la branche courante est main
+AND `config/forgejo.token` n'existe pas
+THEN `publish_release()` propose le bootstrap automatique du token
+
+#### Scenario: Bootstrap accepté et réussi
+
+WHEN l'utilisateur accepte le bootstrap automatique
+AND le bootstrap Forgejo réussit
+THEN le token est créé et enregistré dans `config/forgejo.token`
+AND les permissions sont 600
+AND `git fetch origin` est exécuté via forgejo-auth/git-auth
+AND HEAD == origin/main est vérifié après fetch
+AND le même token est réutilisé pour les appels API Release
+
+#### Scenario: Bootstrap refusé par l'utilisateur
+
+WHEN `config/forgejo.token` est absent
+AND l'utilisateur refuse le bootstrap automatique
+THEN la fonction affiche une erreur
+AND aucun fetch ni publication n'est tenté
+AND la fonction retourne le code 1
+
+#### Scenario: Fichier token présent mais permissions invalides
+
+WHEN `config/forgejo.token` existe
+AND ses permissions ne sont ni 600 ni 660
+THEN la fonction affiche une erreur de sécurité explicite
+AND aucun bootstrap automatique n'est tenté
+AND aucun `git fetch` n'est exécuté
+AND aucun fallback interactif n'est tenté
+AND la fonction retourne le code 1
+
+#### Scenario: Fichier token présent mais vide
+
+WHEN `config/forgejo.token` existe
+AND ses permissions sont 600
+AND son contenu est vide
+THEN la fonction affiche une erreur explicite
+AND aucun bootstrap automatique n'est tenté
+AND aucun `git fetch` n'est exécuté
+AND aucun fallback interactif n'est tenté
+AND la fonction retourne le code 1
+
+#### Scenario: Token refusé par Forgejo
+
+WHEN `config/forgejo.token` existe et est lu
+AND l'authentification Git HTTPS avec ce token est refusée par Forgejo
+THEN la fonction affiche une erreur d'authentification explicite
+AND aucun bootstrap automatique n'est tenté (le fichier existe déjà)
+AND aucun fallback interactif n'est tenté
+AND la fonction retourne le code 1
+
+#### Scenario: Dépôt non synchronisé
+
+WHEN `git fetch origin` authentifié est exécuté avec succès
+AND HEAD et origin/main ne pointent pas sur le même commit après fetch hors rejeu isolé autorisé
+THEN la fonction affiche un message d'erreur indiquant que le dépôt n'est pas synchronisé
+AND aucun tag ni Release n'est créé
+AND la fonction retourne le code 1
+
+#### Scenario: Branche courante non main
+
+WHEN la branche courante n'est pas main
+THEN la fonction affiche un message d'erreur
+AND la fonction retourne le code 1
+
+#### Scenario: Remote origin absent
+
+WHEN le remote origin n'existe pas
+THEN la fonction affiche un message d'erreur
+AND la fonction retourne le code 1
+
+#### Scenario: Remote non-HTTPS
+
+WHEN le remote origin n'est pas une URL HTTPS
+THEN la fonction affiche un message d'erreur
+AND la fonction retourne le code 1
+
+#### Scenario: Branche distante origin/main absente
+
+WHEN origin existe
+AND origin/main n'existe pas
+THEN la fonction affiche un message d'erreur explicite
+AND aucun tag ni Release n'est créé
+AND la fonction retourne le code 1
+
+#### Scenario: Release avec username absent
+
+- **WHEN** le token est valide mais le username est absent et le setup est accepté
+- **THEN** le parcours complète seulement le username et conserve le token existant
+
+#### Scenario: Rejeu isolé d’un commit antérieur
+
+- **WHEN** le commit du tag est un ancêtre vérifié de la branche distante dans le contexte isolé
+- **THEN** la release peut être vérifiée ou complétée sans modifier la branche distante
+
+### Requirement: Déduction de l'URL Forgejo
+
+La fonction SHALL déduire les informations de connexion Forgejo
+à partir de l'URL du remote origin.
+
+À partir d'une URL de forme `https://<host>/<owner>/<repo>[.git]`,
+la fonction SHALL extraire :
+
+- la base Forgejo (ex: `https://forgejo.pixs.fr`)
+- le propriétaire (ex: `rootforgejo`)
+- le nom du dépôt (ex: `diu`)
+
+#### Scenario: URL standard extraite
+
+WHEN l'URL du remote origin est https://forgejo.pixs.fr/rootforgejo/diu.git
+THEN la base Forgejo est https://forgejo.pixs.fr
+AND le owner est rootforgejo
+AND le repository est diu
+
+### Requirement: Authentification par token
+
+La fonction SHALL utiliser le token local en `600` ou `660` sans modifier ses
+permissions, en conservant les contraintes de stockage et de bootstrap.
+
+#### Scenario: Contraintes de stockage et de bootstrap conservées
+
+WHEN une authentification API est demandée
+THEN les contraintes suivantes restent applicables.
+
+La fonction SHALL utiliser un Access Token Forgejo pour
+l'authentification aux API.
+
+Le token SHALL être stocké dans `<project_path>/config/forgejo.token`.
+
+Le fichier token SHALL avoir les permissions exactes `600` ou `660`.
+
+Le token ne SHALL jamais être affiché dans les logs ni la sortie standard.
+
+La fonction ne SHALL jamais corriger silencieusement les permissions
+du fichier token. L'administrateur devra appliquer explicitement
+`chmod 600` ou `chmod 660` en cas de permissions invalides.
+
+Le bootstrap automatique avec authentification 2FA/OTP est hors périmètre
+de ce premier change. Si le bootstrap ne peut pas aboutir à cause de la
+méthode d'authentification du compte Forgejo, la fonction SHALL appliquer
+le scénario "Échec de création automatique du token" et demander une
+création manuelle.
+
+Le token SHALL utiliser les privilèges minimaux nécessaires aux opérations
+de publication prévues par `publish_release()`. Le scope exact du token
+sera déterminé lors de la vérification du Swagger de l'instance Forgejo
+(voir Task 1).
+
+#### Scenario: Token présent et permissions valides
+
+WHEN config/forgejo.token existe
+AND ses permissions sont exactement 600 ou 660
+THEN la fonction utilise ce token pour l'authentification
+
+#### Scenario: Permissions du token invalides
+
+WHEN config/forgejo.token existe
+AND ses permissions ne sont ni 600 ni 660
+THEN la fonction affiche une erreur de sécurité explicite
+AND le token n'est pas utilisé
+AND aucun appel de publication Forgejo n'est effectué
+AND la fonction retourne le code 1
+
+#### Scenario: Token absent
+
+WHEN config/forgejo.token n'existe pas
+THEN la fonction propose explicitement à l'utilisateur de créer un token
+AND la fonction demande l'identifiant Forgejo
+AND la fonction demande le mot de passe de manière non affichée
+AND la fonction crée un token via l'API Forgejo
+AND la fonction enregistre le token dans config/forgejo.token
+AND la fonction applique chmod 600
+AND le token n'est jamais affiché
+
+#### Scenario: Token absent et création annulée
+
+WHEN l'utilisateur refuse la création automatique du token
+THEN la fonction affiche une erreur
+AND la fonction ne tente pas de publier la Release
+AND la fonction retourne le code 1
+
+#### Scenario: Échec de création automatique du token
+
+WHEN config/forgejo.token n'existe pas
+AND l'utilisateur accepte la création automatique
+AND l'authentification ou la création du token Forgejo échoue
+THEN aucun token n'est enregistré
+AND la fonction indique clairement que le token doit être créé manuellement
+dans Forgejo
+AND aucune Release n'est créée
+AND la fonction retourne le code 1
+
+Le mot de passe saisi ne SHALL jamais être écrit sur disque ni affiché.
+
+#### Scenario: Token partagé existant
+
+WHEN le token est non vide et en mode exact 660
+THEN la fonction l'utilise sans bootstrap ni changement de contenu ou de mode
+AND aucun secret n'est affiché
+
+### Requirement: Vérification de l'existence de la Release
+
+Avant création, la fonction SHALL vérifier si le tag `v<VERSION>` et la Release correspondante existent déjà sur Forgejo.
+
+#### Scenario: Tag et Release inexistants
+- **WHEN** le tag v<VERSION> n'existe pas sur Forgejo et aucune Release correspondante n'existe
+- **THEN** la fonction continue vers la création de la Release
+
+#### Scenario: Tag déjà existant
+- **WHEN** le tag v<VERSION> existe déjà sur Forgejo et désigne HEAD
+- **THEN** la fonction réutilise le tag sans le déplacer, le recréer ou le modifier
+
+#### Scenario: Tag distant incohérent
+- **WHEN** le tag v<VERSION> existe déjà sur Forgejo et désigne un autre commit
+- **THEN** aucune publication n'est effectuée et le tag reste inchangé
+
+#### Scenario: Release déjà existante
+- **WHEN** une Release cohérente pour le tag v<VERSION> et son asset attendu existent déjà
+- **THEN** la fonction indique que l'asset est déjà publié sans rien écraser ni modifier
+
+#### Scenario: Release incomplète
+- **WHEN** une Release cohérente existe sans l'asset attendu
+- **THEN** la fonction peut ajouter cet asset sans remplacer les autres
+
+### Requirement: Création de la Release
+
+La fonction SHALL créer la Release Forgejo par API REST avec le tag ciblant exactement HEAD déjà vérifié, les métadonnées et l’artefact décrits ci-dessous.
+Les modalités normatives détaillées ci-dessous SHALL être respectées.
+
+#### Scenario: Release créée avec succès
+
+WHEN toutes les vérifications préalables passent
+AND le tag et la Release n'existent pas
+THEN la fonction crée le tag v<VERSION> pointant sur HEAD via l'API
+AND la fonction crée la Release avec le tag, le titre et les notes
+AND la fonction récupère l'identifiant de la Release créée
+
+#### Scenario: Identité du commit et métadonnées de la Release
+
+- **WHEN** la fonction crée une Release Forgejo
+- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
+
+La fonction SHALL créer une Release Forgejo via l'API REST.
+
+Le tag `v<VERSION>` SHALL cibler exactement le commit HEAD. HEAD ayant
+déjà été vérifié comme identique à `origin/main`, ou ancêtre en rejeu isolé, le tag ne SHALL donc jamais pointer vers un commit différent de celui validé lors de ces contrôles.
+
+La chaîne de vérification attendue est :
+
+```
+HEAD == origin/main (ou ancêtre en rejeu isolé)
+        ↓
+tag v<VERSION>
+        ↓
+Release DIU <VERSION>
+        ↓
+asset diu_<VERSION>_all.deb
+```
+
+La Release utilisera :
+
+- Tag : `v<VERSION>` ciblant exactement HEAD
+- Titre : `DIU <VERSION>`
+- Notes de Release : version, SHA du commit HEAD, message du dernier commit
+
+### Requirement: Upload du paquet comme asset
+
+Après création réussie de la Release, la fonction SHALL uploader le
+fichier `.deb` comme asset de la Release.
+
+#### Scenario: Upload réussi
+
+WHEN la Release est créée avec succès
+AND le fichier .deb existe
+THEN la fonction upload le fichier comme asset de la Release
+AND la fonction vérifie le succès de l'upload
+
+#### Scenario: Upload échoué après création de Release
+
+WHEN l'upload du fichier échoue après création de la Release
+THEN la fonction retourne le code 1
+AND la fonction affiche une erreur claire
+AND la Release reste visible mais incomplète
+AND aucun rollback automatique n'est effectué
+
+### Requirement: Vérification des prérequis
+
+La fonction SHALL vérifier la disponibilité des outils nécessaires
+avant de procéder : `git`, `curl`, `jq`, `dpkg-deb`.
+
+#### Scenario: Tous les prérequis disponibles
+
+WHEN les outils git, curl, jq et dpkg-deb sont disponibles
+THEN la fonction continue vers la vérification du paquet
+
+#### Scenario: Outil manquant
+
+WHEN un outil requis est absent
+THEN la fonction affiche un message identifiant l'outil manquant
+AND aucun appel API n'est effectué
+AND la fonction retourne le code 1
+
+### Requirement: Commande rid proj rel
+
+Le DIU SHALL accepter la commande `rid proj rel <project_id>` pour
+déclencher la publication d'une Release Forgejo à partir du paquet
+construit dans `dist/`.
+
+#### Scenario: Publication depuis la commande rid
+
+WHEN l'utilisateur exécute `rid proj rel monprojet`
+THEN le DIU valide que le projet existe
+AND le DIU vérifie les prérequis
+AND le DIU sélectionne le paquet dans dist/
+AND le DIU vérifie les métadonnées du paquet
+AND le DIU vérifie la synchronisation Git
+AND le DIU récupère ou crée le token
+AND le DIU vérifie l'existence de la Release
+AND le DIU crée la Release et upload l'asset
+
+#### Scenario: Projet inexistant
+
+WHEN l'utilisateur exécute `rid proj rel projetinexistant`
+THEN un message d'erreur indique que le projet n'existe pas
+AND la fonction retourne le code 1
+
+### Requirement: Indépendance fonctionnelle
+
+La fonction `publish_release()` SHALL rester totalement indépendante
+des parcours de publication Git et de `build_deb()`.
+
+La fonction ne SHALL :
+
+- ni effectuer de commit
+- ni effectuer de git push
+- ni reconstruire implicitement le paquet Debian
+
+#### Scenario: Appel indépendant
+
+WHEN publish_release() est appelée
+THEN aucune opération de commit n'est effectuée
+AND aucune opération de push n'est effectuée
+AND aucun rebuild du paquet n'est déclenché
+
+### Requirement: Immutabilité des Releases
+
+Une Release publiée SHALL être conservée. La fonction SHALL NOT écraser un asset ni supprimer automatiquement une Release ou un tag.
+
+#### Scenario: Version déjà publiée
+- **WHEN** une Release et l'asset attendu existent pour la version demandée
+- **THEN** la fonction signale que la publication est déjà réalisée et ne modifie rien
+
+### Requirement: Sélection cohérente de la version de release
+
+La release SHALL appliquer PROJECT_VERSION en priorité lorsqu’elle est déclarée, sinon la sélection historique commune avec le builder. Sans clé ni tag, elle SHALL conserver la version du paquet sans nouvel horodatage. La version retenue SHALL égaler celle du paquet et le tag SHALL être v<VERSION>, sans déplacement d’un tag existant.
+
+#### Scenario: Release et paquet concordants
+
+- **GIVEN** PROJECT_VERSION est absente de project.env
+
+- **WHEN** une release est préparée
+- **THEN** une version ambiguë, invalide ou différente du paquet arrête la publication ; aucun tag existant n’est déplacé
