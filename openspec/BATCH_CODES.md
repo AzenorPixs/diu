@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [manage-production-hosts-entries](changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
 - [handle-cicd-release-unavailability](changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; validation globale : 1 171 tests exécutés dont 2 ignorés et OpenSpec strict réussi ; attribution ultérieure par ACL.
 
 - [ensure-diu-link-at-startup](changes/archive/2026-11-04-ensure-diu-link-at-startup/proposal.md) : code non attribué ; change archivé le 2026-11-04 : 1 165 tests dont 2 ignorés ; attribution ultérieure par ACL.

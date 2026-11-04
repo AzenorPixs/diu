@@ -2,12 +2,15 @@
 
 system_network_hosts() {
 
-  local hosts_ip="" hosts_config="${BASH_SCRIPT_PATH}/config/hosts.json" hosts_entries=""
+  local hosts_ip="" hosts_config="/root/diu/config/hosts.json" hosts_entries=""
+  local development_config="${BASH_SCRIPT_PATH}/config/hosts.json" config_file=""
 
-  if [[ ! -e "$hosts_config" && ! -L "$hosts_config" ]]; then
-      mkdir -p -- "${BASH_SCRIPT_PATH}/config" || return 1
-      ( set -o noclobber; printf '[]\n' > "$hosts_config" ) || return 1
-  fi
+  for config_file in "$development_config" "$hosts_config"; do
+      if [[ ! -e "$config_file" && ! -L "$config_file" ]]; then
+          mkdir -p -- "$(dirname -- "$config_file")" || return 1
+          ( set -o noclobber; printf '[]\n' > "$config_file" ) || return 1
+      fi
+  done
   if ! hosts_entries="$(python3 -B "${BASH_SCRIPT_PATH}/modules/system/hosts_json.py" "$hosts_config")"; then
       return 1
   fi
@@ -52,4 +55,8 @@ EOF
 
 system_network_update() {
     system_network_hosts
+}
+
+system_network_manage_hosts() {
+    python3 -B "${BASH_SCRIPT_PATH}/modules/system/hosts_json.py" manage /root/diu/config/hosts.json "$@"
 }

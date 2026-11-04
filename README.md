@@ -17,10 +17,14 @@ leurs publications Forgejo.
 interfaces détectées. `rid system network update`, `rid system update` et
 `rid update` effectuent aussi cette opération. Les entrées préexistantes,
 y compris les anciens noms Docker, ne sont pas conservées. Les couples IP/FQDN
-configurés dans `config/hosts.json` sont ajoutés après les lignes standard. Le
-fichier est propre à l'installation exécutée et contient initialement `[]`.
-Exemple : `[{"ip":"127.0.0.1","fqdn":"mon.site.fr"}]`. Plusieurs objets
-peuvent être ajoutés au tableau ; un fichier invalide empêche la reconstruction.
+configurés dans `/root/diu/config/hosts.json` sont ajoutés après les lignes
+standard, y compris avec `ridt` ou `diut`. Un fichier absent est créé avec `[]` ;
+un fichier invalide empêche la reconstruction. Le fichier de développement
+absent est aussi créé vide, sans être utilisé pour générer `/etc/hosts`.
+
+Les commandes `rid projects system network add <IP> <FQDN>`, `del <IP> <FQDN>`,
+`del all` et `list` gèrent uniquement le JSON de production. Après un ajout,
+les couples sont triés par IP numérique, IPv4 avant IPv6, puis par FQDN.
 
 `rid diu update` recherche anonymement le paquet Debian dans les releases
 publiques de [AzenorPixs/diu](https://github.com/AzenorPixs/diu), sans

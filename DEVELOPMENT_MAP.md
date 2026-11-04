@@ -1,5 +1,14 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [manage-production-hosts-entries](openspec/changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  PRODUCTION_HOSTS["manage-production-hosts-entries — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class PRODUCTION_HOSTS provisoire
+```
+
 Delta SCM du 2026-11-04 : [handle-cicd-release-unavailability](openspec/changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md), code non attribué, archivé ; validation globale : 1 171 tests exécutés, dont 2 ignorés ; OpenSpec strict réussi. Attribution ultérieure par ACL.
 
 ```mermaid

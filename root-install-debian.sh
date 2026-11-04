@@ -1365,6 +1365,15 @@ manage_project_action() {
 
     case "$action" in
 
+        system)
+            if [[ "${2:-}" != network ]]; then
+                print_error 'Usage : rid projects system network {add IP FQDN|del IP FQDN|del all|list}'
+                return 2
+            fi
+            shift 2
+            system_network_manage_hosts "$@"
+            ;;
+
         build)
             if [[ $# -ne 3 || ( "${2:-}" != deb && "${2:-}" != debian ) ]]; then
                 print_error 'Usage : rid projects build debian <ID PROJECT>'

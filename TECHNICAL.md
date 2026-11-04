@@ -2262,7 +2262,10 @@ reste à contrôler sur le poste.
 
 ### Configuration des hôtes réseau
 
-`system_network_hosts` utilise `config/hosts.json` à côté du point d'entrée
-réel. Il crée un tableau vide absent, valide les couples `ip` et `fqdn` avant
-la génération et les ajoute dans l'ordre. Un JSON invalide préserve le fichier
-`/etc/hosts`. Le paquet inclut un modèle vide comme conffile Debian.
+`system_network_hosts` lit toujours `/root/diu/config/hosts.json`, quel que soit
+le point d'entrée. Il crée les fichiers de production et de développement
+absents avec un tableau vide, puis valide les couples de production avant la
+génération. Un JSON invalide préserve `/etc/hosts`. Les commandes `projects
+system network` gèrent exclusivement le JSON de production ; après ajout,
+les couples sont triés par IP numérique puis par FQDN. Le paquet inclut un
+modèle vide comme conffile Debian.
