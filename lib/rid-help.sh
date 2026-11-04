@@ -54,6 +54,7 @@ rid_display_help_context() {
             return 2
         fi
         rid_help_line 'rid system network update' 'Met à jour la configuration réseau.'
+        rid_help_line 'rid system network hosts' 'Affiche le contenu actuel de /etc/hosts.'
         rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts depuis le hosts.json de production.'
         rid_help_line 'rid system network hosts add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
         rid_help_line 'rid system network hosts del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'

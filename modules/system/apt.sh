@@ -419,8 +419,10 @@ manage_system_action() {
                 system_network_update
             elif [[ "${1:-}" == hosts ]]; then
                 shift
-                if [[ $# -eq 1 && "$1" == update ]]; then
-                    system_network_hosts
+                if [[ $# -eq 0 ]]; then
+                    cat /etc/hosts
+                elif [[ $# -eq 1 && "$1" == update ]]; then
+                    system_network_hosts_report
                 elif [[ "${1:-}" == add || "${1:-}" == del || "${1:-}" == list ]]; then
                     system_network_manage_hosts "$@"
                 else

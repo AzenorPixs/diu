@@ -1,5 +1,14 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [report-and-display-system-hosts](openspec/changes/archive/2026-11-04-report-and-display-system-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  REPORT_HOSTS["report-and-display-system-hosts — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class REPORT_HOSTS provisoire
+```
+
 Delta SCM du 2026-11-04 : [move-hosts-commands-to-system](openspec/changes/archive/2026-11-04-move-hosts-commands-to-system/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
 ```mermaid

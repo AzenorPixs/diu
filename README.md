@@ -13,7 +13,9 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
-`rid system network hosts update` reconstruit `/etc/hosts` à partir des
+`rid system network hosts` affiche `/etc/hosts`. `rid system network hosts update`
+reconstruit ce fichier et affiche une coche verte si la mise à jour réussit ;
+en cas d’échec, une croix rouge indique brièvement la cause. La génération utilise les
 interfaces détectées. `rid system network update`, `rid system update` et
 `rid update` effectuent aussi cette opération. Les entrées préexistantes,
 y compris les anciens noms Docker, ne sont pas conservées. Les couples IP/FQDN

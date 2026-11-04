@@ -4,6 +4,9 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Réseau : `system network hosts` affiche `/etc/hosts` ; la mise à jour ciblée
+  indique son résultat sur une ligne avec une coche verte ou une croix rouge.
+
 - CI/CD : réconciliation isolée des branches divergentes, priorité aux fichiers
   versionnés locaux en conflit et remplacement des tags distants divergents sous
   lease. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
