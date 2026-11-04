@@ -1,5 +1,14 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [stop-setting-technical-account-passwords](openspec/changes/archive/2026-11-04-stop-setting-technical-account-passwords/proposal.md), code non attribué, archivé ; 1 149 tests exécutés dont 2 ignorés, OpenSpec strict réussi. Publication différée. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_TECH_ACCOUNTS["stop-setting-technical-account-passwords — code non attribué — ARCHIVÉ"]
+  class P_TECH_ACCOUNTS provisoire
+```
+
 Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](openspec/changes/migrate-env-devops-projects-root/proposal.md), code non attribué, actif ; 1148 tests exécutés dont 2 ignorés, diagnostics ShellCheck bruts à qualifier. Publication différée. Attribution ultérieure par ACL.
 
 ```mermaid

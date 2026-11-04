@@ -120,6 +120,10 @@ exécutées sous `ENV_DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. L
 script principal vérifie également que l'exécution globale dispose des droits
 root lorsque l'opération modifie le système.
 
+Le provisionnement des comptes techniques DevOps, Docker et IA ne définit
+pas de mot de passe et conserve celui des comptes existants. Les commandes
+exécutées par root sous ces identités ne nécessitent pas leur mot de passe.
+
 ### Accès sudo sans mot de passe au compte DevOps
 
 À la fin du bloc `ENVIRONMENTS_DEVOPS=1`, `configure_devops_sudoers` génère
