@@ -1,0 +1,2003 @@
+#!/usr/bin/env python3
+"""Tests isolés de migration sans lecture de la configuration locale."""
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class ConfigCleanupTests(unittest.TestCase):
+    def run_cleanup(self, path, prelude=""):
+        return subprocess.run(
+            ["bash", "-c", 'set -Eeuo pipefail\nsource "$ROOT/modules/system/variables-cleanup.sh"\n'
+             + prelude + '\nconfig_cleanup "$TARGET" "$SYSTEM_CONFIG" "$SOFTWARES_CONFIG" "$DESKTOP_CONFIG" "$ENVIRONMENTS_CONFIG" "$DOCKER_CONFIG"'],
+            env=dict(os.environ, ROOT=str(ROOT), TARGET=str(path),
+                     SYSTEM_CONFIG=str(path.parent / 'system.env'),
+                     SOFTWARES_CONFIG=str(path.parent / 'softwares.env'),
+                     DESKTOP_CONFIG=str(path.parent / 'desktop.env'),
+                     ENVIRONMENTS_CONFIG=str(path.parent / 'environnements.env'),
+                     DOCKER_CONFIG=str(path.parent / 'docker.env')),
+            text=True, capture_output=True)
+
+    def test_projects_root_legacy_literal_and_existing_new_priority(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            path.write_text('DEVOPS_PROJECTS_ROOT="/srv/projets spéciaux"\nOTHER=keep\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(config.read_text(), 'export ENV_DEVOPS_PROJECTS_ROOT=/srv/projets\\ spéciaux\n')
+            path.write_text('DEVOPS_PROJECTS_ROOT=/srv/ancien\n')
+            config.write_text('export ENV_DEVOPS_PROJECTS_ROOT=/srv/nouveau\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(config.read_text(), 'export ENV_DEVOPS_PROJECTS_ROOT=/srv/nouveau\n')
+
+    def test_projects_root_ambiguous_value_is_not_executed(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'DEVOPS_PROJECTS_ROOT="$(touch {sentinel})"\n'
+            path.write_text(original)
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+            self.assertFalse((Path(directory) / 'environnements.env').exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+
+    def test_projects_root_explicit_empty_value_is_preserved(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text("export DEVOPS_PROJECTS_ROOT=''\n")
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual((Path(directory) / 'environnements.env').read_text(),
+                             "export ENV_DEVOPS_PROJECTS_ROOT=''\n")
+
+    def test_projects_root_migrates_legacy_scope_entry(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            path.write_text('OTHER=keep\n')
+            config.write_text('export DEVOPS_PROJECTS_ROOT=/srv/projets\nOTHER=keep\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(config.read_text(), 'OTHER=keep\nexport ENV_DEVOPS_PROJECTS_ROOT=/srv/projets\n')
+
+    def test_projects_root_historical_user_expression_migrates_in_two_passes(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            original = ('DEVOPS_USER=devops\n'
+                        'export DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"\n')
+            path.write_text(original)
+            prelude = 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT ENV_DEVOPS_USER DEVOPS_USER'
+            result = self.run_cleanup(path, prelude)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(config.exists())
+
+            for name in ('env_devops_user.sh', 'env_devops_projects_root.sh'):
+                source = ROOT / 'modules/diu/variables/environnements' / name
+                (Path(directory) / name).write_text(source.read_text().replace(
+                    'variable_config_file="/root/diu/config/${scope}.env"',
+                    'variable_config_file="$TEST_CONFIG"'))
+            env = dict(os.environ, TARGET=str(path), TEST_CONFIG=str(config), TEST_DIR=directory)
+            for key in ('DEVOPS_USER', 'ENV_DEVOPS_USER', 'DEVOPS_PROJECTS_ROOT', 'ENV_DEVOPS_PROJECTS_ROOT'):
+                env.pop(key, None)
+            generated = subprocess.run(
+                ['bash', '-c', 'set -Eeuo pipefail; source "$TARGET"; '
+                 'source "$TEST_DIR/env_devops_user.sh"; '
+                 'source "$TEST_DIR/env_devops_projects_root.sh"; '
+                 'printf "%s|%s" "$ENV_DEVOPS_USER" "$ENV_DEVOPS_PROJECTS_ROOT"'],
+                env=env, text=True, capture_output=True)
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            self.assertEqual(generated.stdout, 'devops|/home/devops/datas')
+            self.assertIn('export ENV_DEVOPS_PROJECTS_ROOT=/home/devops/datas\n', config.read_text())
+
+            result = self.run_cleanup(path, prelude)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'DEVOPS_USER=devops\n')
+            before = config.read_text()
+            result = self.run_cleanup(path, prelude)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(config.read_text(), before)
+
+    def test_projects_root_existing_new_value_skips_historical_expansion(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            path.write_text('DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"\n')
+            config.write_text('export ENV_DEVOPS_PROJECTS_ROOT=/srv/existant\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT DEVOPS_USER')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(config.read_text(), 'export ENV_DEVOPS_PROJECTS_ROOT=/srv/existant\n')
+
+    def test_projects_root_template_with_command_substitution_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'DEVOPS_PROJECTS_ROOT="/home/${{DEVOPS_USER}}/$(touch {sentinel})"\n'
+            path.write_text(original)
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+
+    def test_cleanup_and_idempotence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            preserved = ('# DEBIAN_RELEASE=comment\n# DEBIAN_TYPE=comment\n# DISPLAY_LINK=comment\n'
+                         '# PROXY_CA=comment\n'
+                         'SYSTEM_DRIVERS_DISPLAY_LINK=1\nDISPLAY_LINK_EXTRA=keep\n'
+                         '# TIME_ZONE=comment\nSYSTEM_TIME_ZONE=UTC\nTIME_ZONE_EXTRA=keep\n'
+                         'SYSTEM_PROXY_CA=0\nPROXY_CA_EXTRA=keep\n'
+                         'SYSTEM_DEBIAN_ENVIRONNEMENT=VM\nDEBIAN_TYPE_EXTRA=keep\n'
+                         'SYSTEM_DEBIAN_RELEASE=bookworm\n'
+                         'DEBIAN_RELEASE_EXTRA=keep\nOTHER=keep\n\n')
+            path.write_text('DEBIAN_RELEASE=old\n export DEBIAN_RELEASE="old"\n'
+                            '\texport\tDEBIAN_RELEASE=old # comment\n'
+                            'DEBIAN_TYPE=PHYSICAL\n export DEBIAN_TYPE=VM\n'
+                            '\texport\tDEBIAN_TYPE=LXC # comment\n'
+                            'TIME_ZONE=UTC\n export TIME_ZONE=Europe/London\n'
+                            '\texport\tTIME_ZONE=UTC # comment\n'
+                            'DISPLAY_LINK=1\n export DISPLAY_LINK=0\n'
+                            '\texport\tDISPLAY_LINK=1 # comment\n'
+                            'PROXY_CA=0\n export PROXY_CA="1"\n'
+                            '\texport\tPROXY_CA=1 # comment\n' + preserved)
+            with path.open('a') as stream:
+                stream.write('PROXY=0\n export PROXY=1 # legacy\nPROXY_HTTP=1\n'
+                             'DRIVERS_NVIDIA=0\n export DRIVERS_NVIDIA=1 # legacy\n'
+                             'DRIVERS_NVIDIA_EXTRA=keep\n')
+            path.chmod(0o640)
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\nDRIVERS_NVIDIA_EXTRA=keep\n')
+            self.assertEqual((Path(directory) / 'system.env').read_text(),
+                             'export SYSTEM_PROXY=1\nexport SYSTEM_DRIVERS_NVIDIA=1\n')
+            self.assertEqual(path.stat().st_mode & 0o777, 0o640)
+            before = path.stat()
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), preserved + 'PROXY_HTTP=1\nDRIVERS_NVIDIA_EXTRA=keep\n')
+            self.assertEqual(path.stat().st_mtime_ns, before.st_mtime_ns)
+            self.assertEqual(path.stat().st_ino, before.st_ino)
+            self.assertEqual(result.stdout, '')
+
+    def test_proxy_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('PROXY=0\nexport PROXY=1\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_PROXY=1\n')
+            before = system_config.stat()
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.stat().st_mtime_ns, before.st_mtime_ns)
+
+            path.write_text('PROXY=0\n')
+            system_config.write_text('export SYSTEM_PROXY=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_PROXY=1\n')
+
+    def test_ambiguous_proxy_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('export PROXY="${PROXY_ENABLED}"\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), 'export PROXY="${PROXY_ENABLED}"\nOTHER=keep\n')
+            self.assertFalse((Path(directory) / 'system.env').exists())
+            self.assertNotIn('PROXY_ENABLED', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_drivers_nvidia_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('DRIVERS_NVIDIA=0\nexport DRIVERS_NVIDIA=1\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_DRIVERS_NVIDIA=1\n')
+            before = system_config.stat()
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.stat().st_mtime_ns, before.st_mtime_ns)
+
+            path.write_text('DRIVERS_NVIDIA=0\n')
+            system_config.write_text('export SYSTEM_DRIVERS_NVIDIA=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_DRIVERS_NVIDIA=1\n')
+
+    def test_ambiguous_drivers_nvidia_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            original = 'export DRIVERS_NVIDIA="${NVIDIA_ENABLED}"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse((Path(directory) / 'system.env').exists())
+            self.assertNotIn('NVIDIA_ENABLED', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_fstab_values_migrate_as_literals(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('FSTAB=1\n'
+                            'export FSTAB_CONFIG1="UUID=abc /data ext4 defaults 0 2"\n'
+                            "FSTAB_CONFIG2='tmpfs /var/log tmpfs rw,nosuid 0 0' # comment\n"
+                            'FSTAB_CONFIG3=NONE\n'
+                            'export FSTAB_CONFIG4=""\n'
+                            'FSTAB_CONFIG5=UUID=abc # comment\n'
+                            'export FSTAB_CONFIG6="UUID=def /backup ext4 defaults 0 2"\n'
+                            '# FSTAB_CONFIG1=comment\nFSTAB_CONFIG_EXTRA=keep\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(),
+                             '# FSTAB_CONFIG1=comment\nFSTAB_CONFIG_EXTRA=keep\nOTHER=keep\n')
+            self.assertEqual(result.stdout, '')
+            loaded = subprocess.run(
+                ['bash', '-c', 'source "$SYSTEM_CONFIG"; printf "%s\\n" '
+                 '"$SYSTEM_FSTAB" "$SYSTEM_FSTAB_CONFIG1" "$SYSTEM_FSTAB_CONFIG2" '
+                 '"$SYSTEM_FSTAB_CONFIG3" "$SYSTEM_FSTAB_CONFIG4" "$SYSTEM_FSTAB_CONFIG5" '
+                 '"$SYSTEM_FSTAB_CONFIG6"'],
+                env=dict(os.environ, SYSTEM_CONFIG=str(system_config)),
+                text=True, capture_output=True)
+            self.assertEqual(loaded.returncode, 0, loaded.stderr)
+            self.assertEqual(loaded.stdout.splitlines(), [
+                '1', 'UUID=abc /data ext4 defaults 0 2',
+                'tmpfs /var/log tmpfs rw,nosuid 0 0', 'NONE', '', 'UUID=abc',
+                'UUID=def /backup ext4 defaults 0 2'])
+
+    def test_fstab_new_values_precede_legacy_values(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('FSTAB=1\nFSTAB_CONFIG1="old row"\n'
+                            'FSTAB_CONFIG2="new row"\nFSTAB_CONFIG6="sixth row"\n')
+            system_config.write_text('export SYSTEM_FSTAB=0\n'
+                                     'export SYSTEM_FSTAB_CONFIG1=existing\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            loaded = subprocess.run(
+                ['bash', '-c', 'source "$SYSTEM_CONFIG"; printf "%s\\n" '
+                 '"$SYSTEM_FSTAB" "$SYSTEM_FSTAB_CONFIG1" "$SYSTEM_FSTAB_CONFIG2"'],
+                env=dict(os.environ, SYSTEM_CONFIG=str(system_config)),
+                text=True, capture_output=True)
+            self.assertEqual(loaded.returncode, 0, loaded.stderr)
+            self.assertEqual(loaded.stdout.splitlines(), ['0', 'existing', 'new row'])
+            self.assertIn('export SYSTEM_FSTAB_CONFIG6=sixth\\ row',
+                          system_config.read_text())
+
+    def test_ambiguous_fstab_values_are_not_executed_or_removed(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'FSTAB=1\nFSTAB_CONFIG1="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse((Path(directory) / 'system.env').exists())
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_files2ram_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('FILES2RAM=1\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_FILES2RAM=1\n')
+
+            path.write_text('export FILES2RAM=1\n')
+            system_config.write_text('export SYSTEM_FILES2RAM=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_FILES2RAM=0\n')
+
+    def test_grub_config_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('GRUB_CONFIG=0\nexport GRUB_CONFIG=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=1\n')
+
+            path.write_text('export GRUB_CONFIG=1\n')
+            system_config.write_text('export SYSTEM_GRUB_CONFIG=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=0\n')
+
+            path.write_text('export GRUB_CONFIG=0\n')
+            system_config.unlink()
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=0\n')
+
+    def test_ambiguous_grub_config_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'GRUB_CONFIG="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config = Path(directory) / 'system.env'
+            system_config.write_text('export SYSTEM_GRUB_CONFIG=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_GRUB_CONFIG=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ipv6_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('IPv6=0\nexport IPv6=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_IPV6=1\n')
+
+            path.write_text('export IPv6=0\n')
+            system_config.write_text('export SYSTEM_IPV6=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_IPV6=1\n')
+
+            system_config.unlink()
+            path.write_text('IPv6=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_IPV6=0\n')
+
+    def test_ambiguous_ipv6_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'IPv6="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_IPV6=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_IPV6=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_log_rotate_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('LOG_ROTATE=0\nexport LOG_ROTATE=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_LOG_ROTATE=1\n')
+
+            path.write_text('export LOG_ROTATE=1\n')
+            system_config.write_text('export SYSTEM_LOG_ROTATE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_LOG_ROTATE=0\n')
+
+            system_config.unlink()
+            path.write_text('LOG_ROTATE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_LOG_ROTATE=0\n')
+
+    def test_ambiguous_log_rotate_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'LOG_ROTATE="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_LOG_ROTATE=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_LOG_ROTATE=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_journald_max_use_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('JOURNALD_MAX_USE=100M\nexport JOURNALD_MAX_USE="500M" # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_MAX_USE=500M\n')
+
+            path.write_text("export JOURNALD_MAX_USE='1G'\n")
+            system_config.write_text('export SYSTEM_JOURNALD_MAX_USE=250M\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_MAX_USE=250M\n')
+
+    def test_ambiguous_journald_max_use_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'JOURNALD_MAX_USE="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_JOURNALD_MAX_USE=500M\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_MAX_USE=500M\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_journald_keep_free_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('JOURNALD_KEEP_FREE=500M\nexport JOURNALD_KEEP_FREE="1G" # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_KEEP_FREE=1G\n')
+
+            path.write_text("export JOURNALD_KEEP_FREE='2G'\n")
+            system_config.write_text('export SYSTEM_JOURNALD_KEEP_FREE=500M\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_KEEP_FREE=500M\n')
+
+    def test_ambiguous_journald_keep_free_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'JOURNALD_KEEP_FREE="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_JOURNALD_KEEP_FREE=1G\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_KEEP_FREE=1G\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_no_sleep_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('NO_SLEEP=0\nexport NO_SLEEP=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=1\n')
+
+            path.write_text('export NO_SLEEP=0\n')
+            system_config.write_text('export SYSTEM_NO_SLEEP=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=1\n')
+
+            system_config.unlink()
+            path.write_text('NO_SLEEP=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=0\n')
+
+    def test_ambiguous_no_sleep_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'NO_SLEEP="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_NO_SLEEP=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_NO_SLEEP=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_rclocal_migration_to_system_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('RCLOCAL=0\nexport RCLOCAL=1 # active\nRCLOCAL_CONFIG=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'RCLOCAL_CONFIG=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=1\n')
+
+            path.write_text('export RCLOCAL=1\n')
+            system_config.write_text('export SYSTEM_RC_LOCAL=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=0\n')
+
+            system_config.unlink()
+            path.write_text('RCLOCAL=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=0\n')
+
+    def test_ambiguous_rclocal_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'RCLOCAL="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_RC_LOCAL=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_RC_LOCAL=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_apache2_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('APACHE2=0\nexport APACHE2=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_APACHE2=1\n')
+            self.assertFalse((Path(directory) / 'system.env').exists())
+
+            path.write_text('export APACHE2=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_APACHE2=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_APACHE2=0\n')
+
+            softwares_config.unlink()
+            path.write_text('APACHE2=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_APACHE2=0\n')
+
+    def test_ambiguous_apache2_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'APACHE2="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_APACHE2=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_APACHE2=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_fastfetch_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('FASTFETCH=0\nexport FASTFETCH=1 # active\nFASTFETCH_EXTRA=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'FASTFETCH_EXTRA=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_FASTFETCH=1\n')
+
+            path.write_text('export FASTFETCH=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_FASTFETCH=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_FASTFETCH=0\n')
+
+            softwares_config.unlink()
+            path.write_text('FASTFETCH=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_FASTFETCH=0\n')
+
+    def test_ambiguous_fastfetch_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'FASTFETCH="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_FASTFETCH=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_FASTFETCH=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_jsvc_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('JSVC=0\nexport JSVC=1 # active\nJSVC_EXTRA=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'JSVC_EXTRA=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_JSVC=1\n')
+
+            path.write_text('export JSVC=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_JSVC=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_JSVC=0\n')
+
+            softwares_config.unlink()
+            path.write_text('JSVC=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_JSVC=0\n')
+
+    def test_ambiguous_jsvc_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'JSVC="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_JSVC=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_JSVC=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_lemonldap_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('LEMONLDAP=0\nexport LEMONLDAP=1 # active\nLEMONLDAP_GROUP=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'LEMONLDAP_GROUP=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_LEMONLDAP=1\n')
+
+            path.write_text('export LEMONLDAP=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_LEMONLDAP=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_LEMONLDAP=0\n')
+
+            softwares_config.unlink()
+            path.write_text('LEMONLDAP=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_LEMONLDAP=0\n')
+
+    def test_ambiguous_lemonldap_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'LEMONLDAP="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_LEMONLDAP=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_LEMONLDAP=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_mongodb_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('MONGODB=0\nexport MONGODB=1 # active\nMONGODB_VERSION=8.0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'MONGODB_VERSION=8.0\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_MONGODB=1\n')
+
+            path.write_text('export MONGODB=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_MONGODB=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_MONGODB=0\n')
+
+            softwares_config.unlink()
+            path.write_text('MONGODB=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_MONGODB=0\n')
+
+    def test_ambiguous_mongodb_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'MONGODB="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_MONGODB=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_MONGODB=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_openjdk_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('OPENJDK=0\nexport OPENJDK=1 # active\nOPENJDK_HOME=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OPENJDK_HOME=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENJDK=1\n')
+
+            path.write_text('export OPENJDK=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_OPENJDK=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENJDK=0\n')
+
+            softwares_config.unlink()
+            path.write_text('OPENJDK=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENJDK=0\n')
+
+    def test_ambiguous_openjdk_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'OPENJDK="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_OPENJDK=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENJDK=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_omada_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('OMADA=0\nexport OMADA=1 # active\nOMADA_VERSION=5.15.8\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OMADA_VERSION=5.15.8\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OMADA=1\n')
+
+            path.write_text('export OMADA=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_OMADA=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OMADA=0\n')
+
+            softwares_config.unlink()
+            path.write_text('OMADA=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OMADA=0\n')
+
+    def test_ambiguous_omada_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'OMADA="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_OMADA=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OMADA=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_openvswitch_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('OPENVSWITCH=0\nexport OPENVSWITCH=1 # active\nOPENVSWITCH_CONFIG=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OPENVSWITCH_CONFIG=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENVSWITCH=1\n')
+
+            path.write_text('export OPENVSWITCH=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_OPENVSWITCH=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENVSWITCH=0\n')
+
+            softwares_config.unlink()
+            path.write_text('OPENVSWITCH=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENVSWITCH=0\n')
+
+    def test_ambiguous_openvswitch_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'OPENVSWITCH="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_OPENVSWITCH=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_OPENVSWITCH=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_postgresql_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('POSTGRESQL=0\nexport POSTGRESQL=1 # active\nPOSTGRESQL_VERSION=16\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'POSTGRESQL_VERSION=16\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTGRESQL=1\n')
+
+            path.write_text('export POSTGRESQL=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_POSTGRESQL=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTGRESQL=0\n')
+
+            softwares_config.unlink()
+            path.write_text('POSTGRESQL=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTGRESQL=0\n')
+
+    def test_ambiguous_postgresql_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'POSTGRESQL="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_POSTGRESQL=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTGRESQL=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_postfix_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('POSTFIX=0\nexport POSTFIX=1 # active\nPOSTFIX_RELAY_HOST=mail.example.test\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'POSTFIX_RELAY_HOST=mail.example.test\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTFIX=1\n')
+
+            path.write_text('export POSTFIX=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_POSTFIX=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTFIX=0\n')
+
+            softwares_config.unlink()
+            path.write_text('POSTFIX=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTFIX=0\n')
+
+    def test_ambiguous_postfix_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'POSTFIX="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_POSTFIX=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_POSTFIX=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_qemu_guest_agent_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('QEMU_GUEST_AGENT=0\nexport QEMU_GUEST_AGENT=1 # active\nQEMU_GUEST_AGENT_EXTRA=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'QEMU_GUEST_AGENT_EXTRA=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_QEMU_GUEST_AGENT=1\n')
+
+            path.write_text('export QEMU_GUEST_AGENT=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_QEMU_GUEST_AGENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_QEMU_GUEST_AGENT=0\n')
+
+            softwares_config.unlink()
+            path.write_text('QEMU_GUEST_AGENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_QEMU_GUEST_AGENT=0\n')
+
+    def test_ambiguous_qemu_guest_agent_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'QEMU_GUEST_AGENT="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_QEMU_GUEST_AGENT=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_QEMU_GUEST_AGENT=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_syslog_client_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('SYSLOG_CLIENT=0\nexport SYSLOG_CLIENT=1 # active\nSYSLOG_CLIENT_SERVER=log.example.test\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'SYSLOG_CLIENT_SERVER=log.example.test\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_CLIENT=1\n')
+
+            path.write_text('export SYSLOG_CLIENT=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_SYSLOG_CLIENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_CLIENT=0\n')
+
+            softwares_config.unlink()
+            path.write_text('SYSLOG_CLIENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_CLIENT=0\n')
+
+    def test_ambiguous_syslog_client_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'SYSLOG_CLIENT="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_SYSLOG_CLIENT=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_CLIENT=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_syslog_server_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('SYSLOG_SERVER=0\nexport SYSLOG_SERVER=1 # active\nSYSLOG_SERVER_SKIL_KERNEL=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'SYSLOG_SERVER_SKIL_KERNEL=1\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_SERVER=1\n')
+
+            path.write_text('export SYSLOG_SERVER=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_SYSLOG_SERVER=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_SERVER=0\n')
+
+            softwares_config.unlink()
+            path.write_text('SYSLOG_SERVER=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_SERVER=0\n')
+
+    def test_ambiguous_syslog_server_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'SYSLOG_SERVER="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_SYSLOG_SERVER=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYSLOG_SERVER=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ssh_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('SSH=0\nexport SSH=1 # active\nKEY_SSH_ADMIN=admin-key\nKEY_SSH_ACME=acme-key\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'KEY_SSH_ADMIN=admin-key\nKEY_SSH_ACME=acme-key\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SSH_SERVER=1\n')
+
+            path.write_text('export SSH=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_SSH_SERVER=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SSH_SERVER=0\n')
+
+            softwares_config.unlink()
+            path.write_text('SSH=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SSH_SERVER=0\n')
+
+    def test_ambiguous_ssh_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'SSH="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_SSH_SERVER=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SSH_SERVER=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_syncthing_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('SYNCTHING=0\nexport SYNCTHING=1 # active\nSYNCTHING_USER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'SYNCTHING_USER=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYNCTHING=1\n')
+
+            path.write_text('export SYNCTHING=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_SYNCTHING=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYNCTHING=0\n')
+
+            softwares_config.unlink()
+            path.write_text('SYNCTHING=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYNCTHING=0\n')
+
+    def test_ambiguous_syncthing_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'SYNCTHING="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_SYNCTHING=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_SYNCTHING=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_webmin_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('WEBMIN=0\nexport WEBMIN=1 # active\nSYSTEM_APT_WEBMIN=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'SYSTEM_APT_WEBMIN=1\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WEBMIN=1\n')
+
+            path.write_text('export WEBMIN=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_WEBMIN=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WEBMIN=0\n')
+
+            softwares_config.unlink()
+            path.write_text('WEBMIN=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WEBMIN=0\n')
+
+    def test_ambiguous_webmin_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'WEBMIN="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_WEBMIN=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WEBMIN=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_wazuh_client_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('WAZUH_CLIENT=0\nexport WAZUH_CLIENT=1 # active\nWAZUH_CLIENT_VERSION=4.12.0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'WAZUH_CLIENT_VERSION=4.12.0\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_AGENT=1\n')
+
+            path.write_text('export WAZUH_CLIENT=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_WAZUH_AGENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_AGENT=0\n')
+
+            softwares_config.unlink()
+            path.write_text('WAZUH_CLIENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_AGENT=0\n')
+
+    def test_ambiguous_wazuh_client_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'WAZUH_CLIENT="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_WAZUH_AGENT=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_AGENT=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_zoom_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('ZOOM=0\nexport ZOOM=1 # active\nZOOM_OPTIONS=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ZOOM_OPTIONS=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZOOM=1\n')
+
+            path.write_text('export ZOOM=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_ZOOM=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZOOM=0\n')
+
+            softwares_config.unlink()
+            path.write_text('ZOOM=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZOOM=0\n')
+
+    def test_ambiguous_zoom_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'ZOOM="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_ZOOM=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZOOM=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_zsh_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('ZSH=0\nexport ZSH=1 # active\nZSH_CUSTOM=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ZSH_CUSTOM=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZSH=1\n')
+
+            path.write_text('export ZSH=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_ZSH=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZSH=0\n')
+
+            softwares_config.unlink()
+            path.write_text('ZSH=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZSH=0\n')
+
+    def test_ambiguous_zsh_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'ZSH="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_ZSH=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_ZSH=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_wazuh_server_migration_to_softwares_scope_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('WAZUH_SERVER=0\nexport WAZUH_SERVER=1 # active\nWAZUH_SERVER_UPGRADE=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'WAZUH_SERVER_UPGRADE=1\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_SERVER=1\n')
+
+            path.write_text('export WAZUH_SERVER=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_WAZUH_SERVER=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_SERVER=0\n')
+
+            softwares_config.unlink()
+            path.write_text('WAZUH_SERVER=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_SERVER=0\n')
+
+    def test_ambiguous_wazuh_server_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'WAZUH_SERVER="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_WAZUH_SERVER=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_WAZUH_SERVER=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_crowdsec_agent_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('CROWDSEC_AGENT=0\nexport CROWDSEC_AGENT=1 # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC_AGENT=1\n')
+            self.assertFalse(system_config.exists())
+
+            path.write_text('export CROWDSEC_AGENT=1\n')
+            system_config.write_text('export SYSTEM_CROWDSEC_AGENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC_AGENT=1\n')
+
+            softwares_config.unlink()
+            system_config.unlink()
+            path.write_text('CROWDSEC_AGENT=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC_AGENT=0\n')
+
+    def test_ambiguous_crowdsec_agent_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'CROWDSEC_AGENT="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_CROWDSEC_AGENT=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_CROWDSEC_AGENT=1\n')
+            self.assertFalse(softwares_config.exists())
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_crowdsec_apt_repository_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
+            path.write_text('SYSTEM_APT_CROWDSEC=1\nOTHER=keep\n')
+            system_config.write_text('export SYSTEM_APT_CROWDSEC=0\nSYSTEM_APT_DOCKER=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'SYSTEM_APT_DOCKER=1\n')
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC=0\n')
+
+            system_config.write_text('export SYSTEM_APT_CROWDSEC=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_CROWDSEC=0\n')
+            path.write_text('OTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_CROWDSEC=0\n')
+            self.assertEqual(system_config.read_text(), '')
+
+    def test_system_crowdsec_migrates_when_legacy_variables_file_is_absent(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            softwares_config = Path(directory) / 'softwares.env'
+            system_config.write_text('export SYSTEM_CROWDSEC_AGENT=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(system_config.read_text(), '')
+            self.assertEqual(softwares_config.read_text(),
+                             'export SOFTWARES_APT_CROWDSEC_AGENT=1\n')
+
+    def test_crowdsec_bouncer_migrates_to_software_scope(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('CROWDSEC_BOUNCER=0\nexport CROWDSEC_BOUNCER=1\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual((Path(directory) / 'softwares.env').read_text(),
+                             'export SOFTWARES_APT_CROWDSEC_BOUNCER=1\n')
+
+    def test_desktop_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            desktop_config = Path(directory) / 'desktop.env'
+            path.write_text('DESKTOP=0\nexport DESKTOP=1 # enabled\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(desktop_config.read_text(), 'export DESKTOP=1\n')
+
+            desktop_config.unlink()
+            path.write_text('DESKTOP=0\n')
+            softwares_config.write_text('export SOFTWARES_APT_DESKTOP=1\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(softwares_config.read_text(), '')
+            self.assertEqual(desktop_config.read_text(), 'export DESKTOP=1\n')
+
+            path.write_text('DESKTOP=1\n')
+            softwares_config.write_text('export SOFTWARES_APT_DESKTOP=1\n')
+            desktop_config.write_text('export DESKTOP=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(desktop_config.read_text(), 'export DESKTOP=0\n')
+            self.assertEqual(softwares_config.read_text(), '')
+            self.assertEqual(path.read_text(), '')
+
+    def test_env_devops_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            path.write_text('ENV_DEVOPS=0\nexport ENV_DEVOPS=1 # enabled\nENV_DEVOPS_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_DEVOPS_USER=builder\n')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENTS_DEVOPS=1\n')
+
+            path.write_text('ENV_DEVOPS=1\n')
+            environments_config.write_text('export ENVIRONMENTS_DEVOPS=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENTS_DEVOPS=0\n')
+
+            path.write_text('ENV_DEVOPS=1\n')
+            environments_config.write_text('export ENV_DEVOPS=0\nENV_DEVOPS_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(),
+                             'ENV_DEVOPS_USER=builder\nexport ENVIRONMENTS_DEVOPS=0\n')
+
+    def test_env_docker_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            path.write_text('ENV_DOCKER=0\nexport ENV_DOCKER=1 # enabled\nENV_DOCKER_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_DOCKER_USER=builder\n')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_DOCKER=1\n')
+
+            path.write_text('ENV_DOCKER=1\n')
+            environments_config.write_text('export ENVIRONMENT_DOCKER=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_DOCKER=0\n')
+
+            path.write_text('ENV_DOCKER=1\n')
+            environments_config.write_text('export ENV_DOCKER=0\nENV_DOCKER_USER=builder\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(),
+                             'ENV_DOCKER_USER=builder\nexport ENVIRONMENT_DOCKER=0\n')
+
+    def test_ambiguous_env_devops_value_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            original = 'ENV_DEVOPS="$(touch /tmp/diu-env-devops-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(environments_config.exists())
+            self.assertNotIn('/tmp/diu-env-devops-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ambiguous_env_docker_value_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'environnements.env'
+            original = 'ENV_DOCKER="$(touch /tmp/diu-env-docker-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(docker_config.exists())
+            self.assertNotIn('/tmp/diu-env-docker-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_env_ia_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            path.write_text('ENV_IA=0\nexport ENV_IA=1 # enabled\nENV_IA_USER=assistant\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_IA_USER=assistant\n')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_IA=1\n')
+
+            path.write_text('ENV_IA=1\n')
+            environments_config.write_text('export ENVIRONMENT_IA=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(), 'export ENVIRONMENT_IA=0\n')
+
+            path.write_text('ENV_IA=1\n')
+            environments_config.write_text('export ENV_IA=0\nENV_IA_USER=assistant\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(environments_config.read_text(),
+                             'ENV_IA_USER=assistant\nexport ENVIRONMENT_IA=0\n')
+
+    def test_ambiguous_env_ia_value_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            environments_config = Path(directory) / 'environnements.env'
+            original = 'ENV_IA="$(touch /tmp/diu-env-ia-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(environments_config.exists())
+            self.assertNotIn('/tmp/diu-env-ia-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ambiguous_desktop_value_fails_without_modification(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            desktop_config = Path(directory) / 'desktop.env'
+            original = 'DESKTOP="$(touch /tmp/diu-desktop-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            softwares_config.write_text('export SOFTWARES_APT_DESKTOP=0\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(softwares_config.read_text(), 'export SOFTWARES_APT_DESKTOP=0\n')
+            self.assertFalse(desktop_config.exists())
+            self.assertEqual(result.stdout, '')
+            self.assertNotIn('/tmp/diu-desktop-should-not-run', result.stderr)
+
+    def test_bunkerweb_upgrade_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            path.write_text(
+                'DOCKER_STACK_BUNKERWEB_UPGRADE=0\n'
+                'export DOCKER_STACK_BUNKERWEB_UPGRADE=1 # active\n'
+                'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(),
+                             'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                             'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=1\n')
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+            docker_config.unlink()
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+    def test_ambiguous_bunkerweb_upgrade_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            sentinel = Path(directory) / 'executed'
+            original = (f'DOCKER_STACK_BUNKERWEB_UPGRADE="$(touch {sentinel})"\n'
+                        'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            path.write_text(original)
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_bunkerweb_upgrade_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            path.write_text(
+                'DOCKER_STACK_BUNKERWEB_UPGRADE=0\n'
+                'export DOCKER_STACK_BUNKERWEB_UPGRADE=1 # active\n'
+                'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(),
+                             'DOCKER_STACK_BUNKERWEB_AUTO_UPDATE=1\n'
+                             'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=1\n')
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+            docker_config.unlink()
+            path.write_text('DOCKER_STACK_BUNKERWEB_UPGRADE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=0\n')
+
+    def test_ambiguous_bunkerweb_upgrade_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            sentinel = Path(directory) / 'executed'
+            original = (f'DOCKER_STACK_BUNKERWEB_UPGRADE="$(touch {sentinel})"\n'
+                        'DOCKER_STACK_BUNKERWEB_VERSION=1.2.0\n')
+            path.write_text(original)
+            docker_config.write_text('export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_BUNKERWEB_UPDATE=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_traefik_dockhand_upgrade_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            path.write_text(
+                'DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=0\n'
+                'export DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=1 # active\n'
+                'DOCKER_STACK_TRAEFIK_DOCKHAND_VERSION=3.0.0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(),
+                             'DOCKER_STACK_TRAEFIK_DOCKHAND_VERSION=3.0.0\n')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE=1\n')
+
+            path.write_text('DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=1\n')
+            docker_config.write_text('export DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE=0\n')
+
+            docker_config.unlink()
+            path.write_text('DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=0\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE=0\n')
+
+    def test_ambiguous_traefik_dockhand_upgrade_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            sentinel = Path(directory) / 'executed'
+            original = (f'DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE="$(touch {sentinel})"\n'
+                        'DOCKER_STACK_TRAEFIK_DOCKHAND_VERSION=3.0.0\n')
+            path.write_text(original)
+            docker_config.write_text('export DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE=1\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(docker_config.read_text(),
+                             'export DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE=1\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_docker_user_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            path.write_text('DOCKER_USER=legacy\nENV_DOCKER_USER=provisioned\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'ENV_DOCKER_USER=provisioned\n')
+            self.assertEqual(docker_config.read_text(),
+                             'export ENVIRONMENT_DOCKER_USER=legacy\n')
+
+            path.write_text('DOCKER_USER=stale\n')
+            docker_config.write_text('export ENVIRONMENT_DOCKER_USER=selected\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(docker_config.read_text(),
+                             'export ENVIRONMENT_DOCKER_USER=selected\n')
+
+            path.write_text('OTHER=keep\n')
+            docker_config.write_text('export DOCKER_USER=old\nENV_DOCKER_USER=provisioned\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(docker_config.read_text(),
+                             'ENV_DOCKER_USER=provisioned\nexport ENVIRONMENT_DOCKER_USER=old\n')
+
+    def test_ambiguous_docker_user_fails_without_evaluation_or_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            docker_config = Path(directory) / 'docker.env'
+            original = 'DOCKER_USER="$(touch /tmp/diu-docker-user-should-not-run)"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(docker_config.exists())
+            self.assertNotIn('/tmp/diu-docker-user-should-not-run', result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ambiguous_old_software_desktop_value_fails_without_modification(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            desktop_config = Path(directory) / 'desktop.env'
+            path.write_text('OTHER=keep\n')
+            original = 'export SOFTWARES_APT_DESKTOP="$(touch /tmp/diu-desktop-old-should-not-run)"\n'
+            softwares_config.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(softwares_config.read_text(), original)
+            self.assertFalse(desktop_config.exists())
+            self.assertEqual(result.stdout, '')
+            self.assertNotIn('/tmp/diu-desktop-old-should-not-run', result.stderr)
+
+    def test_crowdsec_api_key_migrates_opaquely_and_secures_software_config(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            softwares_config = Path(directory) / 'softwares.env'
+            synthetic_key = 'syntheticCrowdsecKey-123:abc'
+            path.write_text(f'CROWDSEC_BOUNCER_API_KEY="{synthetic_key}"\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(softwares_config.read_text(),
+                             f'export SOFTWARES_CROWDSEC_BOUNCER_API_KEY={synthetic_key}\n')
+            self.assertEqual(softwares_config.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(result.stdout, '')
+            self.assertNotIn(synthetic_key, result.stderr)
+
+    def test_ambiguous_crowdsec_api_key_fails_without_exposure_or_execution(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'CROWDSEC_BOUNCER_API_KEY="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_journald_max_use_migration_and_precedence(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            path.write_text('JOURNALD_MAX_USE=100M\nexport JOURNALD_MAX_USE="500M" # active\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_MAX_USE=500M\n')
+
+            path.write_text("export JOURNALD_MAX_USE='1G'\n")
+            system_config.write_text('export SYSTEM_JOURNALD_MAX_USE=250M\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_MAX_USE=250M\n')
+
+    def test_ambiguous_journald_max_use_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            system_config = Path(directory) / 'system.env'
+            sentinel = Path(directory) / 'executed'
+            original = f'JOURNALD_MAX_USE="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            system_config.write_text('export SYSTEM_JOURNALD_MAX_USE=500M\n')
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertEqual(system_config.read_text(), 'export SYSTEM_JOURNALD_MAX_USE=500M\n')
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ambiguous_files2ram_is_preserved_without_exposure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'FILES2RAM="$(touch {sentinel})"\nOTHER=keep\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse((Path(directory) / 'system.env').exists())
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_version_alias_literal_is_removed_without_transfer(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('VERSION_ALIAS="ancienne alias"\nVERSION=2026.1\nVERSION_VARIABLES=16.07.2026\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'VERSION=2026.1\n')
+            self.assertFalse((Path(directory) / 'diu.env').exists())
+
+    def test_ambiguous_version_alias_fails_without_modification(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'VERSION_ALIAS="$(touch {sentinel})"\nVERSION=2026.1\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_ambiguous_version_variables_fails_without_modification(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'VERSION_VARIABLES="$(touch {sentinel})"\nVERSION=2026.1\n'
+            path.write_text(original)
+            result = self.run_cleanup(path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+            self.assertNotIn(str(sentinel), result.stderr)
+            self.assertEqual(result.stdout, '')
+
+    def test_missing_file(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'missing.sh'
+            self.assertEqual(self.run_cleanup(path).returncode, 0)
+            self.assertFalse(path.exists())
+
+    def test_debian_type_only(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('export DEBIAN_TYPE="PROXMOX"\nOTHER=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+            self.assertEqual(result.stdout, '')
+
+    def test_display_link_only(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            original = 'export DISPLAY_LINK="1"\nOTHER=keep\n'
+            path.write_text(original)
+            for prelude in ('grep() { return 2; }', 'sed() { return 1; }'):
+                result = self.run_cleanup(path, prelude)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(path.read_text(), original)
+                self.assertEqual(result.stdout, '')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'OTHER=keep\n')
+
+    def test_proxy_ca_only(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            path.write_text('export PROXY_CA=1\nSYSTEM_PROXY_CA=0\nPROXY_CA_EXTRA=keep\n')
+            result = self.run_cleanup(path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'SYSTEM_PROXY_CA=0\nPROXY_CA_EXTRA=keep\n')
+            self.assertEqual(result.stdout, '')
+
+    def test_read_and_write_errors(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            original = 'DEBIAN_RELEASE=old\n'
+            path.write_text(original)
+            for prelude in ('grep() { return 2; }', 'sed() { return 1; }'):
+                result = self.run_cleanup(path, prelude)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Erreur', result.stderr)
+                self.assertEqual(result.stdout, '')
+                self.assertEqual(path.read_text(), original)
+
+    def test_startup_order_and_consumers(self):
+        text = (ROOT / 'root-install-debian.sh').read_text()
+        self.assertLess(text.index('modules/system/variables-cleanup.sh'), text.index('config_cleanup || exit 1'))
+        self.assertLess(text.index('config_cleanup || exit 1'), text.index('. "/root/diu/variables.sh"'))
+        self.assertNotRegex(text, r'\bDEBIAN_RELEASE\b')
+        self.assertIn('SYSTEM_DEBIAN_RELEASE', text)
+        self.assertNotRegex(text, r'\bTIME_ZONE\b')
+        self.assertIn('timedatectl set-timezone "$SYSTEM_TIME_ZONE"', text)
+        self.assertNotRegex(text, r'\bDEBIAN_TYPE\b')
+        self.assertIn('SYSTEM_DEBIAN_ENVIRONNEMENT', text)
+        self.assertNotRegex(text, r'\bDISPLAY_LINK\b')
+        self.assertIn('PROXY_CA', (ROOT / 'modules/system/variables-cleanup.sh').read_text())
+        self.assertNotRegex(text, r'\bPROXY_CA\b')
+        self.assertNotRegex(text, r'\$(?:\{)?DRIVERS_NVIDIA(?:\})?(?![A-Z0-9_])')
+        self.assertEqual(text.count('if [[ "${SYSTEM_DRIVERS_NVIDIA:-0}" == "1" ]]'), 6)
+        self.assertNotRegex(text, r'\$(?:\{)?FILES2RAM(?:\})?(?![A-Z0-9_])')
+        self.assertIn('if [[ "${SYSTEM_FILES2RAM:-0}" == "1" ]]', text)
+        self.assertNotRegex(text, r'\$(?:\{)?GRUB_CONFIG(?:\})?(?![A-Z0-9_])')
+        self.assertIn('if [[ "${SYSTEM_GRUB_CONFIG:-0}" == "1" ]]', text)
+        self.assertNotRegex(text, r'\$(?:\{)?IPv6(?:\})?(?![A-Z0-9_])')
+        self.assertIn('if [[ "${SYSTEM_IPV6:-0}" == "1" ]]', text)
+        self.assertNotRegex(text, r'\$(?:\{)?LOG_ROTATE(?:\})?(?![A-Z0-9_])')
+        self.assertIn('if [[ "${SYSTEM_LOG_ROTATE:-0}" == "1" ]]', text)
+        self.assertIn('. "$BASH_SCRIPT_PATH/modules/system/drivers.sh"', text)
+        drivers = (ROOT / 'modules/system/drivers.sh').read_text()
+        self.assertNotRegex(drivers, r'\bDISPLAY_LINK\b')
+        self.assertIn('SYSTEM_DRIVERS_DISPLAY_LINK', drivers)
+
+
+if __name__ == '__main__':
+    unittest.main()
