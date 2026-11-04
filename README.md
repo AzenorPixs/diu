@@ -114,8 +114,11 @@ Le flux `rid projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
 facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
 Une version `PROJECT_VERSION` déjà attribuée est rejouée depuis une copie isolée du commit de
 son tag : les modifications locales en attente restent disponibles et ne sont
-pas incluses. Le tag n'est jamais déplacé et une branche distante n'est jamais
-ramenée en arrière. Le paquet issu du rejeu est conservé sous
+pas incluses. Le tag local reste inchangé. Une branche distante divergente est
+fusionnée dans une copie isolée, avec priorité aux fichiers versionnés locaux
+en conflit. Un tag distant divergent est remplacé sous protection par sa valeur
+observée, sans tag de sauvegarde. Si le tag est remplacé, la publication des
+artefacts de cette forge est ignorée et leur cohérence reste à vérifier. Le paquet issu du rejeu est conservé sous
 `dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. La publication Docker
 est ignorée lors du rejeu, DIU ne vérifiant pas l'immutabilité du tag distant ;
 les publications Debian restent indépendantes. Avec un
@@ -137,8 +140,8 @@ Le build Debian fonctionne aussi sans Docker et utilise le même moteur que
 activé ou un échec du build empêche les releases ; les pushes déjà réalisés
 restent publiés. Debian seul peut être publié sur Forgejo/GitLab/GitHub selon
 leur configuration ; les conditions Debian GitHub sont les mêmes que Forgejo.
-Une release Debian cohérente déjà munie de son asset est signalée comme déjà
-publiée ; un asset manquant peut être ajouté sans remplacer les fichiers présents.
+Un asset Debian déjà présent est signalé sans prétendre que son contenu a été
+vérifié ; un asset manquant peut être ajouté sans remplacer les fichiers présents.
 Les messages de publication identifient la forge, le tag et les contrôles
 effectivement réalisés, sans afficher les identifiants secrets.
 `rid projects cicd help` et `rid projects cicd <ID PROJECT> help` décrivent ces

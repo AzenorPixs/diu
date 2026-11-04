@@ -1525,7 +1525,7 @@ Le contrat transversal est `openspec/specs/project-version/spec.md`.
 Les règles de packaging sont détaillées dans BUILD.md.
 Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
 une description explicite est conservée. Une version `PROJECT_VERSION` déjà attribuée déclenche
-un rejeu isolé du commit marqué, sans remplacer le tag ni inclure les changements
+un rejeu isolé du commit marqué, sans remplacer le tag local ni inclure les changements
 locaux en attente. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
 dépôts vérifiés, il peut être créé sur HEAD.
 Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
@@ -1562,9 +1562,12 @@ Lors d'un rejeu, le clone temporaire privé est nettoyé à la fin du flux. Le
 contexte Docker provient des fichiers suivis du commit et ne contient ni `.git`,
 ni configuration locale, ni identifiants de forge ; le build lit la configuration
 nécessaire hors de ce contexte. Le paquet Debian est conservé dans
-`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les pushes de branche
-sont limités aux avances possibles sans retour en arrière. Les releases Debian
-peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les historiques
+divergents sont fusionnés dans une copie isolée, avec priorité aux fichiers
+versionnés locaux en conflit et protection par SHA attendu lors du push. Un tag
+distant divergent est remplacé sous lease sans sauvegarde ; les artefacts de cette
+forge ne sont pas publiés durant cette exécution et leur cohérence doit être vérifiée.
+Les releases Debian peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
 existants restent intacts. DIU ne vérifie pas l'immutabilité des tags Docker
 distants : leur publication est donc ignorée lors d'un rejeu ; ce choix ne bloque
 pas la publication Debian.

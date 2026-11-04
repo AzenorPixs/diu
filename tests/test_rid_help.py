@@ -239,7 +239,7 @@ forgejo_push project
             check=False,
         )
 
-    def run_provider_push(self, projects_root, provider, github_fetch_status='0'):
+    def run_provider_push(self, projects_root, provider, github_fetch_status='0', cicd=False):
         script = '''
 source "$1/modules/projects/git.sh"
 print_title() { :; }
@@ -282,12 +282,23 @@ ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-git_push_provider project "$PUSH_PROVIDER"
+if [[ "$5" == 1 ]]; then
+    PROJECTS_CICD_RECONCILE=1
+    project_version_get() { printf '1.0.0\\n'; }
+    project_version_tag_for_head() { printf 'v1.0.0\\n'; }
+    projects_cicd_replay_git_provider() {
+        printf 'reconcile:%s\\n' "$*"
+        PROJECTS_GIT_PUSH_STATUS=publié
+        PROJECTS_CICD_REPLAY_GIT_STATUS='branche réconciliée'
+    }
+fi
+git_push_provider project "$PUSH_PROVIDER" || exit $?
+printf 'cicd-status:%s\\n' "${PROJECTS_GIT_CICD_STATUS:-}"
 '''
         return subprocess.run(
             [
                 'bash', '-c', script, 'bash', str(ROOT), str(projects_root),
-                provider, github_fetch_status,
+                provider, github_fetch_status, '1' if cicd else '0',
             ],
             text=True,
             capture_output=True,
@@ -926,6 +937,23 @@ forgejo_api_get /tmp /repos/owner/project
             '--force-with-lease --set-upstream origin main:main',
             result.stdout,
         )
+
+    def test_github_cicd_routes_through_reconciliation(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as temporary_directory:
+            projects_root = Path(temporary_directory)
+            project_path = projects_root / 'project'
+            project_path.mkdir()
+            (project_path / 'project.env').write_text(
+                'PROJECT_ID=project\nPROJECT_NAME=Projet\nPROJECT_TYPE=application\n'
+                'PROJECT_DOCKERED=No\nREMOTE_GITHUB_BASE_URL=https://github.example.test\n'
+                'REMOTE_GITHUB_OWNER=owner\nREMOTE_GITHUB_REPOSITORY=project\n'
+                'REMOTE_GITHUB_NAME=origin\nREMOTE_GITHUB_BRANCH=main\n', encoding='utf-8')
+            result = self.run_provider_push(projects_root, 'github', cicd=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('reconcile:github ', result.stdout)
+        self.assertIn('cicd-status:branche réconciliée', result.stdout)
+        self.assertNotIn('fetch:', result.stdout)
+        self.assertNotIn('push:', result.stdout)
 
     def test_github_push_stops_when_fetch_fails(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

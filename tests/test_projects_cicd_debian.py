@@ -26,6 +26,7 @@ fixture_push() {
     printf 'OP:push_%s\n' "$1"
     [[ "${FAIL_OPERATION:-}" != "push_$1" ]] || return 57
     if [[ "${UNAVAILABLE_PROVIDER:-}" == "$1" ]]; then PROJECTS_GIT_PUSH_STATUS=indisponible; fi
+    if [[ "${CHANGED_TAG_PROVIDER:-}" == "$1" ]]; then PROJECTS_GIT_CICD_STATUS='branche avancée ; tag remplacé, artefacts à vérifier'; fi
 }
 forgejo_push() { fixture_push forgejo; }
 gitlab_push() { fixture_push gitlab; }
@@ -110,6 +111,15 @@ class CicdDebianTests(unittest.TestCase):
                 self.assertIn('terminé avec indisponibilités', result.stdout)
                 self.assertIn('potentiellement partielle', result.stdout)
                 self.assertNotIn('service unavailable', result.stderr)
+
+    def test_changed_tag_skips_only_that_provider_artifacts(self):
+        for provider in ('forgejo', 'gitlab', 'github'):
+            with self.subTest(provider=provider):
+                result = self.run_flow(CHANGED_TAG_PROVIDER=provider)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertNotIn(provider + '_debian', self.operations(result))
+                self.assertEqual(sum(op.endswith('_debian') for op in self.operations(result)), 2)
+                self.assertIn('cohérence des artefacts à vérifier', result.stdout)
 
     def test_release_real_failure_still_fails(self):
         result = self.run_flow(FAIL_OPERATION='gitlab_debian')

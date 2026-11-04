@@ -98,12 +98,20 @@ projects_github_release_debian project
 
 
 class GithubDebianReleaseTests(unittest.TestCase):
+    def test_reconciled_cicd_allows_tagged_ancestor(self):
+        result = self.run_release(harness=HARNESS.replace('projects_github_release_debian project',
+                                                        'PROJECTS_CICD_RECONCILED=1\nprojects_github_release_debian project'),
+                                  REMOTE_SHA=OTHER, REPLAY_ANCESTOR='yes', RELEASE_EXISTS='complete')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('commit du tag présent', result.stdout)
+        self.assertIn('cohérence du contenu non vérifiée', result.stdout)
+
     def test_replay_allows_tagged_ancestor_without_rewinding_remote(self):
         result = self.run_release(harness=HARNESS.replace('projects_github_release_debian project',
                                                         'PROJECTS_CICD_REPLAY=1\nprojects_github_release_debian project'),
                                   REMOTE_SHA=OTHER, REPLAY_ANCESTOR='yes', RELEASE_EXISTS='complete')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('déjà publié', result.stdout)
+        self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertIn('Répertoire isolé :', result.stdout)
         self.assertTrue(all(call['method'] == 'GET' for call in self.calls()))
 
@@ -133,12 +141,12 @@ class GithubDebianReleaseTests(unittest.TestCase):
     def test_existing_complete_release_is_informational(self):
         result = self.run_release(RELEASE_EXISTS='complete')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('déjà publié', result.stdout)
+        self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertIn('GitHub : identifiants disponibles.', result.stdout)
         self.assertIn('GitHub : récupération Git effectuée', result.stdout)
         self.assertIn('GitHub : HEAD synchronisé', result.stdout)
         self.assertIn('GitHub : tag v1.0.3 déjà présent et cohérent.', result.stdout)
-        self.assertIn('déjà publié sur GitHub pour v1.0.3', result.stdout)
+        self.assertIn('déjà présent sur GitHub pour v1.0.3', result.stdout)
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'URL distante', 'Branche locale', 'Branche distante')
         rows = [line for line in result.stdout.splitlines() if ' : ' in line and line.split(' : ', 1)[0].strip() in labels]
         self.assertEqual(len(rows), len(labels))

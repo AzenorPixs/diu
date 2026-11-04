@@ -1508,7 +1508,8 @@ projects_gitlab_release_debian project
         self.assertNotIn('ERREUR:', result.stderr)
         self.assertIn('GitLab : identifiants disponibles.', result.stdout)
         self.assertIn('tag v1.0 de la release cohérent', result.stdout)
-        self.assertIn('déjà publié sur GitLab pour v1.0', result.stdout)
+        self.assertIn('déjà présent sur GitLab pour v1.0', result.stdout)
+        self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertNotIn('synchronisé avec', result.stdout)
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'Branche distante', 'Tag')
         rows = [line for line in result.stdout.splitlines() if ' : ' in line and line.split(' : ', 1)[0].strip() in labels]

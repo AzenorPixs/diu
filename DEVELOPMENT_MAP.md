@@ -9,6 +9,15 @@ flowchart TB
   class PRODUCTION_HOSTS provisoire
 ```
 
+Delta SCM du 2026-11-04 : [reconcile-cicd-git-publication](openspec/changes/reconcile-cicd-git-publication/proposal.md), code non attribué, actif ; réalisation testée sur fixtures, 1 182 tests globaux exécutés dont 2 ignorés, validation OpenSpec stricte réussie ; synchronisation, archivage et publication 1.2.2 en attente. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  CICD_RECONCILE["reconcile-cicd-git-publication — code non attribué — ACTIF"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class CICD_RECONCILE provisoire
+```
+
 Delta SCM du 2026-11-04 : [handle-cicd-release-unavailability](openspec/changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md), code non attribué, archivé ; validation globale : 1 171 tests exécutés, dont 2 ignorés ; OpenSpec strict réussi. Attribution ultérieure par ACL.
 
 ```mermaid
