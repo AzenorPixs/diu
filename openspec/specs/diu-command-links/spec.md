@@ -1,7 +1,7 @@
 # diu-command-links Specification
 
 ## Purpose
-TBD - created by archiving change diu-command-links. Update Purpose after archive.
+Définir les commandes de production et de développement, leur création conditionnelle et la résolution du point d’entrée réel.
 
 ## Requirements
 

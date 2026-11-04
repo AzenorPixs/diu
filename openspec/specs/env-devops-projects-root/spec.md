@@ -1,7 +1,7 @@
 # env-devops-projects-root Specification
 
 ## Purpose
-TBD - created by archiving change migrate-env-devops-projects-root. Update Purpose after archive.
+Définir l’utilisateur DevOps et la racine des projets, leur initialisation et la migration des valeurs historiques.
 
 ## Requirements
 
