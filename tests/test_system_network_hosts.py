@@ -171,30 +171,17 @@ class NetworkHostsTests(unittest.TestCase):
                 self.assertEqual(process.returncode, 0, output + errors)
             self.assertEqual(len(json.loads(production.read_text())), 8)
 
-    def test_projects_route(self):
-        text = (ROOT / 'root-install-debian.sh').read_text()
-        match = re.search(r'^manage_project_action\(\) \{\n.*?^\}', text, re.M | re.S)
-        self.assertIsNotNone(match)
-        script = match.group() + r'''
-print_error() { printf '%s\n' "$*" >&2; }
-system_network_manage_hosts() { printf '%s\n' "$*"; }
-manage_project_action system network hosts add 192.0.2.1 example.org
-manage_project_action system network hosts del 192.0.2.1 example.org
-manage_project_action system network hosts del all
-manage_project_action system network hosts list
-if manage_project_action system network add 192.0.2.1 example.org; then exit 8; fi
-if manage_project_action system network del 192.0.2.1 example.org; then exit 8; fi
-if manage_project_action system network del all; then exit 8; fi
-if manage_project_action system network list; then exit 8; fi
-'''
-        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.splitlines(), ['add 192.0.2.1 example.org', 'del 192.0.2.1 example.org', 'del all', 'list'])
-
-    def test_projects_hosts_route_end_to_end_on_fixture(self):
+    def test_old_projects_hosts_route_rejected(self):
         root_script = (ROOT / 'root-install-debian.sh').read_text()
         match = re.search(r'^manage_project_action\(\) \{\n.*?^\}', root_script, re.M | re.S)
         self.assertIsNotNone(match)
+        script = match.group() + "\nrid_display_command_error() { :; }\nmanage_project_action system network hosts \"$@\"\n"
+        for args in (('add', '192.0.2.1', 'site.example'), ('del', '192.0.2.1', 'site.example'),
+                     ('del', 'all'), ('list',)):
+            result = subprocess.run(['bash', '-c', script, 'bash', *args], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_system_hosts_route_end_to_end_on_fixture(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             base = Path(directory)
             helper = base / 'modules/system'
@@ -204,32 +191,37 @@ if manage_project_action system network list; then exit 8; fi
             network = base / 'network.sh'
             network.write_text((ROOT / 'modules/system/network.sh').read_text().replace(
                 '/root/diu/config/hosts.json', str(production)))
-            script = match.group() + "\nsource \"$NETWORK\"\nprint_error() { printf '%s\\n' \"$*\" >&2; }\nmanage_project_action system network hosts \"$@\"\n"
-            env = dict(os.environ, BASH_SCRIPT_PATH=directory, NETWORK=str(network))
+            script = r'''
+source "$ROOT/modules/system/apt.sh"
+source "$NETWORK"
+print_error() { printf '%s\n' "$*" >&2; }
+manage_system_action network hosts "$@"
+'''
+            env = dict(os.environ, ROOT=str(ROOT), BASH_SCRIPT_PATH=directory, NETWORK=str(network))
             def call(*args):
                 return subprocess.run(['bash', '-c', script, 'bash', *args], env=env,
                                       capture_output=True, text=True)
             self.assertIn('Aucune entrée', call('list').stdout)
             self.assertEqual(call('add', '127.0.0.1', 'site.example').returncode, 0)
-            self.assertIn('127.0.0.1\t' + 'site.example', call('list').stdout)
+            self.assertIn('127.0.0.1\tsite.example', call('list').stdout)
             self.assertEqual(call('del', '127.0.0.1', 'site.example').returncode, 0)
             self.assertEqual(call('del', 'all').returncode, 0)
             self.assertEqual(json.loads(production.read_text()), [])
 
-    def test_projects_hosts_help_levels(self):
-        for suffix in (('system',), ('system', 'network'), ('system', 'network', 'hosts'),
-                       ('system', 'network', 'hosts', 'add'), ('system', 'network', 'hosts', 'del'),
-                       ('system', 'network', 'hosts', 'list'),
-                       ('system', 'network', 'hosts', 'del', 'all'),
-                       ('system', 'network', 'hosts', 'add', '192.0.2.1', 'site.example')):
+    def test_system_hosts_help_levels(self):
+        for suffix in (('network',), ('network', 'hosts'), ('network', 'hosts', 'add'),
+                       ('network', 'hosts', 'del'), ('network', 'hosts', 'list'),
+                       ('network', 'hosts', 'update'), ('network', 'hosts', 'del', 'all'),
+                       ('network', 'hosts', 'add', '192.0.2.1', 'site.example')):
             with self.subTest(suffix=suffix):
-                result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'projects',
+                result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'system',
                                          *suffix, 'help'], capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects system network hosts add <IP> <FQDN>', result.stdout)
-                self.assertNotIn('rid projects system network add <IP>', result.stdout)
+                self.assertIn('rid system network hosts add <IP> <FQDN>', result.stdout)
+                self.assertIn('rid system network hosts update', result.stdout)
         result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'projects',
-                                 'system', 'network', 'list', 'help'], capture_output=True, text=True)
+                                 'system', 'network', 'hosts', 'list', 'help'],
+                                capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
 
     def test_dispatch_and_global_chain(self):

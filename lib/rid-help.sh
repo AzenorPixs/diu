@@ -46,30 +46,20 @@ rid_display_help_context() {
         return 0
     fi
 
-    if [[ "$context:$subcontext" == projects:system ]]; then
-        local hosts_action="${5:-}"
-        if [[ $# -gt 7 || ( -n "$leaf" && "$leaf" != network ) ||
-              ( -n "$target" && "$target" != hosts ) ||
-              ( -n "$hosts_action" && "$hosts_action" != add && "$hosts_action" != del && "$hosts_action" != list ) ]]; then
-            rid_display_command_error projects system network hosts
-            return 2
-        fi
-        rid_help_line 'rid projects system network hosts add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
-        rid_help_line 'rid projects system network hosts del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'
-        rid_help_line 'rid projects system network hosts del all' 'Vide le hosts.json de production.'
-        rid_help_line 'rid projects system network hosts list' 'Liste les couples du hosts.json de production.'
-        return 0
-    fi
-
     if [[ "$context:$subcontext" == system:network ]]; then
-        if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != update && "$leaf" != hosts ) ||
+        if [[ $# -gt 6 || ( -n "$leaf" && "$leaf" != update && "$leaf" != hosts ) ||
               ( "$leaf" == update && -n "$target" ) ||
-              ( "$leaf" == hosts && -n "$target" && "$target" != update ) ]]; then
-            rid_display_command_error system network
+              ( "$leaf" == hosts && -n "$target" && "$target" != update && "$target" != add && "$target" != del && "$target" != list ) ]]; then
+            rid_display_command_error system network hosts
             return 2
         fi
         rid_help_line 'rid system network update' 'Met à jour la configuration réseau.'
-        rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts depuis le hosts.json de production ; les entrées existantes sont remplacées.'
+        rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts depuis le hosts.json de production.'
+        rid_help_line 'rid system network hosts add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
+        rid_help_line 'rid system network hosts del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'
+        rid_help_line 'rid system network hosts del all' 'Vide le hosts.json de production.'
+        rid_help_line 'rid system network hosts list' 'Liste les couples du hosts.json de production.'
+        printf '%s\n' 'Lors de la reconstruction de /etc/hosts, les entrées existantes sont remplacées.'
         return 0
     fi
 
@@ -256,6 +246,7 @@ rid_display_help_context() {
             rid_help_line 'rid system infos network' 'Affiche les informations réseau.'
             rid_help_line 'rid system network update' 'Met à jour la configuration réseau et reconstruit /etc/hosts.'
             rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts.'
+            rid_help_line 'rid system network hosts' 'Gère les couples du hosts.json de production.'
             rid_help_line 'rid system infos debian' 'Affiche la configuration Debian, APT et Flatpak.'
             rid_help_line 'rid system infos drivers' "Affiche l’état DisplayLink et la version du pilote installé."
             rid_help_line 'rid system install apt <Dépôt>' 'Installe un dépôt APT.'
@@ -329,7 +320,6 @@ rid_display_help_context() {
             ;;
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
-            rid_help_line 'rid projects system network hosts' 'Gère les couples du hosts.json de production.'
             rid_help_line 'rid projects template devops <ID PROJECT>' 'Crée ou actualise DEVOPS.md pour le projet.'
             rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
             rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés.'

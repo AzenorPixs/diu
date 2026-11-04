@@ -417,10 +417,18 @@ manage_system_action() {
             shift
             if [[ $# -eq 1 && "$1" == update ]]; then
                 system_network_update
-            elif [[ $# -eq 2 && "$1" == hosts && "$2" == update ]]; then
-                system_network_hosts
+            elif [[ "${1:-}" == hosts ]]; then
+                shift
+                if [[ $# -eq 1 && "$1" == update ]]; then
+                    system_network_hosts
+                elif [[ "${1:-}" == add || "${1:-}" == del || "${1:-}" == list ]]; then
+                    system_network_manage_hosts "$@"
+                else
+                    print_error 'Usage : rid system network hosts {update|add IP FQDN|del IP FQDN|del all|list}'
+                    return 2
+                fi
             else
-                print_error 'Usage : rid system network {update|hosts update}'
+                print_error 'Usage : rid system network {update|hosts {update|add IP FQDN|del IP FQDN|del all|list}}'
                 return 2
             fi
             ;;
