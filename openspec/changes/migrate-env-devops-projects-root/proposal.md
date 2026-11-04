@@ -26,5 +26,5 @@ son absence empêche la mise à jour du paquet dans CISMP.
 
 ## Limite de déploiement
 
-La déclaration du chemin ne crée pas le checkout `diu/project.env` requis par
-la mise à jour DIU dans le conteneur.
+La configuration Forgejo de secours dépend du checkout `diu/project.env` ;
+la source publique GitHub ne nécessite pas ce checkout.

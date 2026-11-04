@@ -4,21 +4,15 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
-`rid diu update` recherche le paquet Debian dans les releases GitHub du projet
-DIU configurées dans `ENV_DEVOPS_PROJECTS_ROOT/diu/project.env`. GitHub est prioritaire :
-un paquet admissible y est retenu sans consulter Forgejo, même si Forgejo
-propose une version plus récente. Si GitHub est absent, inaccessible ou ne
-fournit aucun paquet admissible, Forgejo est interrogé en secours. GitLab est
-ignoré. Ce fichier local doit être présent et n'est pas livré dans le paquet.
-Le paquet est vérifié avant installation ; aucune rétrogradation n'est effectuée.
-Une erreur de téléchargement, de vérification ou d'installation reste bloquante
-sans essai sur un autre fournisseur.
-Si `config/github.token` existe dans le projet DIU, les releases et le paquet
-GitHub sont consultés avec ce jeton, via le mécanisme d'identifiants existant.
-Sans jeton, l'accès GitHub reste anonyme. Forgejo utilise les releases publiques.
-Les réponses HTTP compressées sont décodées par `curl` selon les formats pris
-en charge par son installation ; un décodage impossible bloque le téléchargement.
-`rid update` lance cette mise à jour en premier, puis les autres modules ;
+`rid diu update` recherche anonymement le paquet Debian dans les releases
+publiques de [AzenorPixs/diu](https://github.com/AzenorPixs/diu), sans
+configuration locale ni authentification GitHub. GitHub est prioritaire : un
+paquet admissible y est retenu sans consulter Forgejo, même si Forgejo propose
+une version plus récente. Si GitHub est inaccessible ou ne fournit aucun
+paquet admissible, les releases publiques de Forgejo sont interrogées en
+secours si leur configuration locale est disponible. GitLab est ignoré.
+La commande contrôle la version et les métadonnées du paquet avant installation.
+
 `rid update diu` reste un alias de `rid diu update`.
 
 Les indicateurs `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` sont
