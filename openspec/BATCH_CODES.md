@@ -1,6 +1,6 @@
 # Codes de lot — Debian Installeur Unifié
 
-- [handle-cicd-release-unavailability](changes/handle-cicd-release-unavailability/proposal.md) : code non attribué ; change actif, spécification préparée et validation stricte réussie ; implémentation en attente ; attribution ultérieure par ACL.
+- [handle-cicd-release-unavailability](changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; validation globale : 1 171 tests exécutés dont 2 ignorés et OpenSpec strict réussi ; attribution ultérieure par ACL.
 
 - [ensure-diu-link-at-startup](changes/archive/2026-11-04-ensure-diu-link-at-startup/proposal.md) : code non attribué ; change archivé le 2026-11-04 : 1 165 tests dont 2 ignorés ; attribution ultérieure par ACL.
 

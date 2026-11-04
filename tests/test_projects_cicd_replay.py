@@ -257,6 +257,16 @@ cicd_project fixture automatic vautomatic
             self.assertNotIn('ERROR:', result.stderr)
             self.assertNotIn('fixture-token', result.stdout + result.stderr)
             self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
+            unavailable = script.replace(
+                "publish_release_debian() { printf 'DEBIAN-PUBLIÉ\\n'; }",
+                "publish_release_debian() { projects_git_note_unavailable http 503; return 1; }")
+            self.assertNotEqual(unavailable, script)
+            result = subprocess.run(['bash', '-c', unavailable, 'fixture', str(ROOT), str(base)],
+                                    text=True, capture_output=True, env={**os.environ, 'TMPDIR': temp})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('terminé avec indisponibilités', result.stdout)
+            self.assertIn('potentiellement partielle', result.stdout)
+            self.assertNotIn('DOCKER-UNEXPECTED', result.stdout)
 
     def test_full_debian_replay_uses_tagged_sources_and_preserves_index(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:

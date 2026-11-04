@@ -128,6 +128,8 @@ if [[ -s "$projects_git_unavailable_file" ]]; then printf unavailable; else prin
         cases = [
             ('Error response from daemon: Get https://registry/v2/: dial tcp 127.0.0.1:443: connect: connection refused', 'unavailable'),
             ('Error response from daemon: Get https://registry/v2/: dial tcp: lookup registry: no such host', 'unavailable'),
+            ('Get "https://registry/v2/": dial tcp: lookup registry: no such host', 'unavailable'),
+            ('Error response from daemon: Get https://registry/v2/: received unexpected HTTP status: 503', 'unavailable'),
             ('Error response from daemon: unauthorized: authentication required', 'error'),
             ('Error response from daemon: x509: certificate signed by unknown authority', 'error'),
         ]
