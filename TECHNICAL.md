@@ -113,9 +113,10 @@ diagnostic explicite. La référence est
 
 `root-install-debian.sh` calcule `BASH_SCRIPT_PATH` depuis son emplacement
 réel. Les bibliothèques et les modules distribués avec l'application sont
-ensuite chargés avec des chemins relatifs à cette racine. Le paquet crée
-`/usr/local/bin/diu` vers le point d'entrée installé si le nom est libre. Après
-chargement de la configuration et vérification des droits, DIU crée
+ensuite chargés avec des chemins relatifs à cette racine. Le constructeur historique fournit un script de configuration qui crée
+`/usr/local/bin/diu` vers le point d'entrée installé si le nom est libre ; le
+constructeur générique ne le fournit pas. Le script installé vérifie ce nom à chaque démarrage en root, avant l’aide, et
+crée le lien si le nom est libre. Après chargement de la configuration et vérification des droits, DIU crée
 `/usr/local/bin/diut` vers `${ENV_DEVOPS_PROJECTS_ROOT}/diu/root-install-debian.sh`
 si ce fichier existe et si le nom est libre. Toute entrée existante, même un
 lien pendant, est conservée ; une erreur de création est signalée. Les alias
@@ -1575,8 +1576,10 @@ les fonctions Debian. Les conditions de complétude des fournisseurs,
 dont le registre GitLab, sont conservées. GitHub publie Docker, Debian ou les
 deux selon leur activation. Un échec de build empêche toutes les releases et retourne
 un code non nul avec bilan partiel ; les pushes déjà réalisés restent publiés.
-Une indisponibilité reconnue permet les builds locaux et ignore les seules
-publications du fournisseur concerné. Aucune invocation récursive du bootstrap.
+Une indisponibilité reconnue pendant le push permet les builds locaux et ignore
+les publications du fournisseur concerné. Pendant une release, elle laisse
+poursuivre les autres fournisseurs et signale une publication non confirmée,
+potentiellement partielle. Aucune invocation récursive du bootstrap.
 Le bilan conserve ses onze premiers paramètres et reçoit le statut du build
 Debian dans un douzième paramètre facultatif.
 Les contrats sont `projects-cicd`, `projects-debian-build` et `rid-help`.
@@ -1869,6 +1872,13 @@ indisponibilités » si aucune autre erreur n'est rencontrée. Le parcours
 `forgejo push all` distingue également ce résultat d'un succès complet.
 Une coupure pendant le tag peut laisser la branche publiée : aucune annulation
 automatique n'est effectuée et une reprise reste nécessaire.
+
+Pendant les releases CI/CD, un contexte privé par fournisseur transmet les
+indisponibilités reconnues des transports Git, API et Docker. Le bilan indique
+une publication potentiellement partielle ; aucun rollback n'est tenté. Les
+refus d'authentification, les erreurs TLS et les autres échecs restent bloquants.
+Les diagnostics Docker sont qualifiés uniquement sur des motifs réseau natifs
+reconnus ; un diagnostic ambigu reste une erreur.
 
 `git_with_token` conserve le code Git original. Hors contexte de push, les
 commandes de clonage et de release directe conservent leur gestion d'erreur.

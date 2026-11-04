@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- CI/CD : une indisponibilité réseau reconnue pendant une release est signalée
+  comme publication non confirmée et potentiellement partielle ; les autres
+  fournisseurs sont poursuivis. Les autres erreurs restent bloquantes.
+
+- DIU : le script installé vérifie `diu` à chaque démarrage en root et crée le
+  lien uniquement si son nom est libre, y compris lors de l’affichage de l’aide.
+
 - Réseau système : les couples IP/FQDN de `config/hosts.json` sont ajoutés à
   `/etc/hosts`. Un tableau vide est créé si nécessaire ; les données invalides
   empêchent la réécriture. Le paquet inclut un modèle vide comme conffile.

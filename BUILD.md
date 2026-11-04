@@ -91,7 +91,10 @@ sa publication est ignorée pendant le rejeu ; la publication Debian reste indé
 Les publications constituent l'étape 5 et le bilan des deux builds l'étape 6.
 Debian seul utilise les publications Forgejo/GitLab/GitHub, avec les mêmes
 conditions de paquet et de version pour GitHub que sur Forgejo. Les fournisseurs indisponibles ne sont
-pas publiés, mais les builds locaux activés restent exécutés. Les tests utilisent
+pas publiés, mais les builds locaux activés restent exécutés. Si une panne
+réseau reconnue interrompt une release, le flux poursuit les autres fournisseurs
+et indique une publication non confirmée, potentiellement partielle. Les autres
+échecs restent bloquants ; les releases directes gardent leur contrat. Les tests utilisent
 uniquement fixtures, paquets locaux et transports simulés, sans CI/CD réelle.
 
 ## Publication Debian GitHub
@@ -299,9 +302,11 @@ Ces éléments sont placés sous :
 ```
 
 Le paquet installe donc son contenu applicatif sous `/root/diu`.
-Lors de sa configuration, il crée `/usr/local/bin/diu` vers le point d'entrée
-installé si ce chemin est libre ; toute entrée existante est conservée. Le
-lien de développement `diut` est créé ultérieurement par DIU après chargement
+Le paquet du constructeur historique crée lors de sa configuration
+`/usr/local/bin/diu` vers le point d'entrée installé si ce chemin est libre ;
+toute entrée existante est conservée. Le constructeur générique ne fournit
+pas ce script de configuration. Le script installé effectue aussi cette vérification à chaque démarrage en root,
+même lorsque le paquet a été construit sans script de configuration. Le lien de développement `diut` est créé ultérieurement par DIU après chargement
 de la configuration lorsque sa cible existe.
 
 Les éléments suivants ne sont pas embarqués :

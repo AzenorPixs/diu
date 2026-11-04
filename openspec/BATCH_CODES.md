@@ -1,5 +1,9 @@
 # Codes de lot — Debian Installeur Unifié
 
+- [handle-cicd-release-unavailability](changes/handle-cicd-release-unavailability/proposal.md) : code non attribué ; change actif, spécification préparée et validation stricte réussie ; implémentation en attente ; attribution ultérieure par ACL.
+
+- [ensure-diu-link-at-startup](changes/archive/2026-11-04-ensure-diu-link-at-startup/proposal.md) : code non attribué ; change archivé le 2026-11-04 : 1 165 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-04 : [configure-system-hosts-json](changes/archive/2026-11-04-configure-system-hosts-json/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-04 : [manage-system-network-hosts](changes/archive/2026-11-04-manage-system-network-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.

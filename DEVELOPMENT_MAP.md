@@ -1,5 +1,24 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [handle-cicd-release-unavailability](openspec/changes/handle-cicd-release-unavailability/proposal.md), code non attribué, actif ; spécification préparée et validation OpenSpec stricte réussie ; implémentation et qualification en attente. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  P_CICD_AVAIL["handle-cicd-release-unavailability — code non attribué — ACTIF"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class P_CICD_AVAIL provisoire
+```
+
+Delta SCM du 2026-11-04 : [ensure-diu-link-at-startup](openspec/changes/archive/2026-11-04-ensure-diu-link-at-startup/proposal.md), code non attribué, archivé le 2026-11-04 ; validation réussie : 1 165 tests dont 2 ignorés, ShellCheck et OpenSpec strict, dépend du contrat archivé [diu-command-links](openspec/changes/archive/2026-11-04-diu-command-links/proposal.md). Attribution ultérieure par ACL.
+
+```mermaid
+flowchart LR
+  P_STARTUP["ensure-diu-link-at-startup — code non attribué — ARCHIVÉ"]
+  P_LINKS["diu-command-links — code non attribué — ARCHIVÉ"] --> P_STARTUP
+  classDef provisional fill:#fff3cd,stroke:#856404,stroke-dasharray: 5 5;
+  class P_STARTUP,P_LINKS provisional;
+```
+
 Delta SCM du 2026-11-04 : [configure-system-hosts-json](openspec/changes/archive/2026-11-04-configure-system-hosts-json/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
 ```mermaid

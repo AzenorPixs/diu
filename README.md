@@ -1,10 +1,12 @@
 # Debian Installer Unifié (DIU)
 
-Lors de l’installation, le paquet crée le lien `diu` vers le point d’entrée
-installé si son nom est libre. Après une exécution de DIU, le lien `diut` est
+Le paquet issu du constructeur historique crée le lien `diu` lors de sa
+configuration si son nom est libre. Le constructeur générique ne fournit pas
+ce script de configuration. Après une exécution de DIU, le lien `diut` est
 créé si `${ENV_DEVOPS_PROJECTS_ROOT}/diu/root-install-debian.sh` existe et si
-son nom est libre. Les chemins déjà occupés dans `/usr/local/bin` sont
-conservés, et les alias historiques `rid` et `ridt` restent disponibles
+son nom est libre. Le script installé vérifie aussi `diu` à chaque démarrage
+en root, même pour l’aide, et le crée si le nom est libre. Les chemins déjà
+occupés dans `/usr/local/bin` sont conservés, et les alias historiques `rid` et `ridt` restent disponibles
 pendant la transition.
 
 Le DIU installe et configure Debian grâce à une architecture modulaire en
@@ -232,7 +234,10 @@ est signalée comme « serveur indisponible — publication non confirmée ».
 La commande retourne zéro ; elle n'annonce pas la publication comme réussie.
 Le flux `rid projects cicd <ID PROJECT>` poursuit les autres fournisseurs et
 les builds locaux activés, puis ignore les releases du fournisseur indisponible. Sans
-autre erreur, son résumé indique « terminé avec indisponibilités ».
+autre erreur, son résumé indique « terminé avec indisponibilités ». Une panne
+réseau reconnue pendant une release CI/CD est également signalée sans bloquer
+les autres fournisseurs : la publication peut être partielle et doit être reprise.
+Les releases directes conservent leur comportement d’erreur.
 `rid projects forgejo push all` poursuit également les autres projets.
 
 Les refus d'authentification, erreurs de certificat, configurations incorrectes
