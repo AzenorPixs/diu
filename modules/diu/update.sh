@@ -39,46 +39,28 @@ _diu_update_config() {
 # Choisir un candidat dans un seul fournisseur ; les résultats remontent au sous-shell appelant.
 _diu_update_select() {
     local provider="$1" prefix base_key owner_key repo_key base owner repo api page response previous_response count rows
-    local tag name url version github_authenticated=0
+    local tag name url version
     local REMOTE_GITHUB_BASE_URL='' REMOTE_GITHUB_OWNER='' REMOTE_GITHUB_REPOSITORY=''
     local REMOTE_FORGEJO_BASE_URL='' REMOTE_FORGEJO_OWNER='' REMOTE_FORGEJO_REPOSITORY=''
     # Les paramètres sont résolus par expansion indirecte.
     # shellcheck disable=SC2034
     : "$REMOTE_GITHUB_BASE_URL" "$REMOTE_GITHUB_OWNER" "$REMOTE_GITHUB_REPOSITORY" "$REMOTE_FORGEJO_BASE_URL" "$REMOTE_FORGEJO_OWNER" "$REMOTE_FORGEJO_REPOSITORY"
-    _diu_update_config "${project_path}/project.env" "$provider" || return 1
-    prefix="REMOTE_${provider}"; base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
-    base="${!base_key}"; owner="${!owner_key}"; repo="${!repo_key}"
-    [[ -n "$base$owner$repo" ]] || { print_error "Configuration $provider absente."; return 1; }
-    [[ -n "$base" && -n "$owner" && -n "$repo" ]] || { print_error "Configuration $provider incomplète."; return 1; }
-    [[ "$base" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~-]+)*/*$ && "$owner" =~ ^[A-Za-z0-9._/-]+$ && "$repo" =~ ^[A-Za-z0-9._-]+$ && "$owner" != *..* && "$repo" != *..* ]] || { print_error "Configuration $provider invalide."; return 1; }
-    base="${base%/}"
-    if [[ "$provider" == FORGEJO ]]; then
-        api="$base/api/v1/repos/$owner/$repo/releases"
-    elif [[ "$base" == https://github.com ]]; then
+    if [[ "$provider" == GITHUB ]]; then
+        base='https://github.com'; owner='AzenorPixs'; repo='diu'
         api="https://api.github.com/repos/$owner/$repo/releases"
     else
-        api="$base/api/v3/repos/$owner/$repo/releases"
-    fi
-    if [[ "$provider" == GITHUB && -e "$project_path/config/github.token" ]]; then
-        set +x
-        if ! declare -F _github_read_token >/dev/null || ! _github_read_token "$project_path"; then
-            print_error 'Impossible de lire les identifiants GitHub du projet.'; return 1
-        fi
-        if [[ -z "$github_token" || "$github_token" == *$'\r'* || "$github_token" == *$'\n'* || "$github_token" == *'"'* || "$github_token" == *\\* ]]; then
-            print_error 'Identifiant GitHub invalide.'; return 1
-        fi
-        github_config="$(mktemp)" || { print_error "Impossible de préparer l'authentification GitHub."; return 1; }
-        chmod 600 "$github_config" || { print_error "Impossible de sécuriser l'authentification GitHub."; return 1; }
-        printf 'header = "Authorization: Bearer %s"\n' "$github_token" > "$github_config" || return 1
-        github_authenticated=1
+        [[ -n "$project_path" ]] || { print_error 'Configuration Forgejo indisponible.'; return 1; }
+        _diu_update_config "${project_path}/project.env" "$provider" || return 1
+        prefix="REMOTE_${provider}"; base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
+        base="${!base_key}"; owner="${!owner_key}"; repo="${!repo_key}"
+        [[ -n "$base" && -n "$owner" && -n "$repo" ]] || { print_error "Configuration $provider incomplète."; return 1; }
+        [[ "$base" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~-]+)*/*$ && "$owner" =~ ^[A-Za-z0-9._/-]+$ && "$repo" =~ ^[A-Za-z0-9._-]+$ && "$owner" != *..* && "$repo" != *..* ]] || { print_error "Configuration $provider invalide."; return 1; }
+        base="${base%/}"
+        api="$base/api/v1/repos/$owner/$repo/releases"
     fi
     page=1; previous_response=''
     while :; do
-        if [[ "$provider" == GITHUB && "$github_authenticated" == 1 ]]; then
-            response="$(curl --config "$github_config" --header 'Accept: application/vnd.github+json' --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
-        else
-            response="$(curl --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
-        fi
+        response="$(curl --disable --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 60 "${api}?per_page=100&page=${page}")" || { print_error "Impossible de consulter les releases $provider."; return 1; }
         count="$(jq -er 'if type == "array" then length else error("réponse invalide") end' <<< "$response")" || { print_error "Réponse $provider invalide."; return 1; }
         [[ "$count" -gt 0 ]] || break
         if [[ "$response" == "$previous_response" || "$page" -gt 1000 ]]; then
@@ -86,25 +68,15 @@ _diu_update_select() {
         fi
         previous_response="$response"
         jq -e 'all(.[]; type == "object" and (.tag_name | type == "string") and ((.assets // []) | type == "array"))' <<< "$response" >/dev/null || { print_error "Réponse $provider invalide."; return 1; }
-        if [[ "$github_authenticated" == 1 ]]; then
-            rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string") | [$tag,.name,((.id // "")|tostring)] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
-        else
-            rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string" and (.browser_download_url|type)=="string") | [$tag,.name,.browser_download_url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
-        fi
+        rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string" and (.browser_download_url|type)=="string") | [$tag,.name,.browser_download_url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
         while IFS=$'\t' read -r tag name url; do
             [[ -n "$tag" && "$tag" == v* ]] || continue
             version="${tag#v}"
             [[ "$version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ && "$name" == "diu_${version}_all.deb" ]] || continue
             dpkg --validate-version "$version" >/dev/null 2>&1 || continue
-            if [[ "$provider" == GITHUB && "$github_authenticated" == 1 ]]; then
-                [[ "$url" =~ ^[1-9][0-9]*$ ]] || { print_error "Identifiant d'asset GitHub invalide."; return 1; }
-                url="${api%/releases}/releases/assets/${url}"
-            else
-                [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
-            fi
+            [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
             if [[ -z "$best_version" ]] || _diu_update_version_gt "$version" "$best_version"; then
                 best_version="$version"; best_url="$url"; best_provider="$provider"
-                if [[ "$provider" == GITHUB ]]; then best_github_authenticated="$github_authenticated"; else best_github_authenticated=0; fi
             fi
         done <<< "$rows"
         page=$((page + 1))
@@ -116,15 +88,14 @@ _diu_update_select() {
 # Exécuter dans un sous-shell afin de limiter configuration et temporaires.
 update_diu() (
     local best_version='' best_url='' best_provider='' installed='' status='' temp_dir='' file=''
-    local project_path='' github_token='' github_config='' best_github_authenticated=0
+    local project_path=''
     local package_version='' package_name='' package_arch=''
     local executable
     for executable in curl jq dpkg dpkg-query dpkg-deb mktemp; do
         command -v "$executable" >/dev/null 2>&1 || { print_error "Commande indisponible : $executable"; return 1; }
     done
-    [[ -n "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]] || { print_error 'ENV_DEVOPS_PROJECTS_ROOT est absent.'; return 1; }
-    project_path="${ENV_DEVOPS_PROJECTS_ROOT%/}/diu"
-    trap '[[ -z "${github_config:-}" ]] || rm -f -- "$github_config"; [[ -z "${temp_dir:-}" ]] || rm -rf -- "$temp_dir"' EXIT
+    [[ -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]] || project_path="${ENV_DEVOPS_PROJECTS_ROOT%/}/diu"
+    trap '[[ -z "${temp_dir:-}" ]] || rm -rf -- "$temp_dir"' EXIT
     # shellcheck disable=SC2016
     status="$(dpkg-query -W -f='${db:Status-Status} ${Version}' diu 2>/dev/null)" || { print_error 'Version installée du DIU indisponible.'; return 1; }
     [[ "$status" == 'installed '* ]] || { print_error "Le paquet DIU n'est pas installé."; return 1; }
@@ -133,7 +104,7 @@ update_diu() (
         print_error 'Version installée du DIU invalide.'; return 1
     fi
     if ! _diu_update_select GITHUB; then
-        best_version=''; best_url=''; best_provider=''; best_github_authenticated=0
+        best_version=''; best_url=''; best_provider=''
         print_info 'GitHub indisponible ou sans paquet admissible ; tentative Forgejo.'
         _diu_update_select FORGEJO || { print_error 'Aucun fournisseur DIU disponible avec un paquet admissible.'; return 1; }
     fi
@@ -144,11 +115,7 @@ update_diu() (
     temp_dir="$(mktemp -d)" || { print_error 'Impossible de créer le répertoire temporaire.'; return 1; }
     file="$temp_dir/diu_${best_version}_all.deb"
     print_info "Téléchargement DIU $best_version depuis $best_provider."
-    if [[ "$best_github_authenticated" == 1 ]]; then
-        curl --config "$github_config" --header 'Accept: application/octet-stream' --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" || { print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
-    else
-        curl --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" || { print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
-    fi
+    curl --disable --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" || { print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
     # Les champs dpkg sont des expressions littérales.
     # shellcheck disable=SC2016
     package_name="$(dpkg-deb --show --showformat='${Package}' "$file" 2>/dev/null)" || { print_error 'Lecture du nom du paquet impossible.'; return 1; }

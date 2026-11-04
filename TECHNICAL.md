@@ -1953,14 +1953,15 @@ paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'A
 Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
-`rid diu update` consulte d'abord les releases GitHub configurées dans
-`ENV_DEVOPS_PROJECTS_ROOT/diu/project.env`. Si GitHub fournit un paquet admissible,
-il est retenu même si Forgejo dispose d'une version supérieure ; une version
-installée égale ou supérieure termine sans consulter Forgejo. Si GitHub est
-absent, inaccessible, renvoie une réponse invalide ou ne fournit aucun paquet
-admissible, le bloc Forgejo est analysé indépendamment et ses releases publiques
-sont consultées en secours. GitLab est ignoré. Une configuration Forgejo invalide
-ne bloque pas GitHub. Sans candidat sur les deux fournisseurs, la commande échoue.
+`rid diu update` consulte d'abord anonymement les releases publiques de
+`https://github.com/AzenorPixs/diu`, sans checkout, configuration ni jeton
+GitHub. Curl ignore sa configuration personnelle pour éviter toute authentification
+implicite. Si GitHub fournit un paquet admissible, il est retenu même si Forgejo
+dispose d'une version supérieure ; une version installée égale ou supérieure
+termine sans consulter Forgejo. Si GitHub est inaccessible, renvoie une réponse
+invalide ou ne fournit aucun paquet admissible, le bloc Forgejo du projet local
+est analysé indépendamment s'il est disponible et ses releases publiques sont
+consultées en secours. GitLab est ignoré. Sans candidat, la commande échoue.
 
 Chaque source est paginée ; les brouillons et préversions sont exclus et les
 versions stables x.y.z sont prioritaires avant comparaison Debian des assets
@@ -1968,8 +1969,6 @@ versions stables x.y.z sont prioritaires avant comparaison Debian des assets
 (nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
 Toute erreur après sélection (téléchargement, validation ou installation) bloque
 sans essai sur l'autre source. `rid update diu` est un alias compatible.
-Le jeton GitHub existant, s'il est présent, permet l'accès privé par l'API sans
-transmission aux origines de redirection ; sinon le parcours est anonyme.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de

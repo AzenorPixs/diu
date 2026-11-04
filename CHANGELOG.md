@@ -4,6 +4,9 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : mise à jour anonyme depuis les releases publiques AzenorPixs/diu,
+  sans configuration GitHub locale ; Forgejo configuré reste un secours.
+
 - Comptes DevOps, Docker et IA : DIU ne définit plus leur mot de passe ;
   les comptes existants conservent leur mot de passe.
 
@@ -13,12 +16,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   avec `root` comme défaut. Les consommateurs du compte DevOps utilisent le
   nouveau nom; l'ancienne valeur et le modèle historique de chemin sont repris.
 
-- DIU : GitHub reste prioritaire pour la mise à jour ; Forgejo est consulté
-  en secours si GitHub est absent, inaccessible ou sans paquet admissible.
-  La version locale du projet passe à 1.1.2.
-
-- DIU : `rid diu update` recherche et télécharge le paquet uniquement depuis
-  GitHub ; Forgejo et GitLab sont ignorés et aucun repli ne leur est proposé.
+- DIU : la version locale du projet passe à 1.1.2.
 
 - Création et mise à jour des projets : questionnaire harmonisé, validation
   des options Yes/No et saisie obligatoire de PROJECT_VERSION. Création et
