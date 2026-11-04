@@ -4095,10 +4095,8 @@ then
 	if id -u "$ENV_DEVOPS_USER"> /dev/null 2>&1 
 	then
 	  echo "USER FOR DEVOPS $ENV_DEVOPS_USER IS OK ✅"
-	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	else
 	  useradd -m "$ENV_DEVOPS_USER" --gid "$ENV_DEVOPS_GROUP" -s /bin/bash
-	  echo "$ENV_DEVOPS_USER:$ENV_DEVOPS_PASSWORD" | chpasswd
 	fi
 
 	usermod -aG "$ENV_DEVOPS_GROUP" "$ENV_DEVOPS_USER"
@@ -4895,10 +4893,8 @@ then
   if id -u "$ENV_DOCKER_USER"> /dev/null 2>&1 
   then
     echo "USER FOR DOCKER $ENV_DOCKER_USER IS OK ✅"
-    echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
   else
     useradd -m "$ENV_DOCKER_USER" --gid "$ENV_DOCKER_GROUP" -s /bin/bash
-    echo "$ENV_DOCKER_USER:$ENV_DOCKER_PASSWORD" | chpasswd
   fi
 
   usermod -aG "$ENV_DOCKER_GROUP" "$ENV_DOCKER_USER"
@@ -5571,10 +5567,8 @@ then
 	if id -u "$ENV_IA_USER"> /dev/null 2>&1 
 	then
 	  echo "USER FOR IA $ENV_IA_USER IS OK ✅"
-	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
 	else
 	  useradd -m "$ENV_IA_USER" --gid "$ENV_IA_GROUP" -s /bin/bash
-	  echo "$ENV_IA_USER:$ENV_IA_PASSWORD" | chpasswd
 	fi
 
 	usermod -aG "$ENV_IA_GROUP" "$ENV_IA_USER"

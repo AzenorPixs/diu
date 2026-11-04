@@ -4,6 +4,9 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Comptes DevOps, Docker et IA : DIU ne définit plus leur mot de passe ;
+  les comptes existants conservent leur mot de passe.
+
 - Variables : migration de la racine des projets vers
   `ENV_DEVOPS_PROJECTS_ROOT`, avec reprise de l'ancienne valeur explicite et
   chargement ordonné de sa dépendance `ENV_DEVOPS_USER`, déclarée statiquement
