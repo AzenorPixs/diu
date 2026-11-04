@@ -96,7 +96,7 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
     def test_existing_asset_does_not_upload(self):
         result, calls = self.run_release('complete')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('déjà publié', result.stdout)
+        self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertEqual(calls, '')
         lines = [line for line in result.stdout.splitlines() if ' : ' in line]
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'URL distante', 'Branche locale', 'Branche distante')

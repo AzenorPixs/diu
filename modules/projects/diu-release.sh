@@ -650,7 +650,7 @@ publish_release_debian() {
     fi
 
     if [[ "${head_sha}" != "${remote_branch_sha}" ]]; then
-        if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]] &&
+        if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 || "${PROJECTS_CICD_RECONCILED:-0}" == 1 ]] &&
             runuser -u "${ENV_DEVOPS_USER}" -- git -C "${project_path}" merge-base --is-ancestor "${head_sha}" "${remote_branch_sha}"; then
             print_info "Le commit du tag est présent dans ${remote_branch_ref}."
         else
@@ -814,7 +814,7 @@ publish_release_debian() {
                 # Statut consommé par le bilan CI/CD.
                 # shellcheck disable=SC2034
                 PROJECTS_DEBIAN_RELEASE_STATUS="déjà publié"
-                print_info "Paquet Debian déjà publié sur Forgejo pour ${tag_name}."
+                print_info "Paquet Debian déjà présent sur Forgejo pour ${tag_name} ; cohérence du contenu non vérifiée."
                 return 0
             fi
             release_id="$(jq -er '.id | numbers | select(. > 0 and floor == .)' <<< "$http_body")" || return 1

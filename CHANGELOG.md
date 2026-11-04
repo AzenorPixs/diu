@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- CI/CD : réconciliation isolée des branches divergentes, priorité aux fichiers
+  versionnés locaux en conflit et remplacement des tags distants divergents sous
+  lease. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
+  présents sont signalés sans prétendre vérifier leur contenu.
+
 - Réseau : les commandes `projects system network add`, `del` et `list`
   gèrent le JSON de production. La génération de `/etc/hosts` utilise désormais
   ce seul fichier, y compris depuis les points d'entrée de développement.
