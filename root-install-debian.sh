@@ -14,6 +14,13 @@ set -Eeuo pipefail
 BASH_SCRIPT_FILE=$(readlink -f -- "${BASH_SOURCE[0]}") || { printf "%s\n" "Impossible de résoudre le point d’entrée DIU." >&2; exit 1; }
 BASH_SCRIPT_PATH=$( cd -- "$( dirname -- "$BASH_SCRIPT_FILE" )" &> /dev/null && pwd)
 
+# Le script installé garantit le lien dès son démarrage, y compris pour l’aide.
+if [[ "$EUID" -eq 0 && "$BASH_SCRIPT_FILE" == /root/diu/root-install-debian.sh ]]; then
+    # shellcheck source=/dev/null
+    . "$BASH_SCRIPT_PATH/lib/diu-links.sh"
+    diu_create_link /root/diu/root-install-debian.sh /usr/local/bin/diu || exit 1
+fi
+
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/lib/rid-help.sh"

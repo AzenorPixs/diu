@@ -591,6 +591,51 @@ projects_cicd_replay_git_provider() {
     return "$replay_rc"
 }
 
+
+# Qualifie seulement les diagnostics réseau natifs du client Docker.
+projects_cicd_docker_transport() {
+    local error_file="" rc=0
+    if [[ -z "${projects_git_unavailable_file:-}" ]]; then "$@"; return $?; fi
+    error_file="$(mktemp "${projects_git_unavailable_file%/*}/docker.XXXXXXXX")" || return 1
+    "$@" 2>"$error_file" || rc=$?
+    if [[ "$rc" -ne 0 ]] &&
+        ! grep -Eiq 'unauthorized|denied|x509|certificate|tls|authentication' "$error_file" &&
+        grep -Eq '^(Error response from daemon: |Get \"https?://)[^[:cntrl:]]* (dial tcp(:| )[^[:cntrl:]]*(connection refused|i/o timeout|no such host|network is unreachable)|net/http: (request canceled|TLS handshake timeout)|received unexpected HTTP status: (502|503|504))' "$error_file"; then
+        projects_git_note_unavailable git network || :
+    else
+        cat "$error_file" >&2
+    fi
+    rm -f -- "$error_file" || return 1
+    return "$rc"
+}
+
+# Contexte limité aux releases CI/CD ; les commandes directes restent strictes.
+projects_cicd_release_provider() {
+    local provider="$1" command_name="$2" project_id="$3"
+    local context_dir="" projects_git_unavailable_file="" release_rc=0
+    PROJECTS_CICD_RELEASE_STATUS="échec"
+    PROJECTS_DEBIAN_RELEASE_STATUS=""
+    context_dir="$(mktemp -d)" || { print_error 'Impossible de préparer le contexte de release.'; return 1; }
+    projects_git_unavailable_file="$context_dir/unavailable"
+    (
+        print_error() {
+            if [[ ! -s "$projects_git_unavailable_file" ]]; then printf '❌ %s\n' "$*" >&2; fi
+        }
+        "$command_name" "$project_id" || exit $?
+        printf '%s' "${PROJECTS_DEBIAN_RELEASE_STATUS:-}" > "$context_dir/status"
+    ) || release_rc=$?
+    if [[ "$release_rc" -ne 0 && -s "$projects_git_unavailable_file" ]]; then
+        PROJECTS_CICD_RELEASE_STATUS="indisponible"
+        print_info "Serveur $provider indisponible — publication non confirmée, potentiellement partielle ; reprise nécessaire."
+        release_rc=0
+    elif [[ "$release_rc" -eq 0 ]]; then
+        PROJECTS_DEBIAN_RELEASE_STATUS="$(cat "$context_dir/status")" || release_rc=1
+        PROJECTS_CICD_RELEASE_STATUS="publié"
+    fi
+    rm -rf -- "$context_dir" || { print_error 'Nettoyage du contexte de release impossible.'; return 1; }
+    return "$release_rc"
+}
+
 _cicd_project_impl() {
     local original_projects_root="${ENV_DEVOPS_PROJECTS_ROOT}"
     local ENV_DEVOPS_PROJECTS_ROOT
@@ -932,13 +977,16 @@ _cicd_project_impl() {
         else
             publication_command="publish_release_debian"
         fi
-        if ! "$publication_command" "${project_id}"; then
+        if ! projects_cicd_release_provider Forgejo "$publication_command" "${project_id}"; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec de la release Forgejo."
             return 1
         fi
-        if [[ "$docker_publish_enabled" == Yes ]]; then
+        if [[ "$PROJECTS_CICD_RELEASE_STATUS" == indisponible ]]; then
+            forgejo_release_status="indisponible — publication non confirmée, potentiellement partielle"
+            workflow_status="terminé avec indisponibilités"
+        elif [[ "$docker_publish_enabled" == Yes ]]; then
             forgejo_release_status="${REMOTE_FORGEJO_BASE_URL#https://}/${REMOTE_FORGEJO_OWNER}/${REMOTE_FORGEJO_REPOSITORY}:${docker_version} et latest"
             if [[ "$debian_enabled" == Yes ]]; then
                 forgejo_release_status+=" ; paquet Debian publié"
@@ -961,13 +1009,16 @@ _cicd_project_impl() {
         else
             publication_command="projects_gitlab_release_debian"
         fi
-        if ! "$publication_command" "${project_id}"; then
+        if ! projects_cicd_release_provider GitLab "$publication_command" "${project_id}"; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec de la release GitLab."
             return 1
         fi
-        if [[ "$docker_publish_enabled" == Yes ]]; then
+        if [[ "$PROJECTS_CICD_RELEASE_STATUS" == indisponible ]]; then
+            gitlab_release_status="indisponible — publication non confirmée, potentiellement partielle"
+            workflow_status="terminé avec indisponibilités"
+        elif [[ "$docker_publish_enabled" == Yes ]]; then
             gitlab_release_status="${REMOTE_GITLAB_REGISTRY}/${REMOTE_GITLAB_OWNER}/${REMOTE_GITLAB_REPOSITORY}:${docker_version} et latest"
             if [[ "$debian_enabled" == Yes ]]; then
                 gitlab_release_status+=" ; paquet Debian publié"
@@ -990,13 +1041,16 @@ _cicd_project_impl() {
         else
             publication_command="projects_github_release_debian"
         fi
-        if ! "$publication_command" "${project_id}"; then
+        if ! projects_cicd_release_provider GitHub "$publication_command" "${project_id}"; then
             workflow_status="échec"
             cicd_project_print_summary "${project_id}" "${commit_name}" "${commit_tag}" "${workflow_status}" "${forgejo_push_status}" "${gitlab_push_status}" "${github_push_status}" "${docker_build_status}" "${forgejo_release_status}" "${gitlab_release_status}" "${github_release_status}" "${debian_build_status}"
             print_error "Échec de la release GitHub."
             return 1
         fi
-        if [[ "$docker_publish_enabled" == Yes ]]; then
+        if [[ "$PROJECTS_CICD_RELEASE_STATUS" == indisponible ]]; then
+            github_release_status="indisponible — publication non confirmée, potentiellement partielle"
+            workflow_status="terminé avec indisponibilités"
+        elif [[ "$docker_publish_enabled" == Yes ]]; then
             github_release_status="ghcr.io/${REMOTE_GITHUB_OWNER,,}/${REMOTE_GITHUB_REPOSITORY,,}:${docker_version} et latest"
             if [[ "$debian_enabled" == Yes ]]; then
                 github_release_status+=" ; paquet Debian publié"
@@ -4153,6 +4207,13 @@ _gitlab_docker_push_with_retry() {
             push_rc=$?
         fi
 
+        if [[ -n "${projects_git_unavailable_file:-}" ]] &&
+            ! grep -Eiq 'unauthorized|denied|x509|certificate|tls|authentication' "${push_error_file}" &&
+            grep -Eq '^(Error response from daemon: |Get \"https?://)[^[:cntrl:]]* (dial tcp(:| )[^[:cntrl:]]*(connection refused|i/o timeout|no such host|network is unreachable)|net/http: request canceled|received unexpected HTTP status: (502|503|504))' "${push_error_file}"; then
+            projects_git_note_unavailable git network || :
+            rm -f "${push_error_file}"
+            return "${push_rc}"
+        fi
         cat "${push_error_file}" >&2
 
         if ! grep -Fq "blob unknown to registry" "${push_error_file}" ||
@@ -5539,7 +5600,7 @@ projects_gitlab_release_docker() {
         trap 'rm -rf "${docker_config}"' EXIT
 
         if ! printf '%s' "${gitlab_token}" | \
-            runuser -u "${ENV_DEVOPS_USER}" -- \
+            projects_cicd_docker_transport runuser -u "${ENV_DEVOPS_USER}" -- \
                 env "DOCKER_CONFIG=${docker_config}" \
                 docker login \
                     "${remote_registry}" \
@@ -5771,15 +5832,15 @@ projects_github_release_docker() {
     (
         trap 'rm -rf -- "${docker_config}"' EXIT
 
-        if ! printf '%s' "${github_token}" | runuser -u "${ENV_DEVOPS_USER}" -- \
+        if ! printf '%s' "${github_token}" | projects_cicd_docker_transport runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" docker login ghcr.io \
             --username "${github_username}" --password-stdin; then
             exit 1
         fi
 
-        runuser -u "${ENV_DEVOPS_USER}" -- \
+        projects_cicd_docker_transport runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" docker push "${remote_image_version}" || exit 1
-        runuser -u "${ENV_DEVOPS_USER}" -- \
+        projects_cicd_docker_transport runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" docker push "${remote_image_latest}"
     ) || docker_publish_rc=$?
 
@@ -6075,10 +6136,12 @@ projects_gitlab_release_debian() {
         fi
 
         if [[ "${curl_rc}" -ne 0 ]]; then
+            projects_git_note_unavailable curl "${curl_rc}" || :
             print_error "_gitlab_release_api : erreur réseau (curl=${curl_rc})."
             return 1
         fi
 
+        if projects_git_note_unavailable http "${response##*$'\n'}"; then return 1; fi
         printf '%s' "${response}"
         return 0
     }
@@ -6629,7 +6692,7 @@ projects_forgejo_release_docker() {
         print_title "Authentification Docker Forgejo"
 
         if ! printf '%s' "${forgejo_token}" | \
-            runuser -u "${ENV_DEVOPS_USER}" -- \
+            projects_cicd_docker_transport runuser -u "${ENV_DEVOPS_USER}" -- \
                 env "DOCKER_CONFIG=${docker_config}" \
                 docker login \
                     "${remote_registry}" \
@@ -6652,7 +6715,7 @@ projects_forgejo_release_docker() {
         print_title \
             "Publication Docker ${docker_version}"
 
-        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
+        if ! projects_cicd_docker_transport runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" \
             docker push "${remote_image_version}"; then
 
@@ -6672,7 +6735,7 @@ projects_forgejo_release_docker() {
         print_title \
             "Publication Docker latest"
 
-        if ! runuser -u "${ENV_DEVOPS_USER}" -- \
+        if ! projects_cicd_docker_transport runuser -u "${ENV_DEVOPS_USER}" -- \
             env "DOCKER_CONFIG=${docker_config}" \
             docker push "${remote_image_latest}"; then
 

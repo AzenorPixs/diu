@@ -114,6 +114,22 @@ class GithubDebianReleaseTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(any(call['method'] == 'POST' for call in self.calls()))
 
+    def test_cicd_classifies_api_and_upload_unavailability(self):
+        harness = HARNESS.replace('source "$1/lib/github-auth.sh"',
+                                  'source "$1/modules/projects/git.sh"\nsource "$1/lib/github-auth.sh"')
+        harness = harness.replace('projects_github_release_debian project\n',
+                                  'projects_cicd_release_provider GitHub projects_github_release_debian project\n'
+                                  'printf "STATUS:%s\n" "$PROJECTS_CICD_RELEASE_STATUS"\n')
+        for settings in ({'NETWORK_FAIL': 'tag'}, {'HTTP_FAIL_KIND': 'tag', 'HTTP_FAIL_CODE': '503'},
+                         {'NETWORK_FAIL': 'upload'}, {'HTTP_FAIL_KIND': 'upload', 'HTTP_FAIL_CODE': '503'}):
+            with self.subTest(settings=settings):
+                result = self.run_release(harness=harness, **settings)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('STATUS:indisponible', result.stdout)
+                self.assertIn('potentiellement partielle', result.stdout)
+        result = self.run_release(harness=harness, HTTP_FAIL_KIND='tag', HTTP_FAIL_CODE='403')
+        self.assertNotEqual(result.returncode, 0)
+
     def test_existing_complete_release_is_informational(self):
         result = self.run_release(RELEASE_EXISTS='complete')
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -148,11 +148,13 @@ publish_release_debian() {
         rm -f "${auth_file}"
 
         if [[ "${curl_rc}" -ne 0 ]]; then
+            if declare -F projects_git_note_unavailable >/dev/null; then projects_git_note_unavailable curl "${curl_rc}" || :; fi
             print_error \
                 "_forgejo_release_api : erreur réseau (curl=${curl_rc})."
             return 1
         fi
 
+        if declare -F projects_git_note_unavailable >/dev/null && projects_git_note_unavailable http "${response##*$'\n'}"; then return 1; fi
         printf '%s' "${response}"
 
         return 0
@@ -1072,6 +1074,7 @@ publish_release_debian() {
     rm -f "${upload_auth_file}"
 
     if [[ "${upload_rc}" -ne 0 ]]; then
+        if declare -F projects_git_note_unavailable >/dev/null; then projects_git_note_unavailable curl "${upload_rc}" || :; fi
         print_error \
             "Échec réseau lors de l'upload de l'asset."
 
@@ -1091,6 +1094,7 @@ publish_release_debian() {
         _forgejo_release_http_code "${upload_response}"
     )"
 
+    if declare -F projects_git_note_unavailable >/dev/null && projects_git_note_unavailable http "${upload_code}"; then return 1; fi
     upload_body="$(
         _forgejo_release_http_body "${upload_response}"
     )"

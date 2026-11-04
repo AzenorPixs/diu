@@ -102,6 +102,45 @@ build_deb_diu
             subprocess.run([str(postinst), 'configure'], check=True)
             self.assertEqual(link.readlink(), base / 'other-missing-target')
 
+    def test_installed_startup_checks_link_before_help(self):
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-links-test-') as tmp:
+            base = Path(tmp)
+            installed = base / 'installed'
+            (installed / 'lib').mkdir(parents=True)
+            shutil.copy(ROOT / 'lib/diu-links.sh', installed / 'lib/diu-links.sh')
+            shutil.copy(ROOT / 'lib/rid-help.sh', installed / 'lib/rid-help.sh')
+            target = installed / 'root-install-debian.sh'
+            link = base / 'bin/diu'
+            link.parent.mkdir()
+            source = (ROOT / 'root-install-debian.sh').read_text()
+            # Simuler root et isoler les chemins, sans modifier le système.
+            source = source.replace('"$EUID" -eq 0', '"$EUID" -eq "$EUID"', 1)
+            source = source.replace('/root/diu/root-install-debian.sh', str(target))
+            source = source.replace('/usr/local/bin/diu', str(link))
+            target.write_text(source)
+            def run(path=target):
+                return subprocess.run(['bash', str(path), 'help'], capture_output=True, text=True)
+            self.assertEqual(run().returncode, 0)
+            self.assertEqual(link.readlink(), target)
+            self.assertEqual(run().returncode, 0)
+            link.unlink()
+            link.symlink_to(base / 'missing')
+            self.assertEqual(run().returncode, 0)
+            self.assertEqual(link.readlink(), base / 'missing')
+            link.unlink()
+            link.write_text('preserved')
+            self.assertEqual(run().returncode, 0)
+            self.assertEqual(link.read_text(), 'preserved')
+            link.unlink()
+            dev = installed / 'development.sh'
+            dev.write_text(source)
+            self.assertEqual(run(dev).returncode, 0)
+            self.assertFalse(link.exists())
+            link.parent.rmdir()
+            result = run()
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Impossible de créer le lien', result.stderr)
+
     def test_help_through_symbolic_link(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-links-test-') as tmp:
             link = Path(tmp) / 'diu'
