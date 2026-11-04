@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [rename-projects-network-hosts-commands](changes/archive/2026-11-04-rename-projects-network-hosts-commands/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-04 : [manage-production-hosts-entries](changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
 - [reconcile-cicd-git-publication](changes/reconcile-cicd-git-publication/proposal.md) : code non attribué ; change actif, réalisation testée sur fixtures, synchronisation et publication en attente au 2026-11-04 ; attribution ultérieure par ACL.
