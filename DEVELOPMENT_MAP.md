@@ -1,5 +1,14 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [rename-projects-network-hosts-commands](openspec/changes/archive/2026-11-04-rename-projects-network-hosts-commands/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  HOSTS_COMMANDS["rename-projects-network-hosts-commands — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class HOSTS_COMMANDS provisoire
+```
+
 Delta SCM du 2026-11-04 : [manage-production-hosts-entries](openspec/changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
 ```mermaid

@@ -47,18 +47,17 @@ rid_display_help_context() {
     fi
 
     if [[ "$context:$subcontext" == projects:system ]]; then
-        if [[ -n "$leaf" && "$leaf" != network ]]; then
-            rid_display_command_error projects system
+        local hosts_action="${5:-}"
+        if [[ $# -gt 7 || ( -n "$leaf" && "$leaf" != network ) ||
+              ( -n "$target" && "$target" != hosts ) ||
+              ( -n "$hosts_action" && "$hosts_action" != add && "$hosts_action" != del && "$hosts_action" != list ) ]]; then
+            rid_display_command_error projects system network hosts
             return 2
         fi
-        if [[ -n "$target" && "$target" != add && "$target" != del && "$target" != list ]]; then
-            rid_display_command_error projects system network
-            return 2
-        fi
-        rid_help_line 'rid projects system network add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
-        rid_help_line 'rid projects system network del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'
-        rid_help_line 'rid projects system network del all' 'Vide le hosts.json de production.'
-        rid_help_line 'rid projects system network list' 'Liste les couples du hosts.json de production.'
+        rid_help_line 'rid projects system network hosts add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
+        rid_help_line 'rid projects system network hosts del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'
+        rid_help_line 'rid projects system network hosts del all' 'Vide le hosts.json de production.'
+        rid_help_line 'rid projects system network hosts list' 'Liste les couples du hosts.json de production.'
         return 0
     fi
 
@@ -330,7 +329,7 @@ rid_display_help_context() {
             ;;
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
-            rid_help_line 'rid projects system network' 'Gère les couples du hosts.json de production.'
+            rid_help_line 'rid projects system network hosts' 'Gère les couples du hosts.json de production.'
             rid_help_line 'rid projects template devops <ID PROJECT>' 'Crée ou actualise DEVOPS.md pour le projet.'
             rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
             rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés.'
