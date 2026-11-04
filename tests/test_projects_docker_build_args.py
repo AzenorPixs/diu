@@ -39,7 +39,7 @@ set -euo pipefail
 source "$1"
 runuser() { printf '%s\0' "$@" > "$USER_CAPTURE"; shift 3; "$@"; }
 docker() { printf '%s\0' "$@" > "$CAPTURE"; return "$DOCKER_STATUS"; }
-DEVOPS_USER=fixture-user
+ENV_DEVOPS_USER=fixture-user
 '''+extra+'\n'+entrypoint+'\n'
         return subprocess.run(['bash', '-c', script, 'fixture', str(self.module)], capture_output=True, timeout=10,
             env={'PATH': os.defpath, 'FIXTURE_ROOT': str(self.project.parent),

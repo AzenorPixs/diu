@@ -12,7 +12,7 @@ diu_package_version_from_head() {
     if [[ ! -e "${project_path}/.git" ]]; then
         return 0
     fi
-    if ! tags="$(runuser -u "${DEVOPS_USER}" -- git -C "${project_path}" tag --points-at HEAD)"; then
+    if ! tags="$(runuser -u "${ENV_DEVOPS_USER}" -- git -C "${project_path}" tag --points-at HEAD)"; then
         print_error "Impossible de consulter les tags du projet source."
         return 1
     fi

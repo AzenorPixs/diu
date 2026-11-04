@@ -47,7 +47,7 @@ print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 print_info() { :; }
 print_success() { :; }
 runuser() { shift 2; [[ "${1:-}" != -- ]] || shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
 export FIXTURE_PROVIDER="$3"
 _forgejo_validate_credentials() { _forgejo_prepare_context "$@"; }

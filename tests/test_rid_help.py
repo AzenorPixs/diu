@@ -77,7 +77,7 @@ runuser() {
     esac
     return 0
 }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 INITIALIZATION_CREATES_REPOSITORY="$3"
 repository_ready='false'
@@ -117,7 +117,7 @@ runuser() {
     shift
     "$@"
 }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 if ! git_init project; then
     exit 1
@@ -204,7 +204,7 @@ runuser() {
         *) return 0 ;;
     esac
 }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
 ENV_DEVOPS_PROJECTS_ROOT="$2"
@@ -260,7 +260,7 @@ runuser() {
         *) return 0 ;;
     esac
 }
-DEVOPS_USER=devops
+ENV_DEVOPS_USER=devops
 DEVOPS_GROUP=devops
 ENV_DEVOPS_USER=devops
 ENV_DEVOPS_PROJECTS_ROOT="$2"

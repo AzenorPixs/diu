@@ -67,6 +67,7 @@ config_load_docker() {
 config_load_environments() {
     local config_file_environnements="/root/diu/config/environnements.env"
     local line raw user_value='' user_found=0 root_uses_user=0
+    local legacy_user_value='' legacy_user_found=0 legacy_root_uses_user=0
 
     [[ -f "$config_file_environnements" ]] || return 0
 
@@ -76,6 +77,9 @@ config_load_environments() {
         if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS_PROJECTS_ROOT= ]] &&
             [[ "$line" == *'${ENV_DEVOPS_USER}'* || "$line" == *'$ENV_DEVOPS_USER'* ]]; then
             root_uses_user=1
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT= ]] &&
+            [[ "$line" == *'${DEVOPS_USER}'* ]]; then
+            legacy_root_uses_user=1
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?ENV_DEVOPS_USER= ]]; then
             ((user_found += 1))
             raw="${line#*=}"
@@ -88,8 +92,32 @@ config_load_environments() {
             else
                 user_value=''
             fi
+        elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_USER= ]]; then
+            ((legacy_user_found += 1))
+            raw="${line#*=}"
+            if [[ "$raw" =~ ^[[:blank:]]*([a-z_][a-z0-9_-]*)[[:blank:]]*(#.*)?$ ]]; then
+                legacy_user_value="${BASH_REMATCH[1]}"
+            elif [[ "$raw" =~ ^[[:blank:]]*\"([a-z_][a-z0-9_-]*)\"[[:blank:]]*(#.*)?$ ]]; then
+                legacy_user_value="${BASH_REMATCH[1]}"
+            elif [[ "$raw" =~ ^[[:blank:]]*\'([a-z_][a-z0-9_-]*)\'[[:blank:]]*(#.*)?$ ]]; then
+                legacy_user_value="${BASH_REMATCH[1]}"
+            else
+                legacy_user_value=''
+            fi
         fi
     done < "$config_file_environnements"
+    if [[ "$legacy_root_uses_user" == 1 ]]; then
+        if ((legacy_user_found > 1)) || { ((legacy_user_found == 1)) && [[ -z "$legacy_user_value" ]]; }; then
+            printf '%s\n' 'DEVOPS_USER : déclaration historique ambiguë dans la configuration.' >&2
+            return 1
+        fi
+        if ((legacy_user_found == 1)); then
+            export DEVOPS_USER="$legacy_user_value"
+        elif [[ -z "${DEVOPS_USER:-}" ]]; then
+            printf '%s\n' 'DEVOPS_PROJECTS_ROOT : DEVOPS_USER est absent.' >&2
+            return 1
+        fi
+    fi
     if [[ "$root_uses_user" == 1 ]]; then
         if ((user_found > 1)) || { ((user_found == 1)) && [[ -z "$user_value" ]]; }; then
             printf '%s\n' 'ENV_DEVOPS_USER : déclaration ambiguë dans la configuration.' >&2

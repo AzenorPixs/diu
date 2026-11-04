@@ -37,7 +37,7 @@ class CicdReplayTests(unittest.TestCase):
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 source "$1/modules/projects/debian-build.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() {
   shift 3
@@ -87,7 +87,7 @@ cicd_project fixture automatic vautomatic
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 REMOTE_FORGEJO_BASE_URL=https://forge.example
 REMOTE_FORGEJO_OWNER=owner
 REMOTE_FORGEJO_REPOSITORY=fixture
@@ -130,7 +130,7 @@ projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { shift 3; "$@"; }
 print_error() { :; }
@@ -161,7 +161,7 @@ cicd_project fixture automatic vautomatic
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 REMOTE_FORGEJO_BASE_URL=https://forge.example
 REMOTE_FORGEJO_OWNER=owner
 REMOTE_FORGEJO_REPOSITORY=fixture
@@ -224,7 +224,7 @@ printf 'STATUS:%s\n' "$PROJECTS_GIT_PUSH_STATUS"
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { shift 3; "$@"; }
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
@@ -288,7 +288,7 @@ cicd_project fixture automatic vautomatic
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 ENV_DEVOPS_PROJECTS_ROOT="$2"
 runuser() { shift 3; "$@"; }
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
@@ -345,7 +345,7 @@ cicd_project fixture automatic vautomatic
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 REMOTE_FORGEJO_BASE_URL=https://forge.example
 REMOTE_FORGEJO_OWNER=owner
 REMOTE_FORGEJO_REPOSITORY=fixture
@@ -385,7 +385,7 @@ printf 'STATUS:%s\n' "$PROJECTS_CICD_REPLAY_GIT_STATUS"
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 runuser() { shift 3; "$@"; }
 print_error() { printf '%s\n' "$*" >&2; }
 if projects_cicd_replay_prepare fixture "$2" v1.0.0; then exit 1; fi
@@ -421,7 +421,7 @@ test -z "$PROJECTS_CICD_REPLAY_ROOT"
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 runuser() { shift 3; "$@"; }
 print_error() { printf '%s\n' "$*" >&2; }
 projects_cicd_replay_prepare fixture "$2" v1.0.0

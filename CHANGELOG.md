@@ -7,7 +7,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 - Variables : migration de la racine des projets vers
   `ENV_DEVOPS_PROJECTS_ROOT`, avec reprise de l'ancienne valeur explicite et
   chargement ordonné de sa dépendance `ENV_DEVOPS_USER`, déclarée statiquement
-  avec `root` comme défaut.
+  avec `root` comme défaut. Les consommateurs du compte DevOps utilisent le
+  nouveau nom; l'ancienne valeur et le modèle historique de chemin sont repris.
 
 - DIU : GitHub reste prioritaire pour la mise à jour ; Forgejo est consulté
   en secours si GitHub est absent, inaccessible ou sans paquet admissible.

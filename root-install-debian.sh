@@ -211,8 +211,8 @@ fi
 # Appelée par les fonctions Git/projets des modules sourcés.
 # shellcheck disable=SC2317
 check_devops_user() {
-    if ! id "$DEVOPS_USER" >/dev/null 2>&1; then
-        echo "❌ L'utilisateur '$DEVOPS_USER' n'existe pas."
+    if ! id "$ENV_DEVOPS_USER" >/dev/null 2>&1; then
+        echo "❌ L'utilisateur '$ENV_DEVOPS_USER' n'existe pas."
         exit 1
     fi
 
@@ -400,7 +400,7 @@ devops_info () {
 
     # Expansion différée dans le shell utilisateur.
     # shellcheck disable=SC2016
-    su - "${DEVOPS_USER}" -c '
+    su - "${ENV_DEVOPS_USER}" -c '
 
         # ==============================================
         # Récupération des versions
@@ -929,7 +929,7 @@ launch_oc_shell() {
 
 	local project_id="$1"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
-	su - "${DEVOPS_USER}" -c "docker exec -it ${project_id}-opencode sh"
+	su - "${ENV_DEVOPS_USER}" -c "docker exec -it ${project_id}-opencode sh"
 }
 
 launch_ocro() {
@@ -1815,7 +1815,7 @@ devops_openspec_list() {
     local project_id="$1"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec list"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec list"
 
     exit 0
 }
@@ -1824,7 +1824,7 @@ devops_openspec_show() {
     local project_id="$1"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c \
+    su - "$ENV_DEVOPS_USER" -c \
         "cd '$project_path' && openspec spec list"
 }
 
@@ -1833,7 +1833,7 @@ devops_openspec_validate_change() {
     local spec_name="$2"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type change --strict"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type change --strict"
 
     exit 0
 }
@@ -1843,7 +1843,7 @@ devops_openspec_validate_spec() {
     local spec_name="$2"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type spec --strict"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec validate '$spec_name' --type spec --strict"
 
     exit 0
 }
@@ -1852,7 +1852,7 @@ devops_openspec_templates() {
     local project_id="$1"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec templates"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec templates"
 
     exit 0
 }
@@ -1861,7 +1861,7 @@ devops_openspec_view() {
     local project_id="$1"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
 
-    su - "$DEVOPS_USER" -c "cd '$project_path' && openspec view"
+    su - "$ENV_DEVOPS_USER" -c "cd '$project_path' && openspec view"
 
     exit 0
 }
@@ -4149,7 +4149,7 @@ then
 	if [ "$GO" -eq 1 ]
 	then
 
-		GO_BASE="/home/$DEVOPS_USER/go"
+		GO_BASE="/home/$ENV_DEVOPS_USER/go"
 		INSTALL_DIR="$GO_BASE/versions"
 		CURRENT_LINK="$GO_BASE/current"
 		GO_LATEST=$(git ls-remote --tags https://github.com/golang/go.git | awk -F/ '{print $3}' | sed 's/^go//' | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -1)
@@ -4203,7 +4203,7 @@ then
 
 			ln -sfn "$TARGET_DIR" "$CURRENT_LINK"
 
-			chown -R "$DEVOPS_USER:$DEVOPS_GROUP" "$GO_BASE"
+			chown -R "$ENV_DEVOPS_USER:$DEVOPS_GROUP" "$GO_BASE"
 
 		else
 
@@ -4222,8 +4222,8 @@ EOF
     then
 
         REPO="https://github.com/aandrew-me/tgpt.git"
-        BINARY="/home/$DEVOPS_USER/go/bin/tgpt"
-        GO_BIN="/home/$DEVOPS_USER/go/current/bin/go"
+        BINARY="/home/$ENV_DEVOPS_USER/go/bin/tgpt"
+        GO_BIN="/home/$ENV_DEVOPS_USER/go/current/bin/go"
 
         LATEST=$(
             git ls-remote --tags --refs "$REPO" |
@@ -4246,7 +4246,7 @@ EOF
 
             apt install libx11-dev libxmu-dev libxtst-dev -y
 
-            if su - "$DEVOPS_USER" -c \
+            if su - "$ENV_DEVOPS_USER" -c \
                 "\"$GO_BIN\" install github.com/aandrew-me/tgpt/v2@latest"
             then
                 echo "✅ TGPT mis à jour avec succès ($LATEST)"
@@ -4267,7 +4267,7 @@ EOF
   if [ "$NODEJS" -eq 1 ]
   then
 
-    NODE_BASE="/home/$DEVOPS_USER/node"
+    NODE_BASE="/home/$ENV_DEVOPS_USER/node"
     INSTALL_DIR="$NODE_BASE/versions"
     CURRENT_LINK="$NODE_BASE/current"
 
@@ -4392,7 +4392,7 @@ EOF
 
         ln -sfn "$TARGET_DIR" "$CURRENT_LINK"
 
-        chown -R "$DEVOPS_USER:$DEVOPS_GROUP" "$NODE_BASE"
+        chown -R "$ENV_DEVOPS_USER:$DEVOPS_GROUP" "$NODE_BASE"
 
     else
 
@@ -4428,14 +4428,14 @@ EOF
     #
 
     install -d \
-        -o "$DEVOPS_USER" \
+        -o "$ENV_DEVOPS_USER" \
         -g "$DEVOPS_GROUP" \
         -m 2770 \
-        "/home/$DEVOPS_USER/.local/npm" \
-        "/home/$DEVOPS_USER/.local/npm/bin"
+        "/home/$ENV_DEVOPS_USER/.local/npm" \
+        "/home/$ENV_DEVOPS_USER/.local/npm/bin"
 
-    if ! su - "$DEVOPS_USER" -c \
-        "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+    if ! su - "$ENV_DEVOPS_USER" -c \
+        "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
         \"$NPM_BIN\" config set prefix \"\$HOME/.local/npm\" --location=user"
     then
 
@@ -4462,8 +4462,8 @@ EOF
       NODE_VERSION="$("$NODE_BIN" --version)"
       NPM_VERSION="$("$NPM_BIN" --version)"
       NPM_PREFIX="$(
-          su - "$DEVOPS_USER" -c \
-          "PATH=\"/home/$DEVOPS_USER/node/current/bin:\$PATH\" \
+          su - "$ENV_DEVOPS_USER" -c \
+          "PATH=\"/home/$ENV_DEVOPS_USER/node/current/bin:\$PATH\" \
           \"$NPM_BIN\" config get prefix"
       )"
 
@@ -4476,7 +4476,7 @@ EOF
 	if [ "$OPENCODE" -eq 1 ]
 	then
 
-		OPENCODE_USER=$DEVOPS_USER
+		OPENCODE_USER=$ENV_DEVOPS_USER
 		INSTALL_DIR="/home/${OPENCODE_USER}/.opencode/bin"
 		API="https://api.github.com/repos/anomalyco/opencode/releases?per_page=100&page="
 		INSTALLER="https://opencode.ai/v2/install"
@@ -4552,7 +4552,7 @@ EOF
       if [ -z "$NPM_BIN" ] || [ ! -x "$NPM_BIN" ]
       then
 
-          echo "❌ ERREUR : npm est introuvable pour l'utilisateur $DEVOPS_USER"
+          echo "❌ ERREUR : npm est introuvable pour l'utilisateur $ENV_DEVOPS_USER"
           exit 1
 
       fi
@@ -4696,7 +4696,7 @@ EOF
 			echo "PYTHON 3 SYSTEM OK ✅ ($PYTHON_SYSTEM_VERSION)"
 		fi
 
-		INSTALL_PYTHON_ROOT="/home/$DEVOPS_USER/python"
+		INSTALL_PYTHON_ROOT="/home/$ENV_DEVOPS_USER/python"
 		BUILD_DIR="/usr/local/src/python-build"
 
 		mkdir -p "$INSTALL_PYTHON_ROOT" "$BUILD_DIR"
@@ -4819,7 +4819,7 @@ EOF
 # DevOps environment PATH
 # Managed by DIU
 
-if [ "\$USER" = "$DEVOPS_USER" ]; then
+if [ "\$USER" = "$ENV_DEVOPS_USER" ]; then
 
     DEVOPS_PATH=""
 
@@ -6542,8 +6542,8 @@ then
   if [ "$GO" -eq 1 ]
   then
 
-      GO_BIN="/home/$DEVOPS_USER/go/current/bin/go"
-      SESH_BIN="/home/$DEVOPS_USER/go/bin/sesh"
+      GO_BIN="/home/$ENV_DEVOPS_USER/go/current/bin/go"
+      SESH_BIN="/home/$ENV_DEVOPS_USER/go/bin/sesh"
 
       if [ -x "$SESH_BIN" ]
       then
@@ -6555,17 +6555,17 @@ then
           if [ ! -x "$GO_BIN" ]
           then
 
-              echo "	💥 Go n'est pas installé pour $DEVOPS_USER. Abandon."
+              echo "	💥 Go n'est pas installé pour $ENV_DEVOPS_USER. Abandon."
               exit 1
 
           fi
 
           echo "	🔧 INSTALL SESH"
 
-          runuser -u "$DEVOPS_USER" -- \
+          runuser -u "$ENV_DEVOPS_USER" -- \
               env \
-                  HOME="/home/$DEVOPS_USER" \
-                  GOPATH="/home/$DEVOPS_USER/go" \
+                  HOME="/home/$ENV_DEVOPS_USER" \
+                  GOPATH="/home/$ENV_DEVOPS_USER/go" \
                   "$GO_BIN" install github.com/joshmedeski/sesh@latest
 
       fi

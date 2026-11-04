@@ -3,7 +3,9 @@
 ### Requirement: Utilisateur DevOps statique
 
 DIU SHALL déclarer `ENV_DEVOPS_USER` avec `STATIC`, `ENABLE`, scope
-`environnements` et défaut `root`. Une valeur déjà définie SHALL être conservée.
+`environnements` et défaut `root`. Une valeur déjà définie SHALL être conservée;
+sinon la valeur explicite historique `DEVOPS_USER` SHALL être reprise avant
+d'utiliser le défaut.
 
 #### Scenario: Utilisateur absent
 
@@ -14,6 +16,22 @@ DIU SHALL déclarer `ENV_DEVOPS_USER` avec `STATIC`, `ENABLE`, scope
 
 - **WHEN** `ENV_DEVOPS_USER` est déjà définie
 - **THEN** DIU conserve et exporte sa valeur existante
+
+#### Scenario: Ancien utilisateur défini
+
+- **WHEN** `ENV_DEVOPS_USER` est absente et `DEVOPS_USER` est définie
+- **THEN** DIU conserve exactement cette ancienne valeur sous le nouveau nom
+
+### Requirement: Consommateurs de l'utilisateur DevOps
+
+Les consommateurs du code DIU SHALL utiliser `ENV_DEVOPS_USER` pour désigner
+l'utilisateur DevOps. La compatibilité MAY lire `DEVOPS_USER` afin de migrer
+les configurations existantes.
+
+#### Scenario: Exécution des commandes de projet
+
+- **WHEN** une commande DIU utilise le compte DevOps
+- **THEN** elle utilise la valeur de `ENV_DEVOPS_USER`
 
 ### Requirement: Racine statique des projets DevOps
 
@@ -27,6 +45,17 @@ SHALL être reprise exactement. En leur absence, DIU SHALL construire le chemin
 
 - **WHEN** la nouvelle variable est absente et l'ancienne valeur est littérale
 - **THEN** la nouvelle variable reçoit exactement cette valeur
+
+#### Scenario: Modèle historique dépendant de l'ancien utilisateur
+
+- **WHEN** la racine historique contient uniquement une expansion sûre `${DEVOPS_USER}`
+- **THEN** le nettoyage conserve cette affectation sans l'évaluer au premier passage
+- **AND** DIU persiste sa valeur calculée sous le nouveau nom puis retire l'ancienne affectation lors d'un passage ultérieur
+
+#### Scenario: Modèle historique trié avant son utilisateur
+
+- **WHEN** le fichier de scope contient la racine historique avant une affectation littérale `DEVOPS_USER`
+- **THEN** DIU rend disponible cet utilisateur avant le chargement de la racine
 
 #### Scenario: Utilisateur indisponible après initialisation
 

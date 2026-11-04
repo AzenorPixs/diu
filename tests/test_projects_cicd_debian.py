@@ -12,7 +12,7 @@ set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 source "$1/modules/projects/debian-build.sh"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-DEVOPS_USER=fixture
+ENV_DEVOPS_USER=fixture
 print_title() { printf 'TITLE:%s\n' "$*"; }
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }

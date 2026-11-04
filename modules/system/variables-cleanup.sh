@@ -40,6 +40,20 @@ config_cleanup_parse_fstab_literal() {
     REPLY="$value"
 }
 
+# Accepte uniquement le modèle historique DEVOPS_USER sans l'évaluer ici.
+config_cleanup_parse_projects_root() {
+    local raw="${1-}" substituted
+    if config_cleanup_parse_fstab_literal "$raw"; then
+        PROJECTS_ROOT_KIND=literal
+        return 0
+    fi
+    # shellcheck disable=SC2016
+    [[ "$raw" == *'${DEVOPS_USER}'* ]] || return 1
+    substituted="${raw//\$\{DEVOPS_USER\}/DIU_DEVOPS_USER}"
+    config_cleanup_parse_fstab_literal "$substituted" || return 1
+    PROJECTS_ROOT_KIND=expression
+}
+
 config_cleanup_parse_secret_literal() {
     local raw_value="${1-}" secret_value
     if [[ "$raw_value" =~ ^[[:blank:]]*\"([[:alnum:]_./:+@=-]+)\"[[:blank:]]*(#.*)?$ ]]; then
@@ -62,9 +76,10 @@ config_cleanup() {
     local desktop_config_file="${4:-/root/diu/config/desktop.env}"
     local environnements_config_file="${5:-/root/diu/config/environnements.env}"
     local docker_config_file="${6:-/root/diu/config/docker.env}"
-    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DEVOPS_PROJECTS_ROOT|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|VERSION_ALIAS|VERSION_VARIABLES|DOCKER_STACK_BUNKERWEB_UPGRADE|DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
+    local legacy_assignment='^[[:blank:]]*(export[[:blank:]]+)?(DEBIAN_RELEASE|DEBIAN_TYPE|DISPLAY_LINK|TIME_ZONE|PROXY_CA|PROXY|DRIVERS_NVIDIA|FSTAB_CONFIG[1-6]|FSTAB|FILES2RAM|GRUB_CONFIG|IPv6|LOG_ROTATE|JOURNALD_MAX_USE|JOURNALD_KEEP_FREE|NO_SLEEP|RCLOCAL|DESKTOP|ENV_DEVOPS|ENV_DOCKER|ENV_IA|DOCKER_USER|APACHE2|FASTFETCH|JSVC|LEMONLDAP|MONGODB|OPENJDK|OMADA|OPENVSWITCH|POSTGRESQL|POSTFIX|QEMU_GUEST_AGENT|SYSLOG_CLIENT|SYSLOG_SERVER|SSH|SYNCTHING|WEBMIN|WAZUH_CLIENT|WAZUH_SERVER|ZOOM|ZSH|VERSION_ALIAS|VERSION_VARIABLES|DOCKER_STACK_BUNKERWEB_UPGRADE|DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE|CROWDSEC_AGENT|SYSTEM_CROWDSEC_AGENT|CROWDSEC_BOUNCER|CROWDSEC_BOUNCER_API_KEY|SYSTEM_APT_CROWDSEC)='
     local status line proxy_value='' proxy_found=0 system_proxy_declared=0
     local projects_root_value='' projects_root_found=0 projects_root_declared=0 projects_root_lines=''
+    local projects_root_expression=0 projects_root_legacy_file_found=0 PROJECTS_ROOT_KIND
     [[ -z "${ENV_DEVOPS_PROJECTS_ROOT+x}" ]] || projects_root_declared=1
     local nvidia_value='' nvidia_found=0 system_nvidia_declared=0
     local fstab_value='' fstab_found=0 system_fstab_declared=0
@@ -128,12 +143,18 @@ config_cleanup() {
 
         while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT= ]]; then
-            if ! config_cleanup_parse_fstab_literal "${line#*=}"; then
+            if ! config_cleanup_parse_projects_root "${line#*=}"; then
                 printf '%s\n' 'Erreur : ancienne racine des projets ambiguë ; nettoyage impossible.' >&2
                 return 1
             fi
             projects_root_found=1
-            projects_root_value="$REPLY"
+            projects_root_legacy_file_found=1
+            if [[ "$PROJECTS_ROOT_KIND" == expression ]]; then
+                projects_root_expression=1
+            else
+                projects_root_expression=0
+                projects_root_value="$REPLY"
+            fi
         elif [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?PROXY= ]]; then
             proxy_found=1
             if [[ "$line" =~ ^[[:blank:]]*(export[[:blank:]]+)?PROXY=([[:blank:]]*)([01])[[:blank:]]*(#.*)?$ ]]; then
@@ -585,12 +606,17 @@ config_cleanup() {
         fi
         if projects_root_lines="$(grep -E '^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT=' "$environnements_config_file")"; then
             while IFS= read -r line; do
-                if ! config_cleanup_parse_fstab_literal "${line#*=}"; then
+                if ! config_cleanup_parse_projects_root "${line#*=}"; then
                     printf '%s\n' 'Erreur : ancienne racine des projets ambiguë ; nettoyage impossible.' >&2
                     return 1
                 fi
                 projects_root_found=1
-                projects_root_value="$REPLY"
+                if [[ "$PROJECTS_ROOT_KIND" == expression ]]; then
+                    projects_root_expression=1
+                else
+                    projects_root_expression=0
+                    projects_root_value="$REPLY"
+                fi
             done <<< "$projects_root_lines"
         else
             status=$?
@@ -1322,7 +1348,7 @@ config_cleanup() {
             return 1
         fi
     fi
-    if [[ "$projects_root_found" == 1 && "$projects_root_declared" == 0 ]]; then
+    if [[ "$projects_root_found" == 1 && "$projects_root_declared" == 0 && "$projects_root_expression" == 0 ]]; then
         if ! install -d -m 0755 "$(dirname "$environnements_config_file")"; then
             printf '%s\n' 'Erreur : création de la configuration environnements impossible.' >&2
             return 1
@@ -1703,7 +1729,7 @@ config_cleanup() {
             return 1
         fi
     fi
-    if [[ "$projects_root_found" == 1 && "$projects_root_declared" == 0 ]]; then
+    if [[ "$projects_root_found" == 1 && "$projects_root_declared" == 0 && "$projects_root_expression" == 0 ]]; then
         if ! printf 'export ENV_DEVOPS_PROJECTS_ROOT=%q\n' "$projects_root_value" >> "$environnements_config_file"; then
             printf '%s\n' 'Erreur : migration de la racine des projets impossible.' >&2
             return 1
@@ -1752,7 +1778,7 @@ config_cleanup() {
             return 1
         fi
     fi
-    if [[ -n "$projects_root_lines" ]]; then
+    if [[ -n "$projects_root_lines" && ( "$projects_root_declared" == 1 || "$projects_root_expression" == 0 ) ]]; then
         if ! sed -i -E '/^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT=/d' "$environnements_config_file"; then
             printf '%s\n' 'Erreur : suppression de l ancienne racine des projets impossible.' >&2
             return 1
@@ -1837,6 +1863,12 @@ config_cleanup() {
         fi
     done
 
+    if [[ "$projects_root_legacy_file_found" == 1 && ( "$projects_root_declared" == 1 || "$projects_root_expression" == 0 ) ]]; then
+        if ! sed -i -E '/^[[:blank:]]*(export[[:blank:]]+)?DEVOPS_PROJECTS_ROOT=/d' "$variables_file"; then
+            printf '%s\n' 'Erreur : suppression de l ancienne racine des projets impossible.' >&2
+            return 1
+        fi
+    fi
     if [[ -e "$variables_file" ]]; then
         if grep -E "$legacy_assignment" "$variables_file" > /dev/null 2>&1; then
             if ! sed -i -E "/$legacy_assignment/d" "$variables_file"; then

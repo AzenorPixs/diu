@@ -61,7 +61,7 @@ set -Eeuo pipefail
 source "$1/modules/projects/projects.sh"
 source "$1/modules/projects/git.sh"
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-DEVOPS_USER=testdevops
+ENV_DEVOPS_USER=testdevops
 DEVOPS_GROUP=testdevops
 project_id="$3"
 project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"

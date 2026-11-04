@@ -89,14 +89,14 @@ ensure_docker_image() {
     echo "Politique : ${update_policy}"
 
     # Vérifie si l'image est déjà présente localement.
-    if ! su - "${DEVOPS_USER}" -c \
+    if ! su - "${ENV_DEVOPS_USER}" -c \
         "docker image inspect '${docker_image}' >/dev/null 2>&1"
     then
         echo
         echo "ℹ️ L'image n'est pas présente localement."
         echo "📥 Téléchargement de l'image..."
 
-        if ! su - "${DEVOPS_USER}" -c \
+        if ! su - "${ENV_DEVOPS_USER}" -c \
             "docker pull '${docker_image}'"
         then
             echo
@@ -122,7 +122,7 @@ ensure_docker_image() {
             echo
             echo "📥 Vérification et téléchargement de l'image..."
 
-            if ! su - "${DEVOPS_USER}" -c \
+            if ! su - "${ENV_DEVOPS_USER}" -c \
                 "docker pull '${docker_image}'"
             then
                 echo
@@ -141,7 +141,7 @@ ensure_docker_image() {
 
     # Récupère le premier digest associé à l'image locale.
     local_digest="$(
-        su - "${DEVOPS_USER}" -c \
+        su - "${ENV_DEVOPS_USER}" -c \
             "docker image inspect '${docker_image}' \
                 --format '{{range .RepoDigests}}{{println .}}{{end}}'" \
             2>/dev/null |
@@ -152,7 +152,7 @@ ensure_docker_image() {
     inspect_output=""
 
     if ! inspect_output="$(
-        su - "${DEVOPS_USER}" -c \
+        su - "${ENV_DEVOPS_USER}" -c \
             "docker buildx imagetools inspect '${docker_image}'"
     )"; then
         echo "⚠️ Impossible de vérifier l'image distante : ${docker_image}"
@@ -196,7 +196,7 @@ ensure_docker_image() {
     echo "📥 Une nouvelle version de l'image est disponible."
     echo "   Mise à jour en cours..."
 
-    if ! su - "${DEVOPS_USER}" -c \
+    if ! su - "${ENV_DEVOPS_USER}" -c \
         "docker pull '${docker_image}'"
     then
         echo

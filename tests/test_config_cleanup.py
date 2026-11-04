@@ -70,6 +70,67 @@ class ConfigCleanupTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(config.read_text(), 'OTHER=keep\nexport ENV_DEVOPS_PROJECTS_ROOT=/srv/projets\n')
 
+    def test_projects_root_historical_user_expression_migrates_in_two_passes(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            original = ('DEVOPS_USER=devops\n'
+                        'export DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"\n')
+            path.write_text(original)
+            prelude = 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT ENV_DEVOPS_USER DEVOPS_USER'
+            result = self.run_cleanup(path, prelude)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(config.exists())
+
+            for name in ('env_devops_user.sh', 'env_devops_projects_root.sh'):
+                source = ROOT / 'modules/diu/variables/environnements' / name
+                (Path(directory) / name).write_text(source.read_text().replace(
+                    'variable_config_file="/root/diu/config/${scope}.env"',
+                    'variable_config_file="$TEST_CONFIG"'))
+            env = dict(os.environ, TARGET=str(path), TEST_CONFIG=str(config), TEST_DIR=directory)
+            for key in ('DEVOPS_USER', 'ENV_DEVOPS_USER', 'DEVOPS_PROJECTS_ROOT', 'ENV_DEVOPS_PROJECTS_ROOT'):
+                env.pop(key, None)
+            generated = subprocess.run(
+                ['bash', '-c', 'set -Eeuo pipefail; source "$TARGET"; '
+                 'source "$TEST_DIR/env_devops_user.sh"; '
+                 'source "$TEST_DIR/env_devops_projects_root.sh"; '
+                 'printf "%s|%s" "$ENV_DEVOPS_USER" "$ENV_DEVOPS_PROJECTS_ROOT"'],
+                env=env, text=True, capture_output=True)
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            self.assertEqual(generated.stdout, 'devops|/home/devops/datas')
+            self.assertIn('export ENV_DEVOPS_PROJECTS_ROOT=/home/devops/datas\n', config.read_text())
+
+            result = self.run_cleanup(path, prelude)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), 'DEVOPS_USER=devops\n')
+            before = config.read_text()
+            result = self.run_cleanup(path, prelude)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(config.read_text(), before)
+
+    def test_projects_root_existing_new_value_skips_historical_expansion(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            config = Path(directory) / 'environnements.env'
+            path.write_text('DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"\n')
+            config.write_text('export ENV_DEVOPS_PROJECTS_ROOT=/srv/existant\n')
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT DEVOPS_USER')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), '')
+            self.assertEqual(config.read_text(), 'export ENV_DEVOPS_PROJECTS_ROOT=/srv/existant\n')
+
+    def test_projects_root_template_with_command_substitution_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory) / 'variables.sh'
+            sentinel = Path(directory) / 'executed'
+            original = f'DEVOPS_PROJECTS_ROOT="/home/${{DEVOPS_USER}}/$(touch {sentinel})"\n'
+            path.write_text(original)
+            result = self.run_cleanup(path, 'unset ENV_DEVOPS_PROJECTS_ROOT DEVOPS_PROJECTS_ROOT')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(path.read_text(), original)
+            self.assertFalse(sentinel.exists())
+
     def test_cleanup_and_idempotence(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory) / 'variables.sh'

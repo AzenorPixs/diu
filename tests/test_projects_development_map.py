@@ -14,7 +14,7 @@ print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { :; }
 print_success() { printf '%s\n' "$*"; }
 chown() { printf '%s\n' "$@" >> "$TEST_CASE_ROOT/owners.txt"; }
-DEVOPS_USER="../${TEST_CASE_ROOT#/}"
+ENV_DEVOPS_USER="../${TEST_CASE_ROOT#/}"
 DEVOPS_GROUP=tester
 ENV_DEVOPS_PROJECTS_ROOT="$TEST_CASE_ROOT/datas"
 '''

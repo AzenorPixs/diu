@@ -53,6 +53,27 @@ class EnvironmentLoadOrderTests(unittest.TestCase):
         self.assertIn('déclaration ambiguë', result.stderr)
         self.assertEqual(saved, contents)
 
+    def test_legacy_projects_root_loads_after_legacy_user(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            path = Path(directory)
+            config = path / 'environnements.env'
+            contents = ('export DEVOPS_PROJECTS_ROOT="/home/${DEVOPS_USER}/datas"\n'
+                        'export DEVOPS_USER=devops\n')
+            config.write_text(contents)
+            script = path / 'config.sh'
+            script.write_text(SOURCE.read_text().replace(
+                'local config_file_environnements="/root/diu/config/environnements.env"',
+                'local config_file_environnements="$TEST_CONFIG"'))
+            env = dict(os.environ, TEST_CONFIG=str(config), TEST_SCRIPT=str(script))
+            env.pop('DEVOPS_USER', None)
+            result = subprocess.run(
+                ['bash', '-c', 'set -Eeuo pipefail; source "$TEST_SCRIPT"; '
+                 'config_load_environments; printf "%s" "$DEVOPS_PROJECTS_ROOT"'],
+                env=env, text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, '/home/devops/datas')
+            self.assertEqual(config.read_text(), contents)
+
     def test_generator_loads_user_once_before_projects_root(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             path = Path(directory)

@@ -128,7 +128,7 @@ project_version_commit_parameters() {
 
 # Une publication versionnée exige un tag local cohérent, sans en créer un.
 project_version_tag_for_head() {
-    local project_path="$1" version="$2" git_user="${3:-${DEVOPS_USER:-}}"
+    local project_path="$1" version="$2" git_user="${3:-${ENV_DEVOPS_USER:-}}"
     local head_sha="" tag_sha=""
     if ! head_sha="$(runuser -u "$git_user" -- env -u GIT_COMMON_DIR git -C "$project_path" rev-parse --verify HEAD)" ||
         ! tag_sha="$(runuser -u "$git_user" -- env -u GIT_COMMON_DIR git -C "$project_path" rev-parse --verify "refs/tags/v${version}^{commit}" 2>/dev/null)" ||

@@ -55,9 +55,9 @@ _gitlab_read_token() { gitlab_token=fixture-token; }
 _github_read_username() { github_username=fixture-user; }
 _github_read_token() { github_token=fixture-token; }
 runuser() { shift 2; [[ "${1:-}" == -- ]] && shift; "$@"; }
-DEVOPS_USER="$(id -un)"
+ENV_DEVOPS_USER="$(id -un)"
 DEVOPS_GROUP="$(id -gn)"
-ENV_DEVOPS_USER="$DEVOPS_USER"
+ENV_DEVOPS_USER="$ENV_DEVOPS_USER"
 ENV_DEVOPS_PROJECTS_ROOT="$2/projects"
 PATH="$2/bin:$PATH"
 export PATH TMPDIR="$2/scratch" GIT_CALLS="$2/git-calls"
