@@ -18,11 +18,11 @@ flowchart TB
   class HOSTS provisoire
 ```
 
-Delta SCM du 2026-11-04 : [diu-command-links](openspec/changes/diu-command-links/proposal.md), code non attribué, actif ; trois tâches validées sur preuves ciblées ; suite globale en échec sur le packaging de configure-system-hosts-json le 2026-11-04 ; validation finale et archivage bloqués, voir [bilan](openspec/changes/diu-command-links/BLOCKERS.md). Dépendance : [migrate-env-devops-projects-root](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/tasks.md), validée et archivée le 2026-11-04. Attribution ultérieure par ACL.
+Delta SCM du 2026-11-04 : [diu-command-links](openspec/changes/archive/2026-11-04-diu-command-links/proposal.md), code non attribué, archivé le 2026-11-04 ; validation finale réussie : 1 164 tests dont 2 ignorés, ShellCheck réussi, voir [bilan](openspec/changes/archive/2026-11-04-diu-command-links/STATISTICS.md). Dépendance : [migrate-env-devops-projects-root](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/tasks.md), validée et archivée le 2026-11-04. Attribution ultérieure par ACL.
 
 ```mermaid
 flowchart LR
-  P_DIU_LINKS["diu-command-links — code non attribué — ACTIF BLOQUÉ"]
+  P_DIU_LINKS["diu-command-links — code non attribué — ARCHIVÉ"]
   P_DIU_ROOT["migrate-env-devops-projects-root — code non attribué — ARCHIVÉ"] --> P_DIU_LINKS
   classDef provisional fill:#fff3cd,stroke:#856404,stroke-dasharray: 5 5;
   class P_DIU_LINKS,P_DIU_ROOT provisional;

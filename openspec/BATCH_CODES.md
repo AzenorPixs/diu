@@ -4,7 +4,7 @@ Delta SCM du 2026-11-04 : [configure-system-hosts-json](changes/archive/2026-11-
 
 Delta SCM du 2026-11-04 : [manage-system-network-hosts](changes/archive/2026-11-04-manage-system-network-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
-- [diu-command-links](changes/diu-command-links/proposal.md) : code non attribué ; change actif, validation finale et archivage bloqués ; voir [bilan](changes/diu-command-links/BLOCKERS.md) ; dépendance `migrate-env-devops-projects-root` archivée ; attribution à traiter par ACL.
+- [diu-command-links](changes/archive/2026-11-04-diu-command-links/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; voir [bilan](changes/archive/2026-11-04-diu-command-links/STATISTICS.md) ; dépendance `migrate-env-devops-projects-root` archivée ; attribution à traiter par ACL.
 
 Delta SCM du 2026-11-04 : [force-diu-update-version](changes/archive/2026-11-04-force-diu-update-version/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
 
