@@ -2265,6 +2265,10 @@ reste à contrôler sur le poste.
 
 ### Configuration des hôtes réseau
 
+`system network hosts` affiche le fichier courant ; `system network hosts update`
+affiche une ligne de résultat avec coche verte ou croix rouge et cause courte.
+La commande ciblée conserve son code d’échec sans diagnostic générique multiligne.
+
 `system_network_hosts` lit toujours `/root/diu/config/hosts.json`, quel que soit
 le point d'entrée. Il crée les fichiers de production et de développement
 absents avec un tableau vide, puis valide les couples de production avant la

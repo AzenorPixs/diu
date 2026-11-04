@@ -497,6 +497,13 @@ dispatch_arguments() {
 
         system)
             shift
+            if [[ $# -eq 3 && "$1" == network && "$2" == hosts && "$3" == update ]]; then
+                if manage_system_action "$@"; then
+                    exit 0
+                else
+                    exit "$?"
+                fi
+            fi
             manage_system_action "$@"
             ;;
 

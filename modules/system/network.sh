@@ -53,6 +53,26 @@ EOF
 
 }
 
+
+system_network_hosts_report() {
+    local diagnostic="" status=0 cause=""
+    if diagnostic="$(system_network_hosts 2>&1)"; then
+        printf '✅ /etc/hosts mis à jour.\n'
+        return 0
+    else
+        status=$?
+    fi
+    case "$diagnostic" in
+        *'Configuration hosts invalide'*) cause='configuration JSON invalide ou illisible' ;;
+        *'python3'*) cause='validateur JSON indisponible' ;;
+        *'unbound variable'*) cause='variable requise absente' ;;
+        *'/config'*) cause='création du fichier de configuration impossible' ;;
+        *) cause='écriture impossible' ;;
+    esac
+    printf '❌ /etc/hosts : %s.\n' "$cause" >&2
+    return "$status"
+}
+
 system_network_update() {
     system_network_hosts
 }
