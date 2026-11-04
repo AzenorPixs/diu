@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-04 : [public-github-diu-update](changes/archive/2026-11-04-public-github-diu-update/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-04 : [stop-setting-technical-account-passwords](changes/archive/2026-11-04-stop-setting-technical-account-passwords/proposal.md), archivé, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](changes/migrate-env-devops-projects-root/proposal.md), actif, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.

@@ -13,7 +13,7 @@ class DiuPackageUpdateTests(unittest.TestCase):
         config = ('REMOTE_GITHUB_BASE_URL=https://github.com\n'
                   'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
         releases = {
-            'https://api.github.com/repos/team/diu/releases?per_page=100&page=1': [
+            'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1': [
                 {'tag_name': 'v2026.11.03.08.38', 'assets': [
                     {'name': 'diu_2026.11.03.08.38_all.deb',
                      'browser_download_url': 'https://github.com/old.deb'}]},
@@ -25,12 +25,13 @@ class DiuPackageUpdateTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, ['https://github.com/stable.deb', 'install'])
 
-    def run_update(self, configs, releases, installed='1.0.0', failure='', metadata=None):
+    def run_update(self, configs, releases, installed='1.0.0', failure='', metadata=None, no_project=False):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             project = base / 'diu'
-            project.mkdir()
-            (project / 'project.env').write_text(configs, encoding='utf-8')
+            if not no_project:
+                project.mkdir()
+                (project / 'project.env').write_text(configs, encoding='utf-8')
             data = base / 'releases.json'
             data.write_text(json.dumps(releases), encoding='utf-8')
             calls = base / 'calls'
@@ -76,10 +77,20 @@ diu_update
             env = {**os.environ, 'ROOT': str(ROOT), 'ENV_DEVOPS_PROJECTS_ROOT': tmp,
                    'RELEASES': str(data), 'CALLS': str(calls), 'REQUESTS': str(requests), 'INSTALLED': installed,
                    'FAILURE': failure, **(metadata or {})}
+            if no_project:
+                env.pop('ENV_DEVOPS_PROJECTS_ROOT', None)
             result = subprocess.run(['bash', '-c', script], env=env, text=True,
                                     capture_output=True, check=False)
             self.requests = requests.read_text().splitlines() if requests.exists() else []
             return result, calls.read_text().splitlines() if calls.exists() else []
+
+    def test_public_github_without_checkout_or_project_root(self):
+        api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1'
+        asset = 'https://github.com/AzenorPixs/diu/releases/download/v2.0.0/diu_2.0.0_all.deb'
+        releases = {api: [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]}
+        result, calls = self.run_update('', releases, no_project=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, [asset, 'install'])
 
     def test_only_github_is_queried(self):
         config = ('REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=team\n'
@@ -89,7 +100,7 @@ diu_update
             'https://forge.example/api/v1/repos/team/diu/releases?per_page=100&page=1': [
                 {'tag_name': 'v9.9.0', 'assets': [{'name': 'diu_9.9.0_all.deb',
                   'browser_download_url': 'https://forge.example/team/diu/releases/diu_9.9.0_all.deb'}]}],
-            'https://api.github.com/repos/team/diu/releases?per_page=100&page=1': [
+            'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1': [
                 {'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb',
                   'browser_download_url': 'https://github.com/team/diu/releases/diu_2.0.0_all.deb'}]}],
         }
@@ -117,7 +128,7 @@ diu_update
         github = ('REMOTE_GITHUB_BASE_URL=https://github.com\n'
                   'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
         forge_api = 'https://forge.example/api/v1/repos/team/diu/releases?per_page=100&page=1'
-        gh_api = 'https://api.github.com/repos/team/diu/releases?per_page=100&page=1'
+        gh_api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1'
         asset = 'https://forge.example/team/diu/2.deb'
         release = [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]
         for config, value in ((forge, []), (forge + github, []), (forge + github, {'error': 'invalid'}),
@@ -147,7 +158,7 @@ diu_update
     def test_invalid_forgejo_ignored_if_github_works_and_download_failure_stops(self):
         config = ('REMOTE_FORGEJO_BASE_URL=invalid value\nREMOTE_FORGEJO_BASE_URL=duplicate\n'
                   'REMOTE_GITHUB_BASE_URL=https://github.com\nREMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
-        api = 'https://api.github.com/repos/team/diu/releases?per_page=100&page=1'
+        api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1'
         asset = 'https://github.com/team/diu/2.deb'
         releases = {api: [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]}
         result, calls = self.run_update(config, releases)
@@ -161,7 +172,7 @@ diu_update
     def test_github_pagination(self):
         config = ('REMOTE_GITHUB_BASE_URL=https://github.com\n'
                   'REMOTE_GITHUB_OWNER=team\nREMOTE_GITHUB_REPOSITORY=diu\n')
-        api = 'https://api.github.com/repos/team/diu/releases?per_page=100&page='
+        api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page='
         releases = {api + '1': [{'tag_name': 'v1.0.0', 'assets': []}],
                     api + '2': [{'tag_name': 'v3.0.0', 'assets': [{
                         'name': 'diu_3.0.0_all.deb',

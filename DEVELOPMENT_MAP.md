@@ -916,3 +916,5 @@ Mermaid : syntaxe élémentaire flowchart, identifiants et références contrôl
 - Repère « code non attribué » : entrée provisoire, ni code ni réservation ; dix dans le relevé actuel (trois actives et sept archivées), avec style discontinu et libellé textuel.
 - Ratios documentaires, validations, intégration, qualification, livraison et activation restent distincts.
 - **A → B signifie que A dépend de B.** Flèches directes étiquetées ; aucune relation transitive déduite.
+
+Delta SCM du 2026-11-04 : [public-github-diu-update](openspec/changes/archive/2026-11-04-public-github-diu-update/proposal.md), code non attribué, archivé ; contrat et validations réussis ; 1 147 tests dont 2 ignorés. Attribution ultérieure par ACL.
