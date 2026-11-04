@@ -618,6 +618,8 @@ projects_cicd_release_provider() {
     context_dir="$(mktemp -d)" || { print_error 'Impossible de préparer le contexte de release.'; return 1; }
     projects_git_unavailable_file="$context_dir/unavailable"
     (
+        # Fonction appelée indirectement par les publications.
+        # shellcheck disable=SC2317
         print_error() {
             if [[ ! -s "$projects_git_unavailable_file" ]]; then printf '❌ %s\n' "$*" >&2; fi
         }

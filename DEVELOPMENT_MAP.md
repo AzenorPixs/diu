@@ -1,10 +1,10 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
-Delta SCM du 2026-11-04 : [handle-cicd-release-unavailability](openspec/changes/handle-cicd-release-unavailability/proposal.md), code non attribué, actif ; spécification préparée et validation OpenSpec stricte réussie ; implémentation et qualification en attente. Attribution ultérieure par ACL.
+Delta SCM du 2026-11-04 : [handle-cicd-release-unavailability](openspec/changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md), code non attribué, archivé ; validation globale : 1 171 tests exécutés, dont 2 ignorés ; OpenSpec strict réussi. Attribution ultérieure par ACL.
 
 ```mermaid
 flowchart TB
-  P_CICD_AVAIL["handle-cicd-release-unavailability — code non attribué — ACTIF"]
+  P_CICD_AVAIL["handle-cicd-release-unavailability — code non attribué — ARCHIVÉ"]
   classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
   class P_CICD_AVAIL provisoire
 ```
