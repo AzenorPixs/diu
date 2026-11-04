@@ -9,10 +9,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   lease. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
   présents sont signalés sans prétendre vérifier leur contenu.
 
-- Réseau : les commandes `projects system network hosts add`, `del` et `list`
+- Réseau : les commandes `system network hosts add`, `del` et `list`
   gèrent le JSON de production. La génération de `/etc/hosts` utilise désormais
   ce seul fichier, y compris depuis les points d'entrée de développement.
-  Les anciennes syntaxes sans `hosts` ne sont plus prises en charge.
+  Les anciennes syntaxes sous `projects` ne sont plus prises en charge.
 
 - CI/CD : une indisponibilité réseau reconnue pendant une release est signalée
   comme publication non confirmée et potentiellement partielle ; les autres

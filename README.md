@@ -22,7 +22,7 @@ standard, y compris avec `ridt` ou `diut`. Un fichier absent est créé avec `[]
 un fichier invalide empêche la reconstruction. Le fichier de développement
 absent est aussi créé vide, sans être utilisé pour générer `/etc/hosts`.
 
-Les commandes `rid projects system network hosts add <IP> <FQDN>`, `del <IP> <FQDN>`,
+Les commandes `rid system network hosts add <IP> <FQDN>`, `del <IP> <FQDN>`,
 `hosts del all` et `hosts list` gèrent uniquement le JSON de production. Après un ajout,
 les couples sont triés par IP numérique, IPv4 avant IPv6, puis par FQDN.
 

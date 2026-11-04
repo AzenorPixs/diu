@@ -55,7 +55,7 @@ Le DIU SHALL lire uniquement `/root/diu/config/hosts.json` pour générer hosts,
 
 ### Requirement: Administration des couples de production
 
-Les commandes `projects system network hosts` (`add`, `del`, `del all`, `list`) SHALL gérer exclusivement `/root/diu/config/hosts.json` pour tous les points d'entrée. Elles SHALL créer un tableau vide si nécessaire et refuser un JSON invalide sans l'écraser. Elles SHALL NOT modifier `/etc/hosts`. Les anciennes syntaxes sans `hosts` SHALL être refusées avant accès au JSON. Les aides SHALL présenter les nouvelles syntaxes.
+Les commandes `system network hosts` (`add`, `del`, `del all`, `list`) SHALL gérer exclusivement `/root/diu/config/hosts.json` pour tous les points d'entrée. Elles SHALL créer un tableau vide si nécessaire et refuser un JSON invalide sans l'écraser. Elles SHALL NOT modifier `/etc/hosts`. Les anciennes syntaxes sous `projects` SHALL être refusées avant accès au JSON. Les aides SHALL présenter les nouvelles syntaxes.
 
 #### Scenario: Ajouter et trier
 - **WHEN** un couple valide est ajouté
@@ -70,9 +70,9 @@ Les commandes `projects system network hosts` (`add`, `del`, `del all`, `list`) 
 - **THEN** la première commande vide le tableau et la seconde affiche les couples ou indique que la liste est vide.
 
 #### Scenario: Ancienne commande
-- **WHEN** une commande sans le segment `hosts` est invoquée
+- **WHEN** une commande d'administration sous `projects system network hosts` est invoquée
 - **THEN** elle est refusée avant toute lecture ou modification du JSON.
 
 #### Scenario: Aide contextuelle
-- **WHEN** l'aide des niveaux projects system network hosts ou de ses actions est demandée
-- **THEN** elle présente les syntaxes de gestion avec le segment `hosts`.
+- **WHEN** l'aide des niveaux system network hosts ou de ses actions est demandée
+- **THEN** elle présente les syntaxes de gestion système et la mise à jour de hosts.
