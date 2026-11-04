@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Réseau : les commandes `projects system network add`, `del` et `list`
+  gèrent le JSON de production. La génération de `/etc/hosts` utilise désormais
+  ce seul fichier, y compris depuis les points d'entrée de développement.
+
 - CI/CD : une indisponibilité réseau reconnue pendant une release est signalée
   comme publication non confirmée et potentiellement partielle ; les autres
   fournisseurs sont poursuivis. Les autres erreurs restent bloquantes.

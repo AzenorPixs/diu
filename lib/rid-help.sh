@@ -46,6 +46,22 @@ rid_display_help_context() {
         return 0
     fi
 
+    if [[ "$context:$subcontext" == projects:system ]]; then
+        if [[ -n "$leaf" && "$leaf" != network ]]; then
+            rid_display_command_error projects system
+            return 2
+        fi
+        if [[ -n "$target" && "$target" != add && "$target" != del && "$target" != list ]]; then
+            rid_display_command_error projects system network
+            return 2
+        fi
+        rid_help_line 'rid projects system network add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
+        rid_help_line 'rid projects system network del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'
+        rid_help_line 'rid projects system network del all' 'Vide le hosts.json de production.'
+        rid_help_line 'rid projects system network list' 'Liste les couples du hosts.json de production.'
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == system:network ]]; then
         if [[ $# -gt 4 || ( -n "$leaf" && "$leaf" != update && "$leaf" != hosts ) ||
               ( "$leaf" == update && -n "$target" ) ||
@@ -54,7 +70,7 @@ rid_display_help_context() {
             return 2
         fi
         rid_help_line 'rid system network update' 'Met à jour la configuration réseau.'
-        rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts depuis config/hosts.json ; les entrées existantes sont remplacées.'
+        rid_help_line 'rid system network hosts update' 'Reconstruit /etc/hosts depuis le hosts.json de production ; les entrées existantes sont remplacées.'
         return 0
     fi
 
@@ -314,6 +330,7 @@ rid_display_help_context() {
             ;;
         projects::)
             rid_help_line 'rid projects infos' 'Affiche les informations du module.'
+            rid_help_line 'rid projects system network' 'Gère les couples du hosts.json de production.'
             rid_help_line 'rid projects template devops <ID PROJECT>' 'Crée ou actualise DEVOPS.md pour le projet.'
             rid_help_line 'rid projects template openspec <ID PROJECT>' 'Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT>'
             rid_help_line 'rid projects template openspec all' 'Initialise ou actualise OpenSpec pour tous les projets configurés.'
