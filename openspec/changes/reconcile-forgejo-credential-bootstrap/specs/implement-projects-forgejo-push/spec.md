@@ -6,29 +6,29 @@ Le push MUST préparer les identifiants avant les transports. Une paire absente 
 
 #### Scenario: identifiants absents
 
-- ÉTANT DONNÉ que les identifiants Forgejo n'existent pas
-- QUAND un premier push Forgejo est demandé
-- ALORS `forgejo_push()` appelle `forgejo_credentials_setup()`
-- ET la fonction demande la confirmation de l'utilisateur
-- ET le parcours d'initialisation demande les informations requises après confirmation
-- ET les fichiers d'identifiants sont créés avec les permissions `600`
-- ET le push n'est tenté qu'après validation des identifiants
+- **GIVEN** que les identifiants Forgejo n'existent pas
+- **WHEN** un premier push Forgejo est demandé
+- **THEN** `forgejo_push()` appelle `forgejo_credentials_setup()`
+- **AND** la fonction demande la confirmation de l'utilisateur
+- **AND** le parcours d'initialisation demande les informations requises après confirmation
+- **AND** les fichiers d'identifiants sont créés avec les permissions `600`
+- **AND** le push n'est tenté qu'après validation des identifiants
 
 #### Scenario: initialisation des identifiants refusée
 
-- ÉTANT DONNÉ que les identifiants Forgejo n'existent pas
-- QUAND `forgejo_credentials_setup()` est refusée par l'utilisateur
-- ALORS aucun fichier d'identifiant n'est créé
-- ET `forgejo-auth` n'est pas appelé
-- ET aucun push n'est tenté
+- **GIVEN** que les identifiants Forgejo n'existent pas
+- **WHEN** `forgejo_credentials_setup()` est refusée par l'utilisateur
+- **THEN** aucun fichier d'identifiant n'est créé
+- **AND** `forgejo-auth` n'est pas appelé
+- **AND** aucun push n'est tenté
 
 #### Scenario: identifiants invalides
 
-- ÉTANT DONNÉ qu'un fichier d'identifiant existe avec des permissions
+- **GIVEN** qu'un fichier d'identifiant existe avec des permissions
   incorrectes ou une valeur vide
-- QUAND un push Forgejo est demandé
-- ALORS la commande échoue explicitement
-- ET le contenu de l'identifiant n'est jamais affiché
+- **WHEN** un push Forgejo est demandé
+- **THEN** la commande échoue explicitement
+- **AND** le contenu de l'identifiant n'est jamais affiché
 
 #### Scenario: Identifiants partagés existants
 

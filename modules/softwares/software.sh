@@ -11,7 +11,7 @@ manage_software_action() {
        [[ "$action" != install && "$action" != remove && "$action" != update ]] ||
        [[ "$action" != update && -z "$software" ]] ||
        [[ $# -eq 3 && -z "$software" ]]; then
-        print_error "Usage : rid <install|remove|update> <deb|apt|github> [SOFTWARE]"
+        print_error "Usage : diu <install|remove|update> <apt|github> [SOFTWARE]"
         return 2
     fi
     if [[ -n "$software" && ! "$software" =~ ^[a-z0-9][a-z0-9+.-]+(:[a-z0-9][a-z0-9-]*)?$ ]]; then
@@ -19,7 +19,10 @@ manage_software_action() {
         return 2
     fi
     case "$engine" in
-        deb) software_deb "$action" "$software" ;;
+        apt) [[ "${SYSTEM_APT_ENGINE:-1}" == 1 ]] || { print_error 'Moteur APT désactivé.'; return 1; } ;;
+        github) [[ "${SYSTEM_GITHUB_ENGINE:-0}" == 1 ]] || { print_error 'Moteur GitHub désactivé.'; return 1; } ;;
+    esac
+    case "$engine" in
         apt) software_apt_action "$action" "$software" ;;
         github) software_github_action "$action" "$software" ;;
         *)

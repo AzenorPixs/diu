@@ -1,0 +1,5 @@
+#!/bin/sh
+[ "$#" -eq 1 ] && [ "$1" = -V ] || exit 9
+printf '%s\n' 'ssh -V' >> "$TEST_HOST_BIN/ssh-queries"
+printf '%s\n' 'OpenSSH_10.0p2 Debian-fixture, OpenSSL 3.5.7' >&2
+

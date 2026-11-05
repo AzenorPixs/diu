@@ -1,7 +1,7 @@
 # software-apt-wazuh-server Specification
 
 ## Purpose
-TBD - created by archiving change rename-wazuh-server-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel wazuh-server.
 
 ## Requirements
 

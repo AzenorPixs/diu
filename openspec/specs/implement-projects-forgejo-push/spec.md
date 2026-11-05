@@ -8,7 +8,7 @@ dépôt Forgejo distant configuré.
 
 ### Requirement: commande de publication Forgejo
 
-DIU MUST exposer `rid projects forgejo push <ID PROJECT>` et sa variante
+DIU MUST exposer `diu projects forgejo push <ID PROJECT>` et sa variante
 `all`, conformément aux scénarios ci-dessous et à `git-provider-availability`.
 La branche MUST utiliser `--force-with-lease` et les tags MUST rester sans
 forçage. Pour un dépôt annoncé absent, le lease MUST attendre l'absence de
@@ -57,7 +57,7 @@ dépendre d'une référence héritée ni supprimer une référence locale.
 
 #### Scenario: publication groupée
 
-- **WHEN** `rid projects forgejo push all` est demandé
+- **WHEN** `diu projects forgejo push all` est demandé
 - **THEN** chaque projet sélectionné utilise le parcours Forgejo unitaire
 
 #### Scenario: sélection explicite de Forgejo
@@ -100,11 +100,11 @@ REMOTE_FORGEJO_SSL_VERIFY="No"
 
 #### Scenario: initialisation au premier push
 
-- ÉTANT DONNÉ que la configuration Forgejo est absente ou incomplète
-- QUAND l'utilisateur lance `rid projects forgejo push <ID PROJECT>`
-- ALORS `forgejo_update()` est exécutée de manière interactive
-- ET les variables Forgejo sont demandées puis enregistrées dans `project.env`
-- ET le push ne commence qu'après une configuration complète
+- **GIVEN** que la configuration Forgejo est absente ou incomplète
+- **WHEN** l'utilisateur lance `diu projects forgejo push <ID PROJECT>`
+- **THEN** `forgejo_update()` est exécutée de manière interactive
+- **AND** les variables Forgejo sont demandées puis enregistrées dans `project.env`
+- **AND** le push ne commence qu'après une configuration complète
 
 ### Requirement: identifiants Forgejo
 
@@ -112,29 +112,29 @@ Le push MUST préparer les identifiants avant les transports. Une paire absente 
 
 #### Scenario: identifiants absents
 
-- ÉTANT DONNÉ que les identifiants Forgejo n'existent pas
-- QUAND un premier push Forgejo est demandé
-- ALORS `forgejo_push()` appelle `forgejo_credentials_setup()`
-- ET la fonction demande la confirmation de l'utilisateur
-- ET le parcours d'initialisation demande les informations requises après confirmation
-- ET les fichiers d'identifiants sont créés avec les permissions `600`
-- ET le push n'est tenté qu'après validation des identifiants
+- **GIVEN** que les identifiants Forgejo n'existent pas
+- **WHEN** un premier push Forgejo est demandé
+- **THEN** `forgejo_push()` appelle `forgejo_credentials_setup()`
+- **AND** la fonction demande la confirmation de l'utilisateur
+- **AND** le parcours d'initialisation demande les informations requises après confirmation
+- **AND** les fichiers d'identifiants sont créés avec les permissions `600`
+- **AND** le push n'est tenté qu'après validation des identifiants
 
 #### Scenario: initialisation des identifiants refusée
 
-- ÉTANT DONNÉ que les identifiants Forgejo n'existent pas
-- QUAND `forgejo_credentials_setup()` est refusée par l'utilisateur
-- ALORS aucun fichier d'identifiant n'est créé
-- ET `forgejo-auth` n'est pas appelé
-- ET aucun push n'est tenté
+- **GIVEN** que les identifiants Forgejo n'existent pas
+- **WHEN** `forgejo_credentials_setup()` est refusée par l'utilisateur
+- **THEN** aucun fichier d'identifiant n'est créé
+- **AND** `forgejo-auth` n'est pas appelé
+- **AND** aucun push n'est tenté
 
 #### Scenario: identifiants invalides
 
-- ÉTANT DONNÉ qu'un fichier d'identifiant existe avec des permissions
+- **GIVEN** qu'un fichier d'identifiant existe avec des permissions
   incorrectes ou une valeur vide
-- QUAND un push Forgejo est demandé
-- ALORS la commande échoue explicitement
-- ET le contenu de l'identifiant n'est jamais affiché
+- **WHEN** un push Forgejo est demandé
+- **THEN** la commande échoue explicitement
+- **AND** le contenu de l'identifiant n'est jamais affiché
 
 #### Scenario: Identifiants partagés existants
 
@@ -218,27 +218,27 @@ opérations Forgejo authentifiées. Une valeur différente DOIT provoquer un
 
 #### Scenario: vérification TLS désactivée
 
-- ÉTANT DONNÉ que `REMOTE_FORGEJO_SSL_VERIFY=No`
-- QUAND une opération Forgejo authentifiée est exécutée
-- ALORS la vérification TLS est désactivée pour cette opération uniquement
+- **GIVEN** que `REMOTE_FORGEJO_SSL_VERIFY=No`
+- **WHEN** une opération Forgejo authentifiée est exécutée
+- **THEN** la vérification TLS est désactivée pour cette opération uniquement
 
 ### Requirement: aide CLI
 
 Les niveaux d'aide suivants MUST être disponibles et cohérents :
 
-- `rid help` affiche les commandes de premier niveau et leur description
+- `diu help` affiche les commandes de premier niveau et leur description
   succincte ;
-- `rid projects help` affiche les commandes du niveau `projects`, dont
+- `diu projects help` affiche les commandes du niveau `projects`, dont
   `forgejo` ;
-- `rid projects forgejo help` affiche `push` et `update` ;
-- `rid projects forgejo push help` décrit la publication et rappelle la
-  syntaxe `rid projects forgejo push <ID PROJECT>`.
+- `diu projects forgejo help` affiche `push` et `update` ;
+- `diu projects forgejo push help` décrit la publication et rappelle la
+  syntaxe `diu projects forgejo push <ID PROJECT>`.
 
 #### Scenario: aide de publication
 
-- ÉTANT DONNÉ que l'utilisateur demande `rid projects forgejo push help`
-- QUAND l'aide est affichée
-- ALORS la description de la publication et sa syntaxe sont affichées
+- **GIVEN** que l'utilisateur demande `diu projects forgejo push help`
+- **WHEN** l'aide est affichée
+- **THEN** la description de la publication et sa syntaxe sont affichées
 
 ### Requirement: compatibilité
 
@@ -247,10 +247,10 @@ comportements existants des publications Forgejo historique, GitLab et GitHub.
 
 #### Scenario: conservation des fournisseurs
 
-- ÉTANT DONNÉ qu'une publication historique Forgejo, GitLab ou GitHub est
+- **GIVEN** qu'une publication historique Forgejo, GitLab ou GitHub est
   utilisée
-- QUAND le parcours Forgejo dédié est ajouté
-- ALORS les variables et le comportement du parcours utilisé sont conservés
+- **WHEN** le parcours Forgejo dédié est ajouté
+- **THEN** les variables et le comportement du parcours utilisé sont conservés
 
 ### Requirement: serveur temporairement indisponible pendant la publication
 

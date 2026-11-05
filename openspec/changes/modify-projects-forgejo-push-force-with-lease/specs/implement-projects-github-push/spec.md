@@ -2,7 +2,7 @@
 
 ### Requirement: commande de publication GitHub
 
-Le système MUST exposer `rid projects github push <ID PROJECT>`. Avant le
+Le système MUST exposer `diu projects github push <ID PROJECT>`. Avant le
 push de branche, il MUST récupérer les références GitHub avec
 l'authentification existante et MUST arrêter si le fetch échoue, sauf
 indisponibilité reconnue selon `git-provider-availability`. Le push de branche
@@ -11,13 +11,13 @@ parcours Forgejo et GitLab.
 
 #### Scenario: publication du dépôt local
 
-- **WHEN** l'utilisateur exécute `rid projects github push diu`
+- **WHEN** l'utilisateur exécute `diu projects github push diu`
 - **THEN** le dépôt local est poussé vers le dépôt GitHub distant configuré
 - **THEN** la branche distante configurée reçoit la branche locale publiée
 
 #### Scenario: références GitHub récupérées avant publication
 
-- **WHEN** l'utilisateur exécute `rid projects github push <ID PROJECT>`
+- **WHEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
 - **THEN** le système récupère les références du remote GitHub configuré avant
   de publier la branche
 - **THEN** le push de branche utilise `--force-with-lease`
@@ -31,14 +31,14 @@ parcours Forgejo et GitLab.
 #### Scenario: sélection explicite de GitHub
 
 - **WHEN** le projet possède déjà une configuration Forgejo ou GitLab
-- **THEN** l'utilisateur exécute `rid projects github push <ID PROJECT>`
+- **THEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
 - **THEN** la commande sélectionne explicitement le fournisseur GitHub
 - **THEN** elle utilise ou initialise les variables `REMOTE_GITHUB_*`
 - **THEN** elle ne remplace pas la configuration des autres fournisseurs
 
 #### Scenario: publication GitHub sans confirmation
 
-- ÉTANT DONNÉ une configuration GitHub et des identifiants valides
-- QUAND l'utilisateur exécute `rid projects github push <ID PROJECT>`
-- ALORS le parcours GitHub ne demande pas de confirmation avant le push
-- ET le push démarre après les vérifications existantes
+- **GIVEN** une configuration GitHub et des identifiants valides
+- **WHEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
+- **THEN** le parcours GitHub ne demande pas de confirmation avant le push
+- **AND** le push démarre après les vérifications existantes

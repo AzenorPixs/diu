@@ -8,7 +8,7 @@ configuré pour un projet DIU.
 
 ### Requirement: commande de publication GitHub
 
-Le système MUST exposer `rid projects github push <ID PROJECT>`. Avant le
+Le système MUST exposer `diu projects github push <ID PROJECT>`. Avant le
 push de branche, il MUST récupérer les références GitHub avec
 l'authentification existante et MUST arrêter si le fetch échoue, sauf
 indisponibilité reconnue selon `git-provider-availability`. Le push de branche
@@ -17,13 +17,13 @@ parcours Forgejo et GitLab.
 
 #### Scenario: publication du dépôt local
 
-- **WHEN** l'utilisateur exécute `rid projects github push diu`
+- **WHEN** l'utilisateur exécute `diu projects github push diu`
 - **THEN** le dépôt local est poussé vers le dépôt GitHub distant configuré
 - **THEN** la branche distante configurée reçoit la branche locale publiée
 
 #### Scenario: références GitHub récupérées avant publication
 
-- **WHEN** l'utilisateur exécute `rid projects github push <ID PROJECT>`
+- **WHEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
 - **THEN** le système récupère les références du remote GitHub configuré avant
   de publier la branche
 - **THEN** le push de branche utilise `--force-with-lease`
@@ -37,7 +37,7 @@ parcours Forgejo et GitLab.
 #### Scenario: sélection explicite de GitHub
 
 - **WHEN** le projet possède déjà une configuration Forgejo ou GitLab
-- **THEN** l'utilisateur exécute `rid projects github push <ID PROJECT>`
+- **THEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
 - **THEN** la commande sélectionne explicitement le fournisseur GitHub
 - **THEN** elle utilise ou initialise les variables `REMOTE_GITHUB_*`
 - **THEN** elle ne remplace pas la configuration des autres fournisseurs
@@ -64,11 +64,11 @@ REMOTE_GITHUB_BRANCH="main"
 
 #### Scenario: initialisation au premier push
 
-- ÉTANT DONNÉ que la configuration GitHub est absente ou incomplète
-- QUAND l'utilisateur lance `rid projects github push <ID PROJECT>`
-- ALORS `github_update()` est exécutée de manière interactive
-- ET les variables GitHub sont demandées puis enregistrées dans `project.env`
-- ET le push ne commence qu'après une configuration complète
+- **GIVEN** que la configuration GitHub est absente ou incomplète
+- **WHEN** l'utilisateur lance `diu projects github push <ID PROJECT>`
+- **THEN** `github_update()` est exécutée de manière interactive
+- **AND** les variables GitHub sont demandées puis enregistrées dans `project.env`
+- **AND** le push ne commence qu'après une configuration complète
 
 ### Requirement: identifiants GitHub
 
@@ -84,19 +84,19 @@ uniquement par le mécanisme temporaire existant `git_with_token`.
 
 #### Scenario: identifiants absents
 
-- ÉTANT DONNÉ que les identifiants GitHub n'existent pas
-- QUAND un premier push GitHub est demandé
-- ALORS l'utilisateur est invité à saisir le nom d'utilisateur et le token
-- ET le token est saisi sans affichage puis confirmé
-- ET les fichiers d'identifiants sont créés avec les permissions `600`
+- **GIVEN** que les identifiants GitHub n'existent pas
+- **WHEN** un premier push GitHub est demandé
+- **THEN** l'utilisateur est invité à saisir le nom d'utilisateur et le token
+- **AND** le token est saisi sans affichage puis confirmé
+- **AND** les fichiers d'identifiants sont créés avec les permissions `600`
 
 #### Scenario: identifiants invalides
 
-- ÉTANT DONNÉ qu'un fichier d'identifiant existe avec des permissions
+- **GIVEN** qu'un fichier d'identifiant existe avec des permissions
   incorrectes ou une valeur vide
-- QUAND un push GitHub est demandé
-- ALORS la commande échoue explicitement
-- ET le contenu de l'identifiant n'est jamais affiché
+- **WHEN** un push GitHub est demandé
+- **THEN** la commande échoue explicitement
+- **AND** le contenu de l'identifiant n'est jamais affiché
 
 #### Scenario: Identifiants partagés existants
 
@@ -121,17 +121,17 @@ Le provider GitHub MUST validate the configured remote before publishing.
 
 #### Scenario: remote GitHub absent
 
-- ÉTANT DONNÉ que le remote `REMOTE_GITHUB_NAME` n'existe pas
-- QUAND un push GitHub est demandé
-- ALORS le remote est ajouté avec l'URL GitHub déclarée
-- ET la publication utilise ce remote
+- **GIVEN** que le remote `REMOTE_GITHUB_NAME` n'existe pas
+- **WHEN** un push GitHub est demandé
+- **THEN** le remote est ajouté avec l'URL GitHub déclarée
+- **AND** la publication utilise ce remote
 
 #### Scenario: remote GitHub incohérent
 
-- ÉTANT DONNÉ que le remote configuré possède une autre URL
-- QUAND un push GitHub est demandé
-- ALORS la commande échoue explicitement
-- ET aucun remote existant n'est écrasé
+- **GIVEN** que le remote configuré possède une autre URL
+- **WHEN** un push GitHub est demandé
+- **THEN** la commande échoue explicitement
+- **AND** aucun remote existant n'est écrasé
 
 ### Requirement: aide CLI
 
@@ -139,19 +139,19 @@ Les aides GitHub MUST décrire les commandes disponibles et leur syntaxe.
 
 #### Scenario: aide GitHub
 
-- ÉTANT DONNÉ que l'utilisateur demande `rid projects github help`
-- QUAND l'aide est affichée
-- ALORS `push` et `update` sont listés
+- **GIVEN** que l'utilisateur demande `diu projects github help`
+- **WHEN** l'aide est affichée
+- **THEN** `push` et `update` sont listés
 
 Les niveaux d'aide suivants DOIVENT être disponibles et cohérents :
 
-- `rid help` affiche les commandes de premier niveau et leur description
+- `diu help` affiche les commandes de premier niveau et leur description
   succincte ;
-- `rid projects help` affiche les commandes du niveau `projects` et leur
+- `diu projects help` affiche les commandes du niveau `projects` et leur
   description succincte, dont `github` ;
-- `rid projects github help` affiche `push` et `update` ;
-- `rid projects github push help` décrit la publication et rappelle la syntaxe
-  `rid projects github push <ID PROJECT>`.
+- `diu projects github help` affiche `push` et `update` ;
+- `diu projects github push help` décrit la publication et rappelle la syntaxe
+  `diu projects github push <ID PROJECT>`.
 
 ### Requirement: compatibilité
 
@@ -159,9 +159,9 @@ L'ajout de GitHub MUST préserver les parcours Forgejo et GitLab existants.
 
 #### Scenario: conservation des fournisseurs existants
 
-- ÉTANT DONNÉ qu'un parcours Forgejo ou GitLab existant est utilisé
-- QUAND la publication GitHub est ajoutée
-- ALORS le comportement du parcours existant reste inchangé
+- **GIVEN** qu'un parcours Forgejo ou GitLab existant est utilisé
+- **WHEN** la publication GitHub est ajoutée
+- **THEN** le comportement du parcours existant reste inchangé
 
 L'ajout de GitHub DOIT préserver les variables, l'initialisation et le
 comportement existants de la publication Forgejo et GitLab.
@@ -174,7 +174,7 @@ GitHub authentifiée l'existence du dépôt défini par `REMOTE_GITHUB_OWNER` et
 
 #### Scenario: dépôt distant existant
 
-- **WHEN** l'utilisateur exécute `rid projects github push <ID PROJECT>` pour un dépôt GitHub accessible
+- **WHEN** l'utilisateur exécute `diu projects github push <ID PROJECT>` pour un dépôt GitHub accessible
 - **THEN** le système conserve le dépôt distant et poursuit la validation du remote puis le push existants
 
 #### Scenario: vérification inaccessible

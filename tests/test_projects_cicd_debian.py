@@ -26,6 +26,7 @@ fixture_push() {
     printf 'OP:push_%s\n' "$1"
     [[ "${FAIL_OPERATION:-}" != "push_$1" ]] || return 57
     if [[ "${UNAVAILABLE_PROVIDER:-}" == "$1" ]]; then PROJECTS_GIT_PUSH_STATUS=indisponible; fi
+    if [[ "${CHANGED_TAG_PROVIDER:-}" == "$1" ]]; then PROJECTS_GIT_CICD_STATUS='branche avancée ; tag remplacé, artefacts à vérifier'; fi
 }
 forgejo_push() { fixture_push forgejo; }
 gitlab_push() { fixture_push gitlab; }
@@ -39,6 +40,11 @@ fixture_release() {
         [[ -f "$ENV_DEVOPS_PROJECTS_ROOT/$2/dist/project_2.3.4_all.deb" ]] || return 91
     fi
     printf 'OP:%s:%s\n' "$1" "$2"
+    if [[ "${UNAVAILABLE_RELEASE:-}" == "$1" ]]; then
+        projects_git_note_unavailable http 503
+        print_error 'service unavailable'
+        return 1
+    fi
     [[ "${FAIL_OPERATION:-}" != "$1" ]]
 }
 projects_forgejo_release() { fixture_release forgejo_release "$1"; }
@@ -94,6 +100,56 @@ class CicdDebianTests(unittest.TestCase):
     @staticmethod
     def operations(result):
         return [line.split(':')[1] for line in result.stdout.splitlines() if line.startswith('OP:')]
+
+    def test_release_unavailability_continues_and_reports_partial(self):
+        for provider in ('forgejo', 'gitlab', 'github'):
+            with self.subTest(provider=provider):
+                result = self.run_flow(UNAVAILABLE_RELEASE=provider + '_debian')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.operations(result)[-3:],
+                                 ['forgejo_debian', 'gitlab_debian', 'github_debian'])
+                self.assertIn('terminé avec indisponibilités', result.stdout)
+                self.assertIn('potentiellement partielle', result.stdout)
+                self.assertNotIn('service unavailable', result.stderr)
+
+    def test_changed_tag_skips_only_that_provider_artifacts(self):
+        for provider in ('forgejo', 'gitlab', 'github'):
+            with self.subTest(provider=provider):
+                result = self.run_flow(CHANGED_TAG_PROVIDER=provider)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertNotIn(provider + '_debian', self.operations(result))
+                self.assertEqual(sum(op.endswith('_debian') for op in self.operations(result)), 2)
+                self.assertIn('cohérence des artefacts à vérifier', result.stdout)
+
+    def test_release_real_failure_still_fails(self):
+        result = self.run_flow(FAIL_OPERATION='gitlab_debian')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('github_debian', self.operations(result))
+
+    def test_docker_network_classifier_keeps_other_failures(self):
+        script = r'''
+source "$1/modules/projects/git.sh"
+print_error() { printf '%s\n' "$*" >&2; }
+projects_git_unavailable_file="$2/unavailable"
+fixture() { printf '%s\n' "$1" >&2; return 1; }
+projects_cicd_docker_transport fixture "$3" || :
+if [[ -s "$projects_git_unavailable_file" ]]; then printf unavailable; else printf error; fi
+'''
+        cases = [
+            ('Error response from daemon: Get https://registry/v2/: dial tcp 127.0.0.1:443: connect: connection refused', 'unavailable'),
+            ('Error response from daemon: Get https://registry/v2/: dial tcp: lookup registry: no such host', 'unavailable'),
+            ('Get "https://registry/v2/": dial tcp: lookup registry: no such host', 'unavailable'),
+            ('Error response from daemon: Get https://registry/v2/: received unexpected HTTP status: 503', 'unavailable'),
+            ('Error response from daemon: unauthorized: authentication required', 'error'),
+            ('Error response from daemon: x509: certificate signed by unknown authority', 'error'),
+        ]
+        for diagnostic, expected in cases:
+            with self.subTest(diagnostic=diagnostic):
+                marker = self.base / 'unavailable'
+                marker.unlink(missing_ok=True)
+                result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(self.base), diagnostic],
+                                        capture_output=True, text=True)
+                self.assertEqual(result.stdout, expected)
 
     def test_debian_only_uses_supported_publications_and_six_steps(self):
         result = self.run_flow()

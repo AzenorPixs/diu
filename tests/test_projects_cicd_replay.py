@@ -144,7 +144,7 @@ cicd_project fixture automatic vautomatic
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
 
-    def test_remote_tag_conflict_never_pushes(self):
+    def test_remote_tag_conflict_uses_expected_sha_lease(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:
             project = Path(temp) / 'fixture'
             project.mkdir()
@@ -169,16 +169,22 @@ runuser() { shift 3; "$@"; }
 print_info() { :; }
 print_error() { printf '%s\n' "$*" >&2; }
 projects_cicd_replay_git_transport() {
-  if [[ "$3" == ls-remote ]]; then printf '%040d\trefs/tags/v1.0.0\n' 1; else printf 'PUSH' > "$PUSH_LOG"; fi
+  case "$3" in
+    ls-remote) printf '%s\trefs/heads/main\n%040d\trefs/tags/v1.0.0\n' "$(git -C "$2" rev-parse HEAD)" 1 ;;
+    fetch) git -C "$2" update-ref refs/remotes/origin/main "$(git -C "$2" rev-parse HEAD)" ;;
+    push) printf '%s\n' "$@" >> "$PUSH_LOG" ;;
+  esac
 }
-if projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0; then exit 1; fi
+projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
+printf '%s\n' "$PROJECTS_CICD_REPLAY_GIT_STATUS"
 '''
             push_log = Path(temp) / 'push'
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
                                     text=True, capture_output=True, env={**os.environ, 'PUSH_LOG': str(push_log), 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('autre commit', result.stderr)
-            self.assertFalse(push_log.exists())
+            self.assertIn('tag remplacé, artefacts à vérifier', result.stdout)
+            self.assertIn('--force-with-lease=refs/tags/v1.0.0:' + '0' * 39 + '1', push_log.read_text())
+            self.assertIn('refs/tags/v1.0.0:refs/tags/v1.0.0', push_log.read_text())
 
     def test_recognized_unavailability_is_informational(self):
         script = r'''
@@ -257,6 +263,16 @@ cicd_project fixture automatic vautomatic
             self.assertNotIn('ERROR:', result.stderr)
             self.assertNotIn('fixture-token', result.stdout + result.stderr)
             self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
+            unavailable = script.replace(
+                "publish_release_debian() { printf 'DEBIAN-PUBLIÉ\\n'; }",
+                "publish_release_debian() { projects_git_note_unavailable http 503; return 1; }")
+            self.assertNotEqual(unavailable, script)
+            result = subprocess.run(['bash', '-c', unavailable, 'fixture', str(ROOT), str(base)],
+                                    text=True, capture_output=True, env={**os.environ, 'TMPDIR': temp})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('terminé avec indisponibilités', result.stdout)
+            self.assertIn('potentiellement partielle', result.stdout)
+            self.assertNotIn('DOCKER-UNEXPECTED', result.stdout)
 
     def test_full_debian_replay_uses_tagged_sources_and_preserves_index(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:

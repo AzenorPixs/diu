@@ -342,9 +342,11 @@ _github_upload_release_asset() (
         --data-binary "@$file" --output "$response_file" --write-out '%{http_code}' \
         "${upload_url}?name=${encoded_name}")" || curl_rc=$?
     if [[ "$curl_rc" -ne 0 ]]; then
+        if declare -F projects_git_note_unavailable >/dev/null; then projects_git_note_unavailable curl "$curl_rc" || :; fi
         print_error "Échec du transport de l’asset GitHub (curl=${curl_rc})."
         return "$curl_rc"
     fi
+    if declare -F projects_git_note_unavailable >/dev/null && projects_git_note_unavailable http "$http_code"; then return 1; fi
     printf '%s\n' "$http_code"
     cat "$response_file" || return 1
 )

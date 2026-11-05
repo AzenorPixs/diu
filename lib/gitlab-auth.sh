@@ -27,7 +27,7 @@ _gitlab_resolve_remote() {
 
     remote_authority="${remote_url#https://}"
     remote_authority="${remote_authority%%/*}"
-    remote_path="${remote_url#https://${remote_authority}/}"
+    remote_path="${remote_url#https://"${remote_authority}"/}"
 
     if [[ "${remote_authority}" == *"@" || -z "${remote_authority}" || "${remote_path}" == "${remote_url}" ]]; then
         print_error "Le remote GitLab ne respecte pas le format HTTPS attendu."
@@ -41,8 +41,12 @@ _gitlab_resolve_remote() {
     fi
 
     gitlab_host="${remote_authority}"
+    # Ces valeurs font partie du résultat accessible aux appelants du module.
+    # shellcheck disable=SC2034
     gitlab_owner="${remote_parts[0]}"
+    # shellcheck disable=SC2034
     gitlab_repository="${remote_parts[1]%.git}"
+    # shellcheck disable=SC2034
     gitlab_base_url="https://${gitlab_host}"
 }
 

@@ -74,6 +74,7 @@ _diu_update_select() {
             version="${tag#v}"
             [[ "$version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ && "$name" == "diu_${version}_all.deb" ]] || continue
             dpkg --validate-version "$version" >/dev/null 2>&1 || continue
+            [[ -z "$requested_version" || "$version" == "$requested_version" ]] || continue
             [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
             if [[ -z "$best_version" ]] || _diu_update_version_gt "$version" "$best_version"; then
                 best_version="$version"; best_url="$url"; best_provider="$provider"
@@ -88,12 +89,18 @@ _diu_update_select() {
 # Exécuter dans un sous-shell afin de limiter configuration et temporaires.
 update_diu() (
     local best_version='' best_url='' best_provider='' installed='' status='' temp_dir='' file=''
-    local project_path=''
+    local project_path='' requested_version="${1:-}"
     local package_version='' package_name='' package_arch=''
     local executable
     for executable in curl jq dpkg dpkg-query dpkg-deb mktemp; do
         command -v "$executable" >/dev/null 2>&1 || { print_error "Commande indisponible : $executable"; return 1; }
     done
+    if [[ $# -gt 1 || ( $# -eq 1 && ( -z "$requested_version" || ! "$requested_version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ ) ) ]]; then
+        print_error 'Usage : diu diu update [VERSION] ; version Debian invalide.'; return 2
+    fi
+    if [[ -n "$requested_version" ]] && ! dpkg --validate-version "$requested_version" >/dev/null 2>&1; then
+        print_error 'Version DIU invalide.'; return 2
+    fi
     [[ -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]] || project_path="${ENV_DEVOPS_PROJECTS_ROOT%/}/diu"
     trap '[[ -z "${temp_dir:-}" ]] || rm -rf -- "$temp_dir"' EXIT
     # shellcheck disable=SC2016
@@ -104,11 +111,14 @@ update_diu() (
         print_error 'Version installée du DIU invalide.'; return 1
     fi
     if ! _diu_update_select GITHUB; then
+        if [[ -n "$requested_version" ]]; then
+            print_error "Version DIU $requested_version indisponible sur GitHub."; return 1
+        fi
         best_version=''; best_url=''; best_provider=''
         print_info 'GitHub indisponible ou sans paquet admissible ; tentative Forgejo.'
         _diu_update_select FORGEJO || { print_error 'Aucun fournisseur DIU disponible avec un paquet admissible.'; return 1; }
     fi
-    if ! _diu_update_version_gt "$best_version" "$installed"; then
+    if [[ -z "$requested_version" ]] && ! _diu_update_version_gt "$best_version" "$installed"; then
         print_info "DIU déjà à jour : $installed (dernière version : $best_version)."
         return 0
     fi
@@ -129,7 +139,7 @@ update_diu() (
 
 # Isolation de la mise à jour lors du parcours global.
 diu_update() {
-    (update_diu)
+    (update_diu "$@")
 }
 
 # Affiche la version du DIU

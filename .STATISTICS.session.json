@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "session_id": "scm-split-system-update-engines-20261105",
+  "scope": "cumulative",
+  "contribution": {
+    "metrics": {
+      "duration": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "net_duration": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tokens_input": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tokens_output": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tokens_reasoning": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tokens_cache_read": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tokens_cache_write": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tokens_total": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "compactions": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "messages": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "messages_user": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "messages_assistant": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tools": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tools_completed": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tools_error": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tools_running": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "permissions": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "permissions_approved": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "permissions_rejected": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "permissions_expired": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "permissions_cancelled": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "writes": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "files_touched": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "commands": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "commands_success": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "commands_failure": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "web": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "web_success": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "web_search": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "web_open": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tests": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tests_success": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tests_failure": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "syntax_files": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "openspec_standard_success": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "openspec_standard_failure": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "openspec_strict_success": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "openspec_strict_failure": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "tasks": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "domain_write": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "domain_command": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "domain_web": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "domain_other": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      },
+      "domain_total": {
+        "state": "unavailable",
+        "value": null,
+        "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+        "evidence": []
+      }
+    },
+    "agents": [
+      {
+        "role": "coder",
+        "agent": "codex",
+        "model": "N/A",
+        "reasoning": "N/A"
+      }
+    ],
+    "performance": [],
+    "costs": {},
+    "breakdowns": {},
+    "web_calls": [],
+    "bounds": {
+      "start": null,
+      "end": null
+    },
+    "sessions": [],
+    "proof_ids": []
+  },
+  "details": {
+    "1": [
+      {
+        "label": "Périmètre",
+        "value": "Trois parcours système, retrait des syntaxes antérieures, documentation et OpenSpec",
+        "proof": "Demande développeur et change archivé"
+      }
+    ],
+    "3": [
+      {
+        "label": "Fichiers",
+        "value": "modules/system/apt.sh ; lib/diu-help.sh ; tests/test_software_engines.py ; tests/test_system_flatpak.py ; documentation et OpenSpec",
+        "proof": "Fichiers du change"
+      }
+    ],
+    "4": [
+      {
+        "label": "Validation",
+        "value": "1209 tests exécutés, 2 ignorés ; 36 tests ciblés ; Bash et ShellCheck réussis",
+        "proof": "unittest discover et contrôles locaux"
+      }
+    ],
+    "5": [
+      {
+        "label": "Web",
+        "value": "Aucun appel web",
+        "proof": "Session locale"
+      }
+    ],
+    "6": [
+      {
+        "label": "Limite",
+        "value": "Télémétrie détaillée indisponible ; CI/CD non exécutée à ce stade",
+        "proof": "Exécution directe SCM"
+      }
+    ]
+  }
+}

@@ -36,18 +36,18 @@ THEN le code de retour non-zéro de Git est propagé
 AND un message d'erreur explicite est affiché
 AND le message ne contient pas le token
 
-### Requirement: Exécution sous DEVOPS_USER
+### Requirement: Exécution sous ENV_DEVOPS_USER
 
 Toute commande Git authentifiée SHALL être exécutée sous l'utilisateur
-système `DEVOPS_USER` via `runuser`.
+système `ENV_DEVOPS_USER` via `runuser`.
 
-Le processus Git enfant SHALL appartenir à `DEVOPS_USER`.
+Le processus Git enfant SHALL appartenir à `ENV_DEVOPS_USER`.
 
 #### Scenario: Exécution sous le bon utilisateur
 
 WHEN une commande Git authentifiée est exécutée
-THEN le processus Git s'exécute sous l'identité de DEVOPS_USER
-AND les fichiers créés dans le dépôt appartiennent à DEVOPS_USER
+THEN le processus Git s'exécute sous l'identité de ENV_DEVOPS_USER
+AND les fichiers créés dans le dépôt appartiennent à ENV_DEVOPS_USER
 
 ### Requirement: Mécanisme d'authentification éphémère
 

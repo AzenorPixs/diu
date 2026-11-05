@@ -5,7 +5,7 @@
 
 ## 2. Routage et aide
 
-- [ ] 2.1 Ajouter `rid projects forgejo clone <ID PROJECT>` et son traitement d'aide, puis vérifier que les chemins `help` et `?` n'exécutent aucune création ni clonage.
+- [ ] 2.1 Ajouter `diu projects forgejo clone <ID PROJECT>` et son traitement d'aide, puis vérifier que les chemins `help` et `?` n'exécutent aucune création ni clonage.
 - [ ] 2.2 Mettre à jour l'aide des contextes `projects` et `projects forgejo`, puis vérifier les syntaxes affichées par les tests d'aide ciblés.
 
 ## 3. Tests et validation

@@ -15,7 +15,7 @@ Le plan ACSM-DIU-BOOTSTRAP-PACKAGING-20261028-R1 validé réconcilie les contrat
 ### Modified Capabilities
 
 - deb-package
-- rid-help
+- diu-help
 - forgejo-release
 
 ## Impact

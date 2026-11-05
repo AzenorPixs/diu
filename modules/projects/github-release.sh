@@ -30,7 +30,7 @@ projects_github_release_debian() {
 
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
-        print_error 'Usage : rid projects github release <ID PROJECT>'
+        print_error 'Usage : diu projects github release <ID PROJECT>'
         return 1
     fi
     project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -118,7 +118,7 @@ projects_github_release_debian() {
         return 1
     fi
     if [[ "$head_sha" != "$remote_sha" ]] &&
-        { [[ "${PROJECTS_CICD_REPLAY:-0}" != 1 ]] ||
+        { [[ "${PROJECTS_CICD_REPLAY:-0}" != 1 && "${PROJECTS_CICD_RECONCILED:-0}" != 1 ]] ||
           ! runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$head_sha" "$remote_sha"; }; then
         print_error 'Le commit du tag est absent de la branche GitHub distante.'
         return 1
@@ -182,7 +182,7 @@ projects_github_release_debian() {
             if ! jq -e --arg name "$deb_filename" 'any(.assets[]; .name == $name and .state == "uploaded")' <<< "$body" >/dev/null; then
                 print_error 'Asset GitHub existant incomplet ou incohérent.'; return 1
             fi
-            print_info "Paquet Debian déjà publié sur GitHub pour $tag_name."
+            print_info "Paquet Debian déjà présent sur GitHub pour $tag_name ; cohérence du contenu non vérifiée."
             # Statut consommé par le bilan CI/CD.
             # shellcheck disable=SC2034
             PROJECTS_DEBIAN_RELEASE_STATUS="déjà publié"
