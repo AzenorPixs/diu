@@ -41,7 +41,7 @@ infos debian. L'affichage SHALL suivre cet ordre exact :
 - SYSTEM APT UNOFFICIAL : SYSTEM_APT_CGPT, SYSTEM_APT_CROWDSEC, SYSTEM_APT_DOCKER,
   SYSTEM_APT_LEMONLDAP, SYSTEM_APT_MONGODB, SYSTEM_APT_NODEJS, SYSTEM_APT_NVIDIA,
   SYSTEM_APT_PROXMOX, SYSTEM_APT_VSCODE, SYSTEM_APT_WAZUH, SYSTEM_APT_WEBMIN.
-- SYSTEM FLATPAK : SYSTEM_FLATPAK.
+- SYSTEM FLATPAK : SYSTEM_FLATPAK_ENGINE.
 
 ### Requirement: Agrégation des informations
 
@@ -105,14 +105,13 @@ system_info_drivers dans modules/system/infos.sh SHALL répondre à diu system i
 
 ### Requirement: Informations des logiciels CrowdSec
 
-`softwares_infos` SHALL afficher les trois interrupteurs CrowdSec sous le titre
-`SOFTWARES`. Elle SHALL NOT afficher la clé API CrowdSec.
+`softwares_infos` SHALL afficher les noms des logiciels CrowdSec et leur état sous le titre `SOFTWARES`. Elle SHALL NOT afficher les noms de variables ou la clé API CrowdSec.
 
 #### Scenario: Informations CrowdSec sans secret
 
 - **WHEN** les informations logicielles sont demandées
-- **THEN** les réglages logiciels CrowdSec sont affichés
-- **AND** la clé API n'est pas affichée
+- **THEN** les logiciels CrowdSec et leur état sont affichés
+- **AND** la clé API et les noms des variables ne sont pas affichés
 
 ### Requirement: Informations du contrôle de bureau
 

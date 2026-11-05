@@ -46,10 +46,10 @@ La fonction `gitlab_update()` MUST modifier uniquement le bloc des variables `RE
 
 #### Scenario: conservation des variables hors GitLab
 
-- ÉTANT DONNÉ que `project.env` contient des variables générales et Forgejo
-- QUAND `gitlab_update()` met à jour la configuration GitLab
-- ALORS seules les variables `REMOTE_GITLAB_*` sont modifiées
-- ET les autres variables sont conservées
+- **GIVEN** que `project.env` contient des variables générales et Forgejo
+- **WHEN** `gitlab_update()` met à jour la configuration GitLab
+- **THEN** seules les variables `REMOTE_GITLAB_*` sont modifiées
+- **AND** les autres variables sont conservées
 
 ### Requirement: aide CLI
 
@@ -61,7 +61,7 @@ Les commandes suivantes MUST être décrites :
 
 #### Scenario: aide GitLab disponible
 
-- ÉTANT DONNÉ que l'utilisateur demande l'aide GitLab
-- QUAND l'aide est affichée
-- ALORS les commandes `update` et `push` sont décrites
-- ET l'entrée `gitlab` reste disponible dans l'aide des projets
+- **GIVEN** que l'utilisateur demande l'aide GitLab
+- **WHEN** l'aide est affichée
+- **THEN** les commandes `update` et `push` sont décrites
+- **AND** l'entrée `gitlab` reste disponible dans l'aide des projets

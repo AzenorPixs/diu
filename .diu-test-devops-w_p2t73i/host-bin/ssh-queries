@@ -1,0 +1,4 @@
+ssh -V
+sshpass -V
+ssh -V
+sshpass -V

@@ -1,0 +1,5 @@
+#!/bin/sh
+[ "$#" -eq 1 ] && [ "$1" = -V ] || exit 9
+printf '%s\n' 'sshpass -V' >> "$TEST_HOST_BIN/ssh-queries"
+printf '%s\n' 'sshpass 1.10'
+

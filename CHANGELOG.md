@@ -4,6 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Codex CLI : recalculer l'état à chaque chargement selon l'exécutable présent
+  dans le PATH du DIU, y compris après une installation ou suppression externe.
+
+- Moteurs logiciels : commandes `diu system engine install|remove apt|github|flatpak`, dépendances vérifiées à l’activation et conservées à la désactivation. `SYSTEM_FLATPAK_ENGINE` reprend l’état historique ; les anciennes commandes d’installation et retrait Flatpak sont remplacées.
+
+- Logiciels : `diu infos softwares` affiche les logiciels déclarés par moteur et leur état configuré ; cette vue est intégrée à `diu infos`.
+
 - Logiciels : suppression du moteur `deb` et de ses commandes ; le moteur
   APT et les commandes de construction des paquets Debian restent disponibles.
 

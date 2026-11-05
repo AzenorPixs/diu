@@ -1,0 +1,2 @@
+#!/bin/sh
+print('pip 25.3.7 from fixture (python 3.13)')

@@ -19,17 +19,17 @@ rejetée comme indisponible.
 
 #### Scenario: dispatch de la nouvelle commande
 
-- ÉTANT DONNÉ un projet identifié par `diu`
-- QUAND l'utilisateur exécute `diu projects forgejo release diu`
-- ALORS le dispatch appelle `projects_forgejo_release diu`
-- ET aucun dispatch `gitpdi` n'est utilisé
+- **GIVEN** un projet identifié par `diu`
+- **WHEN** l'utilisateur exécute `diu projects forgejo release diu`
+- **THEN** le dispatch appelle `projects_forgejo_release diu`
+- **AND** aucun dispatch `gitpdi` n'est utilisé
 
 #### Scenario: ancienne commande supprimée
 
-- ÉTANT DONNÉ que l'utilisateur exécute `diu projects gitpdi diu`
-- QUAND le dispatch traite la commande
-- ALORS aucune publication n'est exécutée
-- ET la commande est rejetée comme indisponible
+- **GIVEN** que l'utilisateur exécute `diu projects gitpdi diu`
+- **WHEN** le dispatch traite la commande
+- **THEN** aucune publication n'est exécutée
+- **AND** la commande est rejetée comme indisponible
 
 ### Requirement: complétion de la configuration
 
@@ -38,17 +38,17 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: configuration générale incomplète
 
-- ÉTANT DONNÉ que `project.env` ne contient pas une variable générale requise
-- QUAND la release est demandée
-- ALORS `update_projects <ID PROJECT>` est appelée
-- ET la publication attend la configuration complète
+- **GIVEN** que `project.env` ne contient pas une variable générale requise
+- **WHEN** la release est demandée
+- **THEN** `update_projects <ID PROJECT>` est appelée
+- **AND** la publication attend la configuration complète
 
 #### Scenario: configuration Forgejo incomplète
 
-- ÉTANT DONNÉ que les variables Forgejo requises ne sont pas complètes
-- QUAND la release est demandée
-- ALORS `forgejo_update <ID PROJECT>` est appelée
-- ET la publication attend la configuration complète
+- **GIVEN** que les variables Forgejo requises ne sont pas complètes
+- **WHEN** la release est demandée
+- **THEN** `forgejo_update <ID PROJECT>` est appelée
+- **AND** la publication attend la configuration complète
 
 #### Scenario: Complétion et rechargement des blocs de configuration
 
@@ -80,19 +80,19 @@ Lorsque `PROJECT_DOCKERED` n'est pas activé, aucune commande Docker ne doit
 
 #### Scenario: image Docker disponible
 
-- ÉTANT DONNÉ que `PROJECT_DOCKERED` vaut `Yes`, `YES` ou `1`
-- ET que `${PROJECT_ID}:latest` existe localement
-- QUAND la release est exécutée
-- ALORS l'image est taguée pour Forgejo avec sa version et `latest`
-- ET les deux tags sont poussés vers le dépôt Forgejo configuré
+- **GIVEN** que `PROJECT_DOCKERED` vaut `Yes`, `YES` ou `1`
+- **AND** que `${PROJECT_ID}:latest` existe localement
+- **WHEN** la release est exécutée
+- **THEN** l'image est taguée pour Forgejo avec sa version et `latest`
+- **AND** les deux tags sont poussés vers le dépôt Forgejo configuré
 
 #### Scenario: image Docker absente
 
-- ÉTANT DONNÉ que `PROJECT_DOCKERED` vaut `Yes`, `YES` ou `1`
-- ET que `${PROJECT_ID}:latest` n'existe pas
-- QUAND la release est exécutée
-- ALORS une erreur explicite est affichée
-- ET aucun push Docker n'est effectué
+- **GIVEN** que `PROJECT_DOCKERED` vaut `Yes`, `YES` ou `1`
+- **AND** que `${PROJECT_ID}:latest` n'existe pas
+- **WHEN** la release est exécutée
+- **THEN** une erreur explicite est affichée
+- **AND** aucun push Docker n'est effectué
 
 ### Requirement: publication Debian conditionnelle
 
@@ -101,26 +101,26 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: paquet unique
 
-- ÉTANT DONNÉ que `PROJECT_DEBIAN_PACKAGE` vaut `Yes`, `YES` ou `1`
-- ET que `dist/` contient exactement un paquet `.deb` du projet
-- QUAND la release est exécutée
-- ALORS le paquet est validé puis publié vers Forgejo
+- **GIVEN** que `PROJECT_DEBIAN_PACKAGE` vaut `Yes`, `YES` ou `1`
+- **AND** que `dist/` contient exactement un paquet `.deb` du projet
+- **WHEN** la release est exécutée
+- **THEN** le paquet est validé puis publié vers Forgejo
 
 #### Scenario: répertoire dist absent
 
-- ÉTANT DONNÉ que le paquet Debian est activé
-- ET que `dist/` est absent
-- QUAND la release est exécutée
-- ALORS une erreur explicite est affichée
-- ET aucune publication Debian n'est tentée
+- **GIVEN** que le paquet Debian est activé
+- **AND** que `dist/` est absent
+- **WHEN** la release est exécutée
+- **THEN** une erreur explicite est affichée
+- **AND** aucune publication Debian n'est tentée
 
 #### Scenario: plusieurs paquets
 
-- ÉTANT DONNÉ que le paquet Debian est activé
-- ET que `dist/` contient plusieurs paquets `.deb` du projet
-- QUAND la release est exécutée
-- ALORS une erreur liste les paquets trouvés
-- ET aucune publication Debian n'est tentée
+- **GIVEN** que le paquet Debian est activé
+- **AND** que `dist/` contient plusieurs paquets `.deb` du projet
+- **WHEN** la release est exécutée
+- **THEN** une erreur liste les paquets trouvés
+- **AND** aucune publication Debian n'est tentée
 
 #### Scenario: Sélection et validation du paquet Debian à publier
 
@@ -145,11 +145,11 @@ La fonction MUST échouer explicitement lorsqu'aucun des indicateurs
 
 #### Scenario: aucun artefact activé
 
-- ÉTANT DONNÉ que `PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` ne sont pas
+- **GIVEN** que `PROJECT_DOCKERED` et `PROJECT_DEBIAN_PACKAGE` ne sont pas
   activés
-- QUAND une release Forgejo est demandée
-- ALORS la commande échoue explicitement
-- ET aucune publication n'est exécutée
+- **WHEN** une release Forgejo est demandée
+- **THEN** la commande échoue explicitement
+- **AND** aucune publication n'est exécutée
 
 ### Requirement: aides CLI
 
@@ -160,7 +160,7 @@ Les aides ne doivent plus présenter `diu projects gitpdi`.
 
 #### Scenario: aide Forgejo
 
-- ÉTANT DONNÉ que l'utilisateur exécute `diu projects forgejo help`
-- QUAND l'aide est affichée
-- ALORS la commande `release <ID PROJECT>` est décrite
-- ET `gitpdi` n'est pas affichée
+- **GIVEN** que l'utilisateur exécute `diu projects forgejo help`
+- **WHEN** l'aide est affichée
+- **THEN** la commande `release <ID PROJECT>` est décrite
+- **AND** `gitpdi` n'est pas affichée

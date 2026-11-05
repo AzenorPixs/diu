@@ -72,7 +72,7 @@ system_info_debian() {
     printf '%s=%s\n' 'SYSTEM_APT_WEBMIN' "${SYSTEM_APT_WEBMIN-UNSET}"
     printf '\n%s\n %s\n%s\n\n' \
         '==============================================' 'SYSTEM FLATPAK' '=============================================='
-    printf '%s=%s\n' 'SYSTEM_FLATPAK' "${SYSTEM_FLATPAK-UNSET}"
+    printf '%s=%s\n' 'SYSTEM_FLATPAK_ENGINE' "${SYSTEM_FLATPAK_ENGINE-UNSET}"
 }
 
 system_info_drivers() {

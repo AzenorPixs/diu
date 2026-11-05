@@ -234,11 +234,34 @@ variable_source="$TMPDIR/software_apt_codex_cli.sh"
 sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
     "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
 SOFTWARES_APT_CODEX_CLI=0
+PATH="/usr/bin:/bin"
 source "$variable_source"
     cat "$TMPDIR/softwares.env"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stdout.splitlines()[-1:], ['export SOFTWARES_APT_CODEX_CLI=0'])
+
+    def test_codex_cli_state_is_redetected_on_each_load(self):
+        result, _, _ = self.run_shell(r'''
+variable_source="$TMPDIR/software_apt_codex_cli.sh"
+sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
+    "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
+mkdir -p "$TMPDIR/codex-bin"
+PATH="$TMPDIR/codex-bin:/usr/bin:/bin"
+SOFTWARES_APT_CODEX_CLI=1
+source "$variable_source"
+[[ "$SOFTWARES_APT_CODEX_CLI" == 0 ]]
+printf '#!/bin/sh\nexit 0\n' > "$TMPDIR/codex-bin/codex"
+chmod +x "$TMPDIR/codex-bin/codex"
+source "$variable_source"
+[[ "$SOFTWARES_APT_CODEX_CLI" == 1 ]]
+grep -Fx 'export SOFTWARES_APT_CODEX_CLI=1' "$TMPDIR/softwares.env"
+rm "$TMPDIR/codex-bin/codex"
+source "$variable_source"
+[[ "$SOFTWARES_APT_CODEX_CLI" == 0 ]]
+grep -Fx 'export SOFTWARES_APT_CODEX_CLI=0' "$TMPDIR/softwares.env"
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_chatgpt_variables_persist_without_home(self):
         result, _, _ = self.run_shell(r'''

@@ -256,7 +256,9 @@ system_apt_update() {
 }
 
 system_update() {
+    if [[ "${SYSTEM_APT_ENGINE:-}" == 1 ]]; then system_engine_ensure_dependencies apt || return $?; fi
     system_apt_update || return $?
+    if [[ "${SYSTEM_GITHUB_ENGINE:-0}" == 1 ]]; then system_engine_ensure_dependencies github || return $?; fi
     system_flatpak_apply || return $?
     system_network_update
 }
@@ -283,13 +285,13 @@ system_flatpak_package_state() {
 }
 
 system_flatpak_persist_state() {
-    local value="$1" variable_config_file="${SYSTEM_FLATPAK_CONFIG_FILE:-/root/diu/config/system.env}"
+    local value="$1" variable_config_file="${SYSTEM_FLATPAK_ENGINE_CONFIG_FILE:-${SYSTEM_FLATPAK_CONFIG_FILE:-/root/diu/config/system.env}}"
 
     [[ "$value" =~ ^(0|1|UNSET)$ ]] || return 1
     install -d -m 0755 "$(dirname "$variable_config_file")"
-    [[ -f "$variable_config_file" ]] && sed -i '/^export SYSTEM_FLATPAK=/d' "$variable_config_file"
-    printf 'export SYSTEM_FLATPAK=%s\n' "$value" >> "$variable_config_file"
-    export SYSTEM_FLATPAK="$value"
+    [[ -f "$variable_config_file" ]] && sed -i '/^export SYSTEM_FLATPAK_ENGINE=/d' "$variable_config_file"
+    printf 'export SYSTEM_FLATPAK_ENGINE=%s\n' "$value" >> "$variable_config_file"
+    export SYSTEM_FLATPAK_ENGINE="$value"
 }
 
 system_flatpak_ensure_installed() {
@@ -314,11 +316,11 @@ system_flatpak_ensure_removed() {
 }
 
 system_flatpak_apply() {
-    case "${SYSTEM_FLATPAK:-UNSET}" in
+    case "${SYSTEM_FLATPAK_ENGINE:-UNSET}" in
         1) system_flatpak_ensure_installed ;;
-        0) system_flatpak_ensure_removed ;;
+        0) print_info "Flatpak : moteur désactivé, dépendances conservées." ;;
         UNSET) print_info "Flatpak : état non défini, aucune action." ;;
-        *) print_error "SYSTEM_FLATPAK : valeur invalide : ${SYSTEM_FLATPAK}"; return 2 ;;
+        *) print_error "SYSTEM_FLATPAK_ENGINE : valeur invalide : ${SYSTEM_FLATPAK_ENGINE}"; return 2 ;;
     esac
 }
 
@@ -328,7 +330,6 @@ system_flatpak_install() {
 }
 
 system_flatpak_remove() {
-    system_flatpak_ensure_removed || return 1
     system_flatpak_persist_state 0
 }
 
@@ -410,9 +411,78 @@ system_apt_remove_repository() {
     system_apt_debian_configure
 }
 
+system_engine_persist() {
+    local variable="$1" value="$2" config_file="${SYSTEM_ENGINE_CONFIG_FILE:-/root/diu/config/system.env}" temporary
+    [[ "$variable" =~ ^SYSTEM_(APT|GITHUB|FLATPAK)_ENGINE$ && "$value" =~ ^[01]$ ]] || return 2
+    install -d -m 0755 "$(dirname "$config_file")" || return 1
+    [[ ! -L "$config_file" ]] || { print_error 'Configuration système symbolique refusée.'; return 1; }
+    temporary="$(mktemp "${config_file}.XXXXXX")" || return 1
+    if [[ -f "$config_file" ]]; then
+        if ! sed "/^export ${variable}=/d" "$config_file" > "$temporary" || ! chmod --reference="$config_file" "$temporary"; then
+            rm -f -- "$temporary"; return 1
+        fi
+    elif ! chmod 0644 "$temporary"; then
+        rm -f -- "$temporary"; return 1
+    fi
+    if ! printf 'export %s=%s\n' "$variable" "$value" >> "$temporary" || ! mv -f -- "$temporary" "$config_file"; then
+        rm -f -- "$temporary"; return 1
+    fi
+    printf -v "$variable" '%s' "$value"
+    export "${variable?}"
+}
+
+system_engine_ensure_dependencies() {
+    local engine="$1" package command_name state
+    local -a packages=() commands=()
+    case "$engine" in
+        apt) packages=(apt apt-transport-https apt-utils dpkg); commands=(apt dpkg-query) ;;
+        github) packages=(curl jq tar gzip coreutils); commands=(curl jq tar gzip sha256sum) ;;
+        flatpak) system_flatpak_ensure_installed; return $? ;;
+        *) print_error "Moteur inconnu : $engine"; return 2 ;;
+    esac
+    command -v dpkg-query >/dev/null 2>&1 || { print_error 'dpkg-query est nécessaire pour contrôler les dépendances.'; return 1; }
+    for package in "${packages[@]}"; do
+        local query_result=0
+        state="$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null)" || query_result=$?
+        if (( query_result > 1 )); then
+            print_error "Impossible de contrôler la dépendance : $package"
+            return 1
+        fi
+        if [[ "$state" != installed ]]; then
+            apt-get install -y -- "$package" || { print_error "Installation impossible : $package"; return 1; }
+            if ! state="$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null)" || [[ "$state" != installed ]]; then
+                print_error "Dépendance non installée après installation : $package"
+                return 1
+            fi
+        fi
+    done
+    for command_name in "${commands[@]}"; do
+        command -v "$command_name" >/dev/null 2>&1 || { print_error "Dépendance indisponible : $command_name"; return 1; }
+    done
+}
+
+system_engine_action() {
+    local action="$1" engine="$2" variable
+    case "$engine" in
+        apt) variable=SYSTEM_APT_ENGINE ;;
+        github) variable=SYSTEM_GITHUB_ENGINE ;;
+        flatpak) variable=SYSTEM_FLATPAK_ENGINE ;;
+        *) print_error "Moteur inconnu : $engine"; return 2 ;;
+    esac
+    case "$action" in
+        install) system_engine_ensure_dependencies "$engine" || return $?; system_engine_persist "$variable" 1 ;;
+        remove) system_engine_persist "$variable" 0 ;;
+        *) print_error "Action moteur inconnue : $action"; return 2 ;;
+    esac
+}
+
 manage_system_action() {
     local action="${1:-}" repository=""
     case "$action" in
+        engine)
+            [[ $# -eq 3 ]] || { print_error 'Usage : diu system engine {install|remove} {apt|github|flatpak}'; return 2; }
+            system_engine_action "$2" "$3"
+            ;;
         network)
             shift
             if [[ $# -eq 1 && "$1" == update ]]; then
@@ -459,16 +529,8 @@ manage_system_action() {
             esac
             ;;
         install|remove)
-            if [[ "${2:-}" == flatpak && $# -eq 2 ]]; then
-                if [[ "$action" == install ]]; then
-                    system_flatpak_install
-                else
-                    system_flatpak_remove
-                fi
-                return
-            fi
             [[ "${2:-}" == apt && $# -eq 3 ]] || {
-                print_error "Usage : diu system ${action} {flatpak|apt <repository>}"
+                print_error "Usage : diu system ${action} apt <repository>"
                 return 2
             }
             repository="$3"
@@ -502,6 +564,6 @@ manage_system_action() {
             system_apt_update
             ;;
         '') system_update ;;
-        *) print_error "Usage : diu system {install|remove} {flatpak|apt <repository>} | update [flatpak|apt [debian]] | network {update|hosts update}"; return 2 ;;
+        *) print_error "Usage : diu system {install|remove} apt <repository> | update [flatpak|apt [debian]] | network {update|hosts update}"; return 2 ;;
     esac
 }

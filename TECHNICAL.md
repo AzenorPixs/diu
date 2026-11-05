@@ -1,5 +1,9 @@
 # Cadrage technique du DIUE
 
+Les moteurs sont configurés par `SYSTEM_APT_ENGINE`, `SYSTEM_GITHUB_ENGINE` et `SYSTEM_FLATPAK_ENGINE` dans le scope system. Le défaut APT est 1 ; GitHub est initialisé par détection locale ; Flatpak reprend `SYSTEM_FLATPAK` ou conserve sa détection historique, y compris `UNSET`. Les commandes `diu system engine install|remove apt|github|flatpak` activent ou désactivent le moteur. L’activation assure les paquets requis ; la désactivation conserve les dépendances, tandis que les opérations logicielles explicites sont refusées et les mises à jour globales ignorent ce moteur. Les opérations système APT restent distinctes. La configuration est persistée après succès. Les tests isolés peuvent substituer les chemins de persistance par `SYSTEM_ENGINE_CONFIG_FILE` et `SYSTEM_FLATPAK_ENGINE_CONFIG_FILE` ; le repli historique `SYSTEM_FLATPAK_CONFIG_FILE` reste reconnu.
+
+La vue `diu infos softwares`, également appelée par `diu infos` et `diu softwares infos`, présente les logiciels déclarés sous APT, GitHub et Flatpak. Les en-têtes signalent les moteurs activés dont les dépendances locales sont disponibles ; les états 1 et 0 sont respectivement verts et jaunes, et les états inconnus portent `?`. Aucun nom de variable ou secret n’est affiché.
+
 ## Objet et périmètre
 
 Ce document définit le cadre technique transversal du projet **DIUE**.
@@ -1475,6 +1479,12 @@ scope `softwares`. Les anciennes variables de personnalisation de profil non
 prévues par la spécification ne doivent pas être recréées.
 
 ### Moteur `github`
+
+`SOFTWARES_APT_CODEX_CLI` est `DYNAMIC` et `ENABLE` dans le scope `softwares`.
+À chaque chargement, sa valeur est recalculée depuis la présence d'un
+exécutable `codex` dans le PATH du processus DIU, puis persistée lorsque la
+configuration est accessible en écriture. Le repli est `0` ; une installation
+hors de ce PATH n'est pas détectée.
 
 La recette actuelle est `codex-cli`. Elle :
 

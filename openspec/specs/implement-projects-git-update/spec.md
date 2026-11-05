@@ -16,27 +16,27 @@ La fonction DOIT gérer `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et
 
 #### Scenario: mise à jour ciblée de Git local
 
-- ÉTANT DONNÉ que `project.env` contient une configuration générale conforme
-- QUAND l'utilisateur exécute `diu projects git update <ID PROJECT>`
-- ALORS les valeurs Git local existantes sont proposées
-- ET seules les variables Git local sont remplacées
-- ET les variables générales et distantes sont conservées
+- **GIVEN** que `project.env` contient une configuration générale conforme
+- **WHEN** l'utilisateur exécute `diu projects git update <ID PROJECT>`
+- **THEN** les valeurs Git local existantes sont proposées
+- **AND** seules les variables Git local sont remplacées
+- **AND** les variables générales et distantes sont conservées
 
 #### Scenario: indépendance de la configuration générale
 
-- QUAND une fonction appelle `git_update <ID PROJECT>`
-- ALORS seules `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et `GIT_USER_EMAIL`
+- **WHEN** une fonction appelle `git_update <ID PROJECT>`
+- **THEN** seules `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et `GIT_USER_EMAIL`
   sont demandées ou mises à jour
-- ET `update_projects <ID PROJECT>` n'est pas appelée
-- ET les variables générales et distantes déjà présentes sont conservées
+- **AND** `update_projects <ID PROJECT>` n'est pas appelée
+- **AND** les variables générales et distantes déjà présentes sont conservées
 
 #### Scenario: fichier de projet absent
 
-- ÉTANT DONNÉ que le répertoire du projet existe mais que `project.env` est
+- **GIVEN** que le répertoire du projet existe mais que `project.env` est
   absent
-- QUAND l'utilisateur exécute `diu projects git update <ID PROJECT>`
-- ALORS `project.env` est créé avec les seules variables Git locales
-- ET `update_projects <ID PROJECT>` n'est pas appelée
+- **WHEN** l'utilisateur exécute `diu projects git update <ID PROJECT>`
+- **THEN** `project.env` est créé avec les seules variables Git locales
+- **AND** `update_projects <ID PROJECT>` n'est pas appelée
 
 ### Requirement: signature limitée
 
@@ -46,8 +46,8 @@ fonctions dédiées et ne passent pas par `git_update()`.
 
 #### Scenario: appel public
 
-- QUAND l'utilisateur exécute `diu projects git update <ID PROJECT>`
-- ALORS `git_update <ID PROJECT>` met à jour uniquement les variables Git
+- **WHEN** l'utilisateur exécute `diu projects git update <ID PROJECT>`
+- **THEN** `git_update <ID PROJECT>` met à jour uniquement les variables Git
   locales
 
 ### Requirement: Enregistrement système après mise à jour Git locale

@@ -1,5 +1,25 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-05 : [refresh-codex-cli-state](openspec/changes/archive/2026-11-05-refresh-codex-cli-state/proposal.md), archivé, **code non attribué** ; recalcul de l’état Codex CLI, 1 190 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  CODEX_STATE["refresh-codex-cli-state — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class CODEX_STATE provisoire
+```
+
+Delta SCM du 2026-11-05 : [manage-software-engines](openspec/changes/archive/2026-11-05-manage-software-engines/proposal.md), archivé, **code non attribué** ; 1 190 tests exécutés dont 2 ignorés, sans échec ; pas de CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  SOFTWARE_ENGINES["manage-software-engines — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class SOFTWARE_ENGINES provisoire
+```
+
+Delta SCM du 2026-11-05 : [display-software-inventory](openspec/changes/archive/2026-11-05-display-software-inventory/proposal.md), archivé, **code non attribué** ; 1 179 tests exécutés, dont 2 ignorés, sans échec ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-05 : [remove-software-deb-engine](openspec/changes/archive/2026-11-05-remove-software-deb-engine/proposal.md), archivé, **code non attribué** ; suppression du moteur logiciel deb, 1 177 tests dont 2 ignorés ; attribution ultérieure par ACL.
 
 ```mermaid

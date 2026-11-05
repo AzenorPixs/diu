@@ -19,6 +19,10 @@ manage_software_action() {
         return 2
     fi
     case "$engine" in
+        apt) [[ "${SYSTEM_APT_ENGINE:-1}" == 1 ]] || { print_error 'Moteur APT désactivé.'; return 1; } ;;
+        github) [[ "${SYSTEM_GITHUB_ENGINE:-0}" == 1 ]] || { print_error 'Moteur GitHub désactivé.'; return 1; } ;;
+    esac
+    case "$engine" in
         apt) software_apt_action "$action" "$software" ;;
         github) software_github_action "$action" "$software" ;;
         *)

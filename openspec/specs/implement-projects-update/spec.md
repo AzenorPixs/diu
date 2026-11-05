@@ -29,11 +29,11 @@ de `projects` avec leur description, notamment `update` et `git`.
 
 #### Scenario: aide générale des projets
 
-- ÉTANT DONNÉ que l'utilisateur exécute `diu projects help`
-- QUAND l'aide est affichée
-- ALORS la commande `diu projects update <ID PROJECT>` est décrite
-- ET la commande `diu projects git update <ID PROJECT>` est décrite
-- ET les commandes projects existantes restent listées
+- **GIVEN** que l'utilisateur exécute `diu projects help`
+- **WHEN** l'aide est affichée
+- **THEN** la commande `diu projects update <ID PROJECT>` est décrite
+- **AND** la commande `diu projects git update <ID PROJECT>` est décrite
+- **AND** les commandes projects existantes restent listées
 
 ### Requirement: Déclaration du mode de développement du projet
 

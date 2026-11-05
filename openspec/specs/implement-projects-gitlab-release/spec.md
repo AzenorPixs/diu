@@ -12,9 +12,9 @@ Le système SHALL exposer la commande `diu projects gitlab release <ID PROJECT>`
 
 #### Scenario: release d'un projet Dockerisé
 
-- ÉTANT DONNÉ le dépôt local du projet `diu`.
-- QUAND l'utilisateur exécute `diu projects gitlab release diu`.
-- ALORS l'image Docker locale `diu:latest` est poussée vers le registre GitLab configuré.
+- **GIVEN** le dépôt local du projet `diu`.
+- **WHEN** l'utilisateur exécute `diu projects gitlab release diu`.
+- **THEN** l'image Docker locale `diu:latest` est poussée vers le registre GitLab configuré.
 
 ### Requirement: initialisation de configuration incomplète
 
@@ -82,9 +82,9 @@ partie Docker.
 
 #### Scenario: projet non Dockerisé
 
-- ÉTANT DONNÉ que `PROJECT_DOCKERED` n'est pas activé
-- QUAND une release GitLab est demandée
-- ALORS aucune publication Docker n'est tentée
+- **GIVEN** que `PROJECT_DOCKERED` n'est pas activé
+- **WHEN** une release GitLab est demandée
+- **THEN** aucune publication Docker n'est tentée
 
 ### Requirement: publication Debian conditionnelle
 
@@ -96,9 +96,9 @@ partie Debian.
 
 #### Scenario: paquet Debian désactivé
 
-- ÉTANT DONNÉ que `PROJECT_DEBIAN_PACKAGE` n'est pas activé
-- QUAND une release GitLab est demandée
-- ALORS aucune publication Debian n'est tentée
+- **GIVEN** que `PROJECT_DEBIAN_PACKAGE` n'est pas activé
+- **WHEN** une release GitLab est demandée
+- **THEN** aucune publication Debian n'est tentée
 
 ### Requirement: sélection de paquet Debian
 
@@ -112,9 +112,9 @@ en listant les fichiers détectés.
 
 #### Scenario: paquet Debian unique
 
-- ÉTANT DONNÉ que `dist/` contient un unique paquet `.deb`
-- QUAND la publication Debian est requise
-- ALORS la publication GitLab se poursuit avec ce paquet
+- **GIVEN** que `dist/` contient un unique paquet `.deb`
+- **WHEN** la publication Debian est requise
+- **THEN** la publication GitLab se poursuit avec ce paquet
 
 ### Requirement: aide CLI
 
@@ -126,9 +126,9 @@ en listant les fichiers détectés.
 
 #### Scenario: aide de release GitLab
 
-- ÉTANT DONNÉ que l'utilisateur demande l'aide GitLab
-- QUAND l'aide est affichée
-- ALORS la commande `release` est présentée avec `update` et `push`
+- **GIVEN** que l'utilisateur demande l'aide GitLab
+- **WHEN** l'aide est affichée
+- **THEN** la commande `release` est présentée avec `update` et `push`
 
 ### Requirement: compatibilité
 
@@ -138,9 +138,9 @@ parcours d'authentification GitLab.
 
 #### Scenario: comportements existants préservés
 
-- ÉTANT DONNÉ que les parcours de publication existants sont disponibles
-- QUAND la release GitLab est ajoutée
-- ALORS ces parcours conservent leur comportement
+- **GIVEN** que les parcours de publication existants sont disponibles
+- **WHEN** la release GitLab est ajoutée
+- **THEN** ces parcours conservent leur comportement
 
 ### Requirement: registre Docker GitLab explicite
 

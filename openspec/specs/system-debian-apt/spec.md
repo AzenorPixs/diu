@@ -71,7 +71,7 @@ en compte `SYSTEM_APT_DEBIAN_UPDATES`, `SYSTEM_APT_DEBIAN_BACKPORT`,
 
 ### Requirement: Isolation de Flatpak du sous-module APT
 
-Le sous-module APT de `system` SHALL ne pas appliquer `SYSTEM_FLATPAK` et
+Le sous-module APT de `system` SHALL ne pas appliquer `SYSTEM_FLATPAK_ENGINE` et
 SHALL ne jamais appeler `flatpak update`. Seule la commande explicite
 `diu system update flatpak` SHALL pouvoir mettre à jour le paquet Debian
 `flatpak`.

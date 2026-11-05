@@ -318,6 +318,7 @@ source "$ROOT/modules/diu/update-all.sh"
 print_error() { printf '%s\n' "$*" >&2; }
 system_network_hosts() { printf 'hosts\n'; }
 system_apt_update() { :; }
+system_engine_ensure_dependencies() { :; }
 system_flatpak_apply() { :; }
 diu_update() { :; }
 environments_update() { :; }

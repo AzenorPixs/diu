@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Variable déclarative : SYSTEM_FLATPAK.
+# Variable déclarative : SYSTEM_FLATPAK_ENGINE.
 # shellcheck disable=SC2034
 
 config="STATIC"
@@ -25,18 +25,26 @@ system_flatpak_detect() {
 }
 
 if [[ "$state" == ENABLE ]]; then
-    if [[ -z "${SYSTEM_FLATPAK+x}" ]]; then
-        default_value="$(system_flatpak_detect)"
-        export SYSTEM_FLATPAK="$default_value"
-        install -d -m 0755 "$(dirname "$variable_config_file")"
-        printf 'export SYSTEM_FLATPAK=%s\n' "$SYSTEM_FLATPAK" >> "$variable_config_file"
+    if [[ -z "${SYSTEM_FLATPAK_ENGINE+x}" ]]; then
+        if [[ -n "${SYSTEM_FLATPAK+x}" ]]; then
+            default_value="$SYSTEM_FLATPAK"
+        else
+            default_value="$(system_flatpak_detect)"
+        fi
+        if [[ ! "$default_value" =~ ^(0|1|UNSET)$ ]]; then
+            printf '%s\n' 'SYSTEM_FLATPAK : valeur historique invalide.' >&2
+            return 1
+        fi
+        export SYSTEM_FLATPAK_ENGINE="$default_value"
+        install -d -m 0755 "$(dirname "$variable_config_file")" || return 1
+        printf 'export SYSTEM_FLATPAK_ENGINE=%s\n' "$SYSTEM_FLATPAK_ENGINE" >> "$variable_config_file" || return 1
     fi
 
-    if [[ ! "$SYSTEM_FLATPAK" =~ ^(0|1|UNSET)$ ]]; then
-        printf '%s\n' "SYSTEM_FLATPAK : valeur invalide : $SYSTEM_FLATPAK" >&2
+    if [[ ! "$SYSTEM_FLATPAK_ENGINE" =~ ^(0|1|UNSET)$ ]]; then
+        printf '%s\n' "SYSTEM_FLATPAK_ENGINE : valeur invalide : $SYSTEM_FLATPAK_ENGINE" >&2
         return 1
     fi
 else
-    unset SYSTEM_FLATPAK
-    [[ -f "$variable_config_file" ]] && sed -i '/^export SYSTEM_FLATPAK=/d' "$variable_config_file"
+    unset SYSTEM_FLATPAK_ENGINE
+    [[ -f "$variable_config_file" ]] && sed -i '/^export SYSTEM_FLATPAK_ENGINE=/d' "$variable_config_file"
 fi
