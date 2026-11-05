@@ -21,15 +21,19 @@ Le DIU SHALL exposer `diu system apt update`, `diu system github update` et `diu
 - **THEN** le DIU vérifie le moteur Flatpak et Flathub, sans exécuter APT, GitHub ou réseau.
 
 ### Requirement: Composition du parcours général
-`diu system update` SHALL exécuter les phases APT, GitHub, Flatpak puis réseau en conservant leurs diagnostics et le résultat agrégé. Les échecs des phases SHALL NOT empêcher les phases ultérieures. Le parcours `diu update` SHALL préserver le report de Codex CLI.
+`diu system update` SHALL exécuter les phases APT, GitHub, Flatpak puis réseau en conservant leurs diagnostics et le résultat agrégé. Les échecs des phases SHALL NOT empêcher les phases ultérieures. Dans `diu update`, la phase système GitHub SHALL exécuter Codex CLI selon ses conditions habituelles sans report vers softwares.
 
 #### Scenario: Ordre général
 - **WHEN** `diu system update` est invoqué
-- **THEN** les phases APT, GitHub, Flatpak et réseau sont exécutées dans cet ordre.
+- **THEN** les phases APT, GitHub, Flatpak et réseau sont exécutées dans cet ordre
 
 #### Scenario: Échec d'une phase
 - **WHEN** une phase échoue
-- **THEN** les phases suivantes sont tentées et le résultat général est non nul.
+- **THEN** les phases suivantes sont tentées et le résultat général est non nul
+
+#### Scenario: Codex dans le parcours universel
+- **WHEN** `diu update` est invoqué et que Codex CLI est admissible dans la phase GitHub système
+- **THEN** cette phase exécute sa mise à jour une seule fois
 
 ### Requirement: Suppression des anciennes syntaxes
 Le DIU SHALL refuser `diu system update apt`, `diu system update apt debian`, `diu system update debian` et `diu system update flatpak` sans effectuer leur ancienne action.

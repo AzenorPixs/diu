@@ -2008,7 +2008,7 @@ phase. APT comprend le bilan Debian et celui du moteur ; GitHub vérifie ses
 dépendances et Codex CLI configuré ; Flatpak vérifie ses dépendances et Flathub.
 Les anciennes syntaxes `system update apt [debian]`, `system update debian`
 et `system update flatpak` sont supprimées. Dans `diu update`, la phase GitHub
-conserve le report de Codex CLI vers la mise à jour des logiciels.
+exécute Codex CLI selon les conditions habituelles du moteur système.
 
 ## Orchestration des mises à jour
 
@@ -2018,11 +2018,10 @@ Une commande avec moteur explicite reste limitée à ce moteur.
 
 Le parcours actuel dans `modules/diu/update-all.sh` appelle successivement
 `diu_update`, `system_update`, `environments_update`, `ia_update`,
-`projects_update` puis `softwares_update`. La mise à jour des projets décrite
-ci-dessus est donc incluse une seule fois. Son échec est mémorisé : le module
-softwares est encore appelé, puis le code non nul projects est rendu. Lorsque
-projects réussit, une erreur DIU est conservée ; si DIU et projects réussissent,
-le code final softwares est conservé.
+`projects_update`. La mise à jour des projets décrite ci-dessus est incluse
+une seule fois. Une erreur projects est prioritaire, puis une erreur DIU ;
+si ces deux étapes réussissent, le résultat est nul. La commande indépendante
+`diu softwares update` n’est pas appelée dans ce parcours.
 
 Chaque fonction appelée définit ses propres prérequis et traitements.
 `environments_update` retourne actuellement un succès sans opération.
