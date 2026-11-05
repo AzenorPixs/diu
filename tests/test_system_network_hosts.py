@@ -334,7 +334,9 @@ if manage_system_action network hosts bogus; then exit 5; fi
         result = subprocess.run(['bash', '-c', script], env=dict(os.environ, ROOT=str(ROOT)),
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.splitlines(), ['✅ /etc/hosts mis à jour.'] + ['hosts'] * 3)
+        self.assertEqual([line for line in result.stdout.splitlines()
+                          if line in ('✅ /etc/hosts mis à jour.', 'hosts')],
+                         ['✅ /etc/hosts mis à jour.'] + ['hosts'] * 3)
 
     def test_help(self):
         script = r'''source "$ROOT/lib/diu-help.sh"; diu_display_help_context system network hosts update'''

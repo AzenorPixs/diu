@@ -379,3 +379,5 @@ analysés et recherches incomplètes restent explicites. La collecte ne lance
 aucun gestionnaire, script ou paquet et n'utilise aucun repli npm global.
 Les détails sont décrits dans
 [le cadrage technique](TECHNICAL.md#traçabilité-du-document-devops).
+
+`diu system update` met à jour Debian, puis présente les moteurs et les versions des logiciels DIU activés. Les opérations APT sont discrètes et leurs diagnostics sont affichés en cas de problème.

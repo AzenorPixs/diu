@@ -1,5 +1,11 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-05 : [improve-system-update-report](changes/archive/2026-11-05-improve-system-update-report/proposal.md), archivé, **code non attribué** ; 1 200 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [fix-system-update-codex-duplicate](changes/archive/2026-11-05-fix-system-update-codex-duplicate/proposal.md), archivé, **code non attribué** ; spécification stricte validée, 1 207 tests dont 2 ignorés ; sans CI/CD ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [fix-system-update-apt-cli-warning](changes/archive/2026-11-05-fix-system-update-apt-cli-warning/proposal.md), archivé, **code non attribué** ; 1 205 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-05 : [refresh-codex-cli-state](changes/archive/2026-11-05-refresh-codex-cli-state/proposal.md), archivé, **code non attribué** ; recalcul de l’état Codex CLI, 1 190 tests dont 2 ignorés ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-05 : [manage-software-engines](changes/archive/2026-11-05-manage-software-engines/proposal.md), archivé, **code non attribué** ; 1 190 tests exécutés dont 2 ignorés, sans échec ; pas de CI/CD ; attribution ultérieure par ACL.

@@ -1,5 +1,32 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-05 : [fix-system-update-codex-duplicate](openspec/changes/archive/2026-11-05-fix-system-update-codex-duplicate/proposal.md), archivé, **code non attribué** ; spécification stricte validée ; 1 207 tests exécutés dont 2 ignorés, 73 tests ciblés et contrôles Bash réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  FIX_CODEX_DUP["fix-system-update-codex-duplicate — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class FIX_CODEX_DUP provisoire
+```
+
+Delta SCM du 2026-11-05 : [fix-system-update-apt-cli-warning](openspec/changes/archive/2026-11-05-fix-system-update-apt-cli-warning/proposal.md), archivé, **code non attribué** ; spécification stricte validée ; 1 205 tests exécutés dont 2 ignorés, 39 tests ciblés et contrôles Bash réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  FIX_APT_WARNING["fix-system-update-apt-cli-warning — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class FIX_APT_WARNING provisoire
+```
+
+Delta SCM du 2026-11-05 : [improve-system-update-report](openspec/changes/archive/2026-11-05-improve-system-update-report/proposal.md), archivé, **code non attribué** ; spécification stricte validée ; 1 200 tests exécutés dont 2 ignorés, contrôles ciblés et Bash réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  UPDATE_REPORT["improve-system-update-report — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class UPDATE_REPORT provisoire
+```
+
 Delta SCM du 2026-11-05 : [refresh-codex-cli-state](openspec/changes/archive/2026-11-05-refresh-codex-cli-state/proposal.md), archivé, **code non attribué** ; recalcul de l’état Codex CLI, 1 190 tests dont 2 ignorés ; attribution ultérieure par ACL.
 
 ```mermaid

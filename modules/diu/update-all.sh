@@ -4,7 +4,7 @@ update_all() {
     local diu_status=0 projects_status=0 softwares_status=0
 
     diu_update || diu_status=$?
-    system_update
+    DIU_UPDATE_DEFER_SOFTWARES=1 system_update
     environments_update
     ia_update
     projects_update || projects_status=$?
