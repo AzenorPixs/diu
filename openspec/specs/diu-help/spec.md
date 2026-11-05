@@ -187,7 +187,7 @@ correspondante avec sa description.
 
 ### Requirement: Aide des informations de modules
 
-L'aide racine et contextuelle SHALL présenter diu infos, les commandes diu
+L'aide racine et contextuelle SHALL présenter diu infos, diu infos softwares, les commandes diu
 <module> infos pour desktop, diu, environnements, ia, projects, softwares et
 system, ainsi que diu system infos debian, diu system infos drivers et diu system infos network. Elle
 SHALL rester disponible avant tout chargement de configuration de production.

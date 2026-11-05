@@ -1,7 +1,7 @@
 # software-apt-postfix Specification
 
 ## Purpose
-TBD - created by archiving change rename-postfix-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel postfix.
 
 ## Requirements
 

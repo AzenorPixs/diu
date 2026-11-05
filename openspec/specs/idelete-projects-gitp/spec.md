@@ -18,28 +18,28 @@ ne DOIT plus être présentée dans les aides CLI.
 
 #### Scenario: parcours générique absent
 
-- ÉTANT DONNÉ que l'utilisateur demande l'ancien parcours de publication
+- **GIVEN** que l'utilisateur demande l'ancien parcours de publication
   générique
-- QUAND le dispatch traite la demande
-- ALORS aucun push Git n'est exécuté par ce parcours
-- ET la demande est rejetée comme commande inconnue ou non disponible
+- **WHEN** le dispatch traite la demande
+- **THEN** aucun push Git n'est exécuté par ce parcours
+- **AND** la demande est rejetée comme commande inconnue ou non disponible
 
 #### Scenario: aides avec forgejo_push
 
-- ÉTANT DONNÉ que l'utilisateur demande une aide globale, `projects` ou
+- **GIVEN** que l'utilisateur demande une aide globale, `projects` ou
   détaillée
-- QUAND l'aide est affichée
-- ALORS l'entrée du parcours générique est absente
-- ET l'entrée `diu projects forgejo push <ID PROJECT>` est disponible
-- ET l'entrée `gitpdiu` reste affichée lorsqu'elle est applicable
-- ET l'entrée `gitpdi` est absente
+- **WHEN** l'aide est affichée
+- **THEN** l'entrée du parcours générique est absente
+- **AND** l'entrée `diu projects forgejo push <ID PROJECT>` est disponible
+- **AND** l'entrée `gitpdiu` reste affichée lorsqu'elle est applicable
+- **AND** l'entrée `gitpdi` est absente
 
 #### Scenario: commande gitpdi obsolète
 
-- ÉTANT DONNÉ que l'utilisateur exécute `diu projects gitpdi <ID PROJECT>`
-- QUAND le dispatch traite la commande
-- ALORS aucune publication n'est exécutée
-- ET la commande est rejetée comme indisponible
+- **GIVEN** que l'utilisateur exécute `diu projects gitpdi <ID PROJECT>`
+- **WHEN** le dispatch traite la commande
+- **THEN** aucune publication n'est exécutée
+- **AND** la commande est rejetée comme indisponible
 
 ### Requirement: conservation des publications dédiées
 
@@ -50,11 +50,11 @@ sélecteur distant global.
 
 #### Scenario: publications dédiées
 
-- ÉTANT DONNÉ qu'une configuration valide existe pour Forgejo, GitLab ou
+- **GIVEN** qu'une configuration valide existe pour Forgejo, GitLab ou
   GitHub
-- QUAND la commande dédiée correspondante est exécutée
-- ALORS le dépôt est publié vers le fournisseur demandé
-- ET les configurations des autres fournisseurs restent inchangées
+- **WHEN** la commande dédiée correspondante est exécutée
+- **THEN** le dépôt est publié vers le fournisseur demandé
+- **AND** les configurations des autres fournisseurs restent inchangées
 
 ### Requirement: suppression de l'ancienne fonction
 
@@ -64,11 +64,11 @@ fonction. Le traitement commun indispensable aux publications dédiées PEUT
 
 #### Scenario: parcours CI/CD conservé
 
-- ÉTANT DONNÉ qu'un flux CI/CD DIU ou Docker nécessite une publication Git
-- QUAND ce flux est exécuté
-- ALORS il utilise un parcours de publication explicite compatible avec sa
+- **GIVEN** qu'un flux CI/CD DIU ou Docker nécessite une publication Git
+- **WHEN** ce flux est exécuté
+- **THEN** il utilise un parcours de publication explicite compatible avec sa
   cible
-- ET le flux Forgejo utilise `forgejo_push`
+- **AND** le flux Forgejo utilise `forgejo_push`
 
 ### Requirement: conservation de la configuration distante
 
@@ -79,10 +79,10 @@ sont pas réalisées par la mise à jour Git locale.
 
 #### Scenario: mise à jour Git locale
 
-- ÉTANT DONNÉ que `project.env` contient des variables distantes historiques
-- QUAND `git_update <ID PROJECT>` termine avec succès
-- ALORS ces variables sont conservées
-- ET seules les variables Git locales sont modifiées
+- **GIVEN** que `project.env` contient des variables distantes historiques
+- **WHEN** `git_update <ID PROJECT>` termine avec succès
+- **THEN** ces variables sont conservées
+- **AND** seules les variables Git locales sont modifiées
 
 ### Requirement: renommage des consommateurs Forgejo
 
@@ -93,10 +93,10 @@ variable générique supprimée.
 
 #### Scenario: release Forgejo
 
-- ÉTANT DONNÉ que `project.env` contient une configuration Forgejo valide
-- QUAND `publish_release_diu` est exécutée
-- ALORS elle utilise l'URL, le remote et la branche Forgejo configurés
-- ET la vérification de type par une variable générique n'est pas requise
+- **GIVEN** que `project.env` contient une configuration Forgejo valide
+- **WHEN** `publish_release_diu` est exécutée
+- **THEN** elle utilise l'URL, le remote et la branche Forgejo configurés
+- **AND** la vérification de type par une variable générique n'est pas requise
 
 ### Requirement: non-régression des cycles Git
 
@@ -106,7 +106,7 @@ release et update de projet. Elle SHALL préserver les variables
 
 #### Scenario: cycles existants
 
-- ÉTANT DONNÉ un projet correctement configuré
-- QUAND les commandes commit, init, release ou update sont exécutées
-- ALORS elles conservent leur comportement prévu
-- ET aucune d'elles ne dépend de l'ancien parcours générique
+- **GIVEN** un projet correctement configuré
+- **WHEN** les commandes commit, init, release ou update sont exécutées
+- **THEN** elles conservent leur comportement prévu
+- **AND** aucune d'elles ne dépend de l'ancien parcours générique

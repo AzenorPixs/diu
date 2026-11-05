@@ -434,6 +434,10 @@ dispatch_arguments() {
     case "$argument_class" in
 
         infos)
+            if [[ $# -eq 2 && "$2" == softwares ]]; then
+                softwares_infos
+                exit $?
+            fi
             if [[ $# -ne 1 ]]; then
                 printf '%s\n' 'Usage : diu infos ; voir diu infos help' >&2
                 exit 2

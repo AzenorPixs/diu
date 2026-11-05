@@ -1,7 +1,7 @@
 # software-apt-webmin Specification
 
 ## Purpose
-TBD - created by archiving change rename-webmin-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel webmin.
 
 ## Requirements
 

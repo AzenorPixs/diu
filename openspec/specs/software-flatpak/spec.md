@@ -28,7 +28,7 @@ invalides SHALL échouer avant toute commande Flatpak.
 
 Le moteur d'applications Flatpak SHALL exiger un client Flatpak utilisable et
 le remote système `flathub`. Il SHALL NOT installer ou retirer le paquet Debian
-`flatpak`, écrire `SYSTEM_FLATPAK`, ni créer, modifier ou supprimer un remote.
+`flatpak`, écrire `SYSTEM_FLATPAK_ENGINE`, ni créer, modifier ou supprimer un remote.
 Une préparation absente SHALL être signalée explicitement sans action
 implicite.
 

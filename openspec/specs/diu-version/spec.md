@@ -1,7 +1,7 @@
 # diu-version Specification
 
 ## Purpose
-TBD - created by archiving change declare-diu-version-variable. Update Purpose after archive.
+Définir la détermination et l’affichage de la version du paquet DIU.
 
 ## Requirements
 

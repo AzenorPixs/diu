@@ -1,7 +1,7 @@
 # docker-user Specification
 
 ## Purpose
-TBD - created by archiving change add-environment-docker-user-variable. Update Purpose after archive.
+Définir la déclaration de l’utilisateur des stacks Docker.
 
 ## Requirements
 

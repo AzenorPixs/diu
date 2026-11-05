@@ -1,7 +1,7 @@
 # environment-ia Specification
 
 ## Purpose
-TBD - created by archiving change rename-env-ia-activation-variable. Update Purpose after archive.
+Définir la déclaration et l’activation de l’environnement IA.
 
 ## Requirements
 

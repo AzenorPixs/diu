@@ -14,7 +14,7 @@ VARIABLES = (
     'SYSTEM_APT_DEBIAN_CONTRIB SYSTEM_APT_DEBIAN_NONFRFEE '
     'SYSTEM_APT_CGPT SYSTEM_APT_DOCKER SYSTEM_APT_LEMONLDAP '
     'SYSTEM_APT_MONGODB SYSTEM_APT_NODEJS SYSTEM_APT_NVIDIA SYSTEM_APT_PROXMOX '
-    'SYSTEM_APT_VSCODE SYSTEM_APT_WAZUH SYSTEM_APT_WEBMIN SYSTEM_FLATPAK'
+    'SYSTEM_APT_VSCODE SYSTEM_APT_WAZUH SYSTEM_APT_WEBMIN SYSTEM_FLATPAK_ENGINE'
 ).split()
 
 
@@ -54,16 +54,34 @@ class ModuleInfosTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('SYSTEM_TIME_ZONE=\n', r.stdout)
 
-    def test_crowdsec_settings_are_reported_in_software_scope(self):
+    def test_software_inventory_displays_names_and_colors_without_variables(self):
         r = self.run_shell('SOFTWARES_APT_CROWDSEC=1\n'
                            'SOFTWARES_APT_CROWDSEC_AGENT=0\n'
                            'SOFTWARES_APT_CROWDSEC_BOUNCER=1\nsoftwares_infos')
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual([line for line in r.stdout.splitlines() if '=' in line], [
-            'SOFTWARES_APT_CROWDSEC=1',
-            'SOFTWARES_APT_CROWDSEC_AGENT=0',
-            'SOFTWARES_APT_CROWDSEC_BOUNCER=1',
-        ])
+        self.assertIn('\x1b[32m✓\x1b[0m \x1b[32mcrowdsec ', r.stdout)
+        self.assertIn('\x1b[31m✗\x1b[0m \x1b[33mcrowdsec-agent ', r.stdout)
+        self.assertIn('codex-cli', r.stdout)
+        self.assertIn('Flatpak', r.stdout)
+        self.assertNotIn('SOFTWARES_APT_', r.stdout)
+
+    def test_engine_availability_and_unknown_state(self):
+        r = self.run_shell("SYSTEM_GITHUB_ENGINE=1\ncommand() { [[ $2 != flatpak ]]; }\n"
+                           "unset SOFTWARES_APT_APACHE2\nsoftwares_infos")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('\x1b[1;32mAPT', r.stdout)
+        self.assertIn('\x1b[1;32mGitHub', r.stdout)
+        self.assertIn('\x1b[1;31mFlatpak', r.stdout)
+        self.assertIn('apache2 (?)', r.stdout)
+
+    def test_software_inventory_route_and_global_call(self):
+        dispatch = function_from('root-install-debian.sh', 'dispatch_arguments')
+        result = self.run_shell(dispatch + "\nsoftwares_infos() { echo INVENTORY; }\n"
+                                + "infos() { echo GLOBAL; }\ndispatch_arguments infos softwares")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'INVENTORY')
+        aggregate = function_from('modules/diu/infos.sh', 'infos')
+        self.assertIn('softwares_infos', aggregate)
 
     def test_desktop_toggle_is_reported_in_desktop_scope(self):
         r = self.run_shell('DESKTOP=1\ndesktop_infos')

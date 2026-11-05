@@ -156,6 +156,10 @@ diu_display_help_context() {
     case "$context:$subcontext:$leaf" in
         infos::)
             diu_help_line 'diu infos' 'Affiche les informations de tous les modules.'
+            diu_help_line 'diu infos softwares' 'Affiche les logiciels par moteur.'
+            ;;
+        infos:softwares:)
+            diu_help_line 'diu infos softwares' 'Affiche les logiciels par moteur.'
             ;;
         diu::)
             diu_help_line 'diu diu infos' 'Affiche les informations du DIU.'
@@ -186,6 +190,7 @@ diu_display_help_context() {
             diu_help_line 'diu system drivers install displaylink' 'Installe et valide le pilote DisplayLink.'
             diu_help_line 'diu system drivers remove displaylink' 'Supprime le pilote DisplayLink.'
             diu_help_line 'diu infos' 'Affiche les informations de tous les modules.'
+            diu_help_line 'diu infos softwares' 'Affiche les logiciels par moteur.'
             diu_help_line 'diu desktop infos' 'Affiche les informations du bureau.'
             diu_help_line 'diu diu infos' 'Affiche les informations et la version du DIU.'
             diu_help_line 'diu diu update' 'Met à jour le paquet DIU.'
@@ -252,17 +257,20 @@ diu_display_help_context() {
             diu_help_line 'diu system infos drivers' "Affiche l’état DisplayLink et la version du pilote installé."
             diu_help_line 'diu system install apt <Dépôt>' 'Installe un dépôt APT.'
             diu_help_line 'diu system remove apt <Dépôt>' 'Supprime un dépôt APT.'
-            diu_help_line 'diu system install flatpak' 'Installe Flatpak et Flathub.'
-            diu_help_line 'diu system remove flatpak' 'Désinstalle le paquet Flatpak.'
+            diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
+            diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
             diu_help_line 'diu system update flatpak' 'Met à jour le paquet Flatpak.'
             diu_help_line 'diu system update apt' 'Régénère les dépôts APT.'
             diu_help_line 'diu system apt update' 'Met à jour le système APT Debian.'
             ;;
+        system:engine:|system:engine:install|system:engine:remove)
+            diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
+            diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
+            ;;
         system:install:|system:remove:)
-            diu_help_line "diu system ${subcontext} flatpak" 'Opération sur Flatpak.'
             diu_help_line "diu system ${subcontext} apt <Dépôt>" 'Opération sur un dépôt APT.'
             ;;
-        system:install:flatpak|system:remove:flatpak|system:update:flatpak)
+        system:update:flatpak)
             diu_help_line "diu system ${subcontext} ${leaf}" "Exécute l'opération système demandée."
             ;;
         system:update:)

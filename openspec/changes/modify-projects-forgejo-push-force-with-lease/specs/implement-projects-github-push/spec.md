@@ -38,7 +38,7 @@ parcours Forgejo et GitLab.
 
 #### Scenario: publication GitHub sans confirmation
 
-- ÉTANT DONNÉ une configuration GitHub et des identifiants valides
-- QUAND l'utilisateur exécute `diu projects github push <ID PROJECT>`
-- ALORS le parcours GitHub ne demande pas de confirmation avant le push
-- ET le push démarre après les vérifications existantes
+- **GIVEN** une configuration GitHub et des identifiants valides
+- **WHEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
+- **THEN** le parcours GitHub ne demande pas de confirmation avant le push
+- **AND** le push démarre après les vérifications existantes

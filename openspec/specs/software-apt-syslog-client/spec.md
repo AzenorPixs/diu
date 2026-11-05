@@ -1,7 +1,7 @@
 # software-apt-syslog-client Specification
 
 ## Purpose
-TBD - created by archiving change rename-syslog-client-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel syslog-client.
 
 ## Requirements
 

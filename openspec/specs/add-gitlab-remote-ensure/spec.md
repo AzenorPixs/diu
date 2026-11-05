@@ -12,26 +12,26 @@ La commande `diu projects gitlab push <ID PROJECT>` MUST utiliser le remote déf
 
 #### Scenario: remote GitLab absent
 
-- ÉTANT DONNÉ que `REMOTE_GITLAB_NAME` et les variables `REMOTE_GITLAB_*` sont conformes
-- ET que le remote GitLab n'existe pas dans le dépôt local
-- QUAND `diu projects gitlab push <ID PROJECT>` est exécuté
-- ALORS le remote GitLab est ajouté avec l'URL construite depuis `REMOTE_GITLAB_BASE_URL`, `REMOTE_GITLAB_OWNER` et `REMOTE_GITLAB_REPOSITORY`
-- ET le push est effectué vers ce remote
+- **GIVEN** que `REMOTE_GITLAB_NAME` et les variables `REMOTE_GITLAB_*` sont conformes
+- **AND** que le remote GitLab n'existe pas dans le dépôt local
+- **WHEN** `diu projects gitlab push <ID PROJECT>` est exécuté
+- **THEN** le remote GitLab est ajouté avec l'URL construite depuis `REMOTE_GITLAB_BASE_URL`, `REMOTE_GITLAB_OWNER` et `REMOTE_GITLAB_REPOSITORY`
+- **AND** le push est effectué vers ce remote
 
 #### Scenario: remote GitLab déjà conforme
 
-- ÉTANT DONNÉ que le remote défini par `REMOTE_GITLAB_NAME` existe
-- ET que son URL correspond à la configuration GitLab
-- QUAND un push GitLab est demandé
-- ALORS le remote est conservé sans modification
-- ET le push est effectué vers ce remote
+- **GIVEN** que le remote défini par `REMOTE_GITLAB_NAME` existe
+- **AND** que son URL correspond à la configuration GitLab
+- **WHEN** un push GitLab est demandé
+- **THEN** le remote est conservé sans modification
+- **AND** le push est effectué vers ce remote
 
 #### Scenario: remote GitLab incohérent
 
-- ÉTANT DONNÉ que le remote défini par `REMOTE_GITLAB_NAME` existe avec une autre URL
-- QUAND un push GitLab est demandé
-- ALORS la commande échoue explicitement
-- ET aucun remote existant n'est écrasé
+- **GIVEN** que le remote défini par `REMOTE_GITLAB_NAME` existe avec une autre URL
+- **WHEN** un push GitLab est demandé
+- **THEN** la commande échoue explicitement
+- **AND** aucun remote existant n'est écrasé
 
 ### Requirement: identifiants et remote sélectionné
 
@@ -39,7 +39,7 @@ La validation du remote et la résolution du dépôt GitLab MUST utiliser `REMOT
 
 #### Scenario: remote configuré sélectionné
 
-- ÉTANT DONNÉ que `REMOTE_GITLAB_NAME` vaut `ecn`
-- QUAND un push GitLab authentifié est demandé
-- ALORS la validation et la résolution utilisent le remote `ecn`
-- ET le token utilise le mécanisme temporaire existant
+- **GIVEN** que `REMOTE_GITLAB_NAME` vaut `ecn`
+- **WHEN** un push GitLab authentifié est demandé
+- **THEN** la validation et la résolution utilisent le remote `ecn`
+- **AND** le token utilise le mécanisme temporaire existant

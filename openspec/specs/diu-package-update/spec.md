@@ -7,7 +7,7 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 
 ### Requirement: Mise à jour dédiée du paquet DIU
 
-`diu diu update` SHALL rechercher en priorité les releases publiques de `https://github.com/AzenorPixs/diu`, sans authentification GitHub et sans dépendre d’un checkout ou d’une configuration GitHub locale. En l’absence de candidat GitHub admissible ou si GitHub est inaccessible, elle SHALL essayer les releases publiques Forgejo si leur configuration locale est disponible. Elle SHALL NOT interroger GitLab. Elle SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg.
+`diu diu update` SHALL rechercher en priorité les releases publiques de `https://github.com/AzenorPixs/diu`, sans authentification GitHub et sans dépendre d’un checkout ou d’une configuration GitHub locale. En l’absence de candidat GitHub admissible ou si GitHub est inaccessible, elle SHALL essayer les releases publiques Forgejo si leur configuration locale est disponible. Elle SHALL NOT interroger GitLab. 
 
 #### Scenario: Dépôt GitHub public sans identifiant
 - **WHEN** aucune configuration de projet DIU ni authentification GitHub n’existe
@@ -52,6 +52,15 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 #### Scenario: Dépôt GitHub privé
 - **WHEN** des identifiants GitHub privés sont présents
 - **THEN** la commande les ignore et consulte exclusivement le dépôt public DIU
+
+### Requirement: Sélection des versions de mise à jour DIU
+
+La commande SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg.
+
+#### Scenario: Application de la règle
+
+- **WHEN** la commande sélectionne un candidat de mise à jour
+- **THEN** les pages, états de release, noms, tags et versions sont traités selon ces règles
 
 ### Requirement: Installation contrôlée
 

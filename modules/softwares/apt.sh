@@ -132,7 +132,26 @@ software_apt_update_all() {
 }
 
 manage_softwares_action() {
-    local action="${1:-}" engine="${2:-}" software="${3:-}"
+    local action="${1:-}" engine="${2:-}" software="${3:-}" engine_state=''
+    case "$action:$engine" in
+        install:apt|remove:apt|install:github|remove:github|install:flatpak|remove:flatpak)
+            [[ $# -eq 3 ]] || { print_error "Syntaxe logicielle invalide."; return 2; } ;;
+        apt:update|flatpak:update)
+            [[ $# -eq 2 ]] || { print_error "Syntaxe logicielle invalide."; return 2; } ;;
+        update:apt|update:github)
+            [[ $# -eq 2 || $# -eq 3 ]] || { print_error "Syntaxe logicielle invalide."; return 2; } ;;
+    esac
+    case "$action:$engine" in
+        apt:*) engine_state="${SYSTEM_APT_ENGINE:-1}" ;;
+        flatpak:*) engine_state="${SYSTEM_FLATPAK_ENGINE:-UNSET}" ;;
+        *:apt) engine_state="${SYSTEM_APT_ENGINE:-1}" ;;
+        *:github) engine_state="${SYSTEM_GITHUB_ENGINE:-0}" ;;
+        *:flatpak) engine_state="${SYSTEM_FLATPAK_ENGINE:-UNSET}" ;;
+    esac
+    if [[ -n "$engine_state" && "$engine_state" != 1 ]]; then
+        print_error "Moteur logiciel désactivé ou indisponible : ${engine:-$action}"
+        return 1
+    fi
     case "$action:$engine" in
         install:apt|remove:apt)
             [[ $# -eq 3 ]] || { print_error "Usage : diu softwares $action apt <SOFTWARE>"; return 2; }
@@ -170,9 +189,9 @@ manage_softwares_action() {
         update:)
             [[ $# -eq 1 ]] || { print_error "Usage : diu softwares update"; return 2; }
             local result=0
-            software_apt_update_all || result=1
-            software_github_update_all || result=1
-            software_flatpak_update_all || result=1
+            if [[ "${SYSTEM_APT_ENGINE:-1}" == 1 ]]; then software_apt_update_all || result=1; fi
+            if [[ "${SYSTEM_GITHUB_ENGINE:-0}" == 1 ]]; then software_github_update_all || result=1; fi
+            if [[ "${SYSTEM_FLATPAK_ENGINE:-UNSET}" == 1 ]]; then software_flatpak_update_all || result=1; fi
             return "$result"
             ;;
         *)

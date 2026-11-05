@@ -1,5 +1,9 @@
 # Debian Installer Unifié (DIU)
 
+Les moteurs logiciels se pilotent avec `diu system engine install apt|github|flatpak` et `diu system engine remove apt|github|flatpak`. L’activation vérifie les dépendances et la désactivation conserve les paquets installés. L’état `SYSTEM_FLATPAK` existant est repris dans `SYSTEM_FLATPAK_ENGINE` ; `SYSTEM_APT_ENGINE` vaut 1 par défaut. La vue `diu infos softwares` tient compte de ces états.
+
+`diu infos softwares` présente les logiciels déclarés par moteur, avec un indicateur de disponibilité et la couleur de leur état configuré. La même vue figure dans `diu infos` ; `diu softwares infos` reste disponible. Un état inconnu est marqué `?`.
+
 Le paquet issu du constructeur historique crée le lien `diu` lors de sa
 configuration si son nom est libre. Le constructeur générique ne fournit pas
 ce script de configuration. Après une exécution de DIU, le lien `diut` est

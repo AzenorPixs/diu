@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if [ "$1" = --version ]; then
+    printf 'Python 3.13.9\n'
+elif [ "$3" = -c ]; then
+    exit "$TEST_VENV_STATUS"
+elif [ "$3" = "$TEST_DEVOPS_HOME/python/current/bin/pip3" ]; then
+    exec /usr/bin/python3 -I -B "$3" "$4"
+elif [ "$3" = -S ]; then
+    shift 4
+    exec /usr/bin/python3 -I -B -S - "$@"
+else
+    shift 3
+    exec /usr/bin/python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); exec(sys.stdin.read())' "$TEST_METADATA" "$@"
+fi
+

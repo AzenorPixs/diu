@@ -9,6 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 PRELUDE = r'''
 set -Eeuo pipefail
+SYSTEM_FLATPAK_ENGINE=1
 print_error() { printf 'ERROR %s\n' "$*"; }
 print_info() { printf 'INFO %s\n' "$*"; }
 print_success() { printf 'OK %s\n' "$*"; }
@@ -58,7 +59,7 @@ command() {
 software_flatpak_action install org.example.App
 ''')
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn('diu system install flatpak', result.stdout)
+        self.assertIn('diu system engine install flatpak', result.stdout)
         self.assertEqual(calls, '')
 
     def test_install_requires_flathub_without_creating_it(self):

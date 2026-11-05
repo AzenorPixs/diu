@@ -1,0 +1,6 @@
+#!/bin/sh
+
+[ "$#" -eq 1 ] && [ "$1" = -f ] || exit 9
+printf '%s\n' "$*" >> "$TEST_HOSTNAME_LOG"
+printf '%s\n' "$TEST_HOSTNAME_OUTPUT"
+
