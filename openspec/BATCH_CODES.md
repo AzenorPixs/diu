@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-05 : [decouple-softwares-from-universal-update](changes/archive/2026-11-05-decouple-softwares-from-universal-update/proposal.md), archivé, **code non attribué** ; OpenSpec strict validé, 132 tests ciblés et 1 211 tests globaux dont 2 ignorés ; livraison à vérifier ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-05 : [split-system-update-engines](changes/archive/2026-11-05-split-system-update-engines/proposal.md), archivé, **code non attribué** ; 1209 tests dont 2 ignorés, OpenSpec strict et contrôles Bash réussis ; CI/CD non effectuée ; attribution ultérieure par ACL.
 
 

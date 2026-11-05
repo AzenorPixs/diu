@@ -212,6 +212,7 @@ diu_display_help_context() {
             diu_help_line 'diu version' 'Affiche la version du DIU.'
             ;;
         softwares::)
+            diu_help_line 'diu softwares update' 'Met à jour les logiciels séparément de diu update.'
             diu_help_line 'diu softwares infos' 'Affiche les informations du module.'
             diu_help_line 'diu softwares install apt <SOFTWARE>' 'Installe un logiciel APT.'
             diu_help_line 'diu softwares remove apt <SOFTWARE>' 'Désinstalle un logiciel APT.'
@@ -230,6 +231,7 @@ diu_display_help_context() {
             diu_help_line "diu softwares ${subcontext} flatpak <SOFTWARE>" 'Opération sur un logiciel Flatpak.'
             ;;
         softwares:update:)
+            diu_help_line 'diu softwares update' 'Met à jour les logiciels ; commande indépendante de diu update.'
             diu_help_line 'diu softwares update apt [SOFTWARE]' 'Met à jour les logiciels APT.'
             diu_help_line 'diu softwares update github [SOFTWARE]' 'Met à jour les logiciels GitHub.'
             ;;
@@ -434,7 +436,8 @@ diu_display_help_context() {
             diu_help_line "diu ${context} apt <SOFTWARE>" 'Opération sur un logiciel tiers.'
             ;;
         update::)
-            diu_help_line 'diu update' 'Met à jour le DIU en premier, puis les autres modules et les modèles via diu projects update.'
+            diu_help_line 'diu update' 'Met à jour DIU, système, environnements, IA et modèles via diu projects update ; sans diu softwares update.'
+            diu_help_line 'diu softwares update' 'Met à jour séparément les logiciels.'
             diu_help_line 'diu update diu' 'Alias de diu diu update.'
             ;;
         *)
