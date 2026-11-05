@@ -28,6 +28,14 @@ class DiuHelpTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('diu diu update', result.stdout)
 
+    def test_update_help_describes_independent_softwares(self):
+        for arguments in (("update", "help"), ("softwares", "update", "help"), ("softwares", "help")):
+            with self.subTest(arguments=arguments):
+                result = self.run_diu(*arguments)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("diu softwares update", result.stdout)
+                self.assertIn("diu update", result.stdout)
+
     def test_diu_update_version_help_and_dispatch(self):
         result = self.run_diu('diu', 'update', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)

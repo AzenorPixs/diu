@@ -423,3 +423,10 @@ Les aides GitHub release et CI/CD SHALL décrire Docker seul, Debian seul et le 
 #### Scenario: Aide avant bootstrap
 - **WHEN** help ou ? est demandé pour projects github ou projects github release
 - **THEN** les deux types d'artefacts et leur activation sont présentés sans lecture de configuration
+
+### Requirement: Aide de la séparation des mises à jour
+Les aides SHALL indiquer que `diu update` ne lance pas `diu softwares update` et SHALL présenter cette dernière commande comme disponible séparément.
+
+#### Scenario: Aide de mise à jour
+- **WHEN** l'utilisateur demande l'aide de `diu update` ou de `diu softwares update`
+- **THEN** l'aide décrit la séparation et la commande directe sans exécuter de mise à jour

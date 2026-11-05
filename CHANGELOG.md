@@ -4,6 +4,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Mise à jour : `diu update` ne lance plus `diu softwares update`, qui reste disponible séparément ; les aides décrivent les deux parcours.
+
 - Mise à jour système : parcours ciblés APT, GitHub et Flatpak composés par `diu system update` ; anciennes syntaxes `system update apt [debian]`, `system update debian` et `system update flatpak` supprimées.
 
 - Mise à jour système : afficher une seule ligne de bilan Codex CLI et préserver les diagnostics de la recette en cas d’échec.

@@ -96,13 +96,13 @@ softwares_update() { printf 'softwares\n'; return "$TEST_SOFTWARES_STATUS"; }
 manage_update_action
 '''
         for projects, softwares, expected in (('0', '0', 0), ('7', '0', 7),
-                                              ('0', '5', 5), ('7', '5', 7)):
+                                              ('0', '5', 0), ('7', '5', 7)):
             with self.subTest(projects=projects, softwares=softwares):
                 result = self.run_shell(script, TEST_PROJECTS_STATUS=projects,
                                         TEST_SOFTWARES_STATUS=softwares)
                 self.assertEqual(result.returncode, expected, result.stderr)
                 self.assertEqual(result.stdout.splitlines(),
-                                 ['diu', 'system', 'environments', 'ia', 'models:0', 'softwares'])
+                                 ['diu', 'system', 'environments', 'ia', 'models:0'])
 
     def test_global_update_reports_diu_failure_after_other_modules(self):
         script = r"""
@@ -118,7 +118,7 @@ manage_update_action
         result = self.run_shell(script)
         self.assertEqual(result.returncode, 7, result.stderr)
         self.assertEqual(result.stdout.splitlines(),
-                         ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
+                         ['diu', 'system', 'environments', 'ia', 'projects'])
 
     def test_explicit_diu_and_software_updates_do_not_update_projects(self):
         script = r'''
@@ -173,7 +173,7 @@ printf 'UNEXPECTED-INSTALLATION\n'
                     result = self.run_shell(script, *arguments, TEST_STATUS=status)
                     self.assertEqual(result.returncode, int(status), result.stderr)
                     self.assertEqual(result.stdout.count('models\n'), 1)
-                    self.assertEqual('softwares\n' in result.stdout, arguments == ('update',))
+                    self.assertNotIn('softwares\n', result.stdout)
                     self.assertNotIn('UNEXPECTED-INSTALLATION', result.stdout)
 
     def test_real_general_path_reuses_selection_order_and_counts(self):

@@ -403,14 +403,14 @@ manage_update_action
 printf 'AFTER\n'
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
+        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects'])
         self.assertIn('AFTER', result.stdout)
 
-    def test_software_failure_keeps_completed_diu(self):
+    def test_software_failure_does_not_affect_universal_update(self):
         result, calls, _ = self.run_shell(GLOBAL_MODULES + '\nmanage_update_action\n',
                                           SOFTWARES_FAILURE='1')
-        self.assertEqual(result.returncode, 1)
-        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects'])
 
     def test_hermes_installed_but_stopped_is_included(self):
         result, calls, _ = self.run_shell(module_function('modules/ia/hermes.sh', 'ia_update') + r'''
