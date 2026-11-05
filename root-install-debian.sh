@@ -6355,7 +6355,7 @@ then
 
 		echo ""
 		echo "🔧 INSTALL WAZUH-AGENT"
-		wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb && sudo WAZUH_MANAGER='10.25.106.1' WAZUH_REGISTRATION_PASSWORD='A.JKPIS}x,hck$|;X3(L6ZCO?R,3o@aX' WAZUH_AGENT_GROUP='Linux' WAZUH_PROTOCOL='UDP' dpkg -i /root/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb
+		wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb && sudo WAZUH_MANAGER='10.25.106.1' WAZUH_REGISTRATION_PASSWORD='XXXXXXXXXXXXXXXXXXXXXXXXX' WAZUH_AGENT_GROUP='Linux' WAZUH_PROTOCOL='UDP' dpkg -i /root/wazuh-agent_"${WAZUH_CLIENT_VERSION}"_amd64.deb
 		systemctl enable wazuh-agent.service
 		systemctl start wazuh-agent.service
 

@@ -97,9 +97,9 @@ system_engine_ensure_dependencies() { echo "$1" >> "$FIXTURE/actions"; }
 system_apt_update() { echo system-apt >> "$FIXTURE/actions"; }
 system_flatpak_apply() { echo flatpak-apply >> "$FIXTURE/actions"; }
 system_network_update() { echo network >> "$FIXTURE/actions"; }
-SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=0
+SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=0 SYSTEM_FLATPAK_ENGINE=0
 system_update
-[[ "$(cat "$FIXTURE/actions")" == $'apt\nsystem-apt\nflatpak-apply\nnetwork' ]]
+[[ "$(cat "$FIXTURE/actions")" == $'apt\nsystem-apt\nnetwork' ]]
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
 

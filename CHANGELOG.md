@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Mise à jour système : afficher une seule ligne de bilan Codex CLI et préserver les diagnostics de la recette en cas d’échec.
+
+- Mise à jour système : ne plus présenter le message de compatibilité de l’interface APT comme une erreur de mise à jour ; les autres avertissements restent signalés.
+
+- `diu system update` présente un bilan Debian et les moteurs logiciels ; les logiciels DIU activés affichent leurs versions. Les opérations APT et le nettoyage sont masqués pendant leur exécution, avec diagnostic en cas de problème. Les applications Flatpak sans variable DIU ne sont pas sélectionnées.
+
 - Codex CLI : recalculer l'état à chaque chargement selon l'exécutable présent
   dans le PATH du DIU, y compris après une installation ou suppression externe.
 

@@ -1232,6 +1232,8 @@ paquets Debian officiels.
 exécute la transaction globale de mise à niveau, puis effectue le nettoyage
 APT prévu et installe les prérequis manquants.
 
+`diu system update` capture cette sortie sans entrée interactive, restitue les diagnostics en cas de problème et compare les versions dpkg installées avant et après. Les trois moteurs sont présentés ; les logiciels DIU activés sont affichés avec leur version. ChatGPT est comparé autour du passage APT et Codex CLI est mis à jour par GitHub. En cas de succès, une seule ligne affiche sa version ; en cas d’échec, les diagnostics de la recette sont conservés. Aucun logiciel Flatpak ne dispose actuellement de variable individuelle ; la commande ne sélectionne donc aucune application Flatpak. Les commandes logicielles existantes conservent leur comportement. Le message exact de compatibilité de l’interface APT ne constitue pas un avertissement de mise à jour ; les autres diagnostics restent signalés.
+
 `system_install_prerequisites` vérifie chaque paquet individuellement, sans
 sortie s'il est déjà installé. Les paquets manquants sont annoncés et installés
 un par un dans l'ordre alphabétique, après déduplication. Un échec APT est
@@ -2165,7 +2167,7 @@ installé ; une version indisponible produit un diagnostic et un statut non nul.
   un diagnostic et un statut non nul, sans modifier la configuration ;
 - `system_info`, appelée par `diu system infos`, affiche le titre SYSTEM puis
   les informations Debian, pilotes, réseau dans cet ordre. Cette agrégation
-  est également utilisée par `diu infos`. `diu system update` reste inchangé.
+  est également utilisée par `diu infos`.
 
 Les variables affichées sont explicitement sélectionnées, sous forme NOM=valeur.
 Une variable absente affiche UNSET ; une valeur vide est préservée. L'ordre

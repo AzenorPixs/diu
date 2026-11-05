@@ -245,22 +245,185 @@ system_apt_regenerate() {
 }
 
 system_apt_update() {
-    system_apt_regenerate
+    local status=0
+    system_apt_regenerate || status=1
     echo "🔧 UPDATE & DIST-UPGRADE"
-    apt -y update && apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade
+    if [[ "$status" == 0 ]]; then
+        apt -y update && apt -q -y --allow-downgrades --allow-change-held-packages -f -m --show-progress dist-upgrade || status=1
+    fi
     echo "🔧 CLEAN AND PURGE AND REMOVE"
-    apt autoclean -y
-    apt autopurge -y
-    apt autoremove -y
-    system_install_prerequisites
+    apt autoclean -y || status=1
+    apt autopurge -y || status=1
+    apt autoremove -y || status=1
+    system_install_prerequisites || status=1
+    return "$status"
+}
+
+system_update_package_versions() (
+    set -o pipefail
+    dpkg-query -W -f='${db:Status-Status}\t${binary:Package}\t${Version}\n' |
+        awk -F '\t' '$1 == "installed" { print $2 "\t" $3 }' | LC_ALL=C sort
+)
+
+system_update_show_spinner() {
+    local pid="$1" i=0 chars='|/-'
+    while kill -0 "$pid" 2>/dev/null; do
+        printf '\r%s Mise à jour du système Debian…' "${chars:i++%4:1}"
+        sleep 0.2
+    done
+    printf '\r\033[K'
+}
+
+system_update_report_apt_softwares() {
+    local before="$1" after="$2" directory file name variable packages package previous current found result=0
+    directory="${BASH_SCRIPT_PATH:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)}/modules/diu/variables/softwares"
+    for file in "$directory"/software_apt_*.sh; do
+        [[ -f "$file" ]] || continue
+        name="${file##*/software_apt_}"; name="${name%.sh}"
+        [[ "$name" == codex_cli ]] && continue
+        variable="SOFTWARES_APT_${name^^}"
+        [[ "${!variable:-0}" == 1 ]] || continue
+        case "$name" in
+            chatgpt) packages='chatgpt'; name='ChatGPT' ;;
+            crowdsec|crowdsec_agent) packages='crowdsec' ;;
+            crowdsec_bouncer) packages='crowdsec-firewall-bouncer-iptables' ;;
+            fastfetch) packages='fastfetch neofetch' ;;
+            lemonldap) packages='lemonldap-ng' ;;
+            mongodb) packages='mongodb-org' ;;
+            omada) packages='omada' ;;
+            openjdk) packages='openjdk-17-jre-headless openjdk-21-jre-headless' ;;
+            openvswitch) packages='openvswitch-switch' ;;
+            ssh_server) packages='openssh-server' ;;
+            syslog_client|syslog_server) packages='rsyslog' ;;
+            wazuh_server) packages='wazuh-manager wazuh-indexer wazuh-dashboard filebeat' ;;
+            *) packages="${name//_/-}" ;;
+        esac
+        found=0
+        for package in $packages; do
+            current="$(awk -F '\t' -v p="$package" '$1 == p || index($1, p ":") == 1 {print $2; exit}' "$after")"
+            [[ -n "$current" ]] || continue
+            found=1
+            previous="$(awk -F '\t' -v p="$package" '$1 == p || index($1, p ":") == 1 {print $2; exit}' "$before")"
+            if [[ -n "$previous" && "$previous" != "$current" ]]; then
+                printf '   • %s : %s → %s\n' "$name" "$previous" "$current"
+            else
+                printf '   • %s : %s\n' "$name" "$current"
+            fi
+        done
+        if (( ! found )); then
+            printf '   ⚠️  %s : version installée indisponible.\n' "$name"
+            result=1
+        fi
+    done
+    return "$result"
 }
 
 system_update() {
-    if [[ "${SYSTEM_APT_ENGINE:-}" == 1 ]]; then system_engine_ensure_dependencies apt || return $?; fi
-    system_apt_update || return $?
-    if [[ "${SYSTEM_GITHUB_ENGINE:-0}" == 1 ]]; then system_engine_ensure_dependencies github || return $?; fi
-    system_flatpak_apply || return $?
-    system_network_update
+    local workdir status=0 apt_status=0 warning=0 version
+    local before_codex='' after_codex='' engine label changed
+    workdir="$(mktemp -d)" || { print_error 'Impossible de préparer le bilan de mise à jour.'; return 1; }
+    version="$(cat /etc/debian_version 2>/dev/null)" || version='inconnue'
+    if ! system_update_package_versions > "$workdir/before"; then
+        print_error 'Impossible de relever les versions initiales des paquets.'
+        rm -rf -- "$workdir"
+        return 1
+    fi
+    if [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]] && declare -F software_github_codex_cli_version >/dev/null; then
+        before_codex="$(software_github_codex_cli_version 2>/dev/null)" || before_codex=''
+    fi
+    local spinner_pid=''
+    if [[ -t 1 ]]; then
+        system_update_show_spinner "$BASHPID" &
+        spinner_pid=$!
+    else
+        printf '%s\n' '⏳ Mise à jour du système Debian…'
+    fi
+    {
+        if [[ "${SYSTEM_APT_ENGINE:-1}" == 1 ]]; then system_engine_ensure_dependencies apt || apt_status=$?; fi
+        if (( apt_status == 0 )); then system_apt_update || apt_status=$?; fi
+    } > "$workdir/apt.log" 2>&1 < /dev/null
+    if [[ -n "$spinner_pid" ]]; then
+        kill "$spinner_pid" 2>/dev/null || :
+        wait "$spinner_pid" 2>/dev/null || :
+        printf '\r\033[K'
+    fi
+    if ! system_update_package_versions > "$workdir/after"; then
+        printf '%s\n' 'Impossible de relever les versions finales des paquets.' >> "$workdir/apt.log"
+        apt_status=1
+    fi
+    if LC_ALL=C awk '
+        $0 != "WARNING: apt does not have a stable CLI interface. Use with caution in scripts." &&
+        tolower($0) ~ /^(w:|warning:|avertissement[ :])/ { found = 1 }
+        END { exit !found }
+    ' "$workdir/apt.log"; then warning=1; fi
+    changed="$(awk -F '\t' 'NR==FNR {old[$1]=$2; next} ($1 in old) && old[$1] != $2 {printf "   • %s : %s → %s\n", $1, old[$1], $2}' "$workdir/before" "$workdir/after")"
+    if (( apt_status != 0 )); then
+        if [[ -n "$changed" ]]; then
+            printf '⚠️  Système Debian %s : mise à jour partielle (code %s).\n' "$version" "$apt_status"
+        else
+            printf '❌ Système Debian %s : mise à jour échouée (code %s).\n' "$version" "$apt_status"
+        fi
+        cat "$workdir/apt.log"
+        status=1
+    elif (( warning )); then
+        printf '⚠️  Système Debian %s : mise à jour avec avertissements.\n' "$version"
+        cat "$workdir/apt.log"
+        status=1
+    else
+        printf '✅ Système Debian %s à jour\n' "$version"
+    fi
+    [[ -z "$changed" ]] || printf '%s\n' "$changed"
+    for engine in apt github flatpak; do
+        local enabled
+        case "$engine" in
+            apt) enabled="${SYSTEM_APT_ENGINE:-1}"; label=APT ;;
+            github) enabled="${SYSTEM_GITHUB_ENGINE:-0}"; label=GitHub ;;
+            flatpak) enabled="${SYSTEM_FLATPAK_ENGINE:-UNSET}"; label=Flatpak ;;
+        esac
+        case "$enabled" in
+            0) printf 'ℹ️  %s : moteur désactivé, dépendances conservées.\n' "$label"; continue ;;
+            UNSET) printf 'ℹ️  %s : état non défini, aucune action.\n' "$label"; continue ;;
+            1) ;;
+            *) printf '❌ %s : état invalide.\n' "$label"; status=1; continue ;;
+        esac
+        if [[ "$engine" != apt ]] && ! system_engine_ensure_dependencies "$engine"; then
+            printf '❌ %s : dépendances indisponibles.\n' "$label"
+            if [[ "$engine" == github && "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]]; then
+                printf '   • Codex CLI : %s\n' "${before_codex:-version indisponible}"
+            fi
+            status=1
+            continue
+        fi
+        if [[ "$engine" == flatpak ]] && ! flatpak remotes --system --columns=name | grep -Fxq flathub; then
+            printf '❌ Flatpak : remote Flathub indisponible.\n'
+            status=1
+            continue
+        fi
+        if [[ "$engine" == apt && "$apt_status" != 0 ]]; then
+            printf '⚠️  APT : vérification ou mise à jour échouée.\n'
+        else
+            printf '✅ %s : moteur activé, dépendances satisfaites.\n' "$label"
+        fi
+        case "$engine" in
+            apt)
+                system_update_report_apt_softwares "$workdir/before" "$workdir/after" || status=1 ;;
+            github)
+                if [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 && "${DIU_UPDATE_DEFER_SOFTWARES:-0}" != 1 ]]; then
+                    if ! software_github_codex_cli_update > "$workdir/codex.log"; then
+                        cat "$workdir/codex.log"
+                        printf '%s\n' '   ❌ Codex CLI : mise à jour échouée.'
+                        status=1
+                    fi
+                    after_codex="$(software_github_codex_cli_version 2>/dev/null)" || after_codex=''
+                    if [[ -z "$after_codex" ]]; then printf '%s\n' '   ❌ Codex CLI : version indisponible.'; status=1
+                    elif [[ -n "$before_codex" && "$before_codex" != "$after_codex" ]]; then printf '   • Codex CLI : %s → %s\n' "$before_codex" "$after_codex"
+                    else printf '   • Codex CLI : %s\n' "$after_codex"; fi
+                fi ;;
+        esac
+    done
+    system_network_update || status=1
+    rm -rf -- "$workdir"
+    return "$status"
 }
 
 system_flatpak_package_state() {
