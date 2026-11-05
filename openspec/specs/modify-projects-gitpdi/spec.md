@@ -10,23 +10,23 @@ de publier les artefacts activés d'un projet DIU.
 ### Requirement: commande et fonction de release
 
 Le système MUST exposer la commande
-`rid projects forgejo release <ID PROJECT>` et la fonction
+`diu projects forgejo release <ID PROJECT>` et la fonction
 `projects_forgejo_release <ID PROJECT>`.
 
 La fonction historique `git_push_docker_image` MUST être supprimée ou ne plus
-être exposée. La commande `rid projects gitpdi <ID PROJECT>` MUST être
+être exposée. La commande `diu projects gitpdi <ID PROJECT>` MUST être
 rejetée comme indisponible.
 
 #### Scenario: dispatch de la nouvelle commande
 
 - ÉTANT DONNÉ un projet identifié par `diu`
-- QUAND l'utilisateur exécute `rid projects forgejo release diu`
+- QUAND l'utilisateur exécute `diu projects forgejo release diu`
 - ALORS le dispatch appelle `projects_forgejo_release diu`
 - ET aucun dispatch `gitpdi` n'est utilisé
 
 #### Scenario: ancienne commande supprimée
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects gitpdi diu`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects gitpdi diu`
 - QUAND le dispatch traite la commande
 - ALORS aucune publication n'est exécutée
 - ET la commande est rejetée comme indisponible
@@ -153,14 +153,14 @@ La fonction MUST échouer explicitement lorsqu'aucun des indicateurs
 
 ### Requirement: aides CLI
 
-`rid projects help` MUST présenter la sous-commande `forgejo` et sa release.
-`rid projects forgejo help` MUST présenter
-`rid projects forgejo release <ID PROJECT>` et sa description.
-Les aides ne doivent plus présenter `rid projects gitpdi`.
+`diu projects help` MUST présenter la sous-commande `forgejo` et sa release.
+`diu projects forgejo help` MUST présenter
+`diu projects forgejo release <ID PROJECT>` et sa description.
+Les aides ne doivent plus présenter `diu projects gitpdi`.
 
 #### Scenario: aide Forgejo
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects forgejo help`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects forgejo help`
 - QUAND l'aide est affichée
 - ALORS la commande `release <ID PROJECT>` est décrite
 - ET `gitpdi` n'est pas affichée

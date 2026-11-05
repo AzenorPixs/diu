@@ -26,7 +26,7 @@ Avant de compléter GitLab, `gitlab_update()` MUST vérifier la présence et la 
 #### Scenario: configuration générale absente ou incomplète
 
 - ÉTANT DONNÉ que `project.env` est absent ou qu'une variable générale essentielle est absente
-- QUAND `rid projects gitlab push <ID PROJECT>` est exécuté
+- QUAND `diu projects gitlab push <ID PROJECT>` est exécuté
 - ALORS `gitlab_update()` appelle `update_projects()` pour compléter la configuration générale
 - ET la configuration GitLab n'est traitée qu'après cette complétion
 

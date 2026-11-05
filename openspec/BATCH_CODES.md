@@ -1,5 +1,9 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-05 : [remove-software-deb-engine](changes/archive/2026-11-05-remove-software-deb-engine/proposal.md), archivé, **code non attribué** ; suppression du moteur logiciel deb, 1 177 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [converge-diu-to-diu](changes/converge-diu-to-diu/proposal.md), actif, **code non attribué** ; spécification validée en mode strict ; code, alias, aide et documentation convergés ; 1 177 tests globaux exécutés, 2 ignorés, aucun échec ; sources stables, OpenSpec ciblé strict réussi ; 47 échecs stricts préexistants inchangés. Archivage éligible, sans CI/CD. Attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-04 : [report-and-display-system-hosts](changes/archive/2026-11-04-report-and-display-system-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-04 : [move-hosts-commands-to-system](changes/archive/2026-11-04-move-hosts-commands-to-system/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
@@ -112,7 +116,7 @@ Les 117 attributions aux archives sont des **annotations rétrospectives du 2026
 | ART08 | `add-projects-cicd-summary` | Résumé des opérations CI/CD | ARCHIVÉ | [dossier](changes/archive/2026-09-23-add-projects-cicd-summary/) | [titre de la proposition](changes/archive/2026-09-23-add-projects-cicd-summary/proposal.md) | Rétrospective du 2026-10-28 |
 | ART09 | `fix-github-release-image-case` | Correction de la casse des références GHCR | ARCHIVÉ | [dossier](changes/archive/2026-10-15-fix-github-release-image-case/) | [titre de la proposition](changes/archive/2026-10-15-fix-github-release-image-case/proposal.md) | Rétrospective du 2026-10-28 |
 | ART10 | `support-project-docker-build-args` | Arguments Docker publics par projet | ARCHIVÉ | [dossier](changes/archive/2026-10-15-support-project-docker-build-args/) | [titre de la proposition](changes/archive/2026-10-15-support-project-docker-build-args/proposal.md) | Rétrospective du 2026-10-28 |
-| CLI01 | `add-rid-contextual-help` | Aide contextuelle des commandes rid | ARCHIVÉ | [dossier](changes/archive/2026-09-05-add-rid-contextual-help/) | [titre de la proposition](changes/archive/2026-09-05-add-rid-contextual-help/proposal.md) | Rétrospective du 2026-10-28 |
+| CLI01 | `add-rid-contextual-help` | Aide contextuelle des commandes diu | ARCHIVÉ | [dossier](changes/archive/2026-09-05-add-rid-contextual-help/) | [titre de la proposition](changes/archive/2026-09-05-add-rid-contextual-help/proposal.md) | Rétrospective du 2026-10-28 |
 | CLI02 | `refactor-help-command` | Unification de l’aide contextuelle | ARCHIVÉ | [dossier](changes/archive/2026-09-12-refactor-help-command/) | [titre de la proposition](changes/archive/2026-09-12-refactor-help-command/proposal.md) | Rétrospective du 2026-10-28 |
 | CLI03 | `add-module-infos` | Informations des modules | ARCHIVÉ | [dossier](changes/archive/2026-09-28-add-module-infos/) | [titre de la proposition](changes/archive/2026-09-28-add-module-infos/proposal.md) | Rétrospective du 2026-10-28 |
 | CLI04 | `add-system-drivers-infos` | Why | ARCHIVÉ | [dossier](changes/archive/2026-09-28-add-system-drivers-infos/) | [titre de la proposition](changes/archive/2026-09-28-add-system-drivers-infos/proposal.md) | Rétrospective du 2026-10-28 |

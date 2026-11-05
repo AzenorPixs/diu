@@ -8,7 +8,7 @@ d'un projet géré depuis le modèle local de l'utilisateur DevOps.
 
 ### Requirement: Commande de synchronisation d'un projet
 
-DIU MUST accepter `rid projects sync <ID PROJECT>` pour synchroniser le
+DIU MUST accepter `diu projects sync <ID PROJECT>` pour synchroniser le
 projet désigné depuis `/home/${ENV_DEVOPS_USER}/datas/template`. La commande MUST
 refuser un identifiant absent, un projet destination absent, un fichier
 `project.env` absent ou une configuration dont `PROJECT_ID` ne correspond pas
@@ -18,7 +18,7 @@ copie.
 
 #### Scenario: Synchronisation d'un projet configuré
 
-- **WHEN** l'utilisateur exécute `rid projects sync mon-projet` pour un
+- **WHEN** l'utilisateur exécute `diu projects sync mon-projet` pour un
   projet configuré valide
 - **THEN** DIU synchronise les ressources gérées du modèle dans
   `mon-projet`

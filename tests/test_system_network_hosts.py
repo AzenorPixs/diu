@@ -175,7 +175,7 @@ class NetworkHostsTests(unittest.TestCase):
         root_script = (ROOT / 'root-install-debian.sh').read_text()
         match = re.search(r'^manage_project_action\(\) \{\n.*?^\}', root_script, re.M | re.S)
         self.assertIsNotNone(match)
-        script = match.group() + "\nrid_display_command_error() { :; }\nmanage_project_action system network hosts \"$@\"\n"
+        script = match.group() + "\ndiu_display_command_error() { :; }\nmanage_project_action system network hosts \"$@\"\n"
         for args in (('add', '192.0.2.1', 'site.example'), ('del', '192.0.2.1', 'site.example'),
                      ('del', 'all'), ('list',)):
             result = subprocess.run(['bash', '-c', script, 'bash', *args], capture_output=True, text=True)
@@ -303,8 +303,8 @@ manage_system_action network hosts update
                 result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'system',
                                          *suffix, 'help'], capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid system network hosts add <IP> <FQDN>', result.stdout)
-                self.assertIn('rid system network hosts update', result.stdout)
+                self.assertIn('diu system network hosts add <IP> <FQDN>', result.stdout)
+                self.assertIn('diu system network hosts update', result.stdout)
         result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'projects',
                                  'system', 'network', 'hosts', 'list', 'help'],
                                 capture_output=True, text=True)
@@ -336,11 +336,11 @@ if manage_system_action network hosts bogus; then exit 5; fi
         self.assertEqual(result.stdout.splitlines(), ['✅ /etc/hosts mis à jour.'] + ['hosts'] * 3)
 
     def test_help(self):
-        script = r'''source "$ROOT/lib/rid-help.sh"; rid_display_help_context system network hosts update'''
+        script = r'''source "$ROOT/lib/diu-help.sh"; diu_display_help_context system network hosts update'''
         result = subprocess.run(['bash', '-c', script], env=dict(os.environ, ROOT=str(ROOT)),
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid system network hosts update', result.stdout)
+        self.assertIn('diu system network hosts update', result.stdout)
         self.assertIn('entrées existantes sont remplacées', result.stdout)
 
 

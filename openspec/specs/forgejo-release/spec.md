@@ -467,15 +467,15 @@ THEN la fonction affiche un message identifiant l'outil manquant
 AND aucun appel API n'est effectué
 AND la fonction retourne le code 1
 
-### Requirement: Commande rid proj rel
+### Requirement: Commande diu proj rel
 
-Le DIU SHALL accepter la commande `rid proj rel <project_id>` pour
+Le DIU SHALL accepter la commande `diu proj rel <project_id>` pour
 déclencher la publication d'une Release Forgejo à partir du paquet
 construit dans `dist/`.
 
-#### Scenario: Publication depuis la commande rid
+#### Scenario: Publication depuis la commande diu
 
-WHEN l'utilisateur exécute `rid proj rel monprojet`
+WHEN l'utilisateur exécute `diu proj rel monprojet`
 THEN le DIU valide que le projet existe
 AND le DIU vérifie les prérequis
 AND le DIU sélectionne le paquet dans dist/
@@ -487,7 +487,7 @@ AND le DIU crée la Release et upload l'asset
 
 #### Scenario: Projet inexistant
 
-WHEN l'utilisateur exécute `rid proj rel projetinexistant`
+WHEN l'utilisateur exécute `diu proj rel projetinexistant`
 THEN un message d'erreur indique que le projet n'existe pas
 AND la fonction retourne le code 1
 

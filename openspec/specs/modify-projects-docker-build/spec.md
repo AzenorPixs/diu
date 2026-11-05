@@ -23,18 +23,18 @@ appeler `proj_docker_build`.
 ### Requirement: commande Docker du projet
 
 Le système MUST accepter la commande
-`rid projects docker build <ID PROJECT>` pour construire l'image Docker du
+`diu projects docker build <ID PROJECT>` pour construire l'image Docker du
 projet identifié.
 
 #### Scenario: construction demandée
 
 - ÉTANT DONNÉ que le projet `<ID PROJECT>` est accessible et configuré
-- QUAND l'utilisateur exécute `rid projects docker build <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects docker build <ID PROJECT>`
 - ALORS la construction Docker du projet est déclenchée
 
 #### Scenario: ancienne commande supprimée
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects dockerb <ID PROJECT>`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects dockerb <ID PROJECT>`
 - QUAND le dispatch traite la commande
 - ALORS aucune construction Docker n'est exécutée
 - ET la commande est rejetée comme indisponible
@@ -78,30 +78,30 @@ Un fichier absent DOIT provoquer un échec explicite avant `docker build`.
 
 Les aides MUST décrire la nouvelle hiérarchie sans présenter `dockerb` :
 
-- `rid projects help` DOIT présenter `rid projects docker` et sa description ;
-- `rid projects docker help` DOIT présenter `rid projects docker build <ID PROJECT>`
+- `diu projects help` DOIT présenter `diu projects docker` et sa description ;
+- `diu projects docker help` DOIT présenter `diu projects docker build <ID PROJECT>`
   et sa description ;
-- `rid projects docker build help` DOIT rappeler la syntaxe complète de la
+- `diu projects docker build help` DOIT rappeler la syntaxe complète de la
   construction.
 
 #### Scenario: aide des projets
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects help`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects help`
 - QUAND l'aide est affichée
 - ALORS la sous-commande `docker` est décrite
 - ET l'ancienne sous-commande `dockerb` est absente
 
 #### Scenario: aide Docker
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects docker help`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects docker help`
 - QUAND l'aide est affichée
 - ALORS la sous-commande `build <ID PROJECT>` est décrite
 
 #### Scenario: aide détaillée de construction
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects docker build help`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects docker build help`
 - QUAND l'aide est affichée
-- ALORS la syntaxe `rid projects docker build <ID PROJECT>` est rappelée
+- ALORS la syntaxe `diu projects docker build <ID PROJECT>` est rappelée
 
 ### Requirement: DBA-01 Fichier public optionnel par projet
 

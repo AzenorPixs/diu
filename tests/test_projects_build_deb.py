@@ -231,7 +231,7 @@ class ProjectsBuildDebTests(unittest.TestCase):
         result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'projects', 'help'],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects build deb <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects build deb <ID PROJECT>', result.stdout)
         for suffix in [('build',), ('build', 'deb'), ('build', 'deb', 'diu'), ('build', 'debian'), ('build', 'debian', 'diu')]:
             for help_word in ['help', '?']:
                 result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'),

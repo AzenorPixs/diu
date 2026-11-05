@@ -12,8 +12,8 @@ parcours dédiés ni des cycles Git existants.
 Le système SHALL supprimer l'ancien parcours de publication générique du
 dispatch et de toutes les aides CLI, et utiliser `forgejo_push` pour la
 publication Forgejo.
-La commande `rid projects gitpdiu` DOIT rester disponible.
-La commande obsolète `rid projects gitpdi <ID PROJECT>` DOIT être rejetée et
+La commande `diu projects gitpdiu` DOIT rester disponible.
+La commande obsolète `diu projects gitpdi <ID PROJECT>` DOIT être rejetée et
 ne DOIT plus être présentée dans les aides CLI.
 
 #### Scenario: parcours générique absent
@@ -30,13 +30,13 @@ ne DOIT plus être présentée dans les aides CLI.
   détaillée
 - QUAND l'aide est affichée
 - ALORS l'entrée du parcours générique est absente
-- ET l'entrée `rid projects forgejo push <ID PROJECT>` est disponible
+- ET l'entrée `diu projects forgejo push <ID PROJECT>` est disponible
 - ET l'entrée `gitpdiu` reste affichée lorsqu'elle est applicable
 - ET l'entrée `gitpdi` est absente
 
 #### Scenario: commande gitpdi obsolète
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects gitpdi <ID PROJECT>`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects gitpdi <ID PROJECT>`
 - QUAND le dispatch traite la commande
 - ALORS aucune publication n'est exécutée
 - ET la commande est rejetée comme indisponible

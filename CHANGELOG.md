@@ -4,6 +4,15 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Logiciels : suppression du moteur `deb` et de ses commandes ; le moteur
+  APT et les commandes de construction des paquets Debian restent disponibles.
+
+- Commandes : convergence du code, des alias générés, des fonctions d’aide,
+  des diagnostics et des exemples courants vers `diu` et `diut`. Les raccourcis
+  associés deviennent `diuo`, `diuu` et `ndiu`. Les anciens alias DIU ne sont
+  plus générés ; les fichiers d’alias et shells existants ne sont pas migrés.
+  Les archives historiques restent inchangées.
+
 - Réseau : `system network hosts` affiche `/etc/hosts` ; la mise à jour ciblée
   indique son résultat sur une ligne avec une coche verte ou une croix rouge.
 
@@ -36,10 +45,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 - Commandes `diu` et `diut` : création conditionnelle de liens dans
   `/usr/local/bin`, résolution du point d’entrée réel et conservation des
-  entrées existantes et des alias historiques. `diut` dépend de la présence
+  entrées existantes. Les alias générés utilisent les noms DIU. `diut` dépend de la présence
   du script sous la racine de projets configurée.
 
-- DIU : `rid diu update <VERSION>` installe la version GitHub exacte, y compris
+- DIU : `diu diu update <VERSION>` installe la version GitHub exacte, y compris
   pour une réinstallation ou un retour à une version antérieure.
 
 - DIU : mise à jour anonyme depuis les releases publiques AzenorPixs/diu,
@@ -81,7 +90,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   Les tags et releases DIU horodatés en 2026 ont été retirés après sauvegarde.
   Livraison : 1.0.7.
 
-- DIU : `rid update diu` utilise le jeton GitHub du projet lorsqu'il est
+- DIU : `diu update diu` utilise le jeton GitHub du projet lorsqu'il est
   présent pour les releases et les assets privés ; les accès publics sans
   jeton restent anonymes et les erreurs d'accès bloquent l'installation.
 
@@ -89,13 +98,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   des releases et du téléchargement du paquet ; une erreur de décodage bloque
   l'installation. La prise en charge de Zstandard dépend du `curl` installé.
 
-- DIU : ajout de `rid diu update`, recherche du paquet le plus récent dans les
+- DIU : ajout de `diu diu update`, recherche du paquet le plus récent dans les
   releases publiques des dépôts configurés et contrôle avant installation.
-  `rid update` exécute cette opération en premier ; `rid update diu` reste un
+  `diu update` exécute cette opération en premier ; `diu update diu` reste un
   alias. Le `project.env` du projet DIU doit être accessible sur la machine.
   Version de projet : 1.0.4.
 
-- GitHub : `rid projects github release <ID PROJECT>` publie Docker sur GHCR,
+- GitHub : `diu projects github release <ID PROJECT>` publie Docker sur GHCR,
   Debian dans GitHub Releases, ou les deux avec Yes/YES/1. Le paquet suit les
   mêmes contrôles que Forgejo ; release existante refusée, upload binaire
   authentifié sans exposition du token, erreurs partielles signalées sans
@@ -105,7 +114,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 - CI/CD des projets : ajout du build Debian indépendant de Docker à l'étape 4,
   uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`, avant les publications
   (étape 5) et le bilan des deux builds (étape 6). Syntaxe
-  `rid projects build debian <ID PROJECT>`, avec alias `build deb` conservé.
+  `diu projects build debian <ID PROJECT>`, avec alias `build deb` conservé.
   Un échec du build bloque les releases ; les pushes Git déjà réalisés restent
   publiés. Les aides décrivent les six étapes. Version de livraison : 1.0.2.
 
@@ -116,7 +125,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   ajoute le tag versionné, réutilisé pour publication. Aides mises à jour ;
   version DIU retenue pour cette livraison : 1.0.0, déjà présente dans project.env.
 
-- Projets : ajout de `rid projects build deb <ID PROJECT>` et de ses aides.
+- Projets : ajout de `diu projects build deb <ID PROJECT>` et de ses aides.
   Construction générique depuis `build/debian-package.json`, exclu du paquet,
   activée par `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`. Un projet désactivé est ignoré ;
   une recette absente pour un projet activé est une erreur. Recette DIU fournie,
@@ -494,7 +503,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   existants adoptent ce rendu à leur prochaine génération normale.
 
 - Enregistrement idempotent d'une exception `safe.directory` système limitée
-  au chemin canonique du projet par `rid projects git init` et `update`, y
+  au chemin canonique du projet par `diu projects git init` et `update`, y
   compris pour un dépôt déjà initialisé. `status` affiche son état sans la
   modifier. Les autres règles et propriétaires sont conservés ; les erreurs
   de configuration système sont bloquantes, sans annuler les écritures
@@ -536,7 +545,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   invalides, CR/NUL, chemins symboliques et fichiers hors limite ; diagnostics
   sans valeurs. Les projets sans fichier conservent leur comportement.
 
-- Exclusion du `.git` racine du modèle lors de `rid projects create` pour
+- Exclusion du `.git` racine du modèle lors de `diu projects create` pour
   éviter le transfert de son dépôt Git. Les autres fichiers cachés, dont
   `.gitignore`, et les règles de copie existantes sont conservés. Les `.git`
   imbriqués et les projets déjà créés ne sont pas concernés.

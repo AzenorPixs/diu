@@ -23,7 +23,7 @@ Le DIU SHALL fournir `system_network_hosts` dans `modules/system/network.sh`. Il
 
 ### Requirement: Commandes et intégration
 
-Le DIU SHALL exposer les commandes `diu` et `rid` `system network hosts update` et `system network update`. Les mises à jour système et globale SHALL déclencher la génération par cette chaîne. L'installation SHALL utiliser la nouvelle fonction et l'ancienne fonction SHALL être retirée. Les aides SHALL décrire les commandes et la reconstruction du fichier.
+Le DIU SHALL exposer les commandes `diu` et `diu` `system network hosts update` et `system network update`. Les mises à jour système et globale SHALL déclencher la génération par cette chaîne. L'installation SHALL utiliser la nouvelle fonction et l'ancienne fonction SHALL être retirée. Les aides SHALL décrire les commandes et la reconstruction du fichier.
 
 #### Scenario: Mise à jour ciblée
 - **WHEN** une commande `system network hosts update` est invoquée

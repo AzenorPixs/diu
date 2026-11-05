@@ -7,7 +7,7 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 
 ### Requirement: Mise à jour dédiée du paquet DIU
 
-`rid diu update` SHALL rechercher en priorité les releases publiques de `https://github.com/AzenorPixs/diu`, sans authentification GitHub et sans dépendre d’un checkout ou d’une configuration GitHub locale. En l’absence de candidat GitHub admissible ou si GitHub est inaccessible, elle SHALL essayer les releases publiques Forgejo si leur configuration locale est disponible. Elle SHALL NOT interroger GitLab. Elle SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg.
+`diu diu update` SHALL rechercher en priorité les releases publiques de `https://github.com/AzenorPixs/diu`, sans authentification GitHub et sans dépendre d’un checkout ou d’une configuration GitHub locale. En l’absence de candidat GitHub admissible ou si GitHub est inaccessible, elle SHALL essayer les releases publiques Forgejo si leur configuration locale est disponible. Elle SHALL NOT interroger GitLab. Elle SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg.
 
 #### Scenario: Dépôt GitHub public sans identifiant
 - **WHEN** aucune configuration de projet DIU ni authentification GitHub n’existe
@@ -71,10 +71,10 @@ Sans version explicite, la commande SHALL comparer la version sélectionnée à 
 
 ### Requirement: Aide et compatibilité
 
-Les aides SHALL présenter `rid diu update` et `rid update diu` SHALL rester un alias de cette commande.
+Les aides SHALL présenter `diu diu update` et `diu update diu` SHALL rester un alias de cette commande.
 
 #### Scenario: Alias historique
-- **WHEN** `rid update diu` est invoqué
+- **WHEN** `diu update diu` est invoqué
 - **THEN** la même mise à jour ciblée du paquet DIU est exécutée
 
 ### Requirement: Décodage des réponses HTTP
@@ -93,7 +93,7 @@ SHALL interrompre la mise à jour sans installation du paquet.
 
 ### Requirement: Installation d’une version explicitement demandée
 
-`rid diu update <VERSION>` SHALL installer la version exacte depuis une release GitHub publique admissible, quelle que soit la version installée. La version SHALL être valide selon les règles Debian et les contrôles existants. La commande SHALL NOT consulter Forgejo dans ce mode et SHALL signaler toute version absente ou inaccessible sans installation. Les arguments supplémentaires SHALL être refusés.
+`diu diu update <VERSION>` SHALL installer la version exacte depuis une release GitHub publique admissible, quelle que soit la version installée. La version SHALL être valide selon les règles Debian et les contrôles existants. La commande SHALL NOT consulter Forgejo dans ce mode et SHALL signaler toute version absente ou inaccessible sans installation. Les arguments supplémentaires SHALL être refusés.
 
 #### Scenario: Réinstallation de la version installée
 - **WHEN** la version demandée correspond à la version installée et à un paquet admissible GitHub

@@ -12,7 +12,7 @@ serveur PostgreSQL configuré, avec un manifeste minimal conditionnel pour Pytho
 ### Requirement: Commande de génération du modèle DevOps
 
 DIU SHALL fournir `projects_template_devops`, appelée par la commande
-`rid projects template devops <ID PROJECT>`, avec un identifiant obligatoire. La CLI SHALL exiger le sélecteur devops avant l'identifiant et SHALL rejeter
+`diu projects template devops <ID PROJECT>`, avec un identifiant obligatoire. La CLI SHALL exiger le sélecteur devops avant l'identifiant et SHALL rejeter
 les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide. La fonction SHALL générer ou actualiser
 `${ENV_DEVOPS_PROJECTS_ROOT}/<ID PROJECT>/DEVOPS.md`.
 
@@ -29,7 +29,7 @@ les anciens ordres lorsqu'ils ne correspondent pas déjà à une commande valide
 
 #### Scenario: Projet sélectionné
 
-- **WHEN** l'utilisateur exécute rid projects template devops application
+- **WHEN** l'utilisateur exécute diu projects template devops application
 - **THEN** seul le DEVOPS.md du projet application est généré ou actualisé
 - **AND THEN** project.env et pyproject.toml sont ceux de ce projet
 
@@ -313,7 +313,7 @@ un code non nul, signaler cet échec et conserver le projet déjà préparé. Un
 
 ### Requirement: Génération DevOps de tous les projets configurés
 
-DIU SHALL exposer rid projects template devops all et projects_template_devops_all. La fonction SHALL utiliser ENV_DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
+DIU SHALL exposer diu projects template devops all et projects_template_devops_all. La fonction SHALL utiliser ENV_DEVOPS_PROJECTS_ROOT, sinon /home/${ENV_DEVOPS_USER}/datas,
 et parcourir uniquement ses dossiers directs, y compris les dossiers cachés. Elle SHALL sélectionner les project.env ordinaires dont les affectations
 littérales PROJECT_ID, PROJECT_NAME, PROJECT_TYPE, PROJECT_DOCKERED et
 PROJECT_DEBIAN_PACKAGE sont toutes non vides.
@@ -341,12 +341,12 @@ PROJECT_DEBIAN_PACKAGE sont toutes non vides.
 
 #### Scenario: Nouvelle syntaxe groupée
 
-- **WHEN** l'utilisateur exécute rid projects template devops all
+- **WHEN** l'utilisateur exécute diu projects template devops all
 - **THEN** la fonction groupée est appelée une seule fois
 
 #### Scenario: Ancienne syntaxe groupée
 
-- **WHEN** l'utilisateur exécute rid projects template all devops
+- **WHEN** l'utilisateur exécute diu projects template all devops
 - **THEN** la CLI rend un code non nul sans génération
 
 ### Requirement: Éligibilité et isolation des configurations groupées

@@ -8,7 +8,7 @@ Définir la mise à jour des variables générales d'un projet DIU.
 
 ### Requirement: mise à jour des variables générales d'un projet
 
-DIU MUST exposer `rid projects update <ID PROJECT>` via `update_projects()`, sans changer l'identifiant demandé. La fonction MUST gérer `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`, `PROJECT_DOCKERED`, `PROJECT_DEBIAN_PACKAGE`, `PROJECT_ORCHESTRATED_CODING` et `PROJECT_VERSION` dans `<projet>/project.env`. Elle MUST proposer les valeurs existantes et préserver les autres lignes et les droits prévus de configuration.
+DIU MUST exposer `diu projects update <ID PROJECT>` via `update_projects()`, sans changer l'identifiant demandé. La fonction MUST gérer `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`, `PROJECT_DOCKERED`, `PROJECT_DEBIAN_PACKAGE`, `PROJECT_ORCHESTRATED_CODING` et `PROJECT_VERSION` dans `<projet>/project.env`. Elle MUST proposer les valeurs existantes et préserver les autres lignes et les droits prévus de configuration.
 
 #### Scenario: création de la configuration générale
 
@@ -24,15 +24,15 @@ DIU MUST exposer `rid projects update <ID PROJECT>` via `update_projects()`, san
 
 ### Requirement: aide des commandes projects
 
-`rid projects help` MUST afficher toutes les sous-commandes de premier niveau
+`diu projects help` MUST afficher toutes les sous-commandes de premier niveau
 de `projects` avec leur description, notamment `update` et `git`.
 
 #### Scenario: aide générale des projets
 
-- ÉTANT DONNÉ que l'utilisateur exécute `rid projects help`
+- ÉTANT DONNÉ que l'utilisateur exécute `diu projects help`
 - QUAND l'aide est affichée
-- ALORS la commande `rid projects update <ID PROJECT>` est décrite
-- ET la commande `rid projects git update <ID PROJECT>` est décrite
+- ALORS la commande `diu projects update <ID PROJECT>` est décrite
+- ET la commande `diu projects git update <ID PROJECT>` est décrite
 - ET les commandes projects existantes restent listées
 
 ### Requirement: Déclaration du mode de développement du projet

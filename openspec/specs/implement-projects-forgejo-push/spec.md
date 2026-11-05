@@ -8,7 +8,7 @@ dépôt Forgejo distant configuré.
 
 ### Requirement: commande de publication Forgejo
 
-DIU MUST exposer `rid projects forgejo push <ID PROJECT>` et sa variante
+DIU MUST exposer `diu projects forgejo push <ID PROJECT>` et sa variante
 `all`, conformément aux scénarios ci-dessous et à `git-provider-availability`.
 La branche MUST utiliser `--force-with-lease` et les tags MUST rester sans
 forçage. Pour un dépôt annoncé absent, le lease MUST attendre l'absence de
@@ -57,7 +57,7 @@ dépendre d'une référence héritée ni supprimer une référence locale.
 
 #### Scenario: publication groupée
 
-- **WHEN** `rid projects forgejo push all` est demandé
+- **WHEN** `diu projects forgejo push all` est demandé
 - **THEN** chaque projet sélectionné utilise le parcours Forgejo unitaire
 
 #### Scenario: sélection explicite de Forgejo
@@ -101,7 +101,7 @@ REMOTE_FORGEJO_SSL_VERIFY="No"
 #### Scenario: initialisation au premier push
 
 - ÉTANT DONNÉ que la configuration Forgejo est absente ou incomplète
-- QUAND l'utilisateur lance `rid projects forgejo push <ID PROJECT>`
+- QUAND l'utilisateur lance `diu projects forgejo push <ID PROJECT>`
 - ALORS `forgejo_update()` est exécutée de manière interactive
 - ET les variables Forgejo sont demandées puis enregistrées dans `project.env`
 - ET le push ne commence qu'après une configuration complète
@@ -226,17 +226,17 @@ opérations Forgejo authentifiées. Une valeur différente DOIT provoquer un
 
 Les niveaux d'aide suivants MUST être disponibles et cohérents :
 
-- `rid help` affiche les commandes de premier niveau et leur description
+- `diu help` affiche les commandes de premier niveau et leur description
   succincte ;
-- `rid projects help` affiche les commandes du niveau `projects`, dont
+- `diu projects help` affiche les commandes du niveau `projects`, dont
   `forgejo` ;
-- `rid projects forgejo help` affiche `push` et `update` ;
-- `rid projects forgejo push help` décrit la publication et rappelle la
-  syntaxe `rid projects forgejo push <ID PROJECT>`.
+- `diu projects forgejo help` affiche `push` et `update` ;
+- `diu projects forgejo push help` décrit la publication et rappelle la
+  syntaxe `diu projects forgejo push <ID PROJECT>`.
 
 #### Scenario: aide de publication
 
-- ÉTANT DONNÉ que l'utilisateur demande `rid projects forgejo push help`
+- ÉTANT DONNÉ que l'utilisateur demande `diu projects forgejo push help`
 - QUAND l'aide est affichée
 - ALORS la description de la publication et sa syntaxe sont affichées
 

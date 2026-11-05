@@ -30,7 +30,7 @@ projects_github_release_debian() {
 
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
-        print_error 'Usage : rid projects github release <ID PROJECT>'
+        print_error 'Usage : diu projects github release <ID PROJECT>'
         return 1
     fi
     project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"

@@ -96,7 +96,7 @@ update_diu() (
         command -v "$executable" >/dev/null 2>&1 || { print_error "Commande indisponible : $executable"; return 1; }
     done
     if [[ $# -gt 1 || ( $# -eq 1 && ( -z "$requested_version" || ! "$requested_version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ ) ) ]]; then
-        print_error 'Usage : rid diu update [VERSION] ; version Debian invalide.'; return 2
+        print_error 'Usage : diu diu update [VERSION] ; version Debian invalide.'; return 2
     fi
     if [[ -n "$requested_version" ]] && ! dpkg --validate-version "$requested_version" >/dev/null 2>&1; then
         print_error 'Version DIU invalide.'; return 2

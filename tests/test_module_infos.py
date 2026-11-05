@@ -181,7 +181,7 @@ system_info_network
         system = function_from('modules/system/apt.sh', 'manage_system_action')
         return self.run_shell('print_error() { printf "%s\\n" "$*" >&2; }\n'
                               'diu_version() { printf "2026.test\\n"; }\n'
-                              + f'source "{ROOT}/lib/rid-help.sh"\n' + system + '\n'
+                              + f'source "{ROOT}/lib/diu-help.sh"\n' + system + '\n'
                               + dispatch + '\ndispatch_arguments "$@"\necho INSTALLATION_INTERDITE', args)
 
     def test_routes_and_termination(self):
@@ -221,12 +221,12 @@ system_info_network
                     r = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), *route, suffix],
                                        capture_output=True, text=True)
                     self.assertEqual(r.returncode, 0, r.stderr)
-                    self.assertIn('rid ' + ' '.join(route), r.stdout)
+                    self.assertIn('diu ' + ' '.join(route), r.stdout)
                     if route in (('system', 'infos'), ('system',)):
-                        self.assertIn('rid system infos network', r.stdout)
-                        self.assertIn('rid system infos debian', r.stdout)
-                        self.assertIn('rid system infos drivers', r.stdout)
-                    self.assertNotIn('rid system info ', r.stdout)
+                        self.assertIn('diu system infos network', r.stdout)
+                        self.assertIn('diu system infos debian', r.stdout)
+                        self.assertIn('diu system infos drivers', r.stdout)
+                    self.assertNotIn('diu system info ', r.stdout)
 
     def test_extraction_and_imports(self):
         root = (ROOT / 'root-install-debian.sh').read_text()

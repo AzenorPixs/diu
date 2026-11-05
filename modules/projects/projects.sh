@@ -4,7 +4,7 @@
 
 projects_update() {
     if [[ "$#" -ne 0 ]]; then
-        print_error 'Usage : rid projects update (sans identifiant pour tous les modèles).'
+        print_error 'Usage : diu projects update (sans identifiant pour tous les modèles).'
         return 1
     fi
     projects_template_all_all

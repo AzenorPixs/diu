@@ -1,30 +1,30 @@
-# rid-help Specification
+# diu-help Specification
 
 ## Purpose
-Définir une aide hiérarchique et sûre pour les commandes publiques `rid`, ainsi
+Définir une aide hiérarchique et sûre pour les commandes publiques `diu`, ainsi
 qu'un diagnostic contextuel pour les chemins de commande inconnus.
 
 ## Requirements
 
 ### Requirement: Aide racine et contextuelle
 
-DIU SHALL accepter `rid help`, `rid ?`, `rid <contexte> help` et
-`rid <contexte> ?`. L'aide SHALL être disponible avant le chargement de la
+DIU SHALL accepter `diu help`, `diu ?`, `diu <contexte> help` et
+`diu <contexte> ?`. L'aide SHALL être disponible avant le chargement de la
 configuration de production. Elle SHALL afficher les commandes immédiatement
 disponibles au contexte demandé, chacune avec une description concise, et
 SHALL utiliser un alignement lisible des descriptions.
 
 #### Scenario: Aide d'un contexte intermédiaire
 
-- **WHEN** l'utilisateur exécute `rid softwares help`
-- **THEN** DIU affiche les commandes disponibles sous `rid softwares`, dont
+- **WHEN** l'utilisateur exécute `diu softwares help`
+- **THEN** DIU affiche les commandes disponibles sous `diu softwares`, dont
   les commandes `install`, `remove`, `update` et `apt`
 - **AND THEN** aucune configuration de production ni opération système n'est
   chargée ou exécutée
 
 #### Scenario: Aide d'un contexte terminal
 
-- **WHEN** l'utilisateur exécute `rid projects github push help`
+- **WHEN** l'utilisateur exécute `diu projects github push help`
 - **THEN** DIU affiche la commande terminale correspondante et sa description
 - **AND THEN** aucune opération de publication n'est exécutée
 
@@ -38,15 +38,15 @@ une autre commande.
 
 #### Scenario: Élément inconnu à un niveau intermédiaire
 
-- **WHEN** l'utilisateur exécute `rid softwares inconnu`
+- **WHEN** l'utilisateur exécute `diu softwares inconnu`
 - **THEN** DIU échoue sans exécuter d'opération système
-- **AND THEN** le diagnostic propose `rid softwares help`
+- **AND THEN** le diagnostic propose `diu softwares help`
 
 #### Scenario: Élément inconnu à la racine
 
-- **WHEN** l'utilisateur exécute `rid inconnu`
+- **WHEN** l'utilisateur exécute `diu inconnu`
 - **THEN** DIU échoue sans exécuter d'opération système
-- **AND THEN** le diagnostic propose `rid help`
+- **AND THEN** le diagnostic propose `diu help`
 
 ### Requirement: Retrait de l'usage global historique
 
@@ -65,131 +65,131 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Aide du contexte projects
 
-- **WHEN** l'utilisateur exécute `rid projects help`
-- **THEN** l'aide affiche `rid projects git analyse <ID PROJECTS>`
-- **AND THEN** l'aide n'affiche pas `rid projects gita <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects git init <ID PROJECT>`
-- **AND THEN** l'aide n'affiche pas `rid projects giti <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects git update <ID PROJECT>`
-- **AND THEN** l'aide n'affiche pas `rid projects gitu <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects git commit all`
-- **AND THEN** l'aide affiche `rid projects forgejo push all`
-- **AND THEN** l'aide affiche `rid projects sync <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects sync all`
+- **WHEN** l'utilisateur exécute `diu projects help`
+- **THEN** l'aide affiche `diu projects git analyse <ID PROJECTS>`
+- **AND THEN** l'aide n'affiche pas `diu projects gita <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects git init <ID PROJECT>`
+- **AND THEN** l'aide n'affiche pas `diu projects giti <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects git update <ID PROJECT>`
+- **AND THEN** l'aide n'affiche pas `diu projects gitu <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects git commit all`
+- **AND THEN** l'aide affiche `diu projects forgejo push all`
+- **AND THEN** l'aide affiche `diu projects sync <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects sync all`
 
 #### Scenario: Aide du sous-contexte Git
 
-- **WHEN** l'utilisateur exécute `rid projects git help`
-- **THEN** l'aide affiche `rid projects git analyse <ID PROJECTS>`
-- **AND THEN** l'aide affiche `rid projects git init <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects git update <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects git commit all`
+- **WHEN** l'utilisateur exécute `diu projects git help`
+- **THEN** l'aide affiche `diu projects git analyse <ID PROJECTS>`
+- **AND THEN** l'aide affiche `diu projects git init <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects git update <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects git commit all`
 
 #### Scenario: Aide du commit groupé
 
-- **WHEN** l'utilisateur exécute `rid projects git commit help`
-- **THEN** l'aide affiche `rid projects git commit all`
+- **WHEN** l'utilisateur exécute `diu projects git commit help`
+- **THEN** l'aide affiche `diu projects git commit all`
 
 #### Scenario: aide de publication Forgejo groupée
 
-- **WHEN** l'utilisateur exécute `rid projects forgejo push help`
-- **THEN** l'aide affiche `rid projects forgejo push <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects forgejo push all`
+- **WHEN** l'utilisateur exécute `diu projects forgejo push help`
+- **THEN** l'aide affiche `diu projects forgejo push <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects forgejo push all`
 
 #### Scenario: Aide de synchronisation des projets
 
-- **WHEN** l'utilisateur exécute `rid projects sync help`
-- **THEN** l'aide affiche `rid projects sync <ID PROJECT>`
-- **AND THEN** l'aide affiche `rid projects sync all`
+- **WHEN** l'utilisateur exécute `diu projects sync help`
+- **THEN** l'aide affiche `diu projects sync <ID PROJECT>`
+- **AND THEN** l'aide affiche `diu projects sync all`
 
 #### Scenario: Aide de synchronisation d'un projet
 
-- **WHEN** l'utilisateur exécute `rid projects sync help`
-- **THEN** l'aide affiche `rid projects sync <ID PROJECT>`
+- **WHEN** l'utilisateur exécute `diu projects sync help`
+- **THEN** l'aide affiche `diu projects sync <ID PROJECT>`
 
 #### Scenario: Aide de clonage d'un projet
 
-- **WHEN** l'utilisateur exécute `rid projects clone help`
+- **WHEN** l'utilisateur exécute `diu projects clone help`
 - **THEN** l'aide affiche
-  `rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`
+  `diu projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`
 
 #### Scenario: Commandes et descriptions des aides Git et projets
 
 - **WHEN** une aide des opérations Git ou projets visées par cette exigence est demandée
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
-L'aide `rid projects help` SHALL présenter
-`rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`,
-`rid projects git init <ID PROJECT>`, `rid projects git commit all`,
-`rid projects forgejo push all`, `rid projects sync <ID PROJECT>`,
-`rid projects sync all` et `rid projects git analyse <ID PROJECTS>`. L'aide
-`rid projects clone help` SHALL présenter la commande de clonage avec une
-description concise. L'aide `rid projects git commit help` SHALL présenter
-`rid projects git commit all` avec une description. L'aide
-`rid projects sync help` SHALL présenter les syntaxes unitaire et groupée
-avec une description concise. L'aide `rid projects forgejo help` SHALL
+L'aide `diu projects help` SHALL présenter
+`diu projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`,
+`diu projects git init <ID PROJECT>`, `diu projects git commit all`,
+`diu projects forgejo push all`, `diu projects sync <ID PROJECT>`,
+`diu projects sync all` et `diu projects git analyse <ID PROJECTS>`. L'aide
+`diu projects clone help` SHALL présenter la commande de clonage avec une
+description concise. L'aide `diu projects git commit help` SHALL présenter
+`diu projects git commit all` avec une description. L'aide
+`diu projects sync help` SHALL présenter les syntaxes unitaire et groupée
+avec une description concise. L'aide `diu projects forgejo help` SHALL
 présenter `push all` en complément des commandes unitaires. L'aide
-`rid projects forgejo push help` SHALL présenter les syntaxes unitaire et
-groupée. L'aide `rid projects git help` SHALL présenter les sous-commandes
+`diu projects forgejo push help` SHALL présenter les syntaxes unitaire et
+groupée. L'aide `diu projects git help` SHALL présenter les sous-commandes
 `analyse`, `init` et `update`. Aucune de ces aides SHALL présenter
-`rid projects giti <ID PROJECT>`, `rid projects gitu <ID PROJECT>` ni
-`rid projects gita <ID PROJECT>`.
+`diu projects giti <ID PROJECT>`, `diu projects gitu <ID PROJECT>` ni
+`diu projects gita <ID PROJECT>`.
 
 ### Requirement: Aide de la commande de commit Git des projets
 
-L'aide `rid projects help` SHALL présenter
-`rid projects git commit <ID PROJECT> [COMMIT]` et ne SHALL pas présenter
-`rid projects gitc <ID PROJECT> [COMMIT]`. L'aide `rid projects git help`
+L'aide `diu projects help` SHALL présenter
+`diu projects git commit <ID PROJECT> [COMMIT]` et ne SHALL pas présenter
+`diu projects gitc <ID PROJECT> [COMMIT]`. L'aide `diu projects git help`
 SHALL présenter la sous-commande `commit`. L'aide
-`rid projects git commit help` SHALL présenter la commande terminale
+`diu projects git commit help` SHALL présenter la commande terminale
 correspondante avec sa description.
 
 #### Scenario: Aide du contexte projects
 
-- **WHEN** l'utilisateur exécute `rid projects help`
-- **THEN** l'aide affiche `rid projects git commit <ID PROJECT> [COMMIT]`
-- **AND THEN** l'aide n'affiche pas `rid projects gitc <ID PROJECT> [COMMIT]`
+- **WHEN** l'utilisateur exécute `diu projects help`
+- **THEN** l'aide affiche `diu projects git commit <ID PROJECT> [COMMIT]`
+- **AND THEN** l'aide n'affiche pas `diu projects gitc <ID PROJECT> [COMMIT]`
 
 #### Scenario: Aide du sous-contexte Git
 
-- **WHEN** l'utilisateur exécute `rid projects git help`
-- **THEN** l'aide affiche `rid projects git commit <ID PROJECT> [COMMIT]`
+- **WHEN** l'utilisateur exécute `diu projects git help`
+- **THEN** l'aide affiche `diu projects git commit <ID PROJECT> [COMMIT]`
 
 #### Scenario: Aide de la commande de commit
 
-- **WHEN** l'utilisateur exécute `rid projects git commit help`
-- **THEN** l'aide affiche `rid projects git commit <ID PROJECT> [COMMIT]`
+- **WHEN** l'utilisateur exécute `diu projects git commit help`
+- **THEN** l'aide affiche `diu projects git commit <ID PROJECT> [COMMIT]`
 
 ### Requirement: Aide de la commande de statut Git des projets
 
-L'aide `rid projects help` SHALL présenter
-`rid projects git status <ID PROJECTS>` et ne SHALL pas présenter
-`rid projects gits <ID PROJECTS>`. L'aide `rid projects git help` SHALL
+L'aide `diu projects help` SHALL présenter
+`diu projects git status <ID PROJECTS>` et ne SHALL pas présenter
+`diu projects gits <ID PROJECTS>`. L'aide `diu projects git help` SHALL
 présenter la sous-commande `status`. L'aide
-`rid projects git status help` SHALL présenter la commande terminale
+`diu projects git status help` SHALL présenter la commande terminale
 correspondante avec sa description.
 
 #### Scenario: Aide du contexte projects
 
-- **WHEN** l'utilisateur exécute `rid projects help`
-- **THEN** l'aide affiche `rid projects git status <ID PROJECTS>`
-- **AND THEN** l'aide n'affiche pas `rid projects gits <ID PROJECTS>`
+- **WHEN** l'utilisateur exécute `diu projects help`
+- **THEN** l'aide affiche `diu projects git status <ID PROJECTS>`
+- **AND THEN** l'aide n'affiche pas `diu projects gits <ID PROJECTS>`
 
 #### Scenario: Aide du sous-contexte Git
 
-- **WHEN** l'utilisateur exécute `rid projects git help`
-- **THEN** l'aide affiche `rid projects git status <ID PROJECTS>`
+- **WHEN** l'utilisateur exécute `diu projects git help`
+- **THEN** l'aide affiche `diu projects git status <ID PROJECTS>`
 
 #### Scenario: Aide de la commande de statut
 
-- **WHEN** l'utilisateur exécute `rid projects git status help`
-- **THEN** l'aide affiche `rid projects git status <ID PROJECTS>`
+- **WHEN** l'utilisateur exécute `diu projects git status help`
+- **THEN** l'aide affiche `diu projects git status <ID PROJECTS>`
 
 ### Requirement: Aide des informations de modules
 
-L'aide racine et contextuelle SHALL présenter rid infos, les commandes rid
+L'aide racine et contextuelle SHALL présenter diu infos, les commandes diu
 <module> infos pour desktop, diu, environnements, ia, projects, softwares et
-system, ainsi que rid system infos debian, rid system infos drivers et rid system infos network. Elle
+system, ainsi que diu system infos debian, diu system infos drivers et diu system infos network. Elle
 SHALL rester disponible avant tout chargement de configuration de production.
 
 #### Scenario: Aide terminale
@@ -197,11 +197,11 @@ SHALL rester disponible avant tout chargement de configuration de production.
 - **THEN** la syntaxe concernée et une description sont affichées sans opération métier
 
 #### Scenario: Aide intermédiaire
-- **WHEN** rid system help ou rid system infos help est appelée
+- **WHEN** diu system help ou diu system infos help est appelée
 - **THEN** les commandes d'information accessibles sont affichées
 
 ### Requirement: Aide des pilotes DisplayLink
-L'aide SHALL exposer les commandes rid system drivers install displaylink et rid system drivers remove displaylink, à la racine, au niveau system, drivers, install/remove et displaylink, sans charger la configuration ni agir sur le système.
+L'aide SHALL exposer les commandes diu system drivers install displaylink et diu system drivers remove displaylink, à la racine, au niveau system, drivers, install/remove et displaylink, sans charger la configuration ni agir sur le système.
 
 #### Scenario: Aide pilote
 - **WHEN** help suit un préfixe valide des commandes DisplayLink
@@ -224,7 +224,7 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Aide de création
 
-- **WHEN** l'utilisateur exécute rid projects create help
+- **WHEN** l'utilisateur exécute diu projects create help
 - **THEN** l'aide indique la création depuis le modèle et la génération finale de DEVOPS.md
 
 #### Scenario: Aide du traitement groupé
@@ -243,8 +243,8 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **WHEN** une aide liée à la génération DevOps est demandée
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
-L'aide rid projects help SHALL présenter rid projects template devops <ID PROJECT>
-et rid projects template devops all. Les aides du contexte template, du
+L'aide diu projects help SHALL présenter diu projects template devops <ID PROJECT>
+et diu projects template devops all. Les aides du contexte template, du
 sélecteur devops et de la commande terminale SHALL fonctionner avec help et ?,
 avant tout chargement de configuration et sans génération. Les arguments
 surnuméraires, les chemins, les sélecteurs inconnus et les anciens contextes
@@ -287,9 +287,9 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
 Les aides projects et projects template SHALL présenter
-`rid projects template openspec <ID PROJECT>` avec le libellé
+`diu projects template openspec <ID PROJECT>` avec le libellé
 « Initialise ou actualise OpenSpec via ENV_DEVOPS_USER pour le projet <ID PROJECT> »
-et `rid projects template openspec all` pour tous les projets configurés.
+et `diu projects template openspec all` pour tous les projets configurés.
 Les aides `projects template openspec` et `projects template openspec <ID PROJECT>`
 SHALL fonctionner avec help et ? avant tout chargement de configuration et
 sans mutation. L'aide spécifique individuelle SHALL expliquer init avec le
@@ -325,7 +325,7 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
 Les aides projects et projects template SHALL présenter
-`rid projects template all all`. Les contextes projects template all et
+`diu projects template all all`. Les contextes projects template all et
 projects template all all SHALL fonctionner avec help et ? avant tout
 chargement de configuration et sans traitement. L'aide SHALL expliquer
 les deux all, les cinq variables requises, OpenSpec puis DevOps en dernier
@@ -351,7 +351,7 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Aide globale
 
-- **WHEN** l'utilisateur demande rid update help ou rid update ?
+- **WHEN** l'utilisateur demande diu update help ou diu update ?
 - **THEN** l'aide indique la mise à jour générale des projets sans opération
 
 #### Scenario: Arguments d'aide supplémentaires
@@ -364,19 +364,19 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **WHEN** une aide de mise à jour des projets est demandée
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
-L'aide projects SHALL présenter rid projects update et conserver rid projects
+L'aide projects SHALL présenter diu projects update et conserver diu projects
 update <ID PROJECT>. Les contextes projects update et projects update
 <ID PROJECT> SHALL fonctionner avec help et ? avant tout chargement de
 configuration et sans opération. L'aide générale SHALL indiquer tous les
 modèles de tous les projets configurés, OpenSpec puis DevOps en dernier.
 L'aide ciblée SHALL expliquer la mise à jour des variables du seul projet.
-L'aide rid update SHALL indiquer l'inclusion de la mise à jour générale des
+L'aide diu update SHALL indiquer l'inclusion de la mise à jour générale des
 projets. Les arguments d'aide supplémentaires SHALL être refusés avec un
 diagnostic contextuel et les aides existantes SHALL être préservées.
 
 ### Requirement: Aide des exceptions système Git
 
-L'aide des commandes `rid projects git init`, `update` et `status` MUST
+L'aide des commandes `diu projects git init`, `update` et `status` MUST
 mentionner respectivement l'enregistrement de l'exception système et
 l'affichage de son état. Les signatures des commandes MUST rester inchangées.
 
@@ -388,7 +388,7 @@ l'affichage de son état. Les signatures des commandes MUST rester inchangées.
 
 ### Requirement: Aide du packaging Debian DIU
 
-Les aides SHALL présenter rid projects deb [ID PROJECT] et rid proj deb <ID PROJECT>, le défaut diu et la nature DIU des sources. help et ? SHALL fonctionner avant le bootstrap, sans construction ni configuration.
+Les aides SHALL présenter diu projects deb [ID PROJECT] et diu proj deb <ID PROJECT>, le défaut diu et la nature DIU des sources. help et ? SHALL fonctionner avant le bootstrap, sans construction ni configuration.
 
 #### Scenario: Aide packaging sans effet
 
@@ -397,7 +397,7 @@ Les aides SHALL présenter rid projects deb [ID PROJECT] et rid proj deb <ID PRO
 
 ### Requirement: Aide du build Debian générique
 
-Les aides SHALL présenter rid projects build debian <ID PROJECT> et l'alias deb,
+Les aides SHALL présenter diu projects build debian <ID PROJECT> et l'alias deb,
 PROJECT_DEBIAN_PACKAGE avec Yes/YES/1 et la recette build/debian-package.json.
 Les aides build, build debian et build deb, avec ou sans projet, SHALL rester
 disponibles avant bootstrap sans construction ni lecture de configuration.

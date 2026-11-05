@@ -2400,7 +2400,7 @@ projects_template_devops_javascript() {
             with self.subTest(project=project):
                 result = self.run_generation(project=project)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn('Usage : rid projects template devops <ID PROJECT>', result.stderr)
+                self.assertIn('Usage : diu projects template devops <ID PROJECT>', result.stderr)
         for arguments in ((), ('template', 'extra')):
             self.assertNotEqual(self.run_generation(arguments=arguments).returncode, 0)
         link = self.home / 'datas/link'
@@ -2519,7 +2519,7 @@ projects_template_devops_all() { printf 'batch\n'; }
 projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
 projects_template_openspec_all() { printf 'openspec-batch\n'; }
 projects_template_all_all() { printf 'all-models-batch\n'; }
-rid_display_command_error() { printf 'help:%s\n' "$*"; }
+diu_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
         for arguments, status, expected in (

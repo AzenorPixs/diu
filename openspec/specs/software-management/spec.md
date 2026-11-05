@@ -2,102 +2,34 @@
 
 ## Purpose
 
-Définir la gestion des mises à jour des paquets Debian officiels par le moteur
-`deb` du DIU.
+Définir le routage et la gestion des logiciels pris en charge par les moteurs
+du DIU.
 
 ## Requirements
 
-### Requirement: Mise à jour globale des paquets Debian
-
-Le moteur `deb` SHALL collecter les paquets installés dont une version
-officielle est disponible, puis SHALL exécuter leur mise à jour dans une seule
-transaction APT. Il SHALL ne pas afficher de ligne individuelle pour les
-paquets déjà à jour ou non applicables.
-
-#### Scenario: Plusieurs paquets Debian
-
-- **WHEN** plusieurs paquets installés disposent d'une mise à jour officielle
-- **THEN** une seule transaction APT est exécutée avec toutes les cibles
-
-#### Scenario: Paquets sans action
-
-- **WHEN** un paquet est déjà à jour ou sans candidat Debian officiel
-- **THEN** il est ignoré sans message individuel et sans installation
-  supplémentaire
-
 ### Requirement: Routage du cycle de vie des logiciels
 
-DIU SHALL accepter `rid install <ENGINE> <SOFTWARE>`,
-`rid remove <ENGINE> <SOFTWARE>`, `rid update <ENGINE> <SOFTWARE>` et
-`rid update <ENGINE>`. Les moteurs définis SHALL être `deb` et `apt`.
-Le logiciel SHALL être obligatoire pour installer ou désinstaller.
-Un moteur inconnu, un identifiant invalide ou des arguments supplémentaires
-SHALL provoquer un échec explicite avant toute opération sur le système.
+DIU SHALL refuser explicitement le moteur logiciel `deb` pour les commandes d'installation, de suppression et de mise à jour. Les moteurs logiciels restants et les commandes de construction de paquets Debian SHALL conserver leurs comportements.
 
 #### Scenario: Installation ciblée
 
-- **WHEN** `rid install deb geany` est invoqué
-- **THEN** DIU délègue l'installation de `geany` au moteur `deb`
+- **WHEN** `diu install apt chatgpt` est invoqué
+- **THEN** DIU délègue l'installation à la recette APT existante
 
 #### Scenario: Désinstallation sans logiciel
 
-- **WHEN** `rid remove deb` est invoqué
-- **THEN** DIU retourne une erreur de syntaxe sans désinstaller de paquet
+- **WHEN** `diu remove apt` est invoqué
+- **THEN** DIU retourne une erreur de syntaxe
 
 #### Scenario: Moteur inconnu
 
 - **WHEN** une commande désigne un moteur inconnu
 - **THEN** DIU retourne une erreur sans exécuter d'opération de remplacement
 
-### Requirement: Paquets officiels Debian
+#### Scenario: Ancienne commande du moteur deb
 
-Le moteur `deb` SHALL installer, désinstaller et mettre à jour les paquets
-logiciels officiels Debian à l'aide de la gestion APT Debian.
-Il SHALL vérifier que le paquet ciblé relève de son périmètre et SHALL NOT
-sélectionner une version issue d'un dépôt tiers, y compris pour les dépendances.
-Il SHALL signaler l'impossibilité de satisfaire ce périmètre sans basculer
-implicitement vers le moteur `apt`.
-
-#### Scenario: Installation officielle
-
-- **WHEN** `rid install deb <SOFTWARE>` cible un paquet officiel disponible
-- **THEN** DIU installe ce paquet et ses dépendances nécessaires depuis les sources officielles autorisées
-
-#### Scenario: Version tierce candidate
-
-- **WHEN** un dépôt tiers fournit une version candidate du paquet demandé
-- **THEN** le moteur `deb` ne sélectionne pas cette version tierce
-- **AND** il échoue explicitement si aucune résolution officielle admissible n'est possible
-
-#### Scenario: Désinstallation officielle
-
-- **WHEN** `rid remove deb <SOFTWARE>` cible un paquet officiel installé
-- **THEN** DIU demande sa désinstallation au gestionnaire de paquets
-- **AND** tout échec est propagé à l'appelant
-
-### Requirement: Portée des mises à jour du moteur deb
-
-`rid update deb <SOFTWARE>` SHALL mettre à jour uniquement le logiciel officiel
-ciblé et les dépendances nécessaires à cette opération.
-`rid update deb` SHALL traiter tous les paquets officiels Debian installés,
-y compris ceux installés en dehors de DIU, sans inclure les logiciels tiers.
-Une mise à jour SHALL NOT installer un logiciel cible absent.
-
-#### Scenario: Mise à jour ciblée
-
-- **WHEN** `rid update deb geany` est invoqué pour un paquet installé
-- **THEN** DIU limite l'opération à ce paquet et à ses dépendances nécessaires
-
-#### Scenario: Mise à jour de tous les paquets officiels
-
-- **WHEN** `rid update deb` est invoqué
-- **THEN** DIU traite les mises à jour admissibles de tous les paquets officiels installés
-- **AND** il ne met pas à jour les paquets tiers
-
-#### Scenario: Logiciel cible absent
-
-- **WHEN** une mise à jour ciblée désigne un logiciel non installé
-- **THEN** DIU signale cette absence sans installer le logiciel
+- **WHEN** une commande logicielle désigne le moteur `deb`
+- **THEN** DIU SHALL retourner une erreur sans exécuter d'opération sur les paquets
 
 ### Requirement: Logiciels tiers avec dépôt
 
@@ -109,7 +41,7 @@ La désinstallation et la mise à jour SHALL cibler les paquets du logiciel tier
 
 #### Scenario: Dépôt requis
 
-- **WHEN** `rid install apt <SOFTWARE>` cible un logiciel nécessitant un dépôt
+- **WHEN** `diu install apt <SOFTWARE>` cible un logiciel nécessitant un dépôt
 - **THEN** DIU fait préparer le dépôt par son moteur de dépôts
 - **AND** il installe le paquet uniquement après le succès de cette préparation
 
@@ -128,18 +60,18 @@ l'identifiant fourni par l'utilisateur.
 
 #### Scenario: Installation sans dépôt
 
-- **WHEN** `rid install apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
+- **WHEN** `diu install apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
 - **THEN** DIU appelle sa fonction spécifique d'installation
 - **AND** il n'appelle pas le moteur de dépôts
 
 #### Scenario: Désinstallation sans dépôt
 
-- **WHEN** `rid remove apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
+- **WHEN** `diu remove apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
 - **THEN** DIU appelle sa fonction spécifique de désinstallation
 
 #### Scenario: Mise à jour sans dépôt
 
-- **WHEN** `rid update apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
+- **WHEN** `diu update apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
 - **THEN** DIU appelle sa fonction spécifique de mise à jour
 
 #### Scenario: Fonction indisponible
@@ -149,13 +81,11 @@ l'identifiant fourni par l'utilisateur.
 
 ### Requirement: Mise à jour de tous les logiciels tiers
 
-`rid update apt` SHALL traiter tous les logiciels tiers installés et reconnus
-par DIU, selon leur mode avec dépôt ou sans dépôt, sans traiter les logiciels
-officiels du moteur `deb` ni installer des logiciels absents.
+`diu update apt` SHALL traiter les logiciels tiers installés et reconnus par DIU, selon leur mode avec dépôt ou sans dépôt, sans installer de logiciel absent.
 
 #### Scenario: Mise à jour du moteur apt
 
-- **WHEN** `rid update apt` est invoqué et le moteur est disponible
+- **WHEN** `diu update apt` est invoqué et le moteur est disponible
 - **THEN** DIU exécute les mises à jour des logiciels tiers installés reconnus
 - **AND** il utilise les fonctions propres aux logiciels sans dépôt
 
@@ -176,39 +106,15 @@ SHALL signaler cet état sans effet de bord inattendu.
 - **WHEN** un logiciel est déjà à jour
 - **THEN** DIU signale cet état sans réinstallation inutile
 
-### Requirement: Isolation des sources officielles dans la première étape
-
-Le moteur `deb` SHALL utiliser des index temporaires limités aux dépôts d'origine
-Debian de la version installée, avec ses suites updates et security, vérifiés
-avec le trousseau officiel Debian. Il SHALL NOT modifier les sources persistantes
-ni inclure les backports ou une autre version majeure de Debian.
-Une origine installée non vérifiable SHALL entraîner un refus explicite.
-
-#### Scenario: Sources officielles et tierces mélangées
-
-- **WHEN** la machine dispose de dépôts officiels et tiers
-- **THEN** la transaction deb utilise uniquement les index officiels isolés
-- **AND** les sources persistantes restent inchangées
-
-#### Scenario: Version installée introuvable dans les index officiels
-
-- **WHEN** la version installée ne figure ni dans les index officiels actualisés ni dans les anciens index officiels disponibles
-- **THEN** DIU refuse l'opération sur ce paquet et signale une origine non vérifiable
-
-#### Scenario: Moteur apt réservé à une étape ultérieure
-
-- **WHEN** une commande apt est invoquée dans la première étape sans moteur implémenté
-- **THEN** DIU retourne un code non nul et annonce explicitement son indisponibilité
-
 ### Requirement: Commandes modulaires du moteur APT
 
-DIU SHALL accepter les commandes `rid softwares install apt <SOFTWARE>`,
-`rid softwares remove apt <SOFTWARE>`, `rid softwares update apt <SOFTWARE>`
-et `rid softwares apt update`.
+DIU SHALL accepter les commandes `diu softwares install apt <SOFTWARE>`,
+`diu softwares remove apt <SOFTWARE>`, `diu softwares update apt <SOFTWARE>`
+et `diu softwares apt update`.
 
 #### Scenario: Commande granulaire
 
-- **WHEN** l'utilisateur invoque `rid softwares install apt <SOFTWARE>`
+- **WHEN** l'utilisateur invoque `diu softwares install apt <SOFTWARE>`
 - **THEN** DIU route l'action vers le moteur APT du module `softwares`
 
 ### Requirement: Opérations granulaires idempotentes
@@ -233,18 +139,18 @@ arbitraire depuis l'entrée utilisateur, et SHALL propager les erreurs.
 
 ### Requirement: Mise à jour globale APT
 
-`rid softwares apt update` SHALL mettre à jour tous les paquets installés avec
+`diu softwares apt update` SHALL mettre à jour tous les paquets installés avec
 APT. Elle SHALL NOT rejouer les fonctions granulaires `install`, `remove` ou
 `update` propres aux logiciels.
 
 #### Scenario: Mise à jour globale
 
-- **WHEN** l'utilisateur invoque `rid softwares apt update`
+- **WHEN** l'utilisateur invoque `diu softwares apt update`
 - **THEN** DIU met à jour les paquets installés avec APT une seule fois
 
 #### Scenario: Mise à jour globale du DIU
 
-- **WHEN** l'utilisateur invoque `rid update`
+- **WHEN** l'utilisateur invoque `diu update`
 - **THEN** DIU inclut la mise à jour globale APT du module `softwares`
 - **AND** il ne rejoue pas les actions granulaires des logiciels
 
@@ -289,7 +195,7 @@ littéral `~/.codex`.
 
 ### Requirement: Installation APT de ChatGPT
 
-`rid install apt chatgpt` et `rid softwares install apt chatgpt` SHALL utiliser
+`diu install apt chatgpt` et `diu softwares install apt chatgpt` SHALL utiliser
 la recette explicite ChatGPT. Lorsque `SYSTEM_APT_CGPT` ne vaut pas `1`, elle SHALL préparer le
 dépôt avec le moteur `system`, actualiser les index APT, puis installer le
 paquet `chatgpt`. Après une installation réussie, elle SHALL modifier
@@ -311,7 +217,7 @@ paquet `chatgpt`. Après une installation réussie, elle SHALL modifier
 
 ### Requirement: Désinstallation APT de ChatGPT
 
-`rid remove apt chatgpt` et `rid softwares remove apt chatgpt` SHALL supprimer le paquet `chatgpt`, puis
+`diu remove apt chatgpt` et `diu softwares remove apt chatgpt` SHALL supprimer le paquet `chatgpt`, puis
 retirer le dépôt CGPT avec le moteur `system`, puis actualiser les index APT.
 Tout échec SHALL être propagé et l'ordre SHALL être conservé.
 
@@ -323,7 +229,7 @@ Tout échec SHALL être propagé et l'ordre SHALL être conservé.
 
 ### Requirement: Mise à jour sélective APT de ChatGPT
 
-`rid update apt chatgpt` et `rid softwares update apt chatgpt` SHALL vérifier
+`diu update apt chatgpt` et `diu softwares update apt chatgpt` SHALL vérifier
 que le paquet `chatgpt` est installé puis SHALL réappliquer la modification de
 `/usr/share/applications/chatgpt.desktop`. Cette action SHALL NOT mettre à jour
 le paquet : les mises à jour APT sont gérées globalement.
@@ -341,14 +247,14 @@ le paquet : les mises à jour APT sont gérées globalement.
 
 ### Requirement: Mise à jour globale APT du module softwares
 
-`rid softwares update apt` SHALL exécuter `rid softwares apt update`, puis
+`diu softwares update apt` SHALL exécuter `diu softwares apt update`, puis
 réexécuter les mises à jour sélectives des logiciels APT reconnus et installés.
 La phase sélective SHALL toujours être exécutée après la phase APT. Les
 logiciels absents ou non déclarés SHALL être ignorés sans installation.
 
 #### Scenario: Ordre des phases
 
-- **WHEN** l'utilisateur invoque `rid softwares update apt`
+- **WHEN** l'utilisateur invoque `diu softwares update apt`
 - **THEN** DIU exécute d'abord la mise à jour APT globale
 - **AND** DIU exécute ensuite les mises à jour sélectives applicables
 
@@ -360,20 +266,20 @@ logiciels absents ou non déclarés SHALL être ignorés sans installation.
 
 ### Requirement: Dispatch de la mise à jour du module softwares
 
-`rid softwares update` SHALL lancer les mises à jour des sous-modules
+`diu softwares update` SHALL lancer les mises à jour des sous-modules
 `softwares` disponibles. Les comportements, prérequis, erreurs et validations
 de chaque sous-module restent définis par leurs spécifications respectives.
 
 #### Scenario: Mise à jour du module softwares
 
-- **WHEN** l'utilisateur invoque `rid softwares update`
+- **WHEN** l'utilisateur invoque `diu softwares update`
 - **THEN** DIU lance les mises à jour de ses sous-modules disponibles
 
 ### Requirement: Moteur GitHub pour les logiciels
 
-DIU SHALL accept `rid softwares install github <SOFTWARE>`,
-`rid softwares remove github <SOFTWARE>`, `rid softwares update github
-<SOFTWARE>` and `rid softwares update github`. The engine SHALL route only to
+DIU SHALL accept `diu softwares install github <SOFTWARE>`,
+`diu softwares remove github <SOFTWARE>`, `diu softwares update github
+<SOFTWARE>` and `diu softwares update github`. The engine SHALL route only to
 an explicitly registered software recipe and SHALL return a non-zero error for
 an unknown software without executing a system command.
 
@@ -424,7 +330,7 @@ SHALL not install an absent software.
 
 ### Requirement: Mise à jour du sous-module GitHub
 
-`rid softwares update github` SHALL traiter uniquement les recettes GitHub
+`diu softwares update github` SHALL traiter uniquement les recettes GitHub
 reconnues et installées. La commande SHALL
 continue independent recipes after an individual failure and SHALL return a
 non-zero result when at least one recipe fails.
@@ -457,7 +363,7 @@ lorsqu’un binaire `codex` exécutable est présent, et à `0` sinon.
 
 ### Requirement: Installation GitHub de Codex CLI
 
-`rid softwares install github codex-cli` SHALL installer Codex CLI depuis une
+`diu softwares install github codex-cli` SHALL installer Codex CLI depuis une
 GitHub Release du dépôt `openai/codex`. La cible SHALL être exclusivement
 Linux x86_64 avec l’artefact `codex-package-x86_64-unknown-linux-musl.tar.gz`.
 L’opération SHALL vérifier le digest SHA-256 avant toute installation et SHALL
@@ -477,7 +383,7 @@ L’opération SHALL vérifier le digest SHA-256 avant toute installation et SHA
 
 ### Requirement: Désinstallation sans suppression du profil
 
-`rid softwares remove github codex-cli` SHALL supprimer les binaires, liens et
+`diu softwares remove github codex-cli` SHALL supprimer les binaires, liens et
 releases installées par DIU, mais SHALL préserver le répertoire et les données
 du profil utilisateur.
 
@@ -490,7 +396,7 @@ du profil utilisateur.
 
 ### Requirement: Mise à jour ciblée depuis GitHub
 
-`rid softwares update github codex-cli` SHALL comparer la version locale de
+`diu softwares update github codex-cli` SHALL comparer la version locale de
 Codex CLI avec la dernière release GitHub. Elle SHALL télécharger et installer
 la release uniquement si elle est supérieure.
 
@@ -506,9 +412,9 @@ la release uniquement si elle est supérieure.
 
 ### Requirement: Mise à jour globale GitHub
 
-`rid softwares update github` SHALL traiter Codex CLI uniquement lorsque sa
-variable d’état indique qu’il est installé. `rid softwares update` et
-`rid update` SHALL inclure cette opération une seule fois.
+`diu softwares update github` SHALL traiter Codex CLI uniquement lorsque sa
+variable d’état indique qu’il est installé. `diu softwares update` et
+`diu update` SHALL inclure cette opération une seule fois.
 
 #### Scenario: Codex absent
 
@@ -540,12 +446,12 @@ désinstallation ou de mise à jour effective.
 
 #### Scenario: Installation avec version
 
-- **WHEN** `rid softwares install github codex-cli` réussit
+- **WHEN** `diu softwares install github codex-cli` réussit
 - **THEN** DIU affiche `✅ softwares/github/codex-cli (<VERSION>): installé.`
 
 #### Scenario: Désinstallation avec version
 
-- **WHEN** `rid softwares remove github codex-cli` réussit
+- **WHEN** `diu softwares remove github codex-cli` réussit
 - **THEN** DIU affiche `✅ softwares/github/codex-cli (<VERSION>): désinstallé.`
 
 #### Scenario: Mise à jour avec changement de version
@@ -567,7 +473,7 @@ antérieures de personnalisation desktop et de gestion de cette variable.
 
 #### Scenario: Installation sans personnalisation desktop
 
-- **WHEN** `rid softwares install apt chatgpt` réussit
+- **WHEN** `diu softwares install apt chatgpt` réussit
 - **THEN** DIU gère le paquet et son dépôt sans modifier
   `/usr/share/applications/chatgpt.desktop`
 - **AND** DIU n'utilise ni ne persiste `SOFTWARES_APT_CHATGPT_HOME`
@@ -580,14 +486,14 @@ persister la valeur correspondante de `SOFTWARES_APT_CODEX_CLI` dans
 
 #### Scenario: Désinstallation persistée
 
-- **WHEN** `rid softwares remove github codex-cli` réussit
+- **WHEN** `diu softwares remove github codex-cli` réussit
 - **THEN** `SOFTWARES_APT_CODEX_CLI` vaut `0` dans le processus courant
 - **AND** la configuration persistée contient `export SOFTWARES_APT_CODEX_CLI=0`
 - **AND** une initialisation ultérieure ne considère pas Codex CLI comme installé
 
 #### Scenario: Mise à jour après désinstallation
 
-- **WHEN** `rid softwares update github codex-cli` est invoqué alors que
+- **WHEN** `diu softwares update github codex-cli` est invoqué alors que
   `SOFTWARES_APT_CODEX_CLI` vaut `0`
 - **THEN** DIU n'effectue aucun accès réseau ni téléchargement
 - **AND** DIU affiche que Codex CLI n'est pas installé
@@ -602,14 +508,14 @@ fichier est accessible en écriture.
 
 #### Scenario: Installation persistée
 
-- **WHEN** `rid softwares install apt chatgpt` réussit
+- **WHEN** `diu softwares install apt chatgpt` réussit
 - **THEN** `SOFTWARES_APT_CHATGPT` vaut `1` dans le processus courant
 - **AND** la configuration persistée contient
   `export SOFTWARES_APT_CHATGPT=1`
 
 #### Scenario: Désinstallation persistée
 
-- **WHEN** `rid softwares remove apt chatgpt` réussit
+- **WHEN** `diu softwares remove apt chatgpt` réussit
 - **THEN** `SOFTWARES_APT_CHATGPT` vaut `0` dans le processus courant
 - **AND** la configuration persistée contient
   `export SOFTWARES_APT_CHATGPT=0`

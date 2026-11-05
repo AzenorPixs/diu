@@ -8,8 +8,8 @@ sans imposer les métadonnées ou l'arborescence du DIU.
 
 ### Requirement: Commande générique et activation
 
-DIU SHALL accepter rid projects build debian <ID PROJECT> et son alias compatible
-rid projects build deb <ID PROJECT> pour un enfant direct non symbolique de
+DIU SHALL accepter diu projects build debian <ID PROJECT> et son alias compatible
+diu projects build deb <ID PROJECT> pour un enfant direct non symbolique de
 ENV_DEVOPS_PROJECTS_ROOT. Il SHALL lire PROJECT_DEBIAN_PACKAGE sans exécuter
 project.env et SHALL construire uniquement pour Yes, YES ou 1.
 

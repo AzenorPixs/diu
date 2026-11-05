@@ -8,7 +8,7 @@ Définir la mise à jour de la configuration Git locale des projets DIU.
 
 ### Requirement: mise à jour des variables Git locales
 
-Le système MUST exposer `rid projects git update <ID PROJECT>` et la fonction
+Le système MUST exposer `diu projects git update <ID PROJECT>` et la fonction
 `git_update()` en mode local.
 
 La fonction DOIT gérer `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et
@@ -17,7 +17,7 @@ La fonction DOIT gérer `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et
 #### Scenario: mise à jour ciblée de Git local
 
 - ÉTANT DONNÉ que `project.env` contient une configuration générale conforme
-- QUAND l'utilisateur exécute `rid projects git update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects git update <ID PROJECT>`
 - ALORS les valeurs Git local existantes sont proposées
 - ET seules les variables Git local sont remplacées
 - ET les variables générales et distantes sont conservées
@@ -34,7 +34,7 @@ La fonction DOIT gérer `LOCAL_DEFAULT_BRANCH`, `GIT_USER_NAME` et
 
 - ÉTANT DONNÉ que le répertoire du projet existe mais que `project.env` est
   absent
-- QUAND l'utilisateur exécute `rid projects git update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects git update <ID PROJECT>`
 - ALORS `project.env` est créé avec les seules variables Git locales
 - ET `update_projects <ID PROJECT>` n'est pas appelée
 
@@ -46,7 +46,7 @@ fonctions dédiées et ne passent pas par `git_update()`.
 
 #### Scenario: appel public
 
-- QUAND l'utilisateur exécute `rid projects git update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects git update <ID PROJECT>`
 - ALORS `git_update <ID PROJECT>` met à jour uniquement les variables Git
   locales
 

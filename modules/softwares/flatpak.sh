@@ -11,14 +11,14 @@ software_flatpak_validate_application() {
 
 software_flatpak_require_client() {
     command -v flatpak >/dev/null 2>&1 || {
-        print_error "Flatpak est indisponible. Exécutez : rid system install flatpak"
+        print_error "Flatpak est indisponible. Exécutez : diu system install flatpak"
         return 1
     }
 }
 
 software_flatpak_require_flathub() {
     flatpak remotes --system --columns=name | grep -Fxq flathub || {
-        print_error "Le remote Flathub est absent. Exécutez : rid system install flatpak"
+        print_error "Le remote Flathub est absent. Exécutez : diu system install flatpak"
         return 1
     }
 }

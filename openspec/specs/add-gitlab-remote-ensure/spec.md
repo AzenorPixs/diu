@@ -8,13 +8,13 @@ Définir la gestion sûre et configurable du remote GitLab des projets DIU.
 
 ### Requirement: remote GitLab dédié
 
-La commande `rid projects gitlab push <ID PROJECT>` MUST utiliser le remote défini par `REMOTE_GITLAB_NAME` et ne MUST pas modifier le remote Forgejo `origin` lorsque les deux noms sont différents.
+La commande `diu projects gitlab push <ID PROJECT>` MUST utiliser le remote défini par `REMOTE_GITLAB_NAME` et ne MUST pas modifier le remote Forgejo `origin` lorsque les deux noms sont différents.
 
 #### Scenario: remote GitLab absent
 
 - ÉTANT DONNÉ que `REMOTE_GITLAB_NAME` et les variables `REMOTE_GITLAB_*` sont conformes
 - ET que le remote GitLab n'existe pas dans le dépôt local
-- QUAND `rid projects gitlab push <ID PROJECT>` est exécuté
+- QUAND `diu projects gitlab push <ID PROJECT>` est exécuté
 - ALORS le remote GitLab est ajouté avec l'URL construite depuis `REMOTE_GITLAB_BASE_URL`, `REMOTE_GITLAB_OWNER` et `REMOTE_GITLAB_REPOSITORY`
 - ET le push est effectué vers ce remote
 

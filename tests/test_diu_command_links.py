@@ -1,6 +1,7 @@
 """Contrôles isolés des liens de commande DIU."""
 from pathlib import Path
 import os
+import re
 import subprocess
 import shutil
 import tempfile
@@ -10,6 +11,44 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DiuCommandLinksTests(unittest.TestCase):
+    def test_generated_aliases_use_diu_commands(self):
+        source = (ROOT / 'root-install-debian.sh').read_text()
+        definitions = re.findall(r'^\s*echo "(alias [^"\n]+)"\s*$', source, re.MULTILINE)
+        aliases = {}
+        for definition in definitions:
+            name, target = definition.removeprefix('alias ').split('=', 1)
+            aliases[name] = target.strip("'")
+        expected = {
+            'diu': '/root/diu/root-install-debian.sh',
+            'diut': '/home/devops/datas/diu/root-install-debian.sh',
+            'diuo': 'diu projects ocrw',
+            'diuu': 'diu update',
+            'ndiu': 'nano /root/diu/root-install-debian.sh',
+            'rcicddiu': 'diut projects cicddiu',
+            'rcicddr': 'diut projects cicddr',
+            'drid': 'docker run --rm --entrypoint id',
+        }
+        for name, target in expected.items():
+            with self.subTest(alias=name):
+                self.assertEqual(aliases[name], target)
+        old_command = 'r' + 'id'
+        for name in (old_command, old_command + 't', old_command + 'o',
+                     old_command + 'u', 'n' + old_command):
+            self.assertNotIn(name, aliases)
+
+    def test_executable_sources_use_diu_identifiers(self):
+        old_command = 'r' + 'id'
+        pattern = re.compile(r'(?<![A-Za-z])' + old_command
+                             + r'(?:t|o|u)?(?![A-Za-z])')
+        paths = [ROOT / 'root-install-debian.sh']
+        for directory in ('lib', 'modules'):
+            paths.extend((ROOT / directory).rglob('*.sh'))
+        for path in paths:
+            with self.subTest(path=path.relative_to(ROOT)):
+                self.assertIsNone(pattern.search(path.read_text()))
+        self.assertTrue((ROOT / 'lib/diu-help.sh').is_file())
+        self.assertFalse((ROOT / 'lib' / (old_command + '-help.sh')).exists())
+
     def test_link_creation_idempotence_and_occupied_names(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-links-test-') as tmp:
             base = Path(tmp)
@@ -108,7 +147,7 @@ build_deb_diu
             installed = base / 'installed'
             (installed / 'lib').mkdir(parents=True)
             shutil.copy(ROOT / 'lib/diu-links.sh', installed / 'lib/diu-links.sh')
-            shutil.copy(ROOT / 'lib/rid-help.sh', installed / 'lib/rid-help.sh')
+            shutil.copy(ROOT / 'lib/diu-help.sh', installed / 'lib/diu-help.sh')
             target = installed / 'root-install-debian.sh'
             link = base / 'bin/diu'
             link.parent.mkdir()
