@@ -33,4 +33,4 @@ attendre de saisie humaine ni afficher les fichiers ajoutés au premier commit.
 ## Impact
 
 - `modules/projects/git.sh` pour le parcours commun de commit local.
-- `tests/test_rid_help.py` pour les scénarios ciblés sans dépôt local.
+- `tests/test_diu_help.py` pour les scénarios ciblés sans dépôt local.

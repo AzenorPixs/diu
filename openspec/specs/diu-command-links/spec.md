@@ -24,11 +24,15 @@ Après chargement de la configuration et vérification des droits, DIU MUST cré
 - **THEN** le lien créé pointe vers ce fichier dans cette racine.
 
 ### Requirement: Résolution du point d'entrée
-Le point d'entrée MUST charger ses bibliothèques depuis le répertoire de son fichier réel lorsqu'il est appelé par lien symbolique. Les alias historiques MUST rester disponibles.
+Le point d'entrée MUST charger ses bibliothèques depuis le répertoire de son fichier réel lorsqu'il est appelé par lien symbolique. Les alias générés MUST utiliser les noms `diu` et `diut` ; les anciens noms ne sont plus générés.
 
 #### Scenario: Aide par lien
 - **WHEN** le point d'entrée est appelé par lien avec `help`
 - **THEN** il charge son aide depuis son installation ou son dépôt cible.
+
+#### Scenario: Alias générés
+- **WHEN** les alias de commande DIU sont générés
+- **THEN** `diu` appelle le point d’entrée installé et `diut` appelle le point d’entrée de développement.
 
 ### Requirement: Vérification du lien au démarrage installé
 Le script `/root/diu/root-install-debian.sh` exécuté en root MUST vérifier `/usr/local/bin/diu` à chaque démarrage avant l’aide. Si le chemin est libre, il MUST créer un lien vers ce script. Toute entrée existante, y compris un lien pendant, MUST être conservée. Toute erreur de création MUST être signalée.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests des chemins d'aide rid exécutables sans configuration de production."""
+"""Tests des chemins d'aide diu exécutables sans configuration de production."""
 from pathlib import Path
 import os
 import re
@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT = ROOT / 'root-install-debian.sh'
 
 
-class RidHelpTests(unittest.TestCase):
-    def run_rid(self, *arguments):
+class DiuHelpTests(unittest.TestCase):
+    def run_diu(self, *arguments):
         return subprocess.run(
             ['bash', str(ENTRYPOINT), *arguments],
             text=True,
@@ -24,15 +24,15 @@ class RidHelpTests(unittest.TestCase):
     def test_diu_update_help(self):
         for arguments in (('diu', 'help'), ('diu', 'update', 'help'), ('update', 'help'), ('update', 'diu', 'help')):
             with self.subTest(arguments=arguments):
-                result = self.run_rid(*arguments)
+                result = self.run_diu(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid diu update', result.stdout)
+                self.assertIn('diu diu update', result.stdout)
 
     def test_diu_update_version_help_and_dispatch(self):
-        result = self.run_rid('diu', 'update', 'help')
+        result = self.run_diu('diu', 'update', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid diu update <VERSION>', result.stdout)
-        self.assertIn('rid diu update 1.1.7', result.stdout)
+        self.assertIn('diu diu update <VERSION>', result.stdout)
+        self.assertIn('diu diu update 1.1.7', result.stdout)
         source = ENTRYPOINT.read_text(encoding='utf-8')
         dispatch = source.split('dispatch_arguments() {', 1)[1].split('\n}\n', 1)[0]
         script = 'dispatch_arguments() {' + dispatch + '\n}\n' + r'''
@@ -401,59 +401,59 @@ forgejo_api_get /tmp /repos/owner/project
         )
 
     def test_root_help_is_available_without_configuration(self):
-        result = self.run_rid('help')
+        result = self.run_diu('help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid softwares', result.stdout)
+        self.assertIn('diu softwares', result.stdout)
         self.assertIn('→', result.stdout)
 
     def test_software_help_lists_available_commands(self):
-        result = self.run_rid('softwares', 'help')
+        result = self.run_diu('softwares', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid softwares install apt <SOFTWARE>', result.stdout)
-        self.assertIn('rid softwares update github [SOFTWARE]', result.stdout)
-        self.assertIn('rid softwares flatpak update', result.stdout)
+        self.assertIn('diu softwares install apt <SOFTWARE>', result.stdout)
+        self.assertIn('diu softwares update github [SOFTWARE]', result.stdout)
+        self.assertIn('diu softwares flatpak update', result.stdout)
 
     def test_flatpak_help_is_available_without_configuration(self):
-        result = self.run_rid('softwares', 'flatpak', 'help')
+        result = self.run_diu('softwares', 'flatpak', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid softwares flatpak update', result.stdout)
+        self.assertIn('diu softwares flatpak update', result.stdout)
 
     def test_terminal_help_does_not_publish(self):
-        result = self.run_rid('projects', 'github', 'push', 'help')
+        result = self.run_diu('projects', 'github', 'push', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects github push <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects github push <ID PROJECT>', result.stdout)
 
     def test_cicd_help_does_not_start_the_flow(self):
         for arguments in (('projects', 'cicd', 'help'), ('projects', 'cicd', 'project', 'help')):
             with self.subTest(arguments=arguments):
-                result = self.run_rid(*arguments)
+                result = self.run_diu(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects cicd <ID PROJECT>', result.stdout)
+                self.assertIn('diu projects cicd <ID PROJECT>', result.stdout)
 
     def test_github_release_help_is_available(self):
-        result = self.run_rid('projects', 'github', 'release', 'help')
+        result = self.run_diu('projects', 'github', 'release', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects github release <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects github release <ID PROJECT>', result.stdout)
 
     def test_forgejo_push_help_describes_grouped_command(self):
-        result = self.run_rid('projects', 'forgejo', 'push', 'help')
+        result = self.run_diu('projects', 'forgejo', 'push', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects forgejo push <ID PROJECT>', result.stdout)
-        self.assertIn('rid projects forgejo push all', result.stdout)
+        self.assertIn('diu projects forgejo push <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects forgejo push all', result.stdout)
 
     def test_projects_help_uses_canonical_git_init_command(self):
-        result = self.run_rid('projects', 'help')
+        result = self.run_diu('projects', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects git analyse <ID PROJECTS>', result.stdout)
-        self.assertNotIn('rid projects gita <ID PROJECT>', result.stdout)
-        self.assertIn('rid projects git commit <ID PROJECT> [COMMIT]', result.stdout)
-        self.assertNotIn('rid projects gitc <ID PROJECT> [COMMIT]', result.stdout)
-        self.assertIn('rid projects git init <ID PROJECT>', result.stdout)
-        self.assertNotIn('rid projects giti <ID PROJECT>', result.stdout)
-        self.assertIn('rid projects git status <ID PROJECTS>', result.stdout)
-        self.assertNotIn('rid projects gits <ID PROJECTS>', result.stdout)
-        self.assertIn('rid projects git update <ID PROJECT>', result.stdout)
-        self.assertNotIn('rid projects gitu <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects git analyse <ID PROJECTS>', result.stdout)
+        self.assertNotIn('diu projects gita <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects git commit <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertNotIn('diu projects gitc <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertIn('diu projects git init <ID PROJECT>', result.stdout)
+        self.assertNotIn('diu projects giti <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects git status <ID PROJECTS>', result.stdout)
+        self.assertNotIn('diu projects gits <ID PROJECTS>', result.stdout)
+        self.assertIn('diu projects git update <ID PROJECT>', result.stdout)
+        self.assertNotIn('diu projects gitu <ID PROJECT>', result.stdout)
 
     def test_projects_template_devops_help_does_not_generate_document(self):
         for arguments in (
@@ -469,25 +469,25 @@ forgejo_api_get /tmp /repos/owner/project
             ('projects', 'template', 'devops', 'openspec', '?'),
         ):
             with self.subTest(arguments=arguments):
-                result = self.run_rid(*arguments)
+                result = self.run_diu(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 expected = arguments[3] if len(arguments) == 5 else '<ID PROJECT>'
-                self.assertIn(f'rid projects template devops {expected}', result.stdout)
-                self.assertNotIn('rid projects template <ID PROJECT> devops', result.stdout)
+                self.assertIn(f'diu projects template devops {expected}', result.stdout)
+                self.assertNotIn('diu projects template <ID PROJECT> devops', result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_unknown_template_help_suggests_template_context(self):
-        result = self.run_rid('projects', 'template', 'application', 'unknown', 'help')
+        result = self.run_diu('projects', 'template', 'application', 'unknown', 'help')
         self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn('rid projects template help', result.stdout)
+        self.assertIn('diu projects template help', result.stdout)
 
     def test_template_all_help_lists_selection_criteria_without_configuration(self):
         for ending in ('help', '?'):
             arguments = ('projects', 'template', 'devops', 'all', ending)
             with self.subTest(arguments=arguments):
-                result = self.run_rid(*arguments)
+                result = self.run_diu(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects template devops all', result.stdout)
+                self.assertIn('diu projects template devops all', result.stdout)
                 self.assertIn('tous les projets configurés', result.stdout)
                 for key in ('PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE',
                             'PROJECT_DOCKERED', 'PROJECT_DEBIAN_PACKAGE'):
@@ -500,34 +500,34 @@ forgejo_api_get /tmp /repos/owner/project
                           ('projects', 'template', 'devops', 'help'),
                           ('projects', 'template', 'devops', '?')):
             with self.subTest(arguments=arguments):
-                result = self.run_rid(*arguments)
+                result = self.run_diu(*arguments)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects template devops <ID PROJECT>', result.stdout)
-                self.assertIn('rid projects template devops all', result.stdout)
+                self.assertIn('diu projects template devops <ID PROJECT>', result.stdout)
+                self.assertIn('diu projects template devops all', result.stdout)
 
     def test_template_all_help_rejects_extra_arguments_and_unknown_operation(self):
         for arguments, suggestion in (
                 (('projects', 'template', 'devops', 'all', 'extra', 'help'),
-                 'rid projects template devops help'),
+                 'diu projects template devops help'),
                 (('projects', 'template', 'unknown', 'all', '?'),
-                 'rid projects template help')):
+                 'diu projects template help')):
             with self.subTest(arguments=arguments):
-                result = self.run_rid(*arguments)
+                result = self.run_diu(*arguments)
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertIn(suggestion, result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_template_devops_help_rejects_extra_arguments(self):
-        result = self.run_rid('projects', 'template', 'devops', 'application', 'extra', 'help')
+        result = self.run_diu('projects', 'template', 'devops', 'application', 'extra', 'help')
         self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn('rid projects template devops help', result.stdout)
+        self.assertIn('diu projects template devops help', result.stdout)
 
     def test_template_help_rejects_invalid_project_paths(self):
         for project in ('../elsewhere', '.', '..', 'line\nbreak'):
             with self.subTest(project=project):
-                result = self.run_rid('projects', 'template', 'devops', project, '?')
+                result = self.run_diu('projects', 'template', 'devops', project, '?')
                 self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn('rid projects template devops help', result.stdout)
+                self.assertIn('diu projects template devops help', result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_old_devops_help_contexts_are_rejected(self):
@@ -535,16 +535,16 @@ forgejo_api_get /tmp /repos/owner/project
             for arguments in (('application', 'devops'), ('all', 'devops'),
                               ('application',)):
                 with self.subTest(arguments=arguments, ending=ending):
-                    result = self.run_rid('projects', 'template', *arguments, ending)
+                    result = self.run_diu('projects', 'template', *arguments, ending)
                     self.assertEqual(result.returncode, 2, result.stderr)
-                    context = 'rid projects template all help' if arguments[0] == 'all' else 'rid projects template help'
+                    context = 'diu projects template all help' if arguments[0] == 'all' else 'diu projects template help'
                     self.assertIn(context, result.stdout)
                     self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_create_help_describes_template_creation(self):
-        result = self.run_rid('projects', 'create', 'help')
+        result = self.run_diu('projects', 'create', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects create <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects create <ID PROJECT>', result.stdout)
         self.assertIn('modèle local', result.stdout)
         self.assertIn('génère DEVOPS.md', result.stdout)
         self.assertIn('prépare OpenSpec puis génère DEVOPS.md', result.stdout)
@@ -553,9 +553,9 @@ forgejo_api_get /tmp /repos/owner/project
         for ending in ('help', '?'):
             for project in ('application', 'devops', 'openspec', "projet d'essai"):
                 with self.subTest(project=project, ending=ending):
-                    result = self.run_rid('projects', 'template', 'openspec', project, ending)
+                    result = self.run_diu('projects', 'template', 'openspec', project, ending)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertIn(f'rid projects template openspec {project}', result.stdout)
+                    self.assertIn(f'diu projects template openspec {project}', result.stdout)
                     self.assertIn('profil custom', result.stdout)
                     self.assertIn('OPENCODE=1', result.stdout)
                     self.assertIn('dossier .opencode présent', result.stdout)
@@ -568,17 +568,17 @@ forgejo_api_get /tmp /repos/owner/project
                             ('projects', 'template', 'openspec'),
                             ('projects', 'template', 'openspec', 'application')):
                 with self.subTest(context=context, ending=ending):
-                    result = self.run_rid(*context, ending)
+                    result = self.run_diu(*context, ending)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     project = 'application' if 'application' in context else '<ID PROJECT>'
-                    self.assertIn(f'rid projects template openspec {project}', result.stdout)
+                    self.assertIn(f'diu projects template openspec {project}', result.stdout)
                     self.assertIn(f'via ENV_DEVOPS_USER pour le projet {project}', result.stdout)
 
     def test_openspec_all_help_and_discovery_without_configuration(self):
         for ending in ('help', '?'):
-            result = self.run_rid('projects', 'template', 'openspec', 'all', ending)
+            result = self.run_diu('projects', 'template', 'openspec', 'all', ending)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('rid projects template openspec all', result.stdout)
+            self.assertIn('diu projects template openspec all', result.stdout)
             self.assertIn('tous les projets configurés', result.stdout)
             self.assertIn('poursuit après un échec', result.stdout)
             self.assertIn('bilan', result.stdout)
@@ -589,9 +589,9 @@ forgejo_api_get /tmp /repos/owner/project
             self.assertNotIn('pour le projet all', result.stdout)
             for context in (('projects',), ('projects', 'template'),
                             ('projects', 'template', 'openspec')):
-                result = self.run_rid(*context, ending)
+                result = self.run_diu(*context, ending)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects template openspec all', result.stdout)
+                self.assertIn('diu projects template openspec all', result.stdout)
 
     def test_projects_template_openspec_help_rejects_invalid_arguments(self):
         for arguments in (('openspec', 'application', 'extra', 'help'),
@@ -603,7 +603,7 @@ forgejo_api_get /tmp /repos/owner/project
                           ('application', 'openspec', 'help'),
                           ('all', 'openspec', '?')):
             with self.subTest(arguments=arguments):
-                result = self.run_rid('projects', 'template', *arguments)
+                result = self.run_diu('projects', 'template', *arguments)
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
@@ -612,9 +612,9 @@ forgejo_api_get /tmp /repos/owner/project
             for context in (('projects', 'template', 'all'),
                             ('projects', 'template', 'all', 'all')):
                 with self.subTest(context=context, ending=ending):
-                    result = self.run_rid(*context, ending)
+                    result = self.run_diu(*context, ending)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    for text in ('rid projects template all all', 'Premier all', 'second all',
+                    for text in ('diu projects template all all', 'Premier all', 'second all',
                                  'OpenSpec puis DevOps en dernier pour chaque projet',
                                  'échec OpenSpec empêche DevOps', 'poursuit', 'bilan',
                                  'PROJECT_ID', 'PROJECT_NAME', 'PROJECT_TYPE',
@@ -622,132 +622,132 @@ forgejo_api_get /tmp /repos/owner/project
                         self.assertIn(text, result.stdout)
                     self.assertNotIn('variables.sh', result.stdout + result.stderr)
             for context in (('projects',), ('projects', 'template')):
-                result = self.run_rid(*context, ending)
+                result = self.run_diu(*context, ending)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('rid projects template all all', result.stdout)
+                self.assertIn('diu projects template all all', result.stdout)
 
     def test_all_models_help_rejects_individual_targets_and_extra_arguments(self):
         for ending in ('help', '?'):
             for arguments in (('all', 'application'), ('all', 'devops'),
                               ('all', 'openspec'), ('all', '../elsewhere'),
                               ('all', 'all', 'extra')):
-                result = self.run_rid('projects', 'template', *arguments, ending)
+                result = self.run_diu('projects', 'template', *arguments, ending)
                 self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn('rid projects template all help', result.stdout)
+                self.assertIn('diu projects template all help', result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_update_help_distinguishes_general_and_targeted_updates(self):
         for ending in ('help', '?'):
-            result = self.run_rid('projects', 'update', ending)
+            result = self.run_diu('projects', 'update', ending)
             self.assertEqual(result.returncode, 0, result.stderr)
-            for text in ('rid projects update', 'rid projects update <ID PROJECT>',
+            for text in ('diu projects update', 'diu projects update <ID PROJECT>',
                          'tous les modèles', 'OpenSpec puis DevOps en dernier',
-                         'rid projects template all all', 'variables générales'):
+                         'diu projects template all all', 'variables générales'):
                 self.assertIn(text, result.stdout)
             self.assertNotIn('variables.sh', result.stdout + result.stderr)
             for project in ('application', 'all', 'project with spaces'):
-                result = self.run_rid('projects', 'update', project, ending)
+                result = self.run_diu('projects', 'update', project, ending)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn(f'rid projects update {project}', result.stdout)
+                self.assertIn(f'diu projects update {project}', result.stdout)
                 self.assertIn('variables générales de ce seul projet', result.stdout)
                 self.assertNotIn('tous les modèles', result.stdout)
                 self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_and_global_update_help_advertise_models(self):
         for ending in ('help', '?'):
-            result = self.run_rid('projects', ending)
+            result = self.run_diu('projects', ending)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('rid projects update <ID PROJECT>', result.stdout)
-            self.assertIn('rid projects update ', result.stdout)
+            self.assertIn('diu projects update <ID PROJECT>', result.stdout)
+            self.assertIn('diu projects update ', result.stdout)
             self.assertIn('tous les modèles', result.stdout)
-            result = self.run_rid('update', ending)
+            result = self.run_diu('update', ending)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('via rid projects update', result.stdout)
+            self.assertIn('via diu projects update', result.stdout)
             self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_update_help_rejects_extra_arguments(self):
         for ending in ('help', '?'):
-            result = self.run_rid('projects', 'update', 'application', 'extra', ending)
+            result = self.run_diu('projects', 'update', 'application', 'extra', ending)
             self.assertEqual(result.returncode, 2, result.stderr)
-            self.assertIn('rid projects update help', result.stdout)
+            self.assertIn('diu projects update help', result.stdout)
             self.assertNotIn('variables.sh', result.stdout + result.stderr)
 
     def test_projects_clone_help_describes_clone_command(self):
-        projects_result = self.run_rid('projects', 'help')
-        clone_result = self.run_rid('projects', 'clone', 'help')
+        projects_result = self.run_diu('projects', 'help')
+        clone_result = self.run_diu('projects', 'clone', 'help')
 
         self.assertEqual(projects_result.returncode, 0, projects_result.stderr)
         self.assertEqual(clone_result.returncode, 0, clone_result.stderr)
-        command = 'rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>'
+        command = 'diu projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>'
         self.assertIn(command, projects_result.stdout)
         self.assertIn(command, clone_result.stdout)
 
     def test_projects_gitlab_clone_help_does_not_start_cloning(self):
-        projects_result = self.run_rid('projects', 'help')
-        gitlab_result = self.run_rid('projects', 'gitlab', 'help')
-        clone_result = self.run_rid('projects', 'gitlab', 'clone', 'help')
-        question_result = self.run_rid('projects', 'gitlab', 'clone', '?')
+        projects_result = self.run_diu('projects', 'help')
+        gitlab_result = self.run_diu('projects', 'gitlab', 'help')
+        clone_result = self.run_diu('projects', 'gitlab', 'clone', 'help')
+        question_result = self.run_diu('projects', 'gitlab', 'clone', '?')
 
-        command = 'rid projects gitlab clone <ID PROJECT>'
+        command = 'diu projects gitlab clone <ID PROJECT>'
         for result in (projects_result, gitlab_result, clone_result, question_result):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn(command, result.stdout)
 
     def test_projects_github_clone_help_does_not_start_cloning(self):
-        projects_result = self.run_rid('projects', 'help')
-        github_result = self.run_rid('projects', 'github', 'help')
-        clone_result = self.run_rid('projects', 'github', 'clone', 'help')
-        question_result = self.run_rid('projects', 'github', 'clone', '?')
+        projects_result = self.run_diu('projects', 'help')
+        github_result = self.run_diu('projects', 'github', 'help')
+        clone_result = self.run_diu('projects', 'github', 'clone', 'help')
+        question_result = self.run_diu('projects', 'github', 'clone', '?')
 
-        command = 'rid projects github clone <ID PROJECT>'
+        command = 'diu projects github clone <ID PROJECT>'
         for result in (projects_result, github_result, clone_result, question_result):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn(command, result.stdout)
 
     def test_projects_sync_help_describes_synchronization(self):
-        projects_result = self.run_rid('projects', 'help')
-        sync_result = self.run_rid('projects', 'sync', 'help')
+        projects_result = self.run_diu('projects', 'help')
+        sync_result = self.run_diu('projects', 'sync', 'help')
 
         self.assertEqual(projects_result.returncode, 0, projects_result.stderr)
         self.assertEqual(sync_result.returncode, 0, sync_result.stderr)
-        self.assertIn('rid projects sync <ID PROJECT>', projects_result.stdout)
-        self.assertIn('rid projects sync all', projects_result.stdout)
-        self.assertIn('rid projects sync <ID PROJECT>', sync_result.stdout)
-        self.assertIn('rid projects sync all', sync_result.stdout)
+        self.assertIn('diu projects sync <ID PROJECT>', projects_result.stdout)
+        self.assertIn('diu projects sync all', projects_result.stdout)
+        self.assertIn('diu projects sync <ID PROJECT>', sync_result.stdout)
+        self.assertIn('diu projects sync all', sync_result.stdout)
 
     def test_projects_git_help_lists_analyse_init_and_update(self):
-        result = self.run_rid('projects', 'git', 'help')
+        result = self.run_diu('projects', 'git', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects git analyse <ID PROJECTS>', result.stdout)
-        self.assertIn('rid projects git init <ID PROJECT>', result.stdout)
-        self.assertIn('rid projects git status <ID PROJECTS>', result.stdout)
-        self.assertIn('rid projects git update <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects git analyse <ID PROJECTS>', result.stdout)
+        self.assertIn('diu projects git init <ID PROJECT>', result.stdout)
+        self.assertIn('diu projects git status <ID PROJECTS>', result.stdout)
+        self.assertIn('diu projects git update <ID PROJECT>', result.stdout)
 
     def test_projects_git_help_lists_commit_command(self):
-        result = self.run_rid('projects', 'git', 'help')
+        result = self.run_diu('projects', 'git', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects git commit <ID PROJECT> [COMMIT]', result.stdout)
-        self.assertNotIn('rid projects gitc <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertIn('diu projects git commit <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertNotIn('diu projects gitc <ID PROJECT> [COMMIT]', result.stdout)
 
     def test_projects_git_commit_help_describes_canonical_command(self):
-        result = self.run_rid('projects', 'git', 'commit', 'help')
+        result = self.run_diu('projects', 'git', 'commit', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects git commit <ID PROJECT> [COMMIT]', result.stdout)
+        self.assertIn('diu projects git commit <ID PROJECT> [COMMIT]', result.stdout)
 
     def test_projects_help_lists_commit_all_command(self):
-        result = self.run_rid('projects', 'help')
+        result = self.run_diu('projects', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects git commit all', result.stdout)
+        self.assertIn('diu projects git commit all', result.stdout)
 
     def test_projects_help_lists_forgejo_push_all_command(self):
-        result = self.run_rid('projects', 'help')
+        result = self.run_diu('projects', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects forgejo push all', result.stdout)
+        self.assertIn('diu projects forgejo push all', result.stdout)
 
     def test_projects_git_commit_all_help_describes_command(self):
-        result = self.run_rid('projects', 'git', 'commit', 'help')
+        result = self.run_diu('projects', 'git', 'commit', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects git commit all', result.stdout)
+        self.assertIn('diu projects git commit all', result.stdout)
 
     def test_git_commit_all_selects_only_valid_configured_projects(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -1108,21 +1108,21 @@ forgejo_api_get /tmp /repos/owner/project
                 self.assertIn('push:', result.stdout)
 
     def test_projects_git_status_help_describes_canonical_command(self):
-        result = self.run_rid('projects', 'git', 'status', 'help')
+        result = self.run_diu('projects', 'git', 'status', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('rid projects git status <ID PROJECTS>', result.stdout)
+        self.assertIn('diu projects git status <ID PROJECTS>', result.stdout)
 
     def test_unknown_root_command_suggests_root_help(self):
-        result = self.run_rid('inconnue')
+        result = self.run_diu('inconnue')
         self.assertEqual(result.returncode, 2)
         self.assertIn("Classe d'actions inconnue : inconnue", result.stdout)
-        self.assertIn('rid help', result.stdout)
+        self.assertIn('diu help', result.stdout)
 
     def test_unknown_software_command_suggests_contextual_help(self):
-        result = self.run_rid('softwares', 'inconnue')
+        result = self.run_diu('softwares', 'inconnue')
         self.assertEqual(result.returncode, 2)
         self.assertIn("Action inconnue pour la classe 'softwares' : inconnue", result.stdout)
-        self.assertIn('rid softwares help', result.stdout)
+        self.assertIn('diu softwares help', result.stdout)
 
 
 

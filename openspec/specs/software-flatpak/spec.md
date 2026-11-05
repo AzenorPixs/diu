@@ -8,15 +8,15 @@ installées au niveau système, sans modifier le moteur Flatpak du module system
 
 ### Requirement: Commandes de gestion des applications Flatpak
 
-DIU SHALL accepter `rid softwares install flatpak <SOFTWARE>`, `rid softwares
-remove flatpak <SOFTWARE>` et `rid softwares flatpak update`. Les deux
+DIU SHALL accepter `diu softwares install flatpak <SOFTWARE>`, `diu softwares
+remove flatpak <SOFTWARE>` et `diu softwares flatpak update`. Les deux
 premières commandes SHALL exiger exactement un identifiant d'application
 Flatpak valide ; les options, arguments supplémentaires et identifiants
 invalides SHALL échouer avant toute commande Flatpak.
 
 #### Scenario: Installation ciblée
 
-- **WHEN** l'utilisateur invoque `rid softwares install flatpak org.example.App`
+- **WHEN** l'utilisateur invoque `diu softwares install flatpak org.example.App`
 - **THEN** DIU route l'installation vers le moteur Flatpak du module `softwares`
 
 #### Scenario: Syntaxe invalide
@@ -62,7 +62,7 @@ non ciblées. Tout échec Flatpak SHALL être propagé avec un code non nul.
 
 ### Requirement: Mise à jour globale des applications Flatpak
 
-`rid softwares flatpak update` SHALL exécuter la mise à jour des applications
+`diu softwares flatpak update` SHALL exécuter la mise à jour des applications
 Flatpak installées à portée système. Elle SHALL NOT installer une application
 absente, appeler APT, ni appeler les opérations d'installation ou de
 suppression du moteur. L'absence d'application ou de mise à jour SHALL être
@@ -70,7 +70,7 @@ signalée sans erreur de mutation ; un échec réel de Flatpak SHALL être propa
 
 #### Scenario: Mise à jour des applications installées
 
-- **WHEN** l'utilisateur invoque `rid softwares flatpak update`
+- **WHEN** l'utilisateur invoque `diu softwares flatpak update`
 - **THEN** DIU demande à Flatpak de mettre à jour les applications système installées
 
 #### Scenario: Aucune application installée
@@ -81,11 +81,11 @@ signalée sans erreur de mutation ; un échec réel de Flatpak SHALL être propa
 ### Requirement: Aide contextuelle Flatpak
 
 L'aide hiérarchique SHALL décrire les commandes d'installation, de suppression
-et de mise à jour Flatpak aux contextes `rid softwares`, `rid softwares
-install`, `rid softwares remove`, `rid softwares flatpak` et aux chemins
+et de mise à jour Flatpak aux contextes `diu softwares`, `diu softwares
+install`, `diu softwares remove`, `diu softwares flatpak` et aux chemins
 terminaux correspondants.
 
 #### Scenario: Aide du moteur Flatpak
 
-- **WHEN** l'utilisateur demande `rid softwares flatpak help`
-- **THEN** l'aide affiche `rid softwares flatpak update` et sa description
+- **WHEN** l'utilisateur demande `diu softwares flatpak help`
+- **THEN** l'aide affiche `diu softwares flatpak update` et sa description

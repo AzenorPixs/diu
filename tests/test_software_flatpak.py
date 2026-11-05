@@ -58,7 +58,7 @@ command() {
 software_flatpak_action install org.example.App
 ''')
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn('rid system install flatpak', result.stdout)
+        self.assertIn('diu system install flatpak', result.stdout)
         self.assertEqual(calls, '')
 
     def test_install_requires_flathub_without_creating_it(self):

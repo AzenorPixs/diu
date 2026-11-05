@@ -8,19 +8,19 @@ Définir la publication GitLab des projets DIU et sa configuration associée.
 
 ### Requirement: commande de publication GitLab
 
-Le système MUST exposer la commande `rid projects gitlab push <ID PROJECT>`.
+Le système MUST exposer la commande `diu projects gitlab push <ID PROJECT>`.
 
 #### Scenario: publication du dépôt local
 
 - ÉTANT DONNÉ le dépôt local du projet `diu`
-- QUAND l'utilisateur exécute `rid projects gitlab push diu`
+- QUAND l'utilisateur exécute `diu projects gitlab push diu`
 - ALORS le dépôt local est poussé vers le dépôt GitLab distant configuré
 - ET la branche distante configurée reçoit la branche locale publiée
 
 #### Scenario: sélection explicite de GitLab
 
 - ÉTANT DONNÉ que le projet possède déjà une configuration Forgejo
-- QUAND l'utilisateur exécute `rid projects gitlab push <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects gitlab push <ID PROJECT>`
 - ALORS la commande sélectionne explicitement le fournisseur GitLab
 - ET elle utilise ou initialise les variables `REMOTE_GITLAB_*`
 
@@ -41,7 +41,7 @@ REMOTE_GITLAB_BRANCH='main'
 #### Scenario: initialisation au premier push
 
 - ÉTANT DONNÉ que la configuration GitLab est absente ou incomplète
-- QUAND l'utilisateur lance `rid projects gitlab push <ID PROJECT>`
+- QUAND l'utilisateur lance `diu projects gitlab push <ID PROJECT>`
 - ALORS la fonction d'initialisation de configuration est exécutée de manière interactive
 - ET les variables GitLab sont demandées puis enregistrées dans `project.env`
 - ET le push ne commence qu'après une configuration complète
@@ -94,16 +94,16 @@ Le push MUST utiliser le nom du remote et la branche définis dans la configurat
 
 Les niveaux d'aide suivants MUST être disponibles et cohérents :
 
-- `rid help` affiche les commandes de premier niveau et leur description succincte ;
-- `rid projects help` affiche les commandes du niveau `projects` et leur description succincte ;
-- `rid projects gitlab help` affiche les commandes GitLab et leur description succincte ;
-- `rid projects gitlab push help` décrit la publication du dépôt local vers GitLab et rappelle la syntaxe `rid projects gitlab push <ID PROJECT>`.
+- `diu help` affiche les commandes de premier niveau et leur description succincte ;
+- `diu projects help` affiche les commandes du niveau `projects` et leur description succincte ;
+- `diu projects gitlab help` affiche les commandes GitLab et leur description succincte ;
+- `diu projects gitlab push help` décrit la publication du dépôt local vers GitLab et rappelle la syntaxe `diu projects gitlab push <ID PROJECT>`.
 
 #### Scenario: aide de publication GitLab
 
 - ÉTANT DONNÉ que l'utilisateur demande l'aide de publication GitLab
 - QUAND l'aide est affichée
-- ALORS la syntaxe `rid projects gitlab push <ID PROJECT>` est décrite
+- ALORS la syntaxe `diu projects gitlab push <ID PROJECT>` est décrite
 
 ### Requirement: compatibilité Forgejo
 

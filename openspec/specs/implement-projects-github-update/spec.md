@@ -8,14 +8,14 @@ projet DIU, sans altérer ses configurations générales ou concurrentes.
 
 ### Requirement: commande de mise à jour GitHub
 
-Le système MUST exposer la commande `rid projects github update <ID PROJECT>`.
+Le système MUST exposer la commande `diu projects github update <ID PROJECT>`.
 
-Le système DOIT exposer la commande `rid projects github update <ID PROJECT>`.
+Le système DOIT exposer la commande `diu projects github update <ID PROJECT>`.
 
 #### Scenario: vérifier une configuration GitHub existante
 
 - ÉTANT DONNÉ que `project.env` contient une configuration générale conforme
-- QUAND l'utilisateur exécute `rid projects github update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects github update <ID PROJECT>`
 - ALORS les valeurs `REMOTE_GITHUB_*` existantes sont proposées comme valeurs
   courantes
 - ET l'utilisateur peut les conserver ou les modifier
@@ -25,7 +25,7 @@ Le système DOIT exposer la commande `rid projects github update <ID PROJECT>`.
 
 - ÉTANT DONNÉ que la configuration générale est conforme
 - ET que les variables `REMOTE_GITHUB_*` sont absentes ou incomplètes
-- QUAND l'utilisateur exécute `rid projects github update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects github update <ID PROJECT>`
 - ALORS seules les variables GitHub sont demandées
 - ET `REMOTE_GITHUB_REPOSITORY` prend par défaut l'identifiant du projet
 - ET `REMOTE_GITHUB_NAME` prend par défaut `origin`
@@ -35,7 +35,7 @@ Le système DOIT exposer la commande `rid projects github update <ID PROJECT>`.
 
 - ÉTANT DONNÉ que `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` ou
   `PROJECT_DOCKERED` est absent ou incorrect
-- QUAND l'utilisateur exécute `rid projects github update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects github update <ID PROJECT>`
 - ALORS la fonction `update_projects()` est appelée pour compléter la
   configuration générale
 - ET les variables GitHub sont traitées après cette complétion
@@ -62,12 +62,12 @@ Les aides de mise à jour GitHub MUST décrire la commande et sa syntaxe.
 #### Scenario: aide de mise à jour GitHub
 
 - ÉTANT DONNÉ que l'utilisateur demande une aide GitHub
-- QUAND il exécute `rid projects github update help`
+- QUAND il exécute `diu projects github update help`
 - ALORS la commande et sa description sont affichées
 
 Les commandes suivantes DOIVENT être décrites :
 
-- `rid projects github help` affiche `update` et `push` ;
-- `rid projects github update help` décrit la vérification, la modification
+- `diu projects github help` affiche `update` et `push` ;
+- `diu projects github update help` décrit la vérification, la modification
   ou la création des variables GitHub ;
-- `rid projects help` conserve l'entrée de niveau `github`.
+- `diu projects help` conserve l'entrée de niveau `github`.

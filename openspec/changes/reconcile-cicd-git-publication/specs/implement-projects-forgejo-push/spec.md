@@ -2,7 +2,7 @@
 
 ### Requirement: commande de publication Forgejo
 
-DIU MUST exposer `rid projects forgejo push <ID PROJECT>` et sa variante
+DIU MUST exposer `diu projects forgejo push <ID PROJECT>` et sa variante
 `all`, conformément aux scénarios ci-dessous et à `git-provider-availability`.
 La branche MUST utiliser `--force-with-lease` et, hors CI/CD, les tags MUST rester sans forçage. Dans le CI/CD, un tag distant divergent MAY être remplacé avec un lease explicite sur sa valeur observée selon `projects-cicd`. Pour un dépôt annoncé absent, le lease MUST attendre l'absence de
 la branche avec `--force-with-lease=refs/heads/<branche>:` et MUST NOT
@@ -50,7 +50,7 @@ dépendre d'une référence héritée ni supprimer une référence locale.
 
 #### Scenario: publication groupée
 
-- **WHEN** `rid projects forgejo push all` est demandé
+- **WHEN** `diu projects forgejo push all` est demandé
 - **THEN** chaque projet sélectionné utilise le parcours Forgejo unitaire
 
 #### Scenario: sélection explicite de Forgejo

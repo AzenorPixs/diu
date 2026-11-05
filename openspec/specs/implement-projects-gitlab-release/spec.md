@@ -8,12 +8,12 @@ Définir la publication conditionnelle d'artefacts vers une release GitLab.
 
 ### Requirement: commande de release GitLab
 
-Le système SHALL exposer la commande `rid projects gitlab release <ID PROJECT>`.
+Le système SHALL exposer la commande `diu projects gitlab release <ID PROJECT>`.
 
 #### Scenario: release d'un projet Dockerisé
 
 - ÉTANT DONNÉ le dépôt local du projet `diu`.
-- QUAND l'utilisateur exécute `rid projects gitlab release diu`.
+- QUAND l'utilisateur exécute `diu projects gitlab release diu`.
 - ALORS l'image Docker locale `diu:latest` est poussée vers le registre GitLab configuré.
 
 ### Requirement: initialisation de configuration incomplète
@@ -118,11 +118,11 @@ en listant les fichiers détectés.
 
 ### Requirement: aide CLI
 
-`rid projects help` SHALL présenter `gitlab` avec `release`.
+`diu projects help` SHALL présenter `gitlab` avec `release`.
 
-`rid projects gitlab help` SHALL présenter `update`, `push` et `release`.
+`diu projects gitlab help` SHALL présenter `update`, `push` et `release`.
 
-`rid projects gitlab release <ID PROJECT>` SHALL afficher une aide cohérente.
+`diu projects gitlab release <ID PROJECT>` SHALL afficher une aide cohérente.
 
 #### Scenario: aide de release GitLab
 
@@ -133,7 +133,7 @@ en listant les fichiers détectés.
 ### Requirement: compatibilité
 
 L'ajout de `projects gitlab release` SHALL préserver les comportements existants
-de `rid projects gitlab push`, `projects_forgejo_release`, `git_push_provider` et des
+de `diu projects gitlab push`, `projects_forgejo_release`, `git_push_provider` et des
 parcours d'authentification GitLab.
 
 #### Scenario: comportements existants préservés

@@ -426,27 +426,27 @@ manage_system_action() {
                 elif [[ "${1:-}" == add || "${1:-}" == del || "${1:-}" == list ]]; then
                     system_network_manage_hosts "$@"
                 else
-                    print_error 'Usage : rid system network hosts {update|add IP FQDN|del IP FQDN|del all|list}'
+                    print_error 'Usage : diu system network hosts {update|add IP FQDN|del IP FQDN|del all|list}'
                     return 2
                 fi
             else
-                print_error 'Usage : rid system network {update|hosts {update|add IP FQDN|del IP FQDN|del all|list}}'
+                print_error 'Usage : diu system network {update|hosts {update|add IP FQDN|del IP FQDN|del all|list}}'
                 return 2
             fi
             ;;
         drivers)
             [[ $# -eq 3 && "${3:-}" == displaylink ]] || {
-                print_error 'Usage : rid system drivers {install|remove} displaylink ; voir rid system drivers help'
+                print_error 'Usage : diu system drivers {install|remove} displaylink ; voir diu system drivers help'
                 return 2
             }
             case "$2" in
                 install) system_drivers_install_displaylink ;;
                 remove) system_drivers_remove_displaylink ;;
-                *) print_error 'Action pilote inconnue ; voir rid system drivers help'; return 2 ;;
+                *) print_error 'Action pilote inconnue ; voir diu system drivers help'; return 2 ;;
             esac
             ;;
         infos)
-            [[ $# -le 2 ]] || { print_error 'Usage : rid system infos [debian|drivers|network] ; voir rid system infos help'; return 2; }
+            [[ $# -le 2 ]] || { print_error 'Usage : diu system infos [debian|drivers|network] ; voir diu system infos help'; return 2; }
             if [[ $# -eq 1 ]]; then
                 system_info
                 return
@@ -455,7 +455,7 @@ manage_system_action() {
                 network) system_info_network ;;
                 debian) system_info_debian ;;
                 drivers) system_info_drivers ;;
-                *) print_error 'Information inconnue ; voir rid system infos help'; return 2 ;;
+                *) print_error 'Information inconnue ; voir diu system infos help'; return 2 ;;
             esac
             ;;
         install|remove)

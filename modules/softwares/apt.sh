@@ -135,11 +135,11 @@ manage_softwares_action() {
     local action="${1:-}" engine="${2:-}" software="${3:-}"
     case "$action:$engine" in
         install:apt|remove:apt)
-            [[ $# -eq 3 ]] || { print_error "Usage : rid softwares $action apt <SOFTWARE>"; return 2; }
+            [[ $# -eq 3 ]] || { print_error "Usage : diu softwares $action apt <SOFTWARE>"; return 2; }
             software_apt_action "$action" "$software"
             ;;
         apt:update)
-            [[ $# -eq 2 ]] || { print_error "Usage : rid softwares apt update"; return 2; }
+            [[ $# -eq 2 ]] || { print_error "Usage : diu softwares apt update"; return 2; }
             software_apt_update
             ;;
         update:apt)
@@ -148,27 +148,27 @@ manage_softwares_action() {
             elif [[ $# -eq 2 ]]; then
                 software_apt_update_all
             else
-                print_error "Usage : rid softwares update apt [SOFTWARE]"
+                print_error "Usage : diu softwares update apt [SOFTWARE]"
                 return 2
             fi
             ;;
         install:github|remove:github)
-            [[ $# -eq 3 ]] || { print_error "Usage : rid softwares $action github <SOFTWARE>"; return 2; }
+            [[ $# -eq 3 ]] || { print_error "Usage : diu softwares $action github <SOFTWARE>"; return 2; }
             software_github_action "$action" "$software"
             ;;
         install:flatpak|remove:flatpak)
-            [[ $# -eq 3 ]] || { print_error "Usage : rid softwares $action flatpak <SOFTWARE>"; return 2; }
+            [[ $# -eq 3 ]] || { print_error "Usage : diu softwares $action flatpak <SOFTWARE>"; return 2; }
             software_flatpak_action "$action" "$software"
             ;;
         flatpak:update)
-            [[ $# -eq 2 ]] || { print_error "Usage : rid softwares flatpak update"; return 2; }
+            [[ $# -eq 2 ]] || { print_error "Usage : diu softwares flatpak update"; return 2; }
             software_flatpak_update_all
             ;;
         update:github)
-            if [[ $# -eq 3 ]]; then software_github_action update "$software"; elif [[ $# -eq 2 ]]; then software_github_update_all; else print_error "Usage : rid softwares update github [SOFTWARE]"; return 2; fi
+            if [[ $# -eq 3 ]]; then software_github_action update "$software"; elif [[ $# -eq 2 ]]; then software_github_update_all; else print_error "Usage : diu softwares update github [SOFTWARE]"; return 2; fi
             ;;
         update:)
-            [[ $# -eq 1 ]] || { print_error "Usage : rid softwares update"; return 2; }
+            [[ $# -eq 1 ]] || { print_error "Usage : diu softwares update"; return 2; }
             local result=0
             software_apt_update_all || result=1
             software_github_update_all || result=1

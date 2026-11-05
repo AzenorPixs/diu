@@ -9,7 +9,7 @@ une sélection project.env commune et un bilan des résultats.
 
 ### Requirement: Commande de tous les modèles pour tous les projets
 
-DIU SHALL exposer `rid projects template all all` et projects_template_all_all
+DIU SHALL exposer `diu projects template all all` et projects_template_all_all
 sans argument. Le premier all SHALL désigner tous les modèles disponibles,
 actuellement OpenSpec et DevOps ; le second SHALL désigner tous les projets
 configurés. La CLI SHALL refuser un identifiant individuel après le premier
@@ -18,7 +18,7 @@ individuelles, groupées et create SHALL être conservées.
 
 #### Scenario: Commande complète
 
-- **WHEN** l'utilisateur exécute rid projects template all all
+- **WHEN** l'utilisateur exécute diu projects template all all
 - **THEN** la CLI appelle uniquement projects_template_all_all sans argument
 
 #### Scenario: Commande invalide

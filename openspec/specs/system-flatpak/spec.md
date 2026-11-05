@@ -61,12 +61,12 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Installation ciblée
 
-- **WHEN** `rid system install flatpak` réussit
+- **WHEN** `diu system install flatpak` réussit
 - **THEN** `SYSTEM_FLATPAK=1` est persisté après la configuration de Flathub
 
 #### Scenario: Mise à jour ciblée absente
 
-- **WHEN** `rid system update flatpak` est invoqué alors que le paquet est absent
+- **WHEN** `diu system update flatpak` est invoqué alors que le paquet est absent
 - **THEN** le DIU signale cet état et ne l'installe pas
 
 #### Scenario: Aide des commandes
@@ -79,8 +79,8 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **WHEN** une installation, suppression, mise à jour ciblée ou aide Flatpak est demandée
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
-Le DIU SHALL accepter `rid system install flatpak`, `rid system remove
-flatpak` et `rid system update flatpak`. L'installation SHALL persister `1`
+Le DIU SHALL accepter `diu system install flatpak`, `diu system remove
+flatpak` et `diu system update flatpak`. L'installation SHALL persister `1`
 uniquement après l'installation et la configuration de Flathub réussies ; la
 suppression SHALL persister `0` uniquement après succès. La mise à jour SHALL
 cibler uniquement le paquet Debian installé et SHALL ne jamais exécuter

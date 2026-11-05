@@ -15,7 +15,7 @@ La valeur `No` MUST désactiver explicitement la vérification du certificat TLS
 #### Scenario: certificat GitLab autosigné
 
 - ÉTANT DONNÉ que `REMOTE_GITLAB_SSL_VERIFY=No`
-- QUAND `rid projects gitlab push <ID PROJECT>` est exécuté
+- QUAND `diu projects gitlab push <ID PROJECT>` est exécuté
 - ALORS GitLab est contacté avec la vérification du certificat désactivée
 - ET le token est toujours transmis uniquement par le mécanisme temporaire existant
 - ET la vérification TLS des autres fournisseurs reste inchangée

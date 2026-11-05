@@ -9,12 +9,12 @@ projet DIU, sans altérer ses autres configurations.
 ### Requirement: commande de mise à jour Forgejo
 
 Le système MUST exposer la commande
-`rid projects forgejo update <ID PROJECT>`.
+`diu projects forgejo update <ID PROJECT>`.
 
 #### Scenario: vérifier une configuration Forgejo existante
 
 - ÉTANT DONNÉ que `project.env` contient une configuration générale conforme
-- QUAND l'utilisateur exécute `rid projects forgejo update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects forgejo update <ID PROJECT>`
 - ALORS les valeurs `REMOTE_FORGEJO_*` existantes sont proposées comme valeurs
   courantes
 - ET l'utilisateur peut les conserver ou les modifier
@@ -25,7 +25,7 @@ Le système MUST exposer la commande
 
 - ÉTANT DONNÉ que la configuration générale est conforme
 - ET que les variables `REMOTE_FORGEJO_*` sont absentes ou incomplètes
-- QUAND l'utilisateur exécute `rid projects forgejo update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects forgejo update <ID PROJECT>`
 - ALORS seules les valeurs Forgejo sont demandées
 - ET `REMOTE_FORGEJO_REPOSITORY` prend par défaut l'identifiant du projet
 - ET `REMOTE_FORGEJO_NAME` prend par défaut `origin`
@@ -36,7 +36,7 @@ Le système MUST exposer la commande
 
 - ÉTANT DONNÉ que `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE` ou
   `PROJECT_DOCKERED` est absent ou incorrect
-- QUAND l'utilisateur exécute `rid projects forgejo update <ID PROJECT>`
+- QUAND l'utilisateur exécute `diu projects forgejo update <ID PROJECT>`
 - ALORS la fonction `update_projects()` est appelée pour compléter la
   configuration générale
 - ET les variables Forgejo sont traitées après cette complétion
@@ -71,13 +71,13 @@ GitLab et GitHub.
 
 Les commandes suivantes MUST être décrites :
 
-- `rid projects forgejo help` affiche `update` et `push` ;
-- `rid projects forgejo update help` décrit la vérification, la modification
+- `diu projects forgejo help` affiche `update` et `push` ;
+- `diu projects forgejo update help` décrit la vérification, la modification
   ou la création des variables Forgejo ;
-- `rid projects help` conserve l'entrée de niveau `forgejo`.
+- `diu projects help` conserve l'entrée de niveau `forgejo`.
 
 #### Scenario: aide de mise à jour
 
-- ÉTANT DONNÉ que l'utilisateur demande `rid projects forgejo update help`
+- ÉTANT DONNÉ que l'utilisateur demande `diu projects forgejo update help`
 - QUAND l'aide est affichée
 - ALORS la description de la mise à jour et sa syntaxe sont affichées

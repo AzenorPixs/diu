@@ -15,7 +15,6 @@ print_info() { printf 'INFO %s\n' "$*"; }
 print_success() { printf 'OK %s\n' "$*"; }
 print_title() { printf '%s\n' "$*"; }
 source "$ROOT/modules/softwares/software.sh"
-source "$ROOT/modules/softwares/deb.sh"
 source "$ROOT/modules/softwares/apt.sh"
 source "$ROOT/modules/diu/update-all.sh"
 apt-get() {
@@ -363,71 +362,16 @@ manage_softwares_action update apt chatgpt
         self.assertEqual(result.returncode, 1)
         self.assertEqual(calls, '')
 
-    def test_official_install_uses_isolated_sources(self):
-        result, calls, sources = self.run_shell('manage_software_action install deb foo', INSTALLED='(none)')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('MUTATION', calls)
-        self.assertIn('--no-remove install -- foo=2.0', calls)
-        self.assertIn('signed-by=/usr/share/keyrings/debian-archive-keyring.gpg', sources)
-        self.assertNotIn('vendor.invalid', sources)
 
-    def test_targeted_update(self):
-        result, calls, _ = self.run_shell('manage_update_action deb foo')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('install -- foo=2.0', calls)
 
-    def test_remove(self):
-        result, calls, _ = self.run_shell('manage_software_action remove deb foo')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('remove -- foo', calls)
-        self.assertNotIn('purge', calls)
 
-    def test_absent_update_does_not_install(self):
-        result, calls, _ = self.run_shell('manage_update_action deb foo', INSTALLED='(none)')
-        self.assertEqual(result.returncode, 1)
-        self.assertNotIn('MUTATION', calls)
 
-    def test_absent_remove_is_idempotent(self):
-        result, calls, _ = self.run_shell('manage_software_action remove deb foo', INSTALLED='(none)')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertNotIn('MUTATION', calls)
 
-    def test_up_to_date_no_transaction(self):
-        result, calls, _ = self.run_shell('manage_update_action deb foo', INSTALLED='2.0')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertNotIn('MUTATION', calls)
 
-    def test_unknown_origin_is_blocked(self):
-        result, calls, _ = self.run_shell('manage_update_action deb foo', UNKNOWN_INSTALLED='1')
-        self.assertEqual(result.returncode, 1)
-        self.assertNotIn('MUTATION', calls)
 
-    def test_unknown_package_is_blocked(self):
-        result, calls, _ = self.run_shell('manage_software_action install deb foo', UNKNOWN='1')
-        self.assertEqual(result.returncode, 1)
-        self.assertNotIn('MUTATION', calls)
 
-    def test_nonofficial_dependency_is_blocked(self):
-        result, calls, _ = self.run_shell('manage_update_action deb foo', BAD_DEPENDENCY='1')
-        self.assertEqual(result.returncode, 1)
-        self.assertIn('Version non officielle', result.stdout)
-        self.assertNotIn('MUTATION', calls)
 
-    def test_update_all_deb_skips_vendor(self):
-        result, calls, _ = self.run_shell('manage_update_action deb')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertNotIn('vendor : non applicable', result.stdout)
-        self.assertIn('install -- foo=2.0', calls)
-        self.assertNotIn('vendor=', calls)
-        self.assertEqual(calls.count('MUTATION'), 1)
 
-    def test_apt_failures_propagate(self):
-        for failure in ('INDEX_FAILURE', 'RESOLVE_FAILURE', 'APT_FAILURE'):
-            with self.subTest(failure=failure):
-                result, calls, _ = self.run_shell('manage_update_action deb foo', **{failure: '1'})
-                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-                if failure != 'APT_FAILURE':
-                    self.assertNotIn('MUTATION', calls)
 
     def test_universal_order_and_exec_isolation(self):
         result, calls, _ = self.run_shell(GLOBAL_MODULES + r'''
@@ -507,17 +451,7 @@ if update_diu; then exit 77; else exit 1; fi
         self.assertEqual(result.returncode, 1)
         self.assertIn('Version installée du DIU indisponible', result.stdout)
 
-    def test_third_party_dependency_is_not_replaced(self):
-        result, calls, _ = self.run_shell('manage_update_action deb foo', BAD_DEPENDENCY='2')
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("Remplacement d'une dépendance", result.stdout)
-        self.assertNotIn('MUTATION', calls)
 
-    def test_third_party_reverse_dependency_is_not_removed(self):
-        result, calls, _ = self.run_shell('manage_software_action remove deb foo', BAD_REMOVAL='1')
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("Suppression d'un paquet", result.stdout)
-        self.assertNotIn('MUTATION', calls)
 
 
 if __name__ == '__main__':

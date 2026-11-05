@@ -23,12 +23,12 @@ fi
 
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
-. "$BASH_SCRIPT_PATH/lib/rid-help.sh"
+. "$BASH_SCRIPT_PATH/lib/diu-help.sh"
 
 # Alias limité au packaging ; les autres classes restent inchangées.
 if [[ "${1:-}" == proj && "${2:-}" == deb ]]; then
     if [[ $# -lt 3 ]]; then
-        printf '%s\n' 'Usage : rid proj deb <ID PROJECT>' >&2
+        printf '%s\n' 'Usage : diu proj deb <ID PROJECT>' >&2
         exit 2
     fi
     shift
@@ -37,7 +37,7 @@ fi
 if [[ "${1:-}:${2:-}" == projects:deb && "${!#}" != help && "${!#}" != "?" ]]; then
     if [[ $# -gt 3 || ( $# -eq 3 && ( ! "${3}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "${3}" == . || "${3}" == .. ) ) ]]; then
-        printf '%s\n' 'Usage : rid projects deb [ID PROJECT]' >&2
+        printf '%s\n' 'Usage : diu projects deb [ID PROJECT]' >&2
         exit 2
     fi
 fi
@@ -45,20 +45,20 @@ fi
 if [[ "${1:-}:${2:-}" == projects:build && "${!#}" != help && "${!#}" != "?" ]]; then
     if [[ $# -ne 4 || ( "${3:-}" != deb && "${3:-}" != debian ) || ! "${4:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "${4:-}" == . || "${4:-}" == .. ]]; then
-        printf '%s\n' 'Usage : rid projects build debian <ID PROJECT>' >&2
+        printf '%s\n' 'Usage : diu projects build debian <ID PROJECT>' >&2
         exit 2
     fi
 fi
 
 if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
-    rid_display_help_context
+    diu_display_help_context
     exit 0
 fi
 
 if [[ "${!#}" == help || "${!#}" == "?" ]]; then
     help_arguments=("$@")
     unset 'help_arguments[${#help_arguments[@]} - 1]'
-    rid_display_help_context "${help_arguments[@]}"
+    diu_display_help_context "${help_arguments[@]}"
     exit $?
 fi
 
@@ -67,7 +67,7 @@ case "${1:-}" in
         ;;
     *)
         printf "❌ Classe d'actions inconnue : %s\n" "$1"
-        rid_display_command_error
+        diu_display_command_error
         exit 2
         ;;
 esac
@@ -78,7 +78,7 @@ if [[ "${1:-}" == softwares ]]; then
             ;;
         *)
             printf "❌ Action inconnue pour la classe 'softwares' : %s\n" "${2:-}"
-            rid_display_command_error softwares
+            diu_display_command_error softwares
             exit 2
             ;;
     esac
@@ -135,7 +135,6 @@ config_cleanup || exit 1
 . "$BASH_SCRIPT_PATH/modules/softwares/software.sh"
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
-. "$BASH_SCRIPT_PATH/modules/softwares/deb.sh"
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/softwares/apt.sh"
@@ -421,7 +420,7 @@ dispatch_arguments() {
     case "$argument_class:${2:-}" in
         desktop:infos|diu:infos|environnements:infos|ia:infos|projects:infos|softwares:infos)
             if [[ $# -ne 2 ]]; then
-                printf 'Usage : rid %s infos ; voir rid %s infos help\n' "$argument_class" "$argument_class" >&2
+                printf 'Usage : diu %s infos ; voir diu %s infos help\n' "$argument_class" "$argument_class" >&2
                 exit 2
             fi
             case "$argument_class" in
@@ -436,7 +435,7 @@ dispatch_arguments() {
 
         infos)
             if [[ $# -ne 1 ]]; then
-                printf '%s\n' 'Usage : rid infos ; voir rid infos help' >&2
+                printf '%s\n' 'Usage : diu infos ; voir diu infos help' >&2
                 exit 2
             fi
             infos
@@ -446,13 +445,13 @@ dispatch_arguments() {
             if [[ $# -ge 2 && $# -le 3 && "$2" == update ]]; then
                 diu_update "${@:3}"
             else
-                printf 'Action inconnue : %s ; voir rid diu help\n' "${2:-}" >&2
+                printf 'Action inconnue : %s ; voir diu diu help\n' "${2:-}" >&2
                 exit 2
             fi
             ;;
 
         desktop|environnements)
-            printf 'Action inconnue : %s ; voir rid %s help\n' "${2:-}" "$argument_class" >&2
+            printf 'Action inconnue : %s ; voir diu %s help\n' "${2:-}" "$argument_class" >&2
             exit 2
             ;;
 
@@ -517,7 +516,7 @@ dispatch_arguments() {
 
         *)
             echo "❌ Classe d'actions inconnue : $argument_class"
-            rid_display_command_error
+            diu_display_command_error
             exit 2
             ;;
 
@@ -529,7 +528,7 @@ dispatch_arguments() {
 }
 
 display_help_context() {
-    rid_display_help_context "$@"
+    diu_display_help_context "$@"
 }
 
 
@@ -1022,7 +1021,7 @@ manage_devops_action() {
 
         *)
             echo "❌ Action inconnue pour la classe 'devops' : ${action_1}"
-            rid_display_command_error
+            diu_display_command_error
             exit 2
             ;;
 
@@ -1055,7 +1054,7 @@ manage_openspec_action() {
             ;;
         *)
             echo "❌ Action inconnue pour la classe 'openspec' : $action"
-            rid_display_command_error
+            diu_display_command_error
             exit 2
             ;;
     esac
@@ -1082,7 +1081,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1093,7 +1092,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1103,7 +1102,7 @@ manage_docker_action() {
                 *)
 
                     echo "❌ Action root inconnue : ${subaction}"
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
 
@@ -1118,7 +1117,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1129,7 +1128,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1140,7 +1139,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1151,7 +1150,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1162,7 +1161,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1173,7 +1172,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1184,7 +1183,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1195,7 +1194,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1206,7 +1205,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1217,7 +1216,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1228,7 +1227,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1239,7 +1238,7 @@ manage_docker_action() {
 
                     if [[ -z "$username" ]]; then
                         echo "❌ Le nom d'utilisateur est obligatoire."
-                        rid_display_command_error
+                        diu_display_command_error
                         exit 2
                     fi
 
@@ -1249,7 +1248,7 @@ manage_docker_action() {
                 *)
 
                     echo "❌ Action rootless inconnue : ${subaction}"
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
 
@@ -1259,7 +1258,7 @@ manage_docker_action() {
         *)
 
             echo "❌ Action inconnue pour la classe 'docker' : ${action}"
-            rid_display_command_error
+            diu_display_command_error
             exit 2
             ;;
 
@@ -1281,7 +1280,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1294,7 +1293,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1307,7 +1306,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1320,7 +1319,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1333,7 +1332,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1346,7 +1345,7 @@ manage_ia_action() {
                     ;;
                 *)
                     echo "❌ Agent (${value2}) inconnu pour l'action (${action})."
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1354,7 +1353,7 @@ manage_ia_action() {
 
         *)
             echo "❌ Action (${action}) inconnue pour la classe 'ia'."
-            rid_display_command_error
+            diu_display_command_error
             exit 2
             ;;
 
@@ -1374,7 +1373,7 @@ manage_project_action() {
 
         build)
             if [[ $# -ne 3 || ( "${2:-}" != deb && "${2:-}" != debian ) ]]; then
-                print_error 'Usage : rid projects build debian <ID PROJECT>'
+                print_error 'Usage : diu projects build debian <ID PROJECT>'
                 return 2
             fi
             projects_build_deb "$3"
@@ -1386,8 +1385,8 @@ manage_project_action() {
                 ( "${2:-}" == all && "${project_id}" != all ) || -z "${project_id}" ||
                 "${project_id}" == */* || "${project_id}" == . || "${project_id}" == .. ||
                 "${project_id}" =~ [[:cntrl:]] ]]; then
-                echo '❌ Usage : rid projects template openspec <ID PROJECT>, rid projects template devops <ID PROJECT> ou rid projects template all all'
-                rid_display_command_error projects template
+                echo '❌ Usage : diu projects template openspec <ID PROJECT>, diu projects template devops <ID PROJECT> ou diu projects template all all'
+                diu_display_command_error projects template
                 return 2
             fi
             if [[ "${2}" == all ]]; then
@@ -1488,8 +1487,8 @@ manage_project_action() {
             elif [[ "$#" -eq 2 && -n "${project_id}" ]]; then
                 update_projects "${project_id}"
             else
-                echo '❌ Usage : rid projects update ou rid projects update <ID PROJECT>'
-                rid_display_command_error projects update
+                echo '❌ Usage : diu projects update ou diu projects update <ID PROJECT>'
+                diu_display_command_error projects update
                 return 2
             fi
             ;;
@@ -1520,7 +1519,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects docker' : ${project_subaction}"
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1586,7 +1585,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects git' : ${project_subaction}"
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1633,7 +1632,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects gitlab' : ${project_subaction}"
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1676,7 +1675,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects github' : ${project_subaction}"
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1713,7 +1712,7 @@ manage_project_action() {
                     ;;
                 *)
                     echo "❌ Action inconnue pour la classe 'projects forgejo' : ${project_subaction}"
-                    rid_display_command_error
+                    diu_display_command_error
                     exit 2
                     ;;
             esac
@@ -1741,7 +1740,7 @@ manage_project_action() {
 
         deb)
             if [[ $# -gt 2 ]]; then
-                print_error "Usage : rid projects deb [ID PROJECT]"
+                print_error "Usage : diu projects deb [ID PROJECT]"
                 return 2
             fi
             build_deb_diu "${project_id:-diu}"
@@ -1749,7 +1748,7 @@ manage_project_action() {
 
         *)
             echo "❌ Action inconnue pour la classe 'proj' : ${action}"
-            rid_display_command_error
+            diu_display_command_error
             exit 2
             ;;
 
@@ -6682,12 +6681,12 @@ then
 
 	    echo ""
 	    echo "# DIU #"
-	    echo "alias rcicddiu='ridt projects cicddiu'"
-	    echo "alias rcicddr='ridt projects cicddr'"
-	    echo "alias rido='rid projects ocrw'"
-	    echo "alias rid='/root/diu/root-install-debian.sh'"
-	    echo "alias ridt='/home/devops/datas/diu/root-install-debian.sh'"
-	    echo "alias ridu='rid update'"
+	    echo "alias rcicddiu='diut projects cicddiu'"
+	    echo "alias rcicddr='diut projects cicddr'"
+	    echo "alias diuo='diu projects ocrw'"
+	    echo "alias diu='/root/diu/root-install-debian.sh'"
+	    echo "alias diut='/home/devops/datas/diu/root-install-debian.sh'"
+	    echo "alias diuu='diu update'"
 
 	    echo ""
 	    echo "# DF #"
@@ -6847,7 +6846,7 @@ then
 	} >> /root/.zshrc
 	echo "alias np='nano /etc/passwd'" >> /root/.zschrc
 	{
-	    echo "alias nrid='nano /root/diu/root-install-debian.sh'"
+	    echo "alias ndiu='nano /root/diu/root-install-debian.sh'"
 	    echo "alias nriv='nano /root/diu/variables.sh'"
 	    echo "alias nriidjd='nano /root/root-install-init-django-dev.sh'"
 	    echo "alias nriidjp='nano /root/root-install-init-django-prod.sh'"

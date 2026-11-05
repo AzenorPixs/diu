@@ -8,7 +8,7 @@ configuré pour un projet DIU.
 
 ### Requirement: commande de publication GitHub
 
-Le système MUST exposer `rid projects github push <ID PROJECT>`. Avant le
+Le système MUST exposer `diu projects github push <ID PROJECT>`. Avant le
 push de branche, il MUST récupérer les références GitHub avec
 l'authentification existante et MUST arrêter si le fetch échoue, sauf
 indisponibilité reconnue selon `git-provider-availability`. Le push de branche
@@ -17,13 +17,13 @@ parcours Forgejo et GitLab.
 
 #### Scenario: publication du dépôt local
 
-- **WHEN** l'utilisateur exécute `rid projects github push diu`
+- **WHEN** l'utilisateur exécute `diu projects github push diu`
 - **THEN** le dépôt local est poussé vers le dépôt GitHub distant configuré
 - **THEN** la branche distante configurée reçoit la branche locale publiée
 
 #### Scenario: références GitHub récupérées avant publication
 
-- **WHEN** l'utilisateur exécute `rid projects github push <ID PROJECT>`
+- **WHEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
 - **THEN** le système récupère les références du remote GitHub configuré avant
   de publier la branche
 - **THEN** le push de branche utilise `--force-with-lease`
@@ -37,7 +37,7 @@ parcours Forgejo et GitLab.
 #### Scenario: sélection explicite de GitHub
 
 - **WHEN** le projet possède déjà une configuration Forgejo ou GitLab
-- **THEN** l'utilisateur exécute `rid projects github push <ID PROJECT>`
+- **THEN** l'utilisateur exécute `diu projects github push <ID PROJECT>`
 - **THEN** la commande sélectionne explicitement le fournisseur GitHub
 - **THEN** elle utilise ou initialise les variables `REMOTE_GITHUB_*`
 - **THEN** elle ne remplace pas la configuration des autres fournisseurs
@@ -65,7 +65,7 @@ REMOTE_GITHUB_BRANCH="main"
 #### Scenario: initialisation au premier push
 
 - ÉTANT DONNÉ que la configuration GitHub est absente ou incomplète
-- QUAND l'utilisateur lance `rid projects github push <ID PROJECT>`
+- QUAND l'utilisateur lance `diu projects github push <ID PROJECT>`
 - ALORS `github_update()` est exécutée de manière interactive
 - ET les variables GitHub sont demandées puis enregistrées dans `project.env`
 - ET le push ne commence qu'après une configuration complète
@@ -139,19 +139,19 @@ Les aides GitHub MUST décrire les commandes disponibles et leur syntaxe.
 
 #### Scenario: aide GitHub
 
-- ÉTANT DONNÉ que l'utilisateur demande `rid projects github help`
+- ÉTANT DONNÉ que l'utilisateur demande `diu projects github help`
 - QUAND l'aide est affichée
 - ALORS `push` et `update` sont listés
 
 Les niveaux d'aide suivants DOIVENT être disponibles et cohérents :
 
-- `rid help` affiche les commandes de premier niveau et leur description
+- `diu help` affiche les commandes de premier niveau et leur description
   succincte ;
-- `rid projects help` affiche les commandes du niveau `projects` et leur
+- `diu projects help` affiche les commandes du niveau `projects` et leur
   description succincte, dont `github` ;
-- `rid projects github help` affiche `push` et `update` ;
-- `rid projects github push help` décrit la publication et rappelle la syntaxe
-  `rid projects github push <ID PROJECT>`.
+- `diu projects github help` affiche `push` et `update` ;
+- `diu projects github push help` décrit la publication et rappelle la syntaxe
+  `diu projects github push <ID PROJECT>`.
 
 ### Requirement: compatibilité
 
@@ -174,7 +174,7 @@ GitHub authentifiée l'existence du dépôt défini par `REMOTE_GITHUB_OWNER` et
 
 #### Scenario: dépôt distant existant
 
-- **WHEN** l'utilisateur exécute `rid projects github push <ID PROJECT>` pour un dépôt GitHub accessible
+- **WHEN** l'utilisateur exécute `diu projects github push <ID PROJECT>` pour un dépôt GitHub accessible
 - **THEN** le système conserve le dépôt distant et poursuit la validation du remote puis le push existants
 
 #### Scenario: vérification inaccessible
