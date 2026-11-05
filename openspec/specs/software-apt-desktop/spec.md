@@ -1,7 +1,7 @@
 # software-apt-desktop Specification
 
 ## Purpose
-TBD - created by archiving change add-software-apt-desktop-variable. Update Purpose after archive.
+Définir la déclaration du contrôle logiciel de l’environnement de bureau.
 
 ## Requirements
 

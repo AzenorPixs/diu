@@ -17,7 +17,7 @@ conserve un `project.env` local et ne correspond pas au flux Forgejo demandé.
 
 **Non-Goals:**
 
-- Modifier le clonage local `rid projects clone`.
+- Modifier le clonage local `diu projects clone`.
 - Transformer le projet résultant en dépôt Git local.
 - Supprimer les fichiers template non présents dans le dépôt distant.
 - Ajouter une dépendance de synchronisation ou modifier les politiques Git

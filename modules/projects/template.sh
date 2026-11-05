@@ -10,7 +10,7 @@ projects_template_openspec() {
     if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
         -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
         "${project_id}" == .. || "${project_id}" =~ [[:cntrl:]] ]]; then
-        print_error 'Usage : rid projects template openspec <ID PROJECT> (identifiant sans chemin et utilisateur DevOps valide).'
+        print_error 'Usage : diu projects template openspec <ID PROJECT> (identifiant sans chemin et utilisateur DevOps valide).'
         return 1
     fi
     if [[ -L "${project_path}" || ! -d "${project_path}" ]]; then
@@ -1610,7 +1610,7 @@ projects_template_devops() {
     if [[ "$#" -ne 1 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ||
         -z "${project_id}" || "${project_id}" == */* || "${project_id}" == . ||
         "${project_id}" == .. || "${project_id}" =~ [[:cntrl:]] ]]; then
-        print_error 'Usage : rid projects template devops <ID PROJECT> (identifiant sans chemin et utilisateur DevOps valide).'
+        print_error 'Usage : diu projects template devops <ID PROJECT> (identifiant sans chemin et utilisateur DevOps valide).'
         return 1
     fi
     if [[ -L "${template_path}" ]]; then
@@ -1717,7 +1717,7 @@ projects_template_all_all() {
     local selected=0 succeeded=0 ignored=0 failed=0
 
     if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
-        print_error 'Usage : rid projects template all all (utilisateur DevOps valide).'
+        print_error 'Usage : diu projects template all all (utilisateur DevOps valide).'
         return 1
     fi
     if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
@@ -1788,7 +1788,7 @@ projects_template_openspec_all() {
     local selected=0 succeeded=0 ignored=0 failed=0
 
     if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
-        print_error 'Usage : rid projects template openspec all (utilisateur DevOps valide).'
+        print_error 'Usage : diu projects template openspec all (utilisateur DevOps valide).'
         return 1
     fi
     if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then
@@ -1853,7 +1853,7 @@ projects_template_devops_all() {
     local selected=0 succeeded=0 ignored=0 failed=0
 
     if [[ "$#" -ne 0 || ! "${ENV_DEVOPS_USER:-}" =~ ^[a-z_][a-z0-9_-]*\$?$ ]]; then
-        print_error 'Usage : rid projects template devops all (utilisateur DevOps valide).'
+        print_error 'Usage : diu projects template devops all (utilisateur DevOps valide).'
         return 1
     fi
     if ! id -u "${ENV_DEVOPS_USER}" >/dev/null 2>&1; then

@@ -1,7 +1,7 @@
 # software-apt-omada Specification
 
 ## Purpose
-TBD - created by archiving change rename-omada-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel omada.
 
 ## Requirements
 

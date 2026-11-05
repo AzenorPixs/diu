@@ -7,8 +7,8 @@ contenu de sa branche Forgejo distante, sans importer de données Git.
 
 ### Requirement: Commande de clonage Forgejo d'un projet
 
-DIU MUST accepter `rid projects forgejo clone <ID PROJECT>` et préparer le
-projet avec le même comportement que `rid projects create <ID PROJECT>`. Après
+DIU MUST accepter `diu projects forgejo clone <ID PROJECT>` et préparer le
+projet avec le même comportement que `diu projects create <ID PROJECT>`. Après
 cette préparation, DIU MUST demander la configuration Forgejo du projet avant
 de tenter le clonage. La commande MUST refuser un identifiant absent et MUST
 échouer avec un code non nul si la préparation du projet ou sa configuration
@@ -16,7 +16,7 @@ Forgejo échoue.
 
 #### Scenario: Création puis clonage Forgejo valide
 
-- **WHEN** l'utilisateur exécute `rid projects forgejo clone projet` avec une
+- **WHEN** l'utilisateur exécute `diu projects forgejo clone projet` avec une
   configuration Forgejo valide
 - **THEN** DIU crée et initialise le projet `projet` depuis le template
 - **AND THEN** DIU demande les variables Forgejo du projet
@@ -25,7 +25,7 @@ Forgejo échoue.
 
 #### Scenario: Identifiant absent
 
-- **WHEN** l'utilisateur exécute `rid projects forgejo clone` sans
+- **WHEN** l'utilisateur exécute `diu projects forgejo clone` sans
   identifiant
 - **THEN** DIU échoue avec un code non nul
 - **AND THEN** aucun projet n'est créé

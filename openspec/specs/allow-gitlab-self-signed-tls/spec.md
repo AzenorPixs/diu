@@ -14,17 +14,17 @@ La valeur `No` MUST désactiver explicitement la vérification du certificat TLS
 
 #### Scenario: certificat GitLab autosigné
 
-- ÉTANT DONNÉ que `REMOTE_GITLAB_SSL_VERIFY=No`
-- QUAND `rid projects gitlab push <ID PROJECT>` est exécuté
-- ALORS GitLab est contacté avec la vérification du certificat désactivée
-- ET le token est toujours transmis uniquement par le mécanisme temporaire existant
-- ET la vérification TLS des autres fournisseurs reste inchangée
+- **GIVEN** que `REMOTE_GITLAB_SSL_VERIFY=No`
+- **WHEN** `diu projects gitlab push <ID PROJECT>` est exécuté
+- **THEN** GitLab est contacté avec la vérification du certificat désactivée
+- **AND** le token est toujours transmis uniquement par le mécanisme temporaire existant
+- **AND** la vérification TLS des autres fournisseurs reste inchangée
 
 #### Scenario: vérification TLS conservée
 
-- ÉTANT DONNÉ que `REMOTE_GITLAB_SSL_VERIFY=Yes`
-- QUAND une opération GitLab authentifiée est exécutée
-- ALORS Git utilise la vérification normale des certificats TLS
+- **GIVEN** que `REMOTE_GITLAB_SSL_VERIFY=Yes`
+- **WHEN** une opération GitLab authentifiée est exécutée
+- **THEN** Git utilise la vérification normale des certificats TLS
 
 ### Requirement: mise à jour ciblée
 
@@ -34,7 +34,7 @@ La valeur par défaut de la fonction d'initialisation GitLab MUST être `No` afi
 
 #### Scenario: mise à jour de la vérification TLS
 
-- ÉTANT DONNÉ une configuration GitLab existante
-- QUAND `gitlab_update()` est exécutée
-- ALORS `REMOTE_GITLAB_SSL_VERIFY` est affichée et peut être modifiée
-- ET les variables générales et Forgejo ne sont pas réécrites
+- **GIVEN** une configuration GitLab existante
+- **WHEN** `gitlab_update()` est exécutée
+- **THEN** `REMOTE_GITLAB_SSL_VERIFY` est affichée et peut être modifiée
+- **AND** les variables générales et Forgejo ne sont pas réécrites

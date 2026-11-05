@@ -4,6 +4,68 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Mise à jour système : parcours ciblés APT, GitHub et Flatpak composés par `diu system update` ; anciennes syntaxes `system update apt [debian]`, `system update debian` et `system update flatpak` supprimées.
+
+- Mise à jour système : afficher une seule ligne de bilan Codex CLI et préserver les diagnostics de la recette en cas d’échec.
+
+- Mise à jour système : ne plus présenter le message de compatibilité de l’interface APT comme une erreur de mise à jour ; les autres avertissements restent signalés.
+
+- `diu system update` présente un bilan Debian et les moteurs logiciels ; les logiciels DIU activés affichent leurs versions. Les opérations APT et le nettoyage sont masqués pendant leur exécution, avec diagnostic en cas de problème. Les applications Flatpak sans variable DIU ne sont pas sélectionnées.
+
+- Codex CLI : recalculer l'état à chaque chargement selon l'exécutable présent
+  dans le PATH du DIU, y compris après une installation ou suppression externe.
+
+- Moteurs logiciels : commandes `diu system engine install|remove apt|github|flatpak`, dépendances vérifiées à l’activation et conservées à la désactivation. `SYSTEM_FLATPAK_ENGINE` reprend l’état historique ; les anciennes commandes d’installation et retrait Flatpak sont remplacées.
+
+- Logiciels : `diu infos softwares` affiche les logiciels déclarés par moteur et leur état configuré ; cette vue est intégrée à `diu infos`.
+
+- Logiciels : suppression du moteur `deb` et de ses commandes ; le moteur
+  APT et les commandes de construction des paquets Debian restent disponibles.
+
+- Commandes : convergence du code, des alias générés, des fonctions d’aide,
+  des diagnostics et des exemples courants vers `diu` et `diut`. Les raccourcis
+  associés deviennent `diuo`, `diuu` et `ndiu`. Les anciens alias DIU ne sont
+  plus générés ; les fichiers d’alias et shells existants ne sont pas migrés.
+  Les archives historiques restent inchangées.
+
+- Réseau : `system network hosts` affiche `/etc/hosts` ; la mise à jour ciblée
+  indique son résultat sur une ligne avec une coche verte ou une croix rouge.
+
+- CI/CD : réconciliation isolée des branches divergentes, priorité aux fichiers
+  versionnés locaux en conflit et remplacement des tags distants divergents sous
+  lease. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
+  présents sont signalés sans prétendre vérifier leur contenu.
+
+- Réseau : les commandes `system network hosts add`, `del` et `list`
+  gèrent le JSON de production. La génération de `/etc/hosts` utilise désormais
+  ce seul fichier, y compris depuis les points d'entrée de développement.
+  Les anciennes syntaxes sous `projects` ne sont plus prises en charge.
+
+- CI/CD : une indisponibilité réseau reconnue pendant une release est signalée
+  comme publication non confirmée et potentiellement partielle ; les autres
+  fournisseurs sont poursuivis. Les autres erreurs restent bloquantes.
+
+- DIU : le script installé vérifie `diu` à chaque démarrage en root et crée le
+  lien uniquement si son nom est libre, y compris lors de l’affichage de l’aide.
+
+- Réseau système : les couples IP/FQDN de `config/hosts.json` sont ajoutés à
+  `/etc/hosts`. Un tableau vide est créé si nécessaire ; les données invalides
+  empêchent la réécriture. Le paquet inclut un modèle vide comme conffile.
+
+- Modules GitLab, Docker et projets : qualification des diagnostics ShellCheck,
+  maintien des usages indirects et résolution littérale de l’autorité HTTPS,
+  notamment pour les adresses IPv6.
+
+- Réseau système : `system network hosts update` et `system network update` reconstruisent `/etc/hosts` ; cette opération est incluse dans les mises à jour système et globale. Les anciennes entrées et les noms Docker ne sont pas conservés.
+
+- Commandes `diu` et `diut` : création conditionnelle de liens dans
+  `/usr/local/bin`, résolution du point d’entrée réel et conservation des
+  entrées existantes. Les alias générés utilisent les noms DIU. `diut` dépend de la présence
+  du script sous la racine de projets configurée.
+
+- DIU : `diu diu update <VERSION>` installe la version GitHub exacte, y compris
+  pour une réinstallation ou un retour à une version antérieure.
+
 - DIU : mise à jour anonyme depuis les releases publiques AzenorPixs/diu,
   sans configuration GitHub locale ; Forgejo configuré reste un secours.
 
@@ -43,7 +105,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   Les tags et releases DIU horodatés en 2026 ont été retirés après sauvegarde.
   Livraison : 1.0.7.
 
-- DIU : `rid update diu` utilise le jeton GitHub du projet lorsqu'il est
+- DIU : `diu update diu` utilise le jeton GitHub du projet lorsqu'il est
   présent pour les releases et les assets privés ; les accès publics sans
   jeton restent anonymes et les erreurs d'accès bloquent l'installation.
 
@@ -51,13 +113,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   des releases et du téléchargement du paquet ; une erreur de décodage bloque
   l'installation. La prise en charge de Zstandard dépend du `curl` installé.
 
-- DIU : ajout de `rid diu update`, recherche du paquet le plus récent dans les
+- DIU : ajout de `diu diu update`, recherche du paquet le plus récent dans les
   releases publiques des dépôts configurés et contrôle avant installation.
-  `rid update` exécute cette opération en premier ; `rid update diu` reste un
+  `diu update` exécute cette opération en premier ; `diu update diu` reste un
   alias. Le `project.env` du projet DIU doit être accessible sur la machine.
   Version de projet : 1.0.4.
 
-- GitHub : `rid projects github release <ID PROJECT>` publie Docker sur GHCR,
+- GitHub : `diu projects github release <ID PROJECT>` publie Docker sur GHCR,
   Debian dans GitHub Releases, ou les deux avec Yes/YES/1. Le paquet suit les
   mêmes contrôles que Forgejo ; release existante refusée, upload binaire
   authentifié sans exposition du token, erreurs partielles signalées sans
@@ -67,7 +129,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 - CI/CD des projets : ajout du build Debian indépendant de Docker à l'étape 4,
   uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`, avant les publications
   (étape 5) et le bilan des deux builds (étape 6). Syntaxe
-  `rid projects build debian <ID PROJECT>`, avec alias `build deb` conservé.
+  `diu projects build debian <ID PROJECT>`, avec alias `build deb` conservé.
   Un échec du build bloque les releases ; les pushes Git déjà réalisés restent
   publiés. Les aides décrivent les six étapes. Version de livraison : 1.0.2.
 
@@ -78,7 +140,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   ajoute le tag versionné, réutilisé pour publication. Aides mises à jour ;
   version DIU retenue pour cette livraison : 1.0.0, déjà présente dans project.env.
 
-- Projets : ajout de `rid projects build deb <ID PROJECT>` et de ses aides.
+- Projets : ajout de `diu projects build deb <ID PROJECT>` et de ses aides.
   Construction générique depuis `build/debian-package.json`, exclu du paquet,
   activée par `PROJECT_DEBIAN_PACKAGE=Yes/YES/1`. Un projet désactivé est ignoré ;
   une recette absente pour un projet activé est une erreur. Recette DIU fournie,
@@ -456,7 +518,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   existants adoptent ce rendu à leur prochaine génération normale.
 
 - Enregistrement idempotent d'une exception `safe.directory` système limitée
-  au chemin canonique du projet par `rid projects git init` et `update`, y
+  au chemin canonique du projet par `diu projects git init` et `update`, y
   compris pour un dépôt déjà initialisé. `status` affiche son état sans la
   modifier. Les autres règles et propriétaires sont conservés ; les erreurs
   de configuration système sont bloquantes, sans annuler les écritures
@@ -498,7 +560,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   invalides, CR/NUL, chemins symboliques et fichiers hors limite ; diagnostics
   sans valeurs. Les projets sans fichier conservent leur comportement.
 
-- Exclusion du `.git` racine du modèle lors de `rid projects create` pour
+- Exclusion du `.git` racine du modèle lors de `diu projects create` pour
   éviter le transfert de son dépôt Git. Les autres fichiers cachés, dont
   `.gitignore`, et les règles de copie existantes sont conservés. Les `.git`
   imbriqués et les projets déjà créés ne sont pas concernés.

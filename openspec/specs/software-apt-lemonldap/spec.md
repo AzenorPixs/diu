@@ -1,7 +1,7 @@
 # software-apt-lemonldap Specification
 
 ## Purpose
-TBD - created by archiving change rename-lemonldap-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel lemonldap.
 
 ## Requirements
 

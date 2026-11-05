@@ -1,7 +1,7 @@
 # software-apt-wazuh-agent Specification
 
 ## Purpose
-TBD - created by archiving change rename-wazuh-client-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel wazuh-agent.
 
 ## Requirements
 

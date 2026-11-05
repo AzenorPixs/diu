@@ -14,10 +14,10 @@ La fonction `update_projects()` MUST rester responsable des variables générale
 
 #### Scenario: responsabilités séparées
 
-- ÉTANT DONNÉ qu'une mise à jour de configuration est demandée
-- QUAND la configuration GitLab est traitée
-- ALORS `gitlab_update()` ne modifie que les variables `REMOTE_GITLAB_*`
-- ET `update_projects()` et `git_update()` conservent leurs responsabilités respectives
+- **GIVEN** qu'une mise à jour de configuration est demandée
+- **WHEN** la configuration GitLab est traitée
+- **THEN** `gitlab_update()` ne modifie que les variables `REMOTE_GITLAB_*`
+- **AND** `update_projects()` et `git_update()` conservent leurs responsabilités respectives
 
 ### Requirement: validation préalable de la configuration générale
 
@@ -25,10 +25,10 @@ Avant de compléter GitLab, `gitlab_update()` MUST vérifier la présence et la 
 
 #### Scenario: configuration générale absente ou incomplète
 
-- ÉTANT DONNÉ que `project.env` est absent ou qu'une variable générale essentielle est absente
-- QUAND `rid projects gitlab push <ID PROJECT>` est exécuté
-- ALORS `gitlab_update()` appelle `update_projects()` pour compléter la configuration générale
-- ET la configuration GitLab n'est traitée qu'après cette complétion
+- **GIVEN** que `project.env` est absent ou qu'une variable générale essentielle est absente
+- **WHEN** `diu projects gitlab push <ID PROJECT>` est exécuté
+- **THEN** `gitlab_update()` appelle `update_projects()` pour compléter la configuration générale
+- **AND** la configuration GitLab n'est traitée qu'après cette complétion
 
 ### Requirement: complément GitLab ciblé
 
@@ -66,7 +66,7 @@ Après `gitlab_update()`, la commande GitLab MUST recharger `project.env`, revé
 
 #### Scenario: contrôle avant push GitLab
 
-- ÉTANT DONNÉ que `gitlab_update()` vient de terminer
-- QUAND un push GitLab est sur le point de démarrer
-- ALORS `project.env` est rechargé et les variables requises sont vérifiées
-- ET aucun push ne commence si la configuration est incomplète
+- **GIVEN** que `gitlab_update()` vient de terminer
+- **WHEN** un push GitLab est sur le point de démarrer
+- **THEN** `project.env` est rechargé et les variables requises sont vérifiées
+- **AND** aucun push ne commence si la configuration est incomplète

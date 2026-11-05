@@ -1,7 +1,7 @@
 # software-apt-fastfetch Specification
 
 ## Purpose
-TBD - created by archiving change rename-fastfetch-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel fastfetch.
 
 ## Requirements
 

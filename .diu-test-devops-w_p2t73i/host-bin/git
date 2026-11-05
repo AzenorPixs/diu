@@ -1,0 +1,2 @@
+#!/bin/sh
+printf 'git version 2.47.9\n'

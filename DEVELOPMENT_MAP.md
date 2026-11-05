@@ -1,5 +1,165 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-05 : [split-system-update-engines](openspec/changes/archive/2026-11-05-split-system-update-engines/proposal.md), archivé, **code non attribué** ; 1209 tests dont 2 ignorés, OpenSpec strict et contrôles Bash réussis ; CI/CD non effectuée ; attribution ultérieure par ACL.
+
+
+Delta SCM du 2026-11-05 : [fix-system-update-codex-duplicate](openspec/changes/archive/2026-11-05-fix-system-update-codex-duplicate/proposal.md), archivé, **code non attribué** ; spécification stricte validée ; 1 207 tests exécutés dont 2 ignorés, 73 tests ciblés et contrôles Bash réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  FIX_CODEX_DUP["fix-system-update-codex-duplicate — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class FIX_CODEX_DUP provisoire
+```
+
+Delta SCM du 2026-11-05 : [fix-system-update-apt-cli-warning](openspec/changes/archive/2026-11-05-fix-system-update-apt-cli-warning/proposal.md), archivé, **code non attribué** ; spécification stricte validée ; 1 205 tests exécutés dont 2 ignorés, 39 tests ciblés et contrôles Bash réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  FIX_APT_WARNING["fix-system-update-apt-cli-warning — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class FIX_APT_WARNING provisoire
+```
+
+Delta SCM du 2026-11-05 : [improve-system-update-report](openspec/changes/archive/2026-11-05-improve-system-update-report/proposal.md), archivé, **code non attribué** ; spécification stricte validée ; 1 200 tests exécutés dont 2 ignorés, contrôles ciblés et Bash réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  UPDATE_REPORT["improve-system-update-report — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class UPDATE_REPORT provisoire
+```
+
+Delta SCM du 2026-11-05 : [refresh-codex-cli-state](openspec/changes/archive/2026-11-05-refresh-codex-cli-state/proposal.md), archivé, **code non attribué** ; recalcul de l’état Codex CLI, 1 190 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  CODEX_STATE["refresh-codex-cli-state — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class CODEX_STATE provisoire
+```
+
+Delta SCM du 2026-11-05 : [manage-software-engines](openspec/changes/archive/2026-11-05-manage-software-engines/proposal.md), archivé, **code non attribué** ; 1 190 tests exécutés dont 2 ignorés, sans échec ; pas de CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  SOFTWARE_ENGINES["manage-software-engines — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class SOFTWARE_ENGINES provisoire
+```
+
+Delta SCM du 2026-11-05 : [display-software-inventory](openspec/changes/archive/2026-11-05-display-software-inventory/proposal.md), archivé, **code non attribué** ; 1 179 tests exécutés, dont 2 ignorés, sans échec ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [remove-software-deb-engine](openspec/changes/archive/2026-11-05-remove-software-deb-engine/proposal.md), archivé, **code non attribué** ; suppression du moteur logiciel deb, 1 177 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  REMOVE_SOFTWARE_DEB["remove-software-deb-engine — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class REMOVE_SOFTWARE_DEB provisoire
+```
+
+Delta SCM du 2026-11-05 : [converge-diu-to-diu](openspec/changes/converge-diu-to-diu/proposal.md), actif, **code non attribué** ; spécification validée en mode strict ; code, alias, aide et documentation convergés ; 1 177 tests globaux exécutés, 2 ignorés, aucun échec ; sources stables, OpenSpec ciblé strict réussi ; 47 échecs stricts préexistants inchangés. Archivage éligible, sans CI/CD. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  DIU_CONVERGENCE["converge-diu-to-diu — code non attribué — ACTIF"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class DIU_CONVERGENCE provisoire
+```
+
+Delta SCM du 2026-11-04 : [report-and-display-system-hosts](openspec/changes/archive/2026-11-04-report-and-display-system-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  REPORT_HOSTS["report-and-display-system-hosts — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class REPORT_HOSTS provisoire
+```
+
+Delta SCM du 2026-11-04 : [move-hosts-commands-to-system](openspec/changes/archive/2026-11-04-move-hosts-commands-to-system/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  SYSTEM_HOSTS["move-hosts-commands-to-system — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class SYSTEM_HOSTS provisoire
+```
+
+Delta SCM du 2026-11-04 : [rename-projects-network-hosts-commands](openspec/changes/archive/2026-11-04-rename-projects-network-hosts-commands/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  HOSTS_COMMANDS["rename-projects-network-hosts-commands — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class HOSTS_COMMANDS provisoire
+```
+
+Delta SCM du 2026-11-04 : [manage-production-hosts-entries](openspec/changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  PRODUCTION_HOSTS["manage-production-hosts-entries — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class PRODUCTION_HOSTS provisoire
+```
+
+Delta SCM du 2026-11-04 : [reconcile-cicd-git-publication](openspec/changes/reconcile-cicd-git-publication/proposal.md), code non attribué, actif ; réalisation testée sur fixtures, 1 182 tests globaux exécutés dont 2 ignorés, validation OpenSpec stricte réussie ; synchronisation, archivage et publication 1.2.2 en attente. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  CICD_RECONCILE["reconcile-cicd-git-publication — code non attribué — ACTIF"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class CICD_RECONCILE provisoire
+```
+
+Delta SCM du 2026-11-04 : [handle-cicd-release-unavailability](openspec/changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md), code non attribué, archivé ; validation globale : 1 171 tests exécutés, dont 2 ignorés ; OpenSpec strict réussi. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  P_CICD_AVAIL["handle-cicd-release-unavailability — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class P_CICD_AVAIL provisoire
+```
+
+Delta SCM du 2026-11-04 : [ensure-diu-link-at-startup](openspec/changes/archive/2026-11-04-ensure-diu-link-at-startup/proposal.md), code non attribué, archivé le 2026-11-04 ; validation réussie : 1 165 tests dont 2 ignorés, ShellCheck et OpenSpec strict, dépend du contrat archivé [diu-command-links](openspec/changes/archive/2026-11-04-diu-command-links/proposal.md). Attribution ultérieure par ACL.
+
+```mermaid
+flowchart LR
+  P_STARTUP["ensure-diu-link-at-startup — code non attribué — ARCHIVÉ"]
+  P_LINKS["diu-command-links — code non attribué — ARCHIVÉ"] --> P_STARTUP
+  classDef provisional fill:#fff3cd,stroke:#856404,stroke-dasharray: 5 5;
+  class P_STARTUP,P_LINKS provisional;
+```
+
+Delta SCM du 2026-11-04 : [configure-system-hosts-json](openspec/changes/archive/2026-11-04-configure-system-hosts-json/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  HOSTS_JSON["configure-system-hosts-json — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class HOSTS_JSON provisoire
+```
+
+Delta SCM du 2026-11-04 : [manage-system-network-hosts](openspec/changes/archive/2026-11-04-manage-system-network-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  HOSTS["manage-system-network-hosts — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class HOSTS provisoire
+```
+
+Delta SCM du 2026-11-04 : [diu-command-links](openspec/changes/archive/2026-11-04-diu-command-links/proposal.md), code non attribué, archivé le 2026-11-04 ; validation finale réussie : 1 164 tests dont 2 ignorés, ShellCheck réussi, voir [bilan](openspec/changes/archive/2026-11-04-diu-command-links/STATISTICS.md). Dépendance : [migrate-env-devops-projects-root](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/tasks.md), validée et archivée le 2026-11-04. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart LR
+  P_DIU_LINKS["diu-command-links — code non attribué — ARCHIVÉ"]
+  P_DIU_ROOT["migrate-env-devops-projects-root — code non attribué — ARCHIVÉ"] --> P_DIU_LINKS
+  classDef provisional fill:#fff3cd,stroke:#856404,stroke-dasharray: 5 5;
+  class P_DIU_LINKS,P_DIU_ROOT provisional;
+```
+
 Delta SCM du 2026-11-04 : [stop-setting-technical-account-passwords](openspec/changes/archive/2026-11-04-stop-setting-technical-account-passwords/proposal.md), code non attribué, archivé ; 1 149 tests exécutés dont 2 ignorés, OpenSpec strict réussi. Publication différée. Attribution ultérieure par ACL.
 
 ```mermaid
@@ -9,12 +169,12 @@ flowchart TB
   class P_TECH_ACCOUNTS provisoire
 ```
 
-Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](openspec/changes/migrate-env-devops-projects-root/proposal.md), code non attribué, actif ; 1148 tests exécutés dont 2 ignorés, diagnostics ShellCheck bruts à qualifier. Publication différée. Attribution ultérieure par ACL.
+Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/proposal.md), code non attribué, archivé le 2026-11-04 ; 1 164 tests dont 2 ignorés et ShellCheck réussis, voir [bilan](openspec/changes/archive/2026-11-04-migrate-env-devops-projects-root/STATISTICS.md). Attribution ultérieure par ACL.
 
 ```mermaid
 flowchart TB
   classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
-  P_ENV_PROJECTS_ROOT["migrate-env-devops-projects-root — code non attribué — ACTIF"]
+  P_ENV_PROJECTS_ROOT["migrate-env-devops-projects-root — code non attribué — ARCHIVÉ"]
   class P_ENV_PROJECTS_ROOT provisoire
 ```
 
@@ -211,7 +371,7 @@ flowchart TB
   classDef actif fill:#e9f2ff,stroke:#245a9b
   classDef archive fill:#f2f2f2,stroke:#666
   classDef contrat fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
-  CLI01["CLI01 — Aide contextuelle des commandes rid — ARCHIVÉ"]
+  CLI01["CLI01 — Aide contextuelle des commandes diu — ARCHIVÉ"]
   CLI02["CLI02 — Unification de l’aide contextuelle — ARCHIVÉ"]
   CLI03["CLI03 — Informations des modules — ARCHIVÉ"]
   CLI04["CLI04 — add system drivers infos — ARCHIVÉ"]
@@ -488,7 +648,7 @@ ARCHIVÉ décrit le rangement constaté, sans démontrer disponibilité, livrais
 | ART08 | ART | [add-projects-cicd-summary](openspec/changes/archive/2026-09-23-add-projects-cicd-summary/) | Résumé des opérations CI/CD | ARCHIVÉ | 4/4 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-09-23-add-projects-cicd-summary/proposal.md), [tasks.md](openspec/changes/archive/2026-09-23-add-projects-cicd-summary/tasks.md), [design.md](openspec/changes/archive/2026-09-23-add-projects-cicd-summary/design.md) |
 | ART09 | ART | [fix-github-release-image-case](openspec/changes/archive/2026-10-15-fix-github-release-image-case/) | Correction de la casse des références GHCR | ARCHIVÉ | 7/7 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-10-15-fix-github-release-image-case/proposal.md), [tasks.md](openspec/changes/archive/2026-10-15-fix-github-release-image-case/tasks.md), [design.md](openspec/changes/archive/2026-10-15-fix-github-release-image-case/design.md), [STATISTICS.md](openspec/changes/archive/2026-10-15-fix-github-release-image-case/STATISTICS.md) |
 | ART10 | ART | [support-project-docker-build-args](openspec/changes/archive/2026-10-15-support-project-docker-build-args/) | Arguments Docker publics par projet | ARCHIVÉ | 8/8 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-10-15-support-project-docker-build-args/proposal.md), [tasks.md](openspec/changes/archive/2026-10-15-support-project-docker-build-args/tasks.md), [design.md](openspec/changes/archive/2026-10-15-support-project-docker-build-args/design.md), [review.md](openspec/changes/archive/2026-10-15-support-project-docker-build-args/review.md), [STATISTICS.md](openspec/changes/archive/2026-10-15-support-project-docker-build-args/STATISTICS.md) |
-| CLI01 | CLI | [add-rid-contextual-help](openspec/changes/archive/2026-09-05-add-rid-contextual-help/) | Aide contextuelle des commandes rid | ARCHIVÉ | 4/4 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-09-05-add-rid-contextual-help/proposal.md), [tasks.md](openspec/changes/archive/2026-09-05-add-rid-contextual-help/tasks.md), [design.md](openspec/changes/archive/2026-09-05-add-rid-contextual-help/design.md) |
+| CLI01 | CLI | [add-rid-contextual-help](openspec/changes/archive/2026-09-05-add-rid-contextual-help/) | Aide contextuelle des commandes diu | ARCHIVÉ | 4/4 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-09-05-add-rid-contextual-help/proposal.md), [tasks.md](openspec/changes/archive/2026-09-05-add-rid-contextual-help/tasks.md), [design.md](openspec/changes/archive/2026-09-05-add-rid-contextual-help/design.md) |
 | CLI02 | CLI | [refactor-help-command](openspec/changes/archive/2026-09-12-refactor-help-command/) | Unification de l’aide contextuelle | ARCHIVÉ | 6/6 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-09-12-refactor-help-command/proposal.md), [tasks.md](openspec/changes/archive/2026-09-12-refactor-help-command/tasks.md), [design.md](openspec/changes/archive/2026-09-12-refactor-help-command/design.md) |
 | CLI03 | CLI | [add-module-infos](openspec/changes/archive/2026-09-28-add-module-infos/) | Informations des modules | ARCHIVÉ | 5/5 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-09-28-add-module-infos/proposal.md), [tasks.md](openspec/changes/archive/2026-09-28-add-module-infos/tasks.md), [design.md](openspec/changes/archive/2026-09-28-add-module-infos/design.md) |
 | CLI04 | CLI | [add-system-drivers-infos](openspec/changes/archive/2026-09-28-add-system-drivers-infos/) | Why | ARCHIVÉ | 4/4 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-09-28-add-system-drivers-infos/proposal.md), [tasks.md](openspec/changes/archive/2026-09-28-add-system-drivers-infos/tasks.md), [design.md](openspec/changes/archive/2026-09-28-add-system-drivers-infos/design.md) |
@@ -601,7 +761,7 @@ Plan validé : ACSM-DIU-BOOTSTRAP-PACKAGING-20261028-R1, B1/C1/V2. État de code
 | Identifiant et dossier | Ensemble | Tâches | Réalisabilité restante | Capacités | Preuves |
 |---|---|---:|---|---|---|
 | [reconcile-forgejo-credential-bootstrap](openspec/changes/reconcile-forgejo-credential-bootstrap/) | GIT | 5/5 | RÉALISABLE : clôture documentaire sous autorisation | forgejo-auth, implement-projects-forgejo-push, forgejo-release | [proposition](openspec/changes/reconcile-forgejo-credential-bootstrap/proposal.md), [tâches et réserves](openspec/changes/reconcile-forgejo-credential-bootstrap/tasks.md) |
-| [reconcile-diu-deb-packaging-contract](openspec/changes/reconcile-diu-deb-packaging-contract/) | ART | 6/6 | RÉALISABLE : clôture documentaire sous autorisation | deb-package, rid-help, forgejo-release | [proposition](openspec/changes/reconcile-diu-deb-packaging-contract/proposal.md), [tâches et réserves](openspec/changes/reconcile-diu-deb-packaging-contract/tasks.md) |
+| [reconcile-diu-deb-packaging-contract](openspec/changes/reconcile-diu-deb-packaging-contract/) | ART | 6/6 | RÉALISABLE : clôture documentaire sous autorisation | deb-package, diu-help, forgejo-release | [proposition](openspec/changes/reconcile-diu-deb-packaging-contract/proposal.md), [tâches et réserves](openspec/changes/reconcile-diu-deb-packaging-contract/tasks.md) |
 | [fix-gitlab-release-asset-link-validation](openspec/changes/fix-gitlab-release-asset-link-validation/) | ART | 6/6 | RÉALISABLE : clôture documentaire sous autorisation | implement-projects-gitlab-release | [proposition](openspec/changes/fix-gitlab-release-asset-link-validation/proposal.md), [tâches et preuves](openspec/changes/fix-gitlab-release-asset-link-validation/tasks.md) |
 
 ### Changes archivés sans code attribué
@@ -697,7 +857,7 @@ La famille désigne la responsabilité principale ; les deltas conservent leurs 
 | GIT24 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | [implement-projects-forgejo-push](openspec/changes/archive/2026-10-19-fix-forgejo-push-inherited-remote/specs/implement-projects-forgejo-push/spec.md) ; [proposal.md](openspec/changes/archive/2026-10-19-fix-forgejo-push-inherited-remote/proposal.md) |
 | GIT25 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | [implement-projects-git-update](openspec/changes/archive/2026-10-22-manage-projects-git-safe-directory/specs/implement-projects-git-update/spec.md), [projects-git-init](openspec/changes/archive/2026-10-22-manage-projects-git-safe-directory/specs/projects-git-init/spec.md), [projects-git-status](openspec/changes/archive/2026-10-22-manage-projects-git-safe-directory/specs/projects-git-status/spec.md), [rid-help](openspec/changes/archive/2026-10-22-manage-projects-git-safe-directory/specs/rid-help/spec.md) ; [proposal.md](openspec/changes/archive/2026-10-22-manage-projects-git-safe-directory/proposal.md) |
 | GIT26 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | [forgejo-auth](openspec/changes/archive/2026-10-26-allow-git-provider-credentials-0660/specs/forgejo-auth/spec.md), [forgejo-release](openspec/changes/archive/2026-10-26-allow-git-provider-credentials-0660/specs/forgejo-release/spec.md), [implement-projects-forgejo-push](openspec/changes/archive/2026-10-26-allow-git-provider-credentials-0660/specs/implement-projects-forgejo-push/spec.md), [implement-projects-github-push](openspec/changes/archive/2026-10-26-allow-git-provider-credentials-0660/specs/implement-projects-github-push/spec.md), [implement-projects-gitlab-push](openspec/changes/archive/2026-10-26-allow-git-provider-credentials-0660/specs/implement-projects-gitlab-push/spec.md) ; [proposal.md](openspec/changes/archive/2026-10-26-allow-git-provider-credentials-0660/proposal.md) |
-| GIT27 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | [forgejo-auth](openspec/changes/add-projects-forgejo-clone/specs/forgejo-auth/spec.md), [projects-forgejo-clone](openspec/changes/add-projects-forgejo-clone/specs/projects-forgejo-clone/spec.md), [rid-help](openspec/changes/add-projects-forgejo-clone/specs/rid-help/spec.md) ; [proposal.md](openspec/changes/add-projects-forgejo-clone/proposal.md) |
+| GIT27 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | [forgejo-auth](openspec/changes/add-projects-forgejo-clone/specs/forgejo-auth/spec.md), [projects-forgejo-clone](openspec/changes/add-projects-forgejo-clone/specs/projects-forgejo-clone/spec.md), [diu-help](openspec/changes/add-projects-forgejo-clone/specs/diu-help/spec.md) ; [proposal.md](openspec/changes/add-projects-forgejo-clone/proposal.md) |
 | GIT28 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | [projects-git-commit](openspec/changes/ensure-projects-git-commit-init/specs/projects-git-commit/spec.md), [projects-git-commit-all](openspec/changes/ensure-projects-git-commit-init/specs/projects-git-commit-all/spec.md), [projects-git-init](openspec/changes/ensure-projects-git-commit-init/specs/projects-git-init/spec.md) ; [proposal.md](openspec/changes/ensure-projects-git-commit-init/proposal.md) |
 | GIT29 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | Aucun delta ; correction interne déclarée ; [proposal.md](openspec/changes/fix-forgejo-repository-identity/proposal.md) |
 | GIT30 | Dépôts locaux, fournisseurs, authentification, push et clonage distant | [forgejo-auth](openspec/changes/modify-projects-forgejo-push-force-with-lease/specs/forgejo-auth/spec.md), [implement-projects-forgejo-push](openspec/changes/modify-projects-forgejo-push-force-with-lease/specs/implement-projects-forgejo-push/spec.md), [implement-projects-github-push](openspec/changes/modify-projects-forgejo-push-force-with-lease/specs/implement-projects-github-push/spec.md), [implement-projects-gitlab-push](openspec/changes/modify-projects-forgejo-push-force-with-lease/specs/implement-projects-gitlab-push/spec.md) ; [proposal.md](openspec/changes/modify-projects-forgejo-push-force-with-lease/proposal.md) |
@@ -816,7 +976,7 @@ Historique du relevé ACL, avant et après attribution des codes, le 2026-10-28,
 
 Au relevé ACL, GIT30 et GIT31 omettaient dans leur bloc MODIFIED les scénarios « dépôt distant absent avec référence de suivi héritée » et « création concurrente de la branche distante », présents dans le canon. Ces erreurs précédaient les annotations ACL ; elles sont corrigées sous le mandat ACSM distinct décrit ci-dessous.
 
-Au relevé ACL, ARC03 contenait un texte avant la première section du delta modular-architecture, bloquant en strict. Les 18 capacités alors refusées comportaient des exigences de plus de 500 caractères : deb-package, devops-home-openspec, devops-nodejs-download, devops-sudoers, forgejo-release, lib-logging, modify-projects-gitpdi, module-infos, projects-forgejo-push-all, projects-general-update, projects-template-all, projects-template-openspec, rid-help, system-debian-apt, system-drivers-display-link, system-flatpak, system-prerequisites et universal-update.
+Au relevé ACL, ARC03 contenait un texte avant la première section du delta modular-architecture, bloquant en strict. Les 18 capacités alors refusées comportaient des exigences de plus de 500 caractères : deb-package, devops-home-openspec, devops-nodejs-download, devops-sudoers, forgejo-release, lib-logging, modify-projects-gitpdi, module-infos, projects-forgejo-push-all, projects-general-update, projects-template-all, projects-template-openspec, diu-help, system-debian-apt, system-drivers-display-link, system-flatpak, system-prerequisites et universal-update.
 
 ### Réconciliation éditoriale ACSM — 2026-10-28
 
@@ -918,3 +1078,5 @@ Mermaid : syntaxe élémentaire flowchart, identifiants et références contrôl
 - **A → B signifie que A dépend de B.** Flèches directes étiquetées ; aucune relation transitive déduite.
 
 Delta SCM du 2026-11-04 : [public-github-diu-update](openspec/changes/archive/2026-11-04-public-github-diu-update/proposal.md), code non attribué, archivé ; contrat et validations réussis ; 1 147 tests dont 2 ignorés. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [force-diu-update-version](openspec/changes/archive/2026-11-04-force-diu-update-version/proposal.md), code non attribué, archivé ; sélection exacte et validation globale réussies (1 152 tests, 2 ignorés). Attribution ultérieure par ACL.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2088,SC2155
 
-config="STATIC"
+config="DYNAMIC"
 state="ENABLE"
 scope="softwares"
 default_value=0
@@ -29,9 +29,7 @@ software_apt_codex_cli_persist() {
 }
 
 if [[ "$state" == ENABLE ]]; then
-    if [[ -z "${SOFTWARES_APT_CODEX_CLI+x}" ]]; then
-        export SOFTWARES_APT_CODEX_CLI="$(software_apt_codex_cli_detect)"
-    fi
+    export SOFTWARES_APT_CODEX_CLI="$(software_apt_codex_cli_detect)"
     software_apt_codex_cli_persist
 else
     unset SOFTWARES_APT_CODEX_CLI SOFTWARES_APT_CODEX_CLI_HOME

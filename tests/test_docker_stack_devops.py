@@ -78,10 +78,10 @@ source "$TEST_SCRIPT"
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stderr, '')
 
-    def test_consumer_keeps_declared_name(self):
-        source = (ROOT / 'root-install-debian.sh').read_text()
-        self.assertEqual(source.count('if [[ "${DOCKER_STACK_DEVOPS}" == "1" ]]'), 1)
-        self.assertNotRegex(source, r'\$(?:\{)?DOCKER_STACK_DEVOPS_ENABLED(?:\})?(?![A-Z0-9_])')
+    def test_hosts_generation_does_not_add_docker_domains(self):
+        source = (ROOT / 'modules/system/network.sh').read_text()
+        self.assertNotIn('DOCKER_STACK_DEVOPS', source)
+        self.assertNotIn('DOCKER_STACK_TRAEFIK_DOCKHAND', source)
 
 
 if __name__ == '__main__':

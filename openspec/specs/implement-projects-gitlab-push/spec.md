@@ -8,21 +8,21 @@ Définir la publication GitLab des projets DIU et sa configuration associée.
 
 ### Requirement: commande de publication GitLab
 
-Le système MUST exposer la commande `rid projects gitlab push <ID PROJECT>`.
+Le système MUST exposer la commande `diu projects gitlab push <ID PROJECT>`.
 
 #### Scenario: publication du dépôt local
 
-- ÉTANT DONNÉ le dépôt local du projet `diu`
-- QUAND l'utilisateur exécute `rid projects gitlab push diu`
-- ALORS le dépôt local est poussé vers le dépôt GitLab distant configuré
-- ET la branche distante configurée reçoit la branche locale publiée
+- **GIVEN** le dépôt local du projet `diu`
+- **WHEN** l'utilisateur exécute `diu projects gitlab push diu`
+- **THEN** le dépôt local est poussé vers le dépôt GitLab distant configuré
+- **AND** la branche distante configurée reçoit la branche locale publiée
 
 #### Scenario: sélection explicite de GitLab
 
-- ÉTANT DONNÉ que le projet possède déjà une configuration Forgejo
-- QUAND l'utilisateur exécute `rid projects gitlab push <ID PROJECT>`
-- ALORS la commande sélectionne explicitement le fournisseur GitLab
-- ET elle utilise ou initialise les variables `REMOTE_GITLAB_*`
+- **GIVEN** que le projet possède déjà une configuration Forgejo
+- **WHEN** l'utilisateur exécute `diu projects gitlab push <ID PROJECT>`
+- **THEN** la commande sélectionne explicitement le fournisseur GitLab
+- **AND** elle utilise ou initialise les variables `REMOTE_GITLAB_*`
 
 ### Requirement: configuration GitLab du projet
 
@@ -40,11 +40,11 @@ REMOTE_GITLAB_BRANCH='main'
 
 #### Scenario: initialisation au premier push
 
-- ÉTANT DONNÉ que la configuration GitLab est absente ou incomplète
-- QUAND l'utilisateur lance `rid projects gitlab push <ID PROJECT>`
-- ALORS la fonction d'initialisation de configuration est exécutée de manière interactive
-- ET les variables GitLab sont demandées puis enregistrées dans `project.env`
-- ET le push ne commence qu'après une configuration complète
+- **GIVEN** que la configuration GitLab est absente ou incomplète
+- **WHEN** l'utilisateur lance `diu projects gitlab push <ID PROJECT>`
+- **THEN** la fonction d'initialisation de configuration est exécutée de manière interactive
+- **AND** les variables GitLab sont demandées puis enregistrées dans `project.env`
+- **AND** le push ne commence qu'après une configuration complète
 
 ### Requirement: identifiants GitLab
 
@@ -54,18 +54,18 @@ Les deux fichiers MUST être limités aux permissions exactes `600` ou `660`, MU
 
 #### Scenario: identifiants absents
 
-- ÉTANT DONNÉ que les identifiants GitLab n'existent pas
-- QUAND un premier push GitLab est demandé
-- ALORS l'utilisateur est invité à saisir le nom d'utilisateur et le token GitLab
-- ET le token est saisi sans affichage puis confirmé
-- ET les fichiers d'identifiants sont créés avec les permissions `600`
+- **GIVEN** que les identifiants GitLab n'existent pas
+- **WHEN** un premier push GitLab est demandé
+- **THEN** l'utilisateur est invité à saisir le nom d'utilisateur et le token GitLab
+- **AND** le token est saisi sans affichage puis confirmé
+- **AND** les fichiers d'identifiants sont créés avec les permissions `600`
 
 #### Scenario: identifiants invalides
 
-- ÉTANT DONNÉ qu'un fichier d'identifiant existe avec des permissions incorrectes ou une valeur vide
-- QUAND un push GitLab est demandé
-- ALORS la commande échoue explicitement
-- ET le contenu de l'identifiant n'est jamais affiché
+- **GIVEN** qu'un fichier d'identifiant existe avec des permissions incorrectes ou une valeur vide
+- **WHEN** un push GitLab est demandé
+- **THEN** la commande échoue explicitement
+- **AND** le contenu de l'identifiant n'est jamais affiché
 
 #### Scenario: Identifiants partagés existants
 
@@ -85,25 +85,25 @@ Le push MUST utiliser le nom du remote et la branche définis dans la configurat
 
 #### Scenario: remote GitLab conforme
 
-- ÉTANT DONNÉ que le remote GitLab configuré est une URL HTTPS valide
-- QUAND un push GitLab est exécuté
-- ALORS le push utilise ce remote et la branche configurée
-- ET aucune autre configuration Git n'est modifiée
+- **GIVEN** que le remote GitLab configuré est une URL HTTPS valide
+- **WHEN** un push GitLab est exécuté
+- **THEN** le push utilise ce remote et la branche configurée
+- **AND** aucune autre configuration Git n'est modifiée
 
 ### Requirement: aide CLI
 
 Les niveaux d'aide suivants MUST être disponibles et cohérents :
 
-- `rid help` affiche les commandes de premier niveau et leur description succincte ;
-- `rid projects help` affiche les commandes du niveau `projects` et leur description succincte ;
-- `rid projects gitlab help` affiche les commandes GitLab et leur description succincte ;
-- `rid projects gitlab push help` décrit la publication du dépôt local vers GitLab et rappelle la syntaxe `rid projects gitlab push <ID PROJECT>`.
+- `diu help` affiche les commandes de premier niveau et leur description succincte ;
+- `diu projects help` affiche les commandes du niveau `projects` et leur description succincte ;
+- `diu projects gitlab help` affiche les commandes GitLab et leur description succincte ;
+- `diu projects gitlab push help` décrit la publication du dépôt local vers GitLab et rappelle la syntaxe `diu projects gitlab push <ID PROJECT>`.
 
 #### Scenario: aide de publication GitLab
 
-- ÉTANT DONNÉ que l'utilisateur demande l'aide de publication GitLab
-- QUAND l'aide est affichée
-- ALORS la syntaxe `rid projects gitlab push <ID PROJECT>` est décrite
+- **GIVEN** que l'utilisateur demande l'aide de publication GitLab
+- **WHEN** l'aide est affichée
+- **THEN** la syntaxe `diu projects gitlab push <ID PROJECT>` est décrite
 
 ### Requirement: compatibilité Forgejo
 
@@ -111,9 +111,9 @@ L'ajout de GitLab MUST préserver les variables, le parcours d'initialisation et
 
 #### Scenario: publication Forgejo préservée
 
-- ÉTANT DONNÉ qu'un projet utilise une configuration Forgejo existante
-- QUAND les commandes GitLab sont disponibles
-- ALORS le parcours de publication Forgejo reste inchangé
+- **GIVEN** qu'un projet utilise une configuration Forgejo existante
+- **WHEN** les commandes GitLab sont disponibles
+- **THEN** le parcours de publication Forgejo reste inchangé
 
 ### Requirement: serveur temporairement indisponible pendant la publication
 

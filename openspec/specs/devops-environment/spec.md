@@ -1,7 +1,7 @@
 # devops-environment Specification
 
 ## Purpose
-TBD - created by archiving change rename-env-devops-activation-variable. Update Purpose after archive.
+Définir la déclaration et l’activation de l’environnement DevOps.
 
 ## Requirements
 

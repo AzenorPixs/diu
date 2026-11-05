@@ -323,10 +323,7 @@ Le point d’entrée SHALL utiliser `SOFTWARES_APT_APACHE2` à la place de
 `config_cleanup` SHALL migrer les valeurs simples de `CROWDSEC_AGENT`,
 `SYSTEM_CROWDSEC_AGENT`, `CROWDSEC_BOUNCER`, `SYSTEM_APT_CROWDSEC` et la clé
 `CROWDSEC_BOUNCER_API_KEY` vers leurs nouveaux noms dans `softwares.env`.
-Les valeurs agent/bouncer/dépôt `0` ou `1` sont préservées exactement. La clé
-API est transférée opaque, sans exécution ni affichage, et le fichier reçoit
-le mode `0600`. Une valeur sous son nouveau nom reste prioritaire; toute
-affectation ancienne ambiguë bloque sans modifier les fichiers.
+Les valeurs agent/bouncer/dépôt `0` ou `1` sont préservées exactement. 
 
 #### Scenario: Ancienne valeur CROWDSEC_AGENT littérale
 
@@ -362,6 +359,15 @@ affectation ancienne ambiguë bloque sans modifier les fichiers.
 - **WHEN** l'affectation historique de la clé API n'est pas un littéral simple
 - **THEN** le nettoyage échoue sans évaluer ni afficher son contenu
 - **AND** les fichiers restent inchangés
+
+### Requirement: Protection de la migration CrowdSec
+
+La clé API SHALL être transférée opaque, sans exécution ni affichage, et le fichier SHALL recevoir le mode `0600`. Une valeur sous son nouveau nom SHALL rester prioritaire ; toute affectation ancienne ambiguë SHALL bloquer sans modifier les fichiers.
+
+#### Scenario: Application de la règle
+
+- **WHEN** la configuration CrowdSec historique est migrée
+- **THEN** la clé et les valeurs sont traitées selon ces règles de priorité et de protection
 
 ### Requirement: Consommateur CrowdSec migré
 
@@ -409,10 +415,7 @@ bloquer le nettoyage sans modifier les fichiers.
 
 Avant de charger la configuration, `config_cleanup` SHALL transférer la
 dernière valeur littérale `0` ou `1` de `DESKTOP` de `variables.sh` vers
-`desktop.env` si `DESKTOP` n'y est pas déjà déclaré. Il SHALL aussi transférer
-`SOFTWARES_APT_DESKTOP=0|1` de `softwares.env` vers `DESKTOP` dans
-`desktop.env`, avec priorité à `DESKTOP` déjà présent, puis à l'ancienne valeur
-`SOFTWARES_APT_DESKTOP` sur l'affectation `DESKTOP` de `variables.sh`. Après
+`desktop.env` si `DESKTOP` n'y est pas déjà déclaré.  Après
 une migration réussie, les anciennes affectations sont retirées de leurs
 fichiers sources. Toute syntaxe ambiguë SHALL bloquer le nettoyage sans
 évaluation ni modification des fichiers.
@@ -441,6 +444,15 @@ fichiers sources. Toute syntaxe ambiguë SHALL bloquer le nettoyage sans
   `desktop.env` ne déclare pas encore `DESKTOP`
 - **THEN** la valeur est transférée exactement sous le nom `DESKTOP`
 - **AND** l'ancienne déclaration logiciels est supprimée
+
+### Requirement: Priorité de migration du contrôle DESKTOP
+
+`config_cleanup` SHALL aussi transférer `SOFTWARES_APT_DESKTOP=0|1` de `softwares.env` vers `DESKTOP` dans `desktop.env`, avec priorité à `DESKTOP` déjà présent, puis à l'ancienne valeur `SOFTWARES_APT_DESKTOP` sur l'affectation `DESKTOP` de `variables.sh`.
+
+#### Scenario: Application de la règle
+
+- **WHEN** les anciennes sources du contrôle DESKTOP sont présentes
+- **THEN** la migration applique l’ordre de priorité défini
 
 ### Requirement: Migration de ENV_DEVOPS
 

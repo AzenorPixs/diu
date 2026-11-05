@@ -9,25 +9,25 @@ d'un projet sans conserver une abréviation historique ambiguë.
 ### Requirement: Initialisation Git sous le sous-contexte projects git
 
 DIU MUST exposer l'initialisation d'un dépôt Git local par la commande
-`rid projects git init <ID PROJECT>`. Cette commande MUST initialiser le
+`diu projects git init <ID PROJECT>`. Cette commande MUST initialiser le
 dépôt du projet désigné. La commande historique
-`rid projects giti <ID PROJECT>` MUST NOT être reconnue comme une commande
+`diu projects giti <ID PROJECT>` MUST NOT être reconnue comme une commande
 publique valide.
 
 #### Scenario: Initialisation avec la commande canonique
 
-- **WHEN** l'utilisateur exécute `rid projects git init diu`
+- **WHEN** l'utilisateur exécute `diu projects git init diu`
 - **THEN** DIU initialise le dépôt Git local du projet `diu`
 
 #### Scenario: Rejet de la commande historique
 
-- **WHEN** l'utilisateur exécute `rid projects giti diu`
+- **WHEN** l'utilisateur exécute `diu projects giti diu`
 - **THEN** DIU échoue avec un code de retour non nul
 - **AND THEN** aucune initialisation Git n'est exécutée
 
 ### Requirement: Exception système limitée au projet initialisé
 
-`rid projects git init <ID PROJECT>` MUST enregistrer une exception
+`diu projects git init <ID PROJECT>` MUST enregistrer une exception
 `safe.directory` en portée système pour le chemin absolu canonique du projet,
 y compris si un dépôt existe déjà. L'opération MUST rester silencieuse en
 cas de succès et MUST NOT ajouter de joker ni modifier les autres entrées.

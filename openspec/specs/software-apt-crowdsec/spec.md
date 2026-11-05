@@ -1,7 +1,7 @@
 # software-apt-crowdsec Specification
 
 ## Purpose
-TBD - created by archiving change move-crowdsec-configuration-to-software-scope. Update Purpose after archive.
+Définir les contrôles de configuration et d’installation CrowdSec dans le scope logiciels.
 
 ## Requirements
 

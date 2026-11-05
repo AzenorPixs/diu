@@ -51,12 +51,12 @@ persister la valeur détectée. Aucun défaut littéral IPv6 SHALL être imposé
 - **THEN** elle SHALL rester prioritaire et sysctl SHALL ne pas la remplacer
 
 ### Requirement: Transmission des arguments CLI
-La route rid projects ocsh <ID PROJECT> SHALL transmettre l'identifiant à launch_oc_shell. La route rid docker rootless inspect <USER> <CONTAINER> SHALL transmettre l'utilisateur et le conteneur à docker_rootless_inspect sans variable locale indéfinie.
+La route diu projects ocsh <ID PROJECT> SHALL transmettre l'identifiant à launch_oc_shell. La route diu docker rootless inspect <USER> <CONTAINER> SHALL transmettre l'utilisateur et le conteneur à docker_rootless_inspect sans variable locale indéfinie.
 
 #### Scenario: Shell du projet
-- **WHEN** rid projects ocsh demo est appelée
+- **WHEN** diu projects ocsh demo est appelée
 - **THEN** launch_oc_shell reçoit demo
 
 #### Scenario: Inspection du conteneur
-- **WHEN** rid docker rootless inspect devops demo est appelée
+- **WHEN** diu docker rootless inspect devops demo est appelée
 - **THEN** docker_rootless_inspect reçoit devops et demo

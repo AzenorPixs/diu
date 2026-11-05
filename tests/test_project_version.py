@@ -138,6 +138,8 @@ printf '%s|%s' "$name" "$tag"
     def prepare_debian_sources(self):
         (self.project / 'lib').mkdir()
         (self.project / 'modules').mkdir()
+        (self.project / 'config').mkdir()
+        (self.project / 'config/hosts.json').write_text('[]\n')
         (self.project / 'root-install-debian.sh').write_text('#!/usr/bin/env bash\nexit 0\n')
         (self.project / 'build').mkdir()
         recipe = json.loads((ROOT / 'build/debian-package.json').read_text())

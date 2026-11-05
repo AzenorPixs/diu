@@ -14,7 +14,7 @@ alors que le token, le dépôt et l'identité Forgejo locale sont déjà validé
 - Construire les appels API avec le préfixe `/api/v1` requis par Forgejo.
 - Éliminer les octets NUL des réponses API temporaires avant leur lecture Bash.
 - Préserver l'absence de création pour un dépôt existant et le parcours
-  identique de `rcicddiu` et `rid projects forgejo push all`.
+  identique de `rcicddiu` et `diu projects forgejo push all`.
 
 ## Capabilities
 
@@ -29,4 +29,4 @@ alors que le token, le dépôt et l'identité Forgejo locale sont déjà validé
 ## Impact
 
 - `lib/forgejo-auth.sh` pour la résolution du propriétaire.
-- `tests/test_rid_help.py` pour la non-utilisation de l'endpoint `/user`.
+- `tests/test_diu_help.py` pour la non-utilisation de l'endpoint `/user`.

@@ -25,7 +25,7 @@ class DiuPackageUpdateTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, ['https://github.com/stable.deb', 'install'])
 
-    def run_update(self, configs, releases, installed='1.0.0', failure='', metadata=None, no_project=False):
+    def run_update(self, configs, releases, installed='1.0.0', failure='', metadata=None, no_project=False, arguments=()):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             project = base / 'diu'
@@ -72,14 +72,14 @@ curl() {
     printf 'fixture' > "$output"
   fi
 }
-diu_update
+diu_update "$@"
 '''
             env = {**os.environ, 'ROOT': str(ROOT), 'ENV_DEVOPS_PROJECTS_ROOT': tmp,
                    'RELEASES': str(data), 'CALLS': str(calls), 'REQUESTS': str(requests), 'INSTALLED': installed,
                    'FAILURE': failure, **(metadata or {})}
             if no_project:
                 env.pop('ENV_DEVOPS_PROJECTS_ROOT', None)
-            result = subprocess.run(['bash', '-c', script], env=env, text=True,
+            result = subprocess.run(['bash', '-c', script, 'bash', *arguments], env=env, text=True,
                                     capture_output=True, check=False)
             self.requests = requests.read_text().splitlines() if requests.exists() else []
             return result, calls.read_text().splitlines() if calls.exists() else []
@@ -91,6 +91,48 @@ diu_update
         result, calls = self.run_update('', releases, no_project=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, [asset, 'install'])
+
+    def test_requested_exact_version_installs_for_older_equal_and_newer(self):
+        api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page='
+        asset = 'https://github.com/AzenorPixs/diu/1.1.7.deb'
+        releases = {api + '1': [{'tag_name': 'v9.0.0', 'assets': [{'name': 'diu_9.0.0_all.deb', 'browser_download_url': 'https://github.com/9.deb'}]}],
+                    api + '2': [{'tag_name': 'v1.1.7', 'assets': [{'name': 'diu_1.1.7_all.deb', 'browser_download_url': asset}]}]}
+        for installed in ('1.0.0', '1.1.7', '2.0.0'):
+            with self.subTest(installed=installed):
+                result, calls = self.run_update('', releases, installed=installed, arguments=('1.1.7',), metadata={'PKG_VERSION': '1.1.7'})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(calls, [asset, 'install'])
+                self.assertTrue(all('api.github.com' in u for u in self.requests))
+
+    def test_requested_missing_invalid_and_inaccessible_do_not_fallback(self):
+        forge = 'REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=team\nREMOTE_FORGEJO_REPOSITORY=diu\n'
+        for args, failure in ((('1.1.7',), ''), (('1.1.7',), 'api.github.com'), (('bad',), ''), (('',), ''), (('1.1.7', 'extra'), '')):
+            with self.subTest(args=args, failure=failure):
+                result, calls = self.run_update(forge, {}, arguments=args, failure=failure)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(calls, [])
+                self.assertFalse(any('forge.example' in u for u in self.requests))
+                if args != ('1.1.7',):
+                    self.assertEqual(self.requests, [])
+
+    def test_requested_version_rejects_drafts_and_prereleases(self):
+        api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1'
+        asset = 'https://github.com/AzenorPixs/diu/1.1.7.deb'
+        for flag in ('draft', 'prerelease'):
+            releases = {api: [{'tag_name': 'v1.1.7', flag: True, 'assets': [{'name': 'diu_1.1.7_all.deb', 'browser_download_url': asset}]}]}
+            result, calls = self.run_update('', releases, arguments=('1.1.7',))
+            with self.subTest(flag=flag):
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(calls, [])
+                self.assertTrue(all('api.github.com' in u for u in self.requests))
+
+    def test_requested_version_checks_metadata(self):
+        api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1'
+        asset = 'https://github.com/AzenorPixs/diu/1.1.7.deb'
+        releases = {api: [{'tag_name': 'v1.1.7', 'assets': [{'name': 'diu_1.1.7_all.deb', 'browser_download_url': asset}]}]}
+        result, calls = self.run_update('', releases, arguments=('1.1.7',), metadata={'PKG_VERSION': '1.1.8'})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(calls, [asset])
 
     def test_only_github_is_queried(self):
         config = ('REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=team\n'

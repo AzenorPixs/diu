@@ -53,7 +53,7 @@ sur un résultat partiel 0. UNSET SHALL être accompagné d'un diagnostic.
 - **THEN** le résultat est UNSET, même si l'autre paquet est absent
 
 ### Requirement: Commandes explicites DisplayLink
-Le module system SHALL exposer system_drivers_install_displaylink et system_drivers_remove_displaylink dans drivers.sh via respectivement rid system drivers install displaylink et rid system drivers remove displaylink. Les arguments supplémentaires ou inconnus SHALL être refusés. Le bloc automatique du monolithe SHALL être supprimé. La découverte statique SHALL rester sans installation automatique.
+Le module system SHALL exposer system_drivers_install_displaylink et system_drivers_remove_displaylink dans drivers.sh via respectivement diu system drivers install displaylink et diu system drivers remove displaylink. Les arguments supplémentaires ou inconnus SHALL être refusés. Le bloc automatique du monolithe SHALL être supprimé. La découverte statique SHALL rester sans installation automatique.
 
 #### Scenario: Commande valide
 - **WHEN** une commande DisplayLink exacte est appelée

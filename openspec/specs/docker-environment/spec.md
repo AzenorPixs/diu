@@ -1,7 +1,7 @@
 # docker-environment Specification
 
 ## Purpose
-TBD - created by archiving change rename-env-docker-activation-variable. Update Purpose after archive.
+Définir la déclaration et l’activation de l’environnement Docker.
 
 ## Requirements
 

@@ -119,6 +119,12 @@ build_deb_diu() {
         return 1
     fi
 
+    if [[ -L "${project_path}/config/hosts.json" || ! -f "${project_path}/config/hosts.json" ]] ||
+        ! python3 -B -c 'import json,sys; data=json.load(open(sys.argv[1], encoding="utf-8")); sys.exit(0 if isinstance(data, list) and not data else 1)' "${project_path}/config/hosts.json"; then
+        print_error "Le modèle config/hosts.json doit être un tableau JSON vide."
+        return 1
+    fi
+
     # ----------------------------------------------------------
     # Génération des métadonnées du paquet
     # ----------------------------------------------------------
@@ -175,6 +181,25 @@ build_deb_diu() {
         return 1
     fi
 
+    if ! cat > "${staging_dir}/DEBIAN/postinst" <<'EOF'
+#!/usr/bin/env bash
+set -e
+if [[ "${1:-}" == configure ]]; then
+    . /root/diu/lib/diu-links.sh
+    diu_create_link /root/diu/root-install-debian.sh /usr/local/bin/diu
+fi
+EOF
+    then
+        print_error "Échec de la génération de DEBIAN/postinst."
+        rm -rf "${staging_dir}"
+        return 1
+    fi
+    if ! chmod 0755 "${staging_dir}/DEBIAN/postinst"; then
+        print_error "Impossible de préparer les permissions de postinst."
+        rm -rf "${staging_dir}"
+        return 1
+    fi
+
     # ----------------------------------------------------------
     # Copie de la liste blanche
     # ----------------------------------------------------------
@@ -205,7 +230,7 @@ build_deb_diu() {
     fi
 
     # ----------------------------------------------------------
-    # Vérification que variables.sh et config/ ne sont pas présents
+    # Vérification de variables.sh et préparation du seul modèle config/
     # dans le staging
     # ----------------------------------------------------------
 
@@ -215,8 +240,11 @@ build_deb_diu() {
         return 1
     fi
 
-    if [[ -d "${staging_dir}/root/diu/config" ]]; then
-        print_error "config/ ne doit pas être présent dans le paquet."
+    if ! mkdir -p "${staging_dir}/root/diu/config" ||
+        ! cp "${project_path}/config/hosts.json" "${staging_dir}/root/diu/config/hosts.json" ||
+        ! python3 -B -c 'import json,sys; data=json.load(open(sys.argv[1], encoding="utf-8")); sys.exit(0 if isinstance(data, list) and not data else 1)' "${staging_dir}/root/diu/config/hosts.json" ||
+        ! printf '%s\n' '/root/diu/config/hosts.json' > "${staging_dir}/DEBIAN/conffiles"; then
+        print_error "Impossible de préparer le modèle hosts.json et son statut conffile."
         rm -rf "${staging_dir}"
         return 1
     fi
@@ -295,7 +323,7 @@ Version: ${package_version}
 Architecture: all
 Maintainer: ${diu_maintainer}
 Description: Debian Installeur Unifié
-Depends: awk
+Depends: awk, python3
 EOF
     then
         print_error "Échec de la génération de DEBIAN/control."

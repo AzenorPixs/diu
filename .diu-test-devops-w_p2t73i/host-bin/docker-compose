@@ -1,0 +1,2 @@
+#!/bin/sh
+printf 'Docker Compose version v5.2.3\n'

@@ -8,7 +8,7 @@ Exposer les informations des modules du DIU par des commandes cohérentes.
 ### Requirement: Informations réseau du système
 
 Le DIU SHALL déplacer display_infos vers system_info_network dans
-modules/system/infos.sh et SHALL l'appeler via rid system infos network.
+modules/system/infos.sh et SHALL l'appeler via diu system infos network.
 L'affichage réseau et l'appel du parcours historique SHALL être préservés.
 
 #### Scenario: Interfaces réseau
@@ -18,11 +18,11 @@ L'affichage réseau et l'appel du parcours historique SHALL être préservés.
 
 ### Requirement: Informations Debian
 
-system_info_debian dans modules/system/infos.sh SHALL répondre à rid system infos debian et afficher les blocs et variables dans l’ordre exact décrit ci-dessous.
+system_info_debian dans modules/system/infos.sh SHALL répondre à diu system infos debian et afficher les blocs et variables dans l’ordre exact décrit ci-dessous.
 Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Valeurs affichées
-- **WHEN** rid system infos debian est appelée
+- **WHEN** diu system infos debian est appelée
 - **THEN** chaque variable est affichée sous la forme NOM=valeur dans l'ordre défini
 - **AND** une variable absente affiche UNSET et une valeur vide reste vide
 - **AND** aucune autre variable de configuration n'est exposée
@@ -32,7 +32,7 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **WHEN** system_info_debian affiche les informations Debian
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
-system_info_debian dans modules/system/infos.sh SHALL répondre à rid system
+system_info_debian dans modules/system/infos.sh SHALL répondre à diu system
 infos debian. L'affichage SHALL suivre cet ordre exact :
 
 - SYSTEM DEBIAN : SYSTEM_DEBIAN_ENVIRONNEMENT, SYSTEM_DEBIAN_RELEASE, SYSTEM_TIME_ZONE.
@@ -41,7 +41,7 @@ infos debian. L'affichage SHALL suivre cet ordre exact :
 - SYSTEM APT UNOFFICIAL : SYSTEM_APT_CGPT, SYSTEM_APT_CROWDSEC, SYSTEM_APT_DOCKER,
   SYSTEM_APT_LEMONLDAP, SYSTEM_APT_MONGODB, SYSTEM_APT_NODEJS, SYSTEM_APT_NVIDIA,
   SYSTEM_APT_PROXMOX, SYSTEM_APT_VSCODE, SYSTEM_APT_WAZUH, SYSTEM_APT_WEBMIN.
-- SYSTEM FLATPAK : SYSTEM_FLATPAK.
+- SYSTEM FLATPAK : SYSTEM_FLATPAK_ENGINE.
 
 ### Requirement: Agrégation des informations
 
@@ -49,12 +49,12 @@ Les agrégateurs et commandes infos SHALL respecter les titres, modules, emplace
 Les modalités normatives détaillées ci-dessous SHALL être respectées.
 
 #### Scenario: Informations globales
-- **WHEN** rid infos est appelée
+- **WHEN** diu infos est appelée
 - **THEN** les sept blocs sont affichés une fois dans l'ordre défini
 - **AND** le parcours d'installation n'est pas exécuté après la commande
 
 #### Scenario: Informations DIU
-- **WHEN** rid diu infos est appelée
+- **WHEN** diu diu infos est appelée
 - **THEN** le titre DIU et la version du paquet DIU installé sont affichés via diu_version
 - **AND** si la version est indisponible, un diagnostic et un statut non nul sont produits
 
@@ -68,10 +68,10 @@ Les modalités normatives détaillées ci-dessous SHALL être respectées.
 - **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
 
 system_info SHALL afficher le titre SYSTEM puis appeler system_info_debian,
-system_info_drivers et system_info_network dans cet ordre, via rid system infos. La fonction infos de
-modules/diu/infos.sh SHALL répondre à rid infos et appeler les informations des
+system_info_drivers et system_info_network dans cet ordre, via diu system infos. La fonction infos de
+modules/diu/infos.sh SHALL répondre à diu infos et appeler les informations des
 modules desktop, diu, environnements, ia, projects, softwares et system dans
-cet ordre. Les commandes rid <module> infos SHALL être disponibles. Les modules
+cet ordre. Les commandes diu <module> infos SHALL être disponibles. Les modules
 sans contenu SHALL afficher au moins leur titre. Leurs fonctions SHALL être
 placées dans modules/<module>/infos.sh, avec environments pour environnements.
 Les agrégateurs SHALL appeler directement les fonctions, sans récursion.
@@ -84,11 +84,11 @@ infos SHALL ne pas modifier de configuration ni exécuter d'installation ; le
 bootstrap existant reste inchangé.
 
 #### Scenario: Mauvaise feuille système
-- **WHEN** rid system infos inconnu est appelée
-- **THEN** un code 2 est retourné et rid system infos help est proposé
+- **WHEN** diu system infos inconnu est appelée
+- **THEN** un code 2 est retourné et diu system infos help est proposé
 
 ### Requirement: Informations des pilotes système
-system_info_drivers dans modules/system/infos.sh SHALL répondre à rid system infos drivers et afficher la section SYSTEM DRIVERS puis SYSTEM_DRIVERS_DISPLAY_LINK sous la forme NOM=valeur. Une variable absente SHALL afficher UNSET ; une valeur vide SHALL rester vide. La fonction SHALL ne pas modifier la configuration ni installer de logiciel.
+system_info_drivers dans modules/system/infos.sh SHALL répondre à diu system infos drivers et afficher la section SYSTEM DRIVERS puis SYSTEM_DRIVERS_DISPLAY_LINK sous la forme NOM=valeur. Une variable absente SHALL afficher UNSET ; une valeur vide SHALL rester vide. La fonction SHALL ne pas modifier la configuration ni installer de logiciel.
 
 #### Scenario: Pilote déclaré installé
 - **WHEN** SYSTEM_DRIVERS_DISPLAY_LINK vaut exactement 1
@@ -105,14 +105,13 @@ system_info_drivers dans modules/system/infos.sh SHALL répondre à rid system i
 
 ### Requirement: Informations des logiciels CrowdSec
 
-`softwares_infos` SHALL afficher les trois interrupteurs CrowdSec sous le titre
-`SOFTWARES`. Elle SHALL NOT afficher la clé API CrowdSec.
+`softwares_infos` SHALL afficher les noms des logiciels CrowdSec et leur état sous le titre `SOFTWARES`. Elle SHALL NOT afficher les noms de variables ou la clé API CrowdSec.
 
 #### Scenario: Informations CrowdSec sans secret
 
 - **WHEN** les informations logicielles sont demandées
-- **THEN** les réglages logiciels CrowdSec sont affichés
-- **AND** la clé API n'est pas affichée
+- **THEN** les logiciels CrowdSec et leur état sont affichés
+- **AND** la clé API et les noms des variables ne sont pas affichés
 
 ### Requirement: Informations du contrôle de bureau
 

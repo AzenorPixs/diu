@@ -1,10 +1,50 @@
 # Codes de lot — Debian Installeur Unifié
 
+Delta SCM du 2026-11-05 : [split-system-update-engines](changes/archive/2026-11-05-split-system-update-engines/proposal.md), archivé, **code non attribué** ; 1209 tests dont 2 ignorés, OpenSpec strict et contrôles Bash réussis ; CI/CD non effectuée ; attribution ultérieure par ACL.
+
+
+Delta SCM du 2026-11-05 : [improve-system-update-report](changes/archive/2026-11-05-improve-system-update-report/proposal.md), archivé, **code non attribué** ; 1 200 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [fix-system-update-codex-duplicate](changes/archive/2026-11-05-fix-system-update-codex-duplicate/proposal.md), archivé, **code non attribué** ; spécification stricte validée, 1 207 tests dont 2 ignorés ; sans CI/CD ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [fix-system-update-apt-cli-warning](changes/archive/2026-11-05-fix-system-update-apt-cli-warning/proposal.md), archivé, **code non attribué** ; 1 205 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [refresh-codex-cli-state](changes/archive/2026-11-05-refresh-codex-cli-state/proposal.md), archivé, **code non attribué** ; recalcul de l’état Codex CLI, 1 190 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [manage-software-engines](changes/archive/2026-11-05-manage-software-engines/proposal.md), archivé, **code non attribué** ; 1 190 tests exécutés dont 2 ignorés, sans échec ; pas de CI/CD ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [display-software-inventory](changes/archive/2026-11-05-display-software-inventory/proposal.md), archivé, **code non attribué** ; 1 179 tests exécutés, dont 2 ignorés, sans échec ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [remove-software-deb-engine](changes/archive/2026-11-05-remove-software-deb-engine/proposal.md), archivé, **code non attribué** ; suppression du moteur logiciel deb, 1 177 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-05 : [converge-diu-to-diu](changes/converge-diu-to-diu/proposal.md), actif, **code non attribué** ; spécification validée en mode strict ; code, alias, aide et documentation convergés ; 1 177 tests globaux exécutés, 2 ignorés, aucun échec ; sources stables, OpenSpec ciblé strict réussi ; 47 échecs stricts préexistants inchangés. Archivage éligible, sans CI/CD. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [report-and-display-system-hosts](changes/archive/2026-11-04-report-and-display-system-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [move-hosts-commands-to-system](changes/archive/2026-11-04-move-hosts-commands-to-system/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [rename-projects-network-hosts-commands](changes/archive/2026-11-04-rename-projects-network-hosts-commands/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [manage-production-hosts-entries](changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+- [reconcile-cicd-git-publication](changes/reconcile-cicd-git-publication/proposal.md) : code non attribué ; change actif, réalisation testée sur fixtures, synchronisation et publication en attente au 2026-11-04 ; attribution ultérieure par ACL.
+- [handle-cicd-release-unavailability](changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; validation globale : 1 171 tests exécutés dont 2 ignorés et OpenSpec strict réussi ; attribution ultérieure par ACL.
+
+- [ensure-diu-link-at-startup](changes/archive/2026-11-04-ensure-diu-link-at-startup/proposal.md) : code non attribué ; change archivé le 2026-11-04 : 1 165 tests dont 2 ignorés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [configure-system-hosts-json](changes/archive/2026-11-04-configure-system-hosts-json/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-04 : [manage-system-network-hosts](changes/archive/2026-11-04-manage-system-network-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
+
+- [diu-command-links](changes/archive/2026-11-04-diu-command-links/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; voir [bilan](changes/archive/2026-11-04-diu-command-links/STATISTICS.md) ; dépendance `migrate-env-devops-projects-root` archivée ; attribution à traiter par ACL.
+
+Delta SCM du 2026-11-04 : [force-diu-update-version](changes/archive/2026-11-04-force-diu-update-version/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-04 : [public-github-diu-update](changes/archive/2026-11-04-public-github-diu-update/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-04 : [stop-setting-technical-account-passwords](changes/archive/2026-11-04-stop-setting-technical-account-passwords/proposal.md), archivé, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
 
-Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](changes/migrate-env-devops-projects-root/proposal.md), actif, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
+Delta SCM du 2026-11-03 : [migrate-env-devops-projects-root](changes/archive/2026-11-04-migrate-env-devops-projects-root/proposal.md), archivé, **code non attribué** ; validation réussie : 1 164 tests dont 2 ignorés et ShellCheck ; voir [bilan](changes/archive/2026-11-04-migrate-env-devops-projects-root/STATISTICS.md) ; comptages historiques inchangés, attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-03 : [restore-diu-forgejo-fallback](changes/archive/2026-11-03-restore-diu-forgejo-fallback/proposal.md), archivé, **code non attribué** ; comptages historiques inchangés, attribution ultérieure par ACL.
 
@@ -91,7 +131,7 @@ Les 117 attributions aux archives sont des **annotations rétrospectives du 2026
 | ART08 | `add-projects-cicd-summary` | Résumé des opérations CI/CD | ARCHIVÉ | [dossier](changes/archive/2026-09-23-add-projects-cicd-summary/) | [titre de la proposition](changes/archive/2026-09-23-add-projects-cicd-summary/proposal.md) | Rétrospective du 2026-10-28 |
 | ART09 | `fix-github-release-image-case` | Correction de la casse des références GHCR | ARCHIVÉ | [dossier](changes/archive/2026-10-15-fix-github-release-image-case/) | [titre de la proposition](changes/archive/2026-10-15-fix-github-release-image-case/proposal.md) | Rétrospective du 2026-10-28 |
 | ART10 | `support-project-docker-build-args` | Arguments Docker publics par projet | ARCHIVÉ | [dossier](changes/archive/2026-10-15-support-project-docker-build-args/) | [titre de la proposition](changes/archive/2026-10-15-support-project-docker-build-args/proposal.md) | Rétrospective du 2026-10-28 |
-| CLI01 | `add-rid-contextual-help` | Aide contextuelle des commandes rid | ARCHIVÉ | [dossier](changes/archive/2026-09-05-add-rid-contextual-help/) | [titre de la proposition](changes/archive/2026-09-05-add-rid-contextual-help/proposal.md) | Rétrospective du 2026-10-28 |
+| CLI01 | `add-rid-contextual-help` | Aide contextuelle des commandes diu | ARCHIVÉ | [dossier](changes/archive/2026-09-05-add-rid-contextual-help/) | [titre de la proposition](changes/archive/2026-09-05-add-rid-contextual-help/proposal.md) | Rétrospective du 2026-10-28 |
 | CLI02 | `refactor-help-command` | Unification de l’aide contextuelle | ARCHIVÉ | [dossier](changes/archive/2026-09-12-refactor-help-command/) | [titre de la proposition](changes/archive/2026-09-12-refactor-help-command/proposal.md) | Rétrospective du 2026-10-28 |
 | CLI03 | `add-module-infos` | Informations des modules | ARCHIVÉ | [dossier](changes/archive/2026-09-28-add-module-infos/) | [titre de la proposition](changes/archive/2026-09-28-add-module-infos/proposal.md) | Rétrospective du 2026-10-28 |
 | CLI04 | `add-system-drivers-infos` | Why | ARCHIVÉ | [dossier](changes/archive/2026-09-28-add-system-drivers-infos/) | [titre de la proposition](changes/archive/2026-09-28-add-system-drivers-infos/proposal.md) | Rétrospective du 2026-10-28 |

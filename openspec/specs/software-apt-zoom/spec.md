@@ -1,7 +1,7 @@
 # software-apt-zoom Specification
 
 ## Purpose
-TBD - created by archiving change rename-zoom-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel zoom.
 
 ## Requirements
 

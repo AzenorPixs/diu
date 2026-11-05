@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if [ "$1" = --version ]; then
+    printf 'psql (PostgreSQL) 17.6\n'
+    exit 0
+fi
+printf '%s|%s|%s\n' "$PGHOST" "$PGPORT" "$*" >> "$TEST_QUERY_LOG"
+if [ "$TEST_PG_FAILURE" = 1 ]; then
+    printf 'test-only-private-value\n' >&2
+    exit 1
+fi
+[ "$PGPASSWORD" = "${TEST_EXPECTED_PASSWORD:-test-only-private-value}" ] || exit 1
+[ "$PGUSER" = 'test-only-user' ] || exit 1
+[ "$PGDATABASE" = 'test-only-database' ] || exit 1
+printf '16.4\n'
+

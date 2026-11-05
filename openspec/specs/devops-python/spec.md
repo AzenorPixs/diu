@@ -14,9 +14,7 @@ Lorsque le bloc Python du monolithe est activé par
 Python, pip, leurs liens, le profil Python et la gestion des droits du domicile
 DevOps. DIU SHALL NOT installer, mettre à jour, réinstaller ou désinstaller
 Psycopg ou son implémentation binaire dans ce bloc. Les projets sont
-responsables de leurs dépendances Psycopg. Le code de gestion Psycopg
-désactivé SHALL être conservé en commentaires, avec la raison de sa
-désactivation.
+responsables de leurs dépendances Psycopg. 
 
 #### Scenario: Python déjà à jour sans Psycopg
 
@@ -34,6 +32,15 @@ désactivation.
 
 - **WHEN** `ENVIRONMENTS_DEVOPS` ou `PYTHON` ne vaut pas `1`
 - **THEN** le bloc ne prépare pas le profil Python et n'effectue aucune opération Psycopg
+
+### Requirement: Conservation du code Psycopg désactivé
+
+Le code de gestion Psycopg désactivé SHALL être conservé en commentaires, avec la raison de sa désactivation.
+
+#### Scenario: Application de la règle
+
+- **WHEN** le bloc Python est maintenu
+- **THEN** le code Psycopg désactivé et la raison de sa désactivation restent en commentaires
 
 ### Requirement: Aucun contrôle Psycopg dans le bloc Python
 

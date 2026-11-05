@@ -85,14 +85,14 @@ ces opérations, sans empêcher le build ni les publications Debian activés.
 
 ### Requirement: aide CI/CD
 
-Les aides `rid projects help`, `rid projects cicd help` et
-`rid projects cicd <ID PROJECT> help` MUST présenter la commande et sa
+Les aides `diu projects help`, `diu projects cicd help` et
+`diu projects cicd <ID PROJECT> help` MUST présenter la commande et sa
 syntaxe et les six étapes, dont le build Debian conditionnel, sans exécuter le flux.
 
 #### Scenario: aide CI/CD
 
-- **WHEN** l'utilisateur demande `rid projects cicd help`
-- **THEN** l'aide affiche `rid projects cicd <ID PROJECT>`
+- **WHEN** l'utilisateur demande `diu projects cicd help`
+- **THEN** l'aide affiche `diu projects cicd <ID PROJECT>`
 - **AND THEN** aucune opération CI/CD n'est appelée
 
 ### Requirement: poursuite avec fournisseurs indisponibles
@@ -117,7 +117,7 @@ release ignorée. Sans autre erreur, le flux MUST retourner zéro avec l'état
 
 ### Requirement: activation Debian du flux
 
-Le flux MUST appeler le même moteur que rid projects build debian <ID PROJECT>
+Le flux MUST appeler le même moteur que diu projects build debian <ID PROJECT>
 uniquement lorsque PROJECT_DEBIAN_PACKAGE vaut Yes, YES ou 1. Une clé absente,
 vide ou différente MUST ignorer cette construction et l'indiquer au bilan.
 Sans Docker, les publications Debian Forgejo/GitLab/GitHub MUST rester
@@ -141,7 +141,7 @@ conserver les règles de bilan et de poursuite du flux.
 - **THEN** l'étape 5 appelle le publisher Debian GitHub et le bilan indique sa réussite ou son échec
 
 ### Requirement: Version facultative du CI/CD
-La commande `rid projects cicd <ID PROJECT> [VERSION]` SHALL accepter une version stable x.y.z, la valider et mettre à jour l'unique affectation PROJECT_VERSION de la configuration existante avant le flux. Une configuration absente ou ambiguë SHALL provoquer un diagnostic sans modification. La forme explicite historique avec message et tag SHALL rester utilisable.
+La commande `diu projects cicd <ID PROJECT> [VERSION]` SHALL accepter une version stable x.y.z, la valider et mettre à jour l'unique affectation PROJECT_VERSION de la configuration existante avant le flux. Une configuration absente ou ambiguë SHALL provoquer un diagnostic sans modification. La forme explicite historique avec message et tag SHALL rester utilisable.
 
 #### Scenario: Version fournie
 - **WHEN** une version x.y.z valide est fournie et la configuration est valide
@@ -202,3 +202,29 @@ Les publications Debian SHALL identifier le fournisseur et le tag dans leurs mes
 #### Scenario: Répertoire de rejeu
 - **WHEN** une publication utilise un contexte de rejeu isolé
 - **THEN** le répertoire affiché est identifié comme isolé
+
+### Requirement: poursuite après indisponibilité pendant une release
+
+Dans `diu projects cicd <ID PROJECT> [VERSION]`, une indisponibilité réseau reconnue pendant une release Forgejo, GitLab ou GitHub MUST être signalée comme publication non confirmée et MUST permettre de poursuivre les autres fournisseurs éligibles. Sans autre erreur, le bilan MUST indiquer les indisponibilités et le retour MUST être zéro. Toute publication déjà effectuée MUST être conservée et sa possible partialité signalée. Les statuts MUST être isolés entre appels et fournisseurs.
+
+#### Scenario: release interrompue par une panne reconnue
+
+- **WHEN** une release rencontre une indisponibilité réseau reconnue et les autres opérations éligibles réussissent
+- **THEN** les fournisseurs suivants sont traités et le bilan indique la publication non confirmée
+- **AND THEN** le code de retour est zéro
+
+#### Scenario: panne après publication partielle
+
+- **WHEN** un artefact ou une référence a pu être publié avant l’indisponibilité
+- **THEN** le bilan indique que la publication peut être partielle et qu’une reprise est nécessaire
+- **AND THEN** aucun rollback ni succès complet n’est annoncé
+
+#### Scenario: erreur non qualifiée
+
+- **WHEN** une release échoue pour un refus d’authentification, une erreur TLS ou de configuration, un rejet ou une autre cause non reconnue comme indisponibilité
+- **THEN** l’erreur reste bloquante et le retour est non nul
+
+#### Scenario: commandes directes et rejeu
+
+- **WHEN** la release est appelée directement hors CI/CD ou le flux rejoue une version existante
+- **THEN** le contrat des releases directes et les restrictions du rejeu restent inchangés

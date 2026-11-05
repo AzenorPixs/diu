@@ -161,7 +161,7 @@ GENERATED_HASHES = {
     '/etc/rsyslog.d/3-sso.conf': '84dd2f9501c6764da4b2c508e5f084c0226ed6c65799427b1878d63f65e1d734',
     '/etc/rsyslog.d/4-suricata.conf': 'e510eac867c69edab88b36c71c0a2475f01436dcc742d29afb25c19e4fc49ca5',
     '/etc/rsyslog.d/default.conf': '80d05fd5ca87bf8e95d6781ad550db1f19c33c64fde225d5694db075d1256d98',
-    '/root/.zshrc': 'a7fc4d33f1b03c51044a7a5e631c8a22dc63d2b9269ddf6944319176b7cb1d68',
+    '/root/.zshrc': '39646f6e5b285d1b30c8341ac96e9b6b1a06726ed51045606d1209698e25ebc6',
     '/etc/rc.local': '9075a7a5e32efc18e6d89237740c866bc232beff9b38910f04b419c85f14b06d',
     '/root/fwon.sh': '8d142776193a2040ad9c0372132edbb8ac9795fbe9b69c0989711a4800f95eaa',
     '/root/fwoff.sh': 'd1111481c8e99f8521ffa30c44adf55ff40577e661288f41a9467e48b47a636a',

@@ -1,0 +1,1 @@
+database.example.test|5544|-X -w -A -t -q -c SHOW server_version;

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Déclarer le contrôle Docker DevOps utilisé par les entrées d’hôtes de la stack.
+Déclarer et initialiser le contrôle de la stack Docker DevOps dans la configuration du DIU.
 
 ## Requirements
 
@@ -29,20 +29,3 @@ déclaration sans modification.
 
 - **WHEN** `DOCKER_STACK_DEVOPS` est définie à une valeur autre que `0` ou `1`
 - **THEN** la déclaration SHALL échouer avec un diagnostic stderr
-
-### Requirement: Consommateur de la stack préservé
-
-Le consommateur de la stack Docker DevOps SHALL continuer d’utiliser
-`DOCKER_STACK_DEVOPS`. Une valeur `1` active l’ajout existant des noms d’hôtes;
-une valeur absente ou `0` l’ignore.
-
-#### Scenario: Stack DevOps activée
-
-- **WHEN** `DOCKER_STACK_DEVOPS` vaut `1`
-- **THEN** le DIU SHALL conserver l’ajout existant des noms DevOps à
-  `/etc/hosts`
-
-#### Scenario: Stack DevOps désactivée ou absente
-
-- **WHEN** `DOCKER_STACK_DEVOPS` est absente ou vaut `0`
-- **THEN** le bloc SHALL être ignoré sans erreur de variable non définie

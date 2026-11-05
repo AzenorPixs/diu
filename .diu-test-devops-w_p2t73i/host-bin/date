@@ -1,0 +1,7 @@
+#!/bin/sh
+
+[ "$#" -eq 2 ] && [ "$1" = -u ] && [ "$2" = +%Y-%m-%dT%H:%M:%SZ ] || exit 9
+printf '%s\n' "$*" >> "$TEST_CLOCK_LOG"
+printf 'clock\n' >> "$TEST_PROBE_ORDER_LOG"
+printf '%s\n' "$TEST_CLOCK_OUTPUT"
+

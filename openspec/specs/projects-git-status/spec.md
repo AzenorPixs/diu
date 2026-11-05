@@ -8,24 +8,24 @@ d'un projet depuis le sous-contexte des opérations Git.
 
 ### Requirement: Statut Git d'un projet
 
-DIU SHALL accepter `rid projects git status <ID PROJECTS>` pour afficher le
+DIU SHALL accepter `diu projects git status <ID PROJECTS>` pour afficher le
 statut Git local du projet désigné. DIU SHALL NOT accepter
-`rid projects gits <ID PROJECTS>` comme alias de cette commande.
+`diu projects gits <ID PROJECTS>` comme alias de cette commande.
 
 #### Scenario: Statut Git sous le contexte Git
 
 - **WHEN** l'utilisateur exécute
-  `rid projects git status <ID PROJECTS>`
+  `diu projects git status <ID PROJECTS>`
 - **THEN** DIU exécute l'affichage du statut Git local du projet désigné
 
 #### Scenario: Ancienne commande retirée
 
-- **WHEN** l'utilisateur exécute `rid projects gits <ID PROJECTS>`
+- **WHEN** l'utilisateur exécute `diu projects gits <ID PROJECTS>`
 - **THEN** DIU ne l'interprète pas comme une commande de statut Git
 
 ### Requirement: Diagnostic de l'exception système en lecture seule
 
-`rid projects git status <ID PROJECTS>` MUST afficher la présence ou
+`diu projects git status <ID PROJECTS>` MUST afficher la présence ou
 l'absence de l'exception `safe.directory` système exacte et le chemin
 canonique concerné avant les opérations sur le dépôt. Le diagnostic MUST
 identifier la portée système et MUST NOT présenter une règle large comme

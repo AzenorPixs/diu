@@ -1,7 +1,7 @@
 # software-apt-syslog-server Specification
 
 ## Purpose
-TBD - created by archiving change rename-syslog-server-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel syslog-server.
 
 ## Requirements
 

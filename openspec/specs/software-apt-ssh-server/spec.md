@@ -1,7 +1,7 @@
 # software-apt-ssh-server Specification
 
 ## Purpose
-TBD - created by archiving change rename-ssh-server-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel ssh-server.
 
 ## Requirements
 

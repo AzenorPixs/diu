@@ -1,7 +1,7 @@
 # docker-stack-bunkerweb-update Specification
 
 ## Purpose
-TBD - created by archiving change rename-bunkerweb-upgrade-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle de mise à jour de la stack BunkerWeb.
 
 ## Requirements
 

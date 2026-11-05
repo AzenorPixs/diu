@@ -1,7 +1,7 @@
 # system-rc-local Specification
 
 ## Purpose
-TBD - created by archiving change rename-system-rc-local-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle système rc.local.
 
 ## Requirements
 

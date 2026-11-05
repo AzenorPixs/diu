@@ -1,7 +1,7 @@
 # software-apt-qemu-guest-agent Specification
 
 ## Purpose
-TBD - created by archiving change rename-qemu-guest-agent-variable. Update Purpose after archive.
+Définir la déclaration et les consommateurs du contrôle logiciel qemu-guest-agent.
 
 ## Requirements
 

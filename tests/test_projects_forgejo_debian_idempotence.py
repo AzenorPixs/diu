@@ -57,7 +57,7 @@ publish_release_debian project
 
 
 class ForgejoDebianIdempotenceTests(unittest.TestCase):
-    def run_release(self, mode, tag_sha=HEAD, remote_sha=HEAD, replay=False, ancestor=True):
+    def run_release(self, mode, tag_sha=HEAD, remote_sha=HEAD, replay=False, ancestor=True, harness=HARNESS):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.forgejo-release-fixture-') as directory:
             base = Path(directory)
             project = base / 'project'
@@ -75,17 +75,28 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
             subprocess.run(['dpkg-deb', '--build', '--root-owner-group', str(staging.parent),
                             str(project / 'dist/project_1.0.3_all.deb')], check=True, capture_output=True)
             calls = base / 'calls'
-            result = subprocess.run(['bash', '-c', HARNESS, 'fixture', str(ROOT), str(base)],
+            result = subprocess.run(['bash', '-c', harness, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': str(base),
                                     'HEAD_SHA': HEAD, 'TAG_SHA': tag_sha, 'MODE': mode, 'CALLS': str(calls),
                                     'REMOTE_SHA': remote_sha, 'PROJECTS_CICD_REPLAY': '1' if replay else '0',
                                     'ANCESTOR': 'yes' if ancestor else 'no'})
             return result, calls.read_text() if calls.exists() else ''
 
+    def test_cicd_http_unavailability_is_non_blocking(self):
+        harness = HARNESS.replace('source "$1/modules/projects/diu-packaging.sh"',
+                                  'source "$1/modules/projects/git.sh"\nsource "$1/modules/projects/diu-packaging.sh"')
+        harness = harness.replace('curl() {\n', 'curl() {\n    printf "{}\\n503"; return 0\n', 1)
+        harness = harness.replace('publish_release_debian project\n',
+                                  'projects_cicd_release_provider Forgejo publish_release_debian project\n'
+                                  'printf "STATUS:%s\\n" "$PROJECTS_CICD_RELEASE_STATUS"\n')
+        result, _ = self.run_release('complete', harness=harness)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('STATUS:indisponible', result.stdout)
+
     def test_existing_asset_does_not_upload(self):
         result, calls = self.run_release('complete')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('déjà publié', result.stdout)
+        self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertEqual(calls, '')
         lines = [line for line in result.stdout.splitlines() if ' : ' in line]
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'URL distante', 'Branche locale', 'Branche distante')

@@ -1,0 +1,2 @@
+#!/bin/sh
+printf 'OpenSSL 3.5.3 1 Jan 2026\n'

@@ -31,5 +31,5 @@ localement.
 
 - `modules/projects/git.sh` et `lib/forgejo-auth.sh` pour la récupération des
   références et les arguments transmis au provider Forgejo.
-- `tests/test_rid_help.py` pour la vérification ciblée du push de branche et
+- `tests/test_diu_help.py` pour la vérification ciblée du push de branche et
   de l'absence de confirmation des trois fournisseurs.

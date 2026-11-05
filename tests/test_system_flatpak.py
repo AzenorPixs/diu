@@ -15,7 +15,7 @@ class SystemFlatpakTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
             env = dict(os.environ, DECLARATION=str(DECLARATION), TMPDIR=directory,
                        **variables)
-            env.pop("SYSTEM_FLATPAK", None)
+            env.pop("SYSTEM_FLATPAK_ENGINE", None)
             return subprocess.run(["bash", "-c", "set -Eeuo pipefail\n" + code],
                                   env=env, text=True, capture_output=True)
 
@@ -44,8 +44,8 @@ dpkg-query() {
     esac
 }
 source "$variable_source"
-[[ "$SYSTEM_FLATPAK" == "$EXPECTED" ]]
-grep -Fx "export SYSTEM_FLATPAK=$EXPECTED" "$TMPDIR/system.env"
+[[ "$SYSTEM_FLATPAK_ENGINE" == "$EXPECTED" ]]
+grep -Fx "export SYSTEM_FLATPAK_ENGINE=$EXPECTED" "$TMPDIR/system.env"
 ''', PACKAGE_STATE=package_state, EXPECTED=expected)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
@@ -54,62 +54,59 @@ grep -Fx "export SYSTEM_FLATPAK=$EXPECTED" "$TMPDIR/system.env"
 variable_source="$TMPDIR/system_flatpak.sh"
 sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/system.env\"#" \
     "$DECLARATION" > "$variable_source"
-SYSTEM_FLATPAK=UNSET
+SYSTEM_FLATPAK_ENGINE=UNSET
 dpkg-query() { return 2; }
 source "$variable_source"
-[[ "$SYSTEM_FLATPAK" == UNSET && ! -e "$TMPDIR/system.env" ]]
-SYSTEM_FLATPAK=invalid
+[[ "$SYSTEM_FLATPAK_ENGINE" == UNSET && ! -e "$TMPDIR/system.env" ]]
+SYSTEM_FLATPAK_ENGINE=invalid
 if source "$variable_source"; then exit 1; fi
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("valeur invalide", result.stderr)
 
-    def test_install_remove_update_and_apply_are_isolated(self):
+    def test_install_remove_and_apply_are_isolated(self):
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=absent
 system_flatpak_install
-grep -Fx 'export SYSTEM_FLATPAK=1' "$SYSTEM_FLATPAK_CONFIG_FILE"
+grep -Fx 'export SYSTEM_FLATPAK_ENGINE=1' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
 PACKAGE_STATE=installed
 system_flatpak_remove
-grep -Fx 'export SYSTEM_FLATPAK=0' "$SYSTEM_FLATPAK_CONFIG_FILE"
-PACKAGE_STATE=installed
-system_flatpak_update
-SYSTEM_FLATPAK=UNSET
+grep -Fx 'export SYSTEM_FLATPAK_ENGINE=0' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
+SYSTEM_FLATPAK_ENGINE=UNSET
 system_flatpak_apply
 ! grep -q 'flatpak update' "$CALLS"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("apt-get install -y -- flatpak", calls)
         self.assertIn("flatpak remote-add --if-not-exists flathub", calls)
-        self.assertIn("apt-get remove -y -- flatpak", calls)
-        self.assertIn("apt-get install --only-upgrade -y -- flatpak", calls)
+        self.assertNotIn("apt-get remove -y -- flatpak", calls)
         self.assertNotIn("flatpak update", calls)
 
     def test_failures_do_not_persist_enabled_state(self):
         result, _ = self.run_engine(r'''
-printf 'export SYSTEM_FLATPAK=0\n' > "$SYSTEM_FLATPAK_CONFIG_FILE"
+printf 'export SYSTEM_FLATPAK_ENGINE=0\n' > "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
 PACKAGE_STATE=absent
 APT_FAILURE=1
 if system_flatpak_install; then exit 1; fi
-grep -Fx 'export SYSTEM_FLATPAK=0' "$SYSTEM_FLATPAK_CONFIG_FILE"
-! grep -Fx 'export SYSTEM_FLATPAK=1' "$SYSTEM_FLATPAK_CONFIG_FILE"
+grep -Fx 'export SYSTEM_FLATPAK_ENGINE=0' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
+! grep -Fx 'export SYSTEM_FLATPAK_ENGINE=1' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
         result, _ = self.run_engine(r'''
-printf 'export SYSTEM_FLATPAK=0\n' > "$SYSTEM_FLATPAK_CONFIG_FILE"
+printf 'export SYSTEM_FLATPAK_ENGINE=0\n' > "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
 PACKAGE_STATE=installed
 FLATPAK_FAILURE=1
 if system_flatpak_install; then exit 1; fi
-grep -Fx 'export SYSTEM_FLATPAK=0' "$SYSTEM_FLATPAK_CONFIG_FILE"
-! grep -Fx 'export SYSTEM_FLATPAK=1' "$SYSTEM_FLATPAK_CONFIG_FILE"
+grep -Fx 'export SYSTEM_FLATPAK_ENGINE=0' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
+! grep -Fx 'export SYSTEM_FLATPAK_ENGINE=1' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_apply_converges_all_states_idempotently(self):
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=absent
-SYSTEM_FLATPAK=1
+SYSTEM_FLATPAK_ENGINE=1
 system_flatpak_apply
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -117,15 +114,15 @@ system_flatpak_apply
 
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=installed
-SYSTEM_FLATPAK=0
+SYSTEM_FLATPAK_ENGINE=0
 system_flatpak_apply
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.splitlines(), ["apt-get remove -y -- flatpak"])
+        self.assertEqual(calls, "")
 
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=absent
-SYSTEM_FLATPAK=UNSET
+SYSTEM_FLATPAK_ENGINE=UNSET
 system_flatpak_apply
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -141,22 +138,23 @@ system_flatpak_install
     def test_update_absent_and_routing(self):
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=absent
-manage_system_action update flatpak
-manage_system_action install flatpak
+SYSTEM_FLATPAK_ENGINE=0
+manage_system_action flatpak update
+manage_system_action engine install flatpak
 PACKAGE_STATE=installed
-manage_system_action remove flatpak
-if manage_system_action install flatpak extra; then exit 1; fi
+manage_system_action engine remove flatpak
+if manage_system_action engine install flatpak extra; then exit 1; fi
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("Flatpak est absent", result.stdout)
+        self.assertIn("moteur désactivé", result.stdout)
         self.assertNotIn("--only-upgrade", calls)
         self.assertIn("apt-get install -y -- flatpak", calls)
-        self.assertIn("apt-get remove -y -- flatpak", calls)
+        self.assertNotIn("apt-get remove -y -- flatpak", calls)
 
     def test_help_includes_flatpak_commands(self):
-        for arguments in (("system", "help"), ("system", "install", "help"),
-                          ("system", "remove", "flatpak", "help"),
-                          ("system", "update", "flatpak", "help")):
+        for arguments in (("system", "help"), ("system", "engine", "help"),
+                          ("system", "engine", "remove", "flatpak", "help"),
+                          ("system", "flatpak", "update", "help")):
             result = subprocess.run(["bash", str(ROOT / "root-install-debian.sh"), *arguments],
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -176,7 +174,8 @@ dpkg-query() {
         error) return 2 ;;
     esac
 }
-SYSTEM_FLATPAK_CONFIG_FILE="$TMPDIR/system.env"
+SYSTEM_FLATPAK_ENGINE_CONFIG_FILE="$TMPDIR/system.env"
+SYSTEM_ENGINE_CONFIG_FILE="$TMPDIR/system.env"
 source "$ROOT/modules/system/apt.sh"
 '''
 

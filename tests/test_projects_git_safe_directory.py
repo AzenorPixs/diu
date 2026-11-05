@@ -323,7 +323,7 @@ runuser() {
                     text=True, capture_output=True, check=False,
                 )
                 self.assert_success(result)
-                self.assertIn('rid projects git status <ID PROJECTS>', result.stdout)
+                self.assertIn('diu projects git status <ID PROJECTS>', result.stdout)
                 self.assertIn('safe.directory système', result.stdout)
 
 
