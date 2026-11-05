@@ -7,7 +7,7 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 
 ### Requirement: Mise à jour dédiée du paquet DIU
 
-`rid diu update` SHALL consulter anonymement les releases publiques de `https://github.com/AzenorPixs/diu`, sans configuration locale. Si GitHub échoue ou ne fournit aucun candidat, elle SHALL essayer Forgejo public configuré. Elle SHALL NOT interroger GitLab. Elle SHALL paginer, exclure brouillons et préversions et retenir un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg.
+`diu diu update` SHALL rechercher en priorité les releases publiques de `https://github.com/AzenorPixs/diu`, sans authentification GitHub et sans dépendre d’un checkout ou d’une configuration GitHub locale. En l’absence de candidat GitHub admissible ou si GitHub est inaccessible, elle SHALL essayer les releases publiques Forgejo si leur configuration locale est disponible. Elle SHALL NOT interroger GitLab. 
 
 #### Scenario: Dépôt GitHub public sans identifiant
 - **WHEN** aucune configuration de projet DIU ni authentification GitHub n’existe
@@ -53,16 +53,25 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 - **WHEN** des identifiants GitHub privés sont présents
 - **THEN** la commande les ignore et consulte exclusivement le dépôt public DIU
 
+### Requirement: Sélection des versions de mise à jour DIU
+
+La commande SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg.
+
+#### Scenario: Application de la règle
+
+- **WHEN** la commande sélectionne un candidat de mise à jour
+- **THEN** les pages, états de release, noms, tags et versions sont traités selon ces règles
+
 ### Requirement: Installation contrôlée
 
-La commande SHALL comparer la version sélectionnée à la version installée selon la priorité DIU puis dpkg dans la même catégorie, et ne SHALL NOT réinstaller une version égale. Avant installation, elle SHALL vérifier le nom, la version et l'architecture du paquet téléchargé. Les téléchargements temporaires SHALL être nettoyés et les erreurs signalées.
+Sans version explicite, la commande SHALL comparer la version sélectionnée à la version installée selon la priorité DIU puis dpkg dans la même catégorie, et ne SHALL NOT réinstaller une version égale. Avant installation, elle SHALL vérifier le nom, la version et l'architecture du paquet téléchargé. Les téléchargements temporaires SHALL être nettoyés et les erreurs signalées.
 
 #### Scenario: Mise à jour disponible
 - **WHEN** le paquet téléchargé possède les métadonnées attendues et une version supérieure à celle installée selon la priorité DIU
 - **THEN** la commande installe ce paquet avec dpkg
 
 #### Scenario: Version déjà installée ou supérieure
-- **WHEN** la version installée est égale ou supérieure au candidat selon la priorité DIU
+- **WHEN** aucune version explicite n’est demandée et la version installée est égale ou supérieure au candidat selon la priorité DIU
 - **THEN** aucune installation n'est lancée
 
 #### Scenario: Paquet incohérent
@@ -71,10 +80,10 @@ La commande SHALL comparer la version sélectionnée à la version installée se
 
 ### Requirement: Aide et compatibilité
 
-Les aides SHALL présenter `rid diu update` et `rid update diu` SHALL rester un alias de cette commande.
+Les aides SHALL présenter `diu diu update` et `diu update diu` SHALL rester un alias de cette commande.
 
 #### Scenario: Alias historique
-- **WHEN** `rid update diu` est invoqué
+- **WHEN** `diu update diu` est invoqué
 - **THEN** la même mise à jour ciblée du paquet DIU est exécutée
 
 ### Requirement: Décodage des réponses HTTP
@@ -90,3 +99,27 @@ SHALL interrompre la mise à jour sans installation du paquet.
 #### Scenario: Encodage ou contenu illisible
 - **WHEN** `curl` ne peut pas décoder la réponse de l'API ou du paquet
 - **THEN** la commande signale l'échec et ne lance aucune installation
+
+### Requirement: Installation d’une version explicitement demandée
+
+`diu diu update <VERSION>` SHALL installer la version exacte depuis une release GitHub publique admissible, quelle que soit la version installée. La version SHALL être valide selon les règles Debian et les contrôles existants. La commande SHALL NOT consulter Forgejo dans ce mode et SHALL signaler toute version absente ou inaccessible sans installation. Les arguments supplémentaires SHALL être refusés.
+
+#### Scenario: Réinstallation de la version installée
+- **WHEN** la version demandée correspond à la version installée et à un paquet admissible GitHub
+- **THEN** le paquet est vérifié puis installé de nouveau
+
+#### Scenario: Version plus ancienne ou plus récente
+- **WHEN** la version demandée est plus ancienne ou plus récente que la version installée et possède un paquet admissible GitHub
+- **THEN** cette version exacte est vérifiée puis installée
+
+#### Scenario: Version absente ou inaccessible
+- **WHEN** la version demandée est absente de GitHub ou GitHub est inaccessible
+- **THEN** la commande échoue sans installation et sans consultation de Forgejo
+
+#### Scenario: Version ou arguments invalides
+- **WHEN** la version est invalide ou des arguments supplémentaires sont fournis
+- **THEN** la commande échoue avant téléchargement ou installation
+
+#### Scenario: Contrôles conservés
+- **WHEN** les métadonnées du paquet téléchargé diffèrent de la version demandée, du nom DIU ou de l’architecture attendue
+- **THEN** aucune installation n’est lancée

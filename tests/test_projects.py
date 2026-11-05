@@ -1432,7 +1432,7 @@ _gitlab_registry_is_valid git.ec-nantes.fr:5050 || exit 1
 
 
 class GitlabDebianLinkTests(unittest.TestCase):
-    def run_release(self, http_code='201', transport_code='0', existing_asset=False, mismatched_commit=False):
+    def run_release(self, http_code='201', transport_code='0', existing_asset=False, mismatched_commit=False, cicd=False):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.gitlab-link-fixture-') as directory:
             base = Path(directory)
             project = base / 'project'
@@ -1474,6 +1474,10 @@ curl() {
 }
 projects_gitlab_release_debian project
 '''
+            if cicd:
+                script = script.replace('projects_gitlab_release_debian project\n',
+                                        'projects_cicd_release_provider GitLab projects_gitlab_release_debian project\n'
+                                        'printf "STATUS:%s\\n" "$PROJECTS_CICD_RELEASE_STATUS"\n')
             result = subprocess.run(
                 ['bash', '-c', script, 'fixture', str(ROOT), str(base)],
                 env={**os.environ, 'TMPDIR': str(base), 'CALLS': str(base/'calls'),
@@ -1489,13 +1493,23 @@ projects_gitlab_release_debian project
                 self.assertEqual((base/'calls').read_text(), 'LINK\n')
             return result
 
+    def test_cicd_link_unavailability_and_authentication_failure(self):
+        for settings in ({'http_code': '503'}, {'transport_code': '7'}):
+            with self.subTest(settings=settings):
+                result = self.run_release(cicd=True, **settings)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('STATUS:indisponible', result.stdout)
+        result = self.run_release(cicd=True, http_code='403')
+        self.assertNotEqual(result.returncode, 0)
+
     def test_existing_asset_is_informational_without_upload(self):
         result = self.run_release(existing_asset=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('ERREUR:', result.stderr)
         self.assertIn('GitLab : identifiants disponibles.', result.stdout)
         self.assertIn('tag v1.0 de la release cohérent', result.stdout)
-        self.assertIn('déjà publié sur GitLab pour v1.0', result.stdout)
+        self.assertIn('déjà présent sur GitLab pour v1.0', result.stdout)
+        self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertNotIn('synchronisé avec', result.stdout)
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'Branche distante', 'Tag')
         rows = [line for line in result.stdout.splitlines() if ' : ' in line and line.split(' : ', 1)[0].strip() in labels]

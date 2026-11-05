@@ -50,13 +50,13 @@ projects_update "$@"
             result = self.run_shell(script, *arguments)
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(result.stdout, '')
-            self.assertIn('Usage : rid projects update', result.stderr)
+            self.assertIn('Usage : diu projects update', result.stderr)
 
     def test_dispatch_distinguishes_general_and_targeted_updates(self):
         script = self.project_dispatch() + r'''
 projects_update() { printf 'general:%s\n' "$#"; }
 update_projects() { printf 'target:%s:%s\n' "$#" "$1"; }
-rid_display_command_error() { printf 'help:%s\n' "$*"; }
+diu_display_command_error() { printf 'help:%s\n' "$*"; }
 manage_project_action "$@"
 '''
         cases = ((('update',), 0, 'general:0\n'),
@@ -145,7 +145,10 @@ dispatch_arguments "$@"
         result = self.run_shell(script, 'diu', 'update')
         self.assertEqual(result.returncode, 6, result.stderr)
         self.assertEqual(result.stdout, 'diu-only\n')
-        result = self.run_shell(script, 'diu', 'update', 'extra')
+        result = self.run_shell(script, 'diu', 'update', '1.1.7')
+        self.assertEqual(result.returncode, 6, result.stderr)
+        self.assertEqual(result.stdout, 'diu-only\n')
+        result = self.run_shell(script, 'diu', 'update', '1.1.7', 'extra')
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertNotIn('diu-only', result.stdout)
 

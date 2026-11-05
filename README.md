@@ -1,10 +1,49 @@
 # Debian Installer Unifié (DIU)
 
+Les moteurs logiciels se pilotent avec `diu system engine install apt|github|flatpak` et `diu system engine remove apt|github|flatpak`. L’activation vérifie les dépendances et la désactivation conserve les paquets installés. L’état `SYSTEM_FLATPAK` existant est repris dans `SYSTEM_FLATPAK_ENGINE` ; `SYSTEM_APT_ENGINE` vaut 1 par défaut. La vue `diu infos softwares` tient compte de ces états.
+
+`diu infos softwares` présente les logiciels déclarés par moteur, avec un indicateur de disponibilité et la couleur de leur état configuré. La même vue figure dans `diu infos` ; `diu softwares infos` reste disponible. Un état inconnu est marqué `?`.
+
+Le paquet issu du constructeur historique crée le lien `diu` lors de sa
+configuration si son nom est libre. Le constructeur générique ne fournit pas
+ce script de configuration. Après une exécution de DIU, le lien `diut` est
+créé si `${ENV_DEVOPS_PROJECTS_ROOT}/diu/root-install-debian.sh` existe et si
+son nom est libre. Le script installé vérifie aussi `diu` à chaque démarrage
+en root, même pour l’aide, et le crée si le nom est libre. Les chemins déjà
+occupés dans `/usr/local/bin` sont conservés. Les alias générés utilisent
+`diu` et `diut`, avec les raccourcis `diuo` (ouverture), `diuu` (mise à jour)
+et `ndiu` (édition du script installé). Les anciens alias DIU ne sont plus
+générés ; les fichiers d’alias et les sessions shell existants ne sont pas
+migrés automatiquement.
+
 Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
-`rid diu update` recherche anonymement le paquet Debian dans les releases
+`diu system update` enchaîne les parcours `diu system apt update`,
+`diu system github update`, `diu system flatpak update`, puis la mise à jour
+réseau. Le parcours APT produit son bilan Debian ; GitHub vérifie le moteur et
+met à jour Codex CLI lorsqu’il est configuré ; Flatpak vérifie ses dépendances
+et Flathub. Chaque parcours ciblé est indépendant. Les anciennes syntaxes
+`diu system update apt [debian]`, `diu system update debian` et
+`diu system update flatpak` ne sont plus acceptées.
+
+`diu system network hosts` affiche `/etc/hosts`. `diu system network hosts update`
+reconstruit ce fichier et affiche une coche verte si la mise à jour réussit ;
+en cas d’échec, une croix rouge indique brièvement la cause. La génération utilise les
+interfaces détectées. `diu system network update`, `diu system update` et
+`diu update` effectuent aussi cette opération. Les entrées préexistantes,
+y compris les anciens noms Docker, ne sont pas conservées. Les couples IP/FQDN
+configurés dans `/root/diu/config/hosts.json` sont ajoutés après les lignes
+standard, y compris avec `diut`. Un fichier absent est créé avec `[]` ;
+un fichier invalide empêche la reconstruction. Le fichier de développement
+absent est aussi créé vide, sans être utilisé pour générer `/etc/hosts`.
+
+Les commandes `diu system network hosts add <IP> <FQDN>`, `del <IP> <FQDN>`,
+`hosts del all` et `hosts list` gèrent uniquement le JSON de production. Après un ajout,
+les couples sont triés par IP numérique, IPv4 avant IPv6, puis par FQDN.
+
+`diu diu update` recherche anonymement le paquet Debian dans les releases
 publiques de [AzenorPixs/diu](https://github.com/AzenorPixs/diu), sans
 configuration locale ni authentification GitHub. GitHub est prioritaire : un
 paquet admissible y est retenu sans consulter Forgejo, même si Forgejo propose
@@ -13,7 +52,12 @@ paquet admissible, les releases publiques de Forgejo sont interrogées en
 secours si leur configuration locale est disponible. GitLab est ignoré.
 La commande contrôle la version et les métadonnées du paquet avant installation.
 
-`rid update diu` reste un alias de `rid diu update`.
+`diu diu update 1.1.7` installe exactement la version 1.1.7 si son paquet est
+présent dans une release GitHub admissible, même si cette version est déjà
+installée ou si la version locale est plus récente. Une version explicite
+absente ou inaccessible entraîne une erreur sans secours Forgejo.
+
+`diu update diu` reste un alias de `diu diu update`.
 
 Les indicateurs `ENV_DEVOPS_TESTS_DOCKER` et `ENV_DEVOPS_TESTS_LXC` sont
 initialisés indépendamment à `0` dans `/root/diu/config/environnements.env`
@@ -25,8 +69,8 @@ Une erreur de persistance est bloquante. Cet ajout ne lance aucun test Docker
 ou LXC ; les valeurs seront générées à la prochaine exécution normale du DIU
 mis à jour.
 
-La création avec `rid projects create <ID PROJECT>` et la mise à jour des
-variables avec `rid projects update <ID PROJECT>` demandent
+La création avec `diu projects create <ID PROJECT>` et la mise à jour des
+variables avec `diu projects update <ID PROJECT>` demandent
 `PROJECT_ORCHESTRATED_CODING` : `No` pour un agent de codage autonome, `Yes`
 pour un agent piloté par un orchestrateur. La valeur existante est proposée,
 sinon `No` ; une entrée vide conserve ce défaut. Une variable absente dans
@@ -39,7 +83,7 @@ paquet Debian (`Yes` ou `No`, `No` par défaut) et `PROJECT_VERSION` au format
 si elle est absente. La création et la synchronisation ne copient pas
 `ORCHESTRATED_CODING.md` ; les documents existants restent intacts.
 
-`rid projects sync <ID PROJECT>` (y compris `sync all`) initialise aussi
+`diu projects sync <ID PROJECT>` (y compris `sync all`) initialise aussi
 `DEVELOPMENT_MAP.md` depuis le modèle, avec la personnalisation Markdown,
 uniquement si cette entrée est absente du projet. Toute version existante
 reste intacte, indépendamment du mode de pilotage. Si la copie est nécessaire,
@@ -51,14 +95,14 @@ transféré au nouveau projet. Les autres fichiers cachés, dont `.gitignore`,
 restent copiés selon les règles existantes. Cette exclusion ne concerne pas
 les `.git` imbriqués et ne modifie aucun projet existant.
 
-`rid projects git init <ID PROJECT>` et `rid projects git update <ID PROJECT>`
+`diu projects git init <ID PROJECT>` et `diu projects git update <ID PROJECT>`
 ajoutent une exception Git `safe.directory` système limitée au chemin réel du
 projet, pour permettre son utilisation par les comptes qui le partagent.
 L'ajout nécessite les droits d'écriture système, reste sans doublon et ne
 modifie ni le propriétaire du projet ni les autres exceptions. Une erreur
 est bloquante ; les écritures précédentes restent en place.
 
-`rid projects git status <ID PROJECTS>` indique la présence ou l'absence de
+`diu projects git status <ID PROJECTS>` indique la présence ou l'absence de
 cette entrée système exacte et son chemin, sans l'ajouter. Des règles Git
 globales prioritaires peuvent modifier son effet pour un compte donné.
 Les détails figurent dans [le cadrage technique](TECHNICAL.md).
@@ -83,18 +127,21 @@ image absente ; les publications Debian refusent un paquet de version différent
 Les aides de commit, push, CICD et build rappellent ce contrat avant bootstrap.
 Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent les contrôles.
 
-Le flux `rid projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
+Le flux `diu projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
 facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
 Une version `PROJECT_VERSION` déjà attribuée est rejouée depuis une copie isolée du commit de
 son tag : les modifications locales en attente restent disponibles et ne sont
-pas incluses. Le tag n'est jamais déplacé et une branche distante n'est jamais
-ramenée en arrière. Le paquet issu du rejeu est conservé sous
+pas incluses. Le tag local reste inchangé. Une branche distante divergente est
+fusionnée dans une copie isolée, avec priorité aux fichiers versionnés locaux
+en conflit. Un tag distant divergent est remplacé sous protection par sa valeur
+observée, sans tag de sauvegarde. Si le tag est remplacé, la publication des
+artefacts de cette forge est ignorée et leur cohérence reste à vérifier. Le paquet issu du rejeu est conservé sous
 `dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. La publication Docker
 est ignorée lors du rejeu, DIU ne vérifiant pas l'immutabilité du tag distant ;
 les publications Debian restent indépendantes. Avec un
 arbre inchangé et un tag absent de tous les dépôts vérifiés, le tag peut être
 créé sur le commit courant sans commit vide. La forme historique explicite
-`rid projects cicd <ID PROJECT> <MESSAGE> <TAG>` reste disponible.
+`diu projects cicd <ID PROJECT> <MESSAGE> <TAG>` reste disponible.
 
 Le flux exécute six étapes :
 
@@ -106,15 +153,15 @@ Le flux exécute six étapes :
 6. Bilan des deux builds et des publications.
 
 Le build Debian fonctionne aussi sans Docker et utilise le même moteur que
-`rid projects build debian <ID PROJECT>`. Une recette absente pour un projet
+`diu projects build debian <ID PROJECT>`. Une recette absente pour un projet
 activé ou un échec du build empêche les releases ; les pushes déjà réalisés
 restent publiés. Debian seul peut être publié sur Forgejo/GitLab/GitHub selon
 leur configuration ; les conditions Debian GitHub sont les mêmes que Forgejo.
-Une release Debian cohérente déjà munie de son asset est signalée comme déjà
-publiée ; un asset manquant peut être ajouté sans remplacer les fichiers présents.
+Un asset Debian déjà présent est signalé sans prétendre que son contenu a été
+vérifié ; un asset manquant peut être ajouté sans remplacer les fichiers présents.
 Les messages de publication identifient la forge, le tag et les contrôles
 effectivement réalisés, sans afficher les identifiants secrets.
-`rid projects cicd help` et `rid projects cicd <ID PROJECT> help` décrivent ces
+`diu projects cicd help` et `diu projects cicd <ID PROJECT> help` décrivent ces
 étapes avant bootstrap. Le détail figure dans [BUILD.md](BUILD.md).
 
 Pour les sélections de versions DIU, une version stable `x.y.z` est prioritaire
@@ -125,10 +172,10 @@ horodaté déjà installé.
 Pour construire le paquet Debian d'un projet :
 
 ```bash
-rid projects build debian <ID PROJECT>
+diu projects build debian <ID PROJECT>
 ```
 
-La syntaxe `rid projects build deb <ID PROJECT>` reste un alias compatible.
+La syntaxe `diu projects build deb <ID PROJECT>` reste un alias compatible.
 
 Le projet fournit `build/debian-package.json`, qui décrit les métadonnées et
 les copies ; cette recette reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
@@ -138,11 +185,11 @@ Pour un projet activé, une recette absente empêche le build avec une erreur.
 Le résultat est déposé dans `dist/` ; les anciens paquets de même nom et
 architecture y sont supprimés après succès. Le format et les contrôles sont
 décrits dans [BUILD.md](BUILD.md). L'aide est disponible avec
-`rid projects build debian help` ou `?`, avant bootstrap.
-La recette DIU reproduit le paquet historique ; `rid projects deb diu` et
+`diu projects build debian help` ou `?`, avant bootstrap.
+La recette DIU reproduit le paquet historique ; `diu projects deb diu` et
 `rcicddiu` conservent leur fonctionnement. Aucun paquet n'est installé par le build.
 
-Pour construire une image avec `rid projects docker build <ID PROJECT>`, le
+Pour construire une image avec `diu projects docker build <ID PROJECT>`, le
 projet peut fournir le fichier public optionnel `build/docker-build.args` :
 
 ```text
@@ -167,7 +214,7 @@ conservent les preuves et limites de cette évolution.
 Pour publier les artefacts activés d’un projet :
 
 ```bash
-rid projects forgejo release <ID PROJECT>
+diu projects forgejo release <ID PROJECT>
 ```
 
 La commande publie l’image Docker et/ou le paquet Debian selon
@@ -176,7 +223,7 @@ La commande publie l’image Docker et/ou le paquet Debian selon
 Pour publier les artefacts déjà construits vers GitHub :
 
 ```bash
-rid projects github release <ID PROJECT>
+diu projects github release <ID PROJECT>
 ```
 
 `PROJECT_DOCKERED=Yes/YES/1` publie l'image sur GHCR et
@@ -194,7 +241,7 @@ GHCR, y compris dans le résumé CI/CD : `AzenorPixs/PKeycloak` devient
 les tags Docker sont la version issue de l'unique tag Git de `HEAD` et `latest`.
 Cette commande ne construit pas l'image.
 
-`rid projects forgejo push <ID PROJECT>` réaligne automatiquement les URL de
+`diu projects forgejo push <ID PROJECT>` réaligne automatiquement les URL de
 récupération et de publication du remote Forgejo configuré sur `project.env`,
 notamment si elles pointent encore vers le modèle. Ce remote utilise ensuite
 la seule destination déclarée ; les autres remotes sont conservés. Une erreur
@@ -209,10 +256,13 @@ parcours groupé `forgejo push all`.
 Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue
 est signalée comme « serveur indisponible — publication non confirmée ».
 La commande retourne zéro ; elle n'annonce pas la publication comme réussie.
-Le flux `rid projects cicd <ID PROJECT>` poursuit les autres fournisseurs et
+Le flux `diu projects cicd <ID PROJECT>` poursuit les autres fournisseurs et
 les builds locaux activés, puis ignore les releases du fournisseur indisponible. Sans
-autre erreur, son résumé indique « terminé avec indisponibilités ».
-`rid projects forgejo push all` poursuit également les autres projets.
+autre erreur, son résumé indique « terminé avec indisponibilités ». Une panne
+réseau reconnue pendant une release CI/CD est également signalée sans bloquer
+les autres fournisseurs : la publication peut être partielle et doit être reprise.
+Les releases directes conservent leur comportement d’erreur.
+`diu projects forgejo push all` poursuit également les autres projets.
 
 Les refus d'authentification, erreurs de certificat, configurations incorrectes
 et rejets Git restent bloquants. Une publication interrompue peut être
@@ -229,7 +279,7 @@ Les nouveaux identifiants et les secrets temporaires restent créés en `0600`.
 Pour générer l'inventaire DevOps d'un projet :
 
 ```bash
-rid projects template devops <ID PROJECT>
+diu projects template devops <ID PROJECT>
 ```
 
 `DEVOPS.md` est généré au format documentaire `0.7`, avec provenance DIU,
@@ -337,3 +387,5 @@ analysés et recherches incomplètes restent explicites. La collecte ne lance
 aucun gestionnaire, script ou paquet et n'utilise aucun repli npm global.
 Les détails sont décrits dans
 [le cadrage technique](TECHNICAL.md#traçabilité-du-document-devops).
+
+`diu system update` met à jour Debian, puis présente les moteurs et les versions des logiciels DIU activés. Les opérations APT sont discrètes et leurs diagnostics sont affichés en cas de problème.

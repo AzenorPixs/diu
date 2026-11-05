@@ -161,7 +161,7 @@ WHEN un `git fetch` authentifié est demandé pour un remote Forgejo
 THEN le provider résout le host, lit le token, valide les permissions
 AND détermine `forgejo_username`
 AND transmet les informations au cœur `git-auth`
-AND le cœur exécute `git fetch origin` sous DEVOPS_USER
+AND le cœur exécute `git fetch origin` sous ENV_DEVOPS_USER
 
 #### Scenario: Délégation de git push
 
@@ -169,7 +169,7 @@ WHEN un `git push` authentifié est demandé pour un remote Forgejo
 THEN le provider résout le host, lit le token, valide les permissions
 AND détermine `forgejo_username`
 AND transmet les informations au cœur `git-auth`
-AND le cœur exécute `git push` sous DEVOPS_USER
+AND le cœur exécute `git push` sous ENV_DEVOPS_USER
 
 ### Requirement: Authentification Forgejo de forgejo_push()
 

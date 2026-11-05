@@ -8,7 +8,7 @@ Git du modèle, tout en conservant les fichiers de travail attendus.
 
 ### Requirement: Copie d'un modèle sans dépôt Git
 
-DIU MUST copier `/home/${DEVOPS_USER}/datas/template` en excluant `project.env`, le répertoire `.git` racine, `ORCHESTRATED_CODING.md`, et `pyproject.toml` racine sauf type `PYTHON` selon projects-template-devops. Un projet Python MAY conserver ce manifeste copié. DIU MUST NOT créer, initialiser ou configurer de dépôt Git pendant cette copie.
+DIU MUST copier `/home/${ENV_DEVOPS_USER}/datas/template` en excluant `project.env`, le répertoire `.git` racine, `ORCHESTRATED_CODING.md`, et `pyproject.toml` racine sauf type `PYTHON` selon projects-template-devops. Un projet Python MAY conserver ce manifeste copié. DIU MUST NOT créer, initialiser ou configurer de dépôt Git pendant cette copie.
 
 #### Scenario: Modèle contenant un dépôt Git
 

@@ -70,7 +70,7 @@ AND le changement est validé par le développeur avant implémentation
 
 Aucune migration SHALL modifier le comportement fonctionnel du DIU.
 
-Les commandes existantes (`rid <classe> <action> <variable>`) SHALL conserver
+Les commandes existantes (`diu <classe> <action> <variable>`) SHALL conserver
 un comportement identique après chaque migration.
 
 Les commits réalisés pendant chaque étape de migration SHALL rester atomiques

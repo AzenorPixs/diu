@@ -1,6 +1,8 @@
 """Construction Debian sur sources fictives et routage sans bootstrap hôte."""
 from pathlib import Path
 import os
+import io
+import tarfile
 import re
 import subprocess
 import tempfile
@@ -40,6 +42,9 @@ class DiuPackagingTests(unittest.TestCase):
         self.project.mkdir()
         (self.project/'lib').mkdir()
         (self.project/'modules').mkdir()
+        (self.project/'config').mkdir()
+        (self.project/'config/hosts.json').write_text('[]\n')
+        (self.project/'config/local.conf').write_text('private fixture')
         (self.project/'root-install-debian.sh').write_text('#!/usr/bin/env bash\nexit 0\n')
         (self.project/'lib/fixture.sh').write_text('# fixture\n')
         self.scratch = self.base/'scratch'
@@ -79,8 +84,21 @@ class DiuPackagingTests(unittest.TestCase):
         content = subprocess.check_output(['dpkg-deb', '-c', str(packages[0])], text=True)
         self.assertIn('./root/diu/root-install-debian.sh', content)
         self.assertIn('./root/diu/lib/fixture.sh', content)
-        for excluded in ('variables.sh', 'project.env', '/config/', '/deb/', '/.git/'):
+        self.assertIn('./root/diu/config/hosts.json', content)
+        self.assertNotIn('local.conf', content)
+        conffiles = subprocess.check_output(['dpkg-deb', '--ctrl-tarfile', str(packages[0])])
+        with tarfile.open(fileobj=io.BytesIO(conffiles)) as archive:
+            conffile = next(member for member in archive.getmembers() if member.name.endswith('/conffiles'))
+            self.assertEqual(archive.extractfile(conffile).read().decode(), '/root/diu/config/hosts.json\n')
+        for excluded in ('variables.sh', 'project.env', '/deb/', '/.git/'):
             self.assertNotIn(excluded, content)
+
+    def test_nonempty_model_is_rejected_before_publication(self):
+        old = self.old_package()
+        (self.project/'config/hosts.json').write_text('[{"ip":"127.0.0.1","fqdn":"example.org"}]')
+        result = self.run_action('build_deb_diu', 'source')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(old.read_bytes(), b'previous-valid-fixture')
 
     def test_tag_version_and_rotation_preserve_other_files(self):
         self.tag_metadata()

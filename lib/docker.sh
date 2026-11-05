@@ -241,7 +241,6 @@ docker_root_check_containers() {
     local mount_mode
     local mount_user
     local mount_group
-    local mount_status
 
     local container_count=0
     local root_pid1_count=0
@@ -692,8 +691,6 @@ docker_root_check_containers() {
         if printf "%s\n" "$process_users" |
            grep -Eq "(^|,)${mount_uid}:${mount_gid}(,|$)"; then
 
-            mount_status="OK"
-
             echo "  État        : ✅ UID:GID présent dans le conteneur"
 
             bind_match_count=$((bind_match_count + 1))
@@ -701,14 +698,10 @@ docker_root_check_containers() {
         elif printf "%s\n" "$process_users" |
              grep -Eq '(^|,)0:0(,|$)'; then
 
-            mount_status="ROOT"
-
             echo "  État        : ℹ️ processus root - UID:GID hôte différent accepté"
             echo "                Processus : $process_users"
 
         elif [ "$mount_rw" = "true" ]; then
-
-            mount_status="CHECK"
 
             echo "  État        : ⚠️ propriétaire différent des UID:GID détectés"
             echo "                Processus : $process_users"
@@ -716,8 +709,6 @@ docker_root_check_containers() {
             bind_check_count=$((bind_check_count + 1))
 
         else
-
-            mount_status="RO"
 
             echo "  État        : ℹ️ montage en lecture seule"
             echo "                Correspondance UID:GID non requise"
@@ -1150,6 +1141,8 @@ docker_root_diag() {
     echo
     echo "▶ Processus Docker"
 
+    # Préserver les colonnes et le filtrage du diagnostic existant.
+    # shellcheck disable=SC2009
     ps -eo \
         user,pid,ppid,stat,etime,cmd \
         2>/dev/null \
@@ -2033,6 +2026,8 @@ docker_rootless_diag() {
     echo
     echo "▶ Processus Docker"
 
+    # Préserver les colonnes et le filtrage du diagnostic existant.
+    # shellcheck disable=SC2009
     ps -eo \
         user,pid,ppid,stat,etime,cmd \
         2>/dev/null \
@@ -2199,6 +2194,8 @@ docker_rootless_exec() {
 
     shift 2
 
+    # La déclaration conserve le code de retour historique de cette substitution.
+    # shellcheck disable=SC2155
     local docker_runtime_dir="/run/user/$(id -u "${docker_user}")"
     local docker_host="unix://${docker_runtime_dir}/docker.sock"
 
@@ -2944,6 +2941,8 @@ docker_rootless_analyse() {
     # comme une anomalie : le contexte Docker peut suffire.
     # -------------------------------------------------------------------------
 
+    # DOCKER_HOST est volontairement développé par le shell de l'utilisateur.
+    # shellcheck disable=SC2016
     docker_host="$(
         runuser -u "$user" -- \
             sh -c 'printf "%s" "${DOCKER_HOST:-}"' \
@@ -3561,6 +3560,8 @@ docker_rootless_prepare_subuid() {
 
         for file in /etc/subuid /etc/subgid; do
 
+            # Conserver les champs lus, y compris le nom de l'entrée.
+            # shellcheck disable=SC2034
             while IFS=: read -r entry entry_start entry_count _; do
 
                 [[ -n "$entry_start" ]] || continue

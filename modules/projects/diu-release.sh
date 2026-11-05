@@ -148,11 +148,13 @@ publish_release_debian() {
         rm -f "${auth_file}"
 
         if [[ "${curl_rc}" -ne 0 ]]; then
+            if declare -F projects_git_note_unavailable >/dev/null; then projects_git_note_unavailable curl "${curl_rc}" || :; fi
             print_error \
                 "_forgejo_release_api : erreur réseau (curl=${curl_rc})."
             return 1
         fi
 
+        if declare -F projects_git_note_unavailable >/dev/null && projects_git_note_unavailable http "${response##*$'\n'}"; then return 1; fi
         printf '%s' "${response}"
 
         return 0
@@ -648,7 +650,7 @@ publish_release_debian() {
     fi
 
     if [[ "${head_sha}" != "${remote_branch_sha}" ]]; then
-        if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 ]] &&
+        if [[ "${PROJECTS_CICD_REPLAY:-0}" == 1 || "${PROJECTS_CICD_RECONCILED:-0}" == 1 ]] &&
             runuser -u "${ENV_DEVOPS_USER}" -- git -C "${project_path}" merge-base --is-ancestor "${head_sha}" "${remote_branch_sha}"; then
             print_info "Le commit du tag est présent dans ${remote_branch_ref}."
         else
@@ -812,7 +814,7 @@ publish_release_debian() {
                 # Statut consommé par le bilan CI/CD.
                 # shellcheck disable=SC2034
                 PROJECTS_DEBIAN_RELEASE_STATUS="déjà publié"
-                print_info "Paquet Debian déjà publié sur Forgejo pour ${tag_name}."
+                print_info "Paquet Debian déjà présent sur Forgejo pour ${tag_name} ; cohérence du contenu non vérifiée."
                 return 0
             fi
             release_id="$(jq -er '.id | numbers | select(. > 0 and floor == .)' <<< "$http_body")" || return 1
@@ -1072,6 +1074,7 @@ publish_release_debian() {
     rm -f "${upload_auth_file}"
 
     if [[ "${upload_rc}" -ne 0 ]]; then
+        if declare -F projects_git_note_unavailable >/dev/null; then projects_git_note_unavailable curl "${upload_rc}" || :; fi
         print_error \
             "Échec réseau lors de l'upload de l'asset."
 
@@ -1091,6 +1094,7 @@ publish_release_debian() {
         _forgejo_release_http_code "${upload_response}"
     )"
 
+    if declare -F projects_git_note_unavailable >/dev/null && projects_git_note_unavailable http "${upload_code}"; then return 1; fi
     upload_body="$(
         _forgejo_release_http_body "${upload_response}"
     )"

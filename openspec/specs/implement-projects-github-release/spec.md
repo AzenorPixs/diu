@@ -8,14 +8,14 @@ vers GitHub Container Registry et GitHub Releases.
 
 ### Requirement: commande de release GitHub
 
-Le système MUST exposer `rid projects github release <ID PROJECT>`, qui appelle
+Le système MUST exposer `diu projects github release <ID PROJECT>`, qui appelle
 `projects_github_release <ID PROJECT>`. Selon les indicateurs Yes/YES/1, la
 commande MUST publier Docker seul, Debian seul ou les deux ; sans artefact actif,
 elle MUST terminer sans publication. Elle MUST NOT lancer de build.
 
 #### Scenario: aide GitHub
 
-- **WHEN** l'utilisateur demande `rid projects github help`
+- **WHEN** l'utilisateur demande `diu projects github help`
 - **THEN** l'aide présente `release <ID PROJECT>`
 
 #### Scenario: Debian seul

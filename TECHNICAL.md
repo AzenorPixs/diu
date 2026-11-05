@@ -1,5 +1,9 @@
 # Cadrage technique du DIUE
 
+Les moteurs sont configurés par `SYSTEM_APT_ENGINE`, `SYSTEM_GITHUB_ENGINE` et `SYSTEM_FLATPAK_ENGINE` dans le scope system. Le défaut APT est 1 ; GitHub est initialisé par détection locale ; Flatpak reprend `SYSTEM_FLATPAK` ou conserve sa détection historique, y compris `UNSET`. Les commandes `diu system engine install|remove apt|github|flatpak` activent ou désactivent le moteur. L’activation assure les paquets requis ; la désactivation conserve les dépendances, tandis que les opérations logicielles explicites sont refusées et les mises à jour globales ignorent ce moteur. Les opérations système APT restent distinctes. La configuration est persistée après succès. Les tests isolés peuvent substituer les chemins de persistance par `SYSTEM_ENGINE_CONFIG_FILE` et `SYSTEM_FLATPAK_ENGINE_CONFIG_FILE` ; le repli historique `SYSTEM_FLATPAK_CONFIG_FILE` reste reconnu.
+
+La vue `diu infos softwares`, également appelée par `diu infos` et `diu softwares infos`, présente les logiciels déclarés sous APT, GitHub et Flatpak. Les en-têtes signalent les moteurs activés dont les dépendances locales sont disponibles ; les états 1 et 0 sont respectivement verts et jaunes, et les états inconnus portent `?`. Aucun nom de variable ou secret n’est affiché.
+
 ## Objet et périmètre
 
 Ce document définit le cadre technique transversal du projet **DIUE**.
@@ -113,7 +117,17 @@ diagnostic explicite. La référence est
 
 `root-install-debian.sh` calcule `BASH_SCRIPT_PATH` depuis son emplacement
 réel. Les bibliothèques et les modules distribués avec l'application sont
-ensuite chargés avec des chemins relatifs à cette racine.
+ensuite chargés avec des chemins relatifs à cette racine. Le constructeur historique fournit un script de configuration qui crée
+`/usr/local/bin/diu` vers le point d'entrée installé si le nom est libre ; le
+constructeur générique ne le fournit pas. Le script installé vérifie ce nom à chaque démarrage en root, avant l’aide, et
+crée le lien si le nom est libre. Après chargement de la configuration et vérification des droits, DIU crée
+`/usr/local/bin/diut` vers `${ENV_DEVOPS_PROJECTS_ROOT}/diu/root-install-debian.sh`
+si ce fichier existe et si le nom est libre. Toute entrée existante, même un
+lien pendant, est conservée ; une erreur de création est signalée. Les alias générés
+utilisent `diu` et `diut`. Les raccourcis associés sont `diuo`, `diuu` et
+`ndiu` ; les anciens alias DIU ne sont plus générés. Les configurations
+et sessions shell existantes ne sont pas migrées automatiquement.
+L’aide est fournie par `lib/diu-help.sh` et les fonctions `diu_*`.
 
 Les opérations nécessitant un dépôt de projet ou Git sont normalement
 exécutées sous `ENV_DEVOPS_USER`, avec `DEVOPS_GROUP` comme groupe associé. Le
@@ -250,7 +264,7 @@ La spécification de référence est
 
 ### Template OpenSpec des projets
 
-`rid projects template openspec <ID PROJECT>` prépare OpenSpec dans
+`diu projects template openspec <ID PROJECT>` prépare OpenSpec dans
 `${ENV_DEVOPS_PROJECTS_ROOT}/<ID PROJECT>` (à défaut,
 `/home/${ENV_DEVOPS_USER}/datas/<ID PROJECT>`). La fonction
 `projects_template_openspec`, dans `modules/projects/template.sh`, utilise
@@ -266,7 +280,7 @@ La valeur OpenCode effective est locale au projet : sans dossier `.opencode/`,
 elle vaut 0 sans modifier la variable configurée pour les projets suivants.
 Un fichier ordinaire nommé `.opencode` ne compte pas comme dossier.
 
-`rid projects template openspec all` appelle `projects_template_openspec_all`
+`diu projects template openspec all` appelle `projects_template_openspec_all`
 pour tous les projets configurés, avec la même sélection que DevOps all :
 dossiers directs et cachés dont `project.env` ordinaire contient les cinq
 affectations littérales non vides `PROJECT_ID`, `PROJECT_NAME`, `PROJECT_TYPE`,
@@ -280,13 +294,13 @@ et un succès avec bilan si aucun projet n'est éligible. `all` est désormais
 réservé à ce traitement dans la CLI ; un dossier nommé `all` reste éligible
 et est traité directement par la boucle, sans récursion.
 
-L'ancienne syntaxe `rid projects template <ID PROJECT> openspec` est rejetée
+L'ancienne syntaxe `diu projects template <ID PROJECT> openspec` est rejetée
 lorsqu'elle ne correspond pas déjà à une commande valide avec sélecteur
 `openspec` ou `devops`.
 Le sélecteur `openspec` après `template` est prioritaire :
-`rid projects template openspec devops` vise OpenSpec pour le projet `devops`.
-La génération DevOps utilise `rid projects template devops <ID PROJECT>` ou
-`rid projects template devops all` pour tous les projets configurés. Les anciens
+`diu projects template openspec devops` vise OpenSpec pour le projet `devops`.
+La génération DevOps utilise `diu projects template devops <ID PROJECT>` ou
+`diu projects template devops all` pour tous les projets configurés. Les anciens
 ordres sont rejetés lorsqu'ils ne correspondent pas déjà à une commande valide.
 Les chemins invalides, les dossiers symboliques, les utilisateurs absents et les valeurs
 OPENCODE autres que 0 ou 1 lors d'une initialisation avec un dossier `.opencode/`
@@ -294,7 +308,7 @@ provoquent un échec.
 La fonction individuelle ne lit pas `project.env`. Un outil absent ou en échec est signalé
 avec un code non nul ; ses éventuelles écritures partielles sont conservées.
 
-`rid projects create <ID PROJECT>` appelle cette préparation après la copie,
+`diu projects create <ID PROJECT>` appelle cette préparation après la copie,
 la personnalisation et l'attribution des droits, puis génère `DEVOPS.md`.
 Un échec OpenSpec empêche la génération DevOps et le message de succès, en
 conservant le projet préparé. La capacité de référence est
@@ -597,7 +611,7 @@ La référence est `openspec/specs/projects-template-devops/spec.md`.
 
 ### Tous les modèles pour tous les projets
 
-`rid projects template all all` appelle `projects_template_all_all`. Le premier
+`diu projects template all all` appelle `projects_template_all_all`. Le premier
 `all` désigne tous les modèles disponibles, actuellement OpenSpec et DevOps ;
 le second désigne les projets configurés selon la même sélection `project.env`
 que `openspec all` et `devops all` : cinq variables littérales non vides et
@@ -621,15 +635,15 @@ Les commandes existantes et le parcours de création sont conservés.
 
 ### Mise à jour générale des projets
 
-`rid projects update` sans identifiant appelle `projects_update`, qui délègue
+`diu projects update` sans identifiant appelle `projects_update`, qui délègue
 une seule fois à `projects_template_all_all`. La sélection selon `project.env`,
 OpenSpec puis DevOps en dernier pour chaque projet, la poursuite après échec,
 la conservation des écritures et le bilan sont ceux de
-`rid projects template all all`. Le code de retour est transmis à l'appelant.
+`diu projects template all all`. Le code de retour est transmis à l'appelant.
 Aucune synchronisation du modèle local ni configuration Git ou fournisseur
 n'est ajoutée à cette mise à jour.
 
-`rid projects update <ID PROJECT>` conserve son rôle de mise à jour interactive
+`diu projects update <ID PROJECT>` conserve son rôle de mise à jour interactive
 des variables générales via `update_projects`. Dans cet usage, `all` reste
 le nom d'un projet ciblé. Un identifiant explicitement vide ou des arguments
 supplémentaires provoquent une erreur avant traitement. Les aides `help` et
@@ -666,7 +680,7 @@ l'exception prévue : leur sourcing initialise immédiatement leur variable.
 Le dispatch public est assuré par des fonctions `manage_*_action` et par des
 fonctions de domaine. Le filtre initial du point d'entrée accepte la classe
 `projects` et rejette la classe historique `proj`. Les références OpenSpec à
-`rid proj deb <project_id>` et `rid proj rel <project_id>` restent à réconcilier
+`diu proj deb <project_id>` et `diu proj rel <project_id>` restent à réconcilier
 avec ce routage ; cette description ne modifie pas leur contrat.
 
 ## Configuration et variables
@@ -997,8 +1011,8 @@ du point d'entrée utilisent ce contrôle.
 `DOCKER_STACK_TRAEFIK_DOCKHAND` en `STATIC`, `ENABLE`, scope `docker`, défaut
 `0`. Une valeur existante `0` ou `1` est conservée; une valeur absente est
 persistée dans `/root/diu/config/docker.env` avec le défaut `0`. Les
-consommateurs existants de la stack gardent ce nom; `1` active la stack et les
-entrées d’hôtes associées.
+consommateurs existants de la stack gardent ce nom; `1` active la stack.
+La génération système de `/etc/hosts` ne crée plus les entrées de cette stack.
 Le réglage de mise à jour est `DOCKER_STACK_TRAEFIK_DOCKHAND_UPDATE`, déclaré
 en `STATIC`, `ENABLE`, scope `docker`, défaut `0`; l’ancienne valeur
 `DOCKER_STACK_TRAEFIK_DOCKHAND_UPGRADE=0|1` est migrée vers `docker.env`.
@@ -1009,7 +1023,8 @@ en `STATIC`, `ENABLE`, scope `docker`, défaut `0`; l’ancienne valeur
 `DOCKER_STACK_DEVOPS` en `STATIC`, `ENABLE`, scope `docker`, défaut `0`. Une
 valeur existante `0` ou `1` est conservée; une valeur absente est persistée
 dans `/root/diu/config/docker.env` avec le défaut `0`. Le consommateur
-existant conserve le même nom; `1` active l’ajout des noms d’hôtes DevOps.
+existant conserve le même nom. La génération système de `/etc/hosts`
+ne crée plus les noms d’hôtes DevOps.
 
 ### Mise à jour de la stack Docker BunkerWeb
 
@@ -1078,7 +1093,7 @@ même vide, est conservée sans détection ni écriture.
 
 Le nettoyage retire `TIME_ZONE` avant le chargement de `variables.sh`, sans
 transfert ni sauvegarde automatique de sa valeur. Le parcours historique
-utilise `SYSTEM_TIME_ZONE` pour configurer le fuseau. `rid system infos debian`
+utilise `SYSTEM_TIME_ZONE` pour configurer le fuseau. `diu system infos debian`
 l'affiche immédiatement après `SYSTEM_DEBIAN_RELEASE` dans SYSTEM DEBIAN.
 
 ### Environnement Debian
@@ -1217,6 +1232,8 @@ paquets Debian officiels.
 exécute la transaction globale de mise à niveau, puis effectue le nettoyage
 APT prévu et installe les prérequis manquants.
 
+`diu system update` capture cette sortie sans entrée interactive, restitue les diagnostics en cas de problème et compare les versions dpkg installées avant et après. Les trois moteurs sont présentés ; les logiciels DIU activés sont affichés avec leur version. ChatGPT est comparé autour du passage APT et Codex CLI est mis à jour par GitHub. En cas de succès, une seule ligne affiche sa version ; en cas d’échec, les diagnostics de la recette sont conservés. Aucun logiciel Flatpak ne dispose actuellement de variable individuelle ; la commande ne sélectionne donc aucune application Flatpak. Les commandes logicielles existantes conservent leur comportement. Le message exact de compatibilité de l’interface APT ne constitue pas un avertissement de mise à jour ; les autres diagnostics restent signalés.
+
 `system_install_prerequisites` vérifie chaque paquet individuellement, sans
 sortie s'il est déjà installé. Les paquets manquants sont annoncés et installés
 un par un dans l'ordre alphabétique, après déduplication. Un échec APT est
@@ -1243,7 +1260,7 @@ argument appelle également cette fonction, à la place de ses anciennes listes,
 avant sa configuration APT. La présence d'`aptitude` ne dispense plus de
 vérifier les autres prérequis. DisplayLink ne fait pas partie de la fonction
 commune et son ancien bloc automatique est supprimé : seules les commandes
-explicites `rid system drivers` gèrent ce pilote.
+explicites `diu system drivers` gèrent ce pilote.
 
 Les fonctions publiques de gestion des dépôts valident leur identifiant,
 persistent les variables du scope `system`, puis régénèrent la configuration.
@@ -1444,32 +1461,6 @@ L’ancienne valeur littérale `ZSH=0|1` est transférée exactement vers
 conserve l’installation APT et la configuration de Zsh, Fish et des outils
 associés.
 
-### Moteur `deb`
-
-`modules/softwares/deb.sh` gère les paquets Debian officiels.
-
-Chaque opération :
-
-- vérifie les commandes et le trousseau Debian requis ;
-- construit un répertoire temporaire d'index ;
-- extrait des métadonnées uniquement les origines Debian de la release
-  installée, de `updates` et de `security` ;
-- utilise des options APT isolées (`sourceparts=-`, listes et caches
-  temporaires) ;
-- actualise les index avec le trousseau officiel et refuse les sources
-  non authentifiées ;
-- simule la transaction et contrôle aussi les dépendances qu'elle ajoute ou
-  retire avant toute mutation.
-
-Les fichiers de configuration APT persistants ne sont pas modifiés par ce
-moteur. Une version installée dont l'origine officielle ne peut pas être
-vérifiée est refusée.
-
-Les opérations globales ciblent uniquement les paquets Debian officiels
-installés. Une mise à jour ciblée n'installe pas un paquet absent et une
-opération répétée ne réinstalle pas inutilement un paquet déjà dans l'état
-attendu.
-
 ### Moteur `apt`
 
 Le moteur `apt` utilise une table de recettes explicite. La recette actuelle
@@ -1490,6 +1481,12 @@ scope `softwares`. Les anciennes variables de personnalisation de profil non
 prévues par la spécification ne doivent pas être recréées.
 
 ### Moteur `github`
+
+`SOFTWARES_APT_CODEX_CLI` est `DYNAMIC` et `ENABLE` dans le scope `softwares`.
+À chaque chargement, sa valeur est recalculée depuis la présence d'un
+exécutable `codex` dans le PATH du processus DIU, puis persistée lorsque la
+configuration est accessible en écriture. Le repli est `0` ; une installation
+hors de ce PATH n'est pas détectée.
 
 La recette actuelle est `codex-cli`. Elle :
 
@@ -1517,7 +1514,7 @@ Le contrat transversal est `openspec/specs/project-version/spec.md`.
 Les règles de packaging sont détaillées dans BUILD.md.
 Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
 une description explicite est conservée. Une version `PROJECT_VERSION` déjà attribuée déclenche
-un rejeu isolé du commit marqué, sans remplacer le tag ni inclure les changements
+un rejeu isolé du commit marqué, sans remplacer le tag local ni inclure les changements
 locaux en attente. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
 dépôts vérifiés, il peut être créé sur HEAD.
 Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
@@ -1529,7 +1526,7 @@ ou un paquet de version différente bloque la publication. Les autres tags de
 HEAD ne déterminent pas la version lorsque PROJECT_VERSION est présente.
 Les aides décrivent ces règles avant bootstrap. La clé est relue pour chaque
 projet, sans réutilisation de la variable shell éventuellement chargée avant.
-L'argument facultatif de `rid projects cicd <ID PROJECT> [VERSION]` valide et
+L'argument facultatif de `diu projects cicd <ID PROJECT> [VERSION]` valide et
 met à jour la seule affectation PROJECT_VERSION sans interpréter le fichier.
 Les sélecteurs DIU privilégient les versions stables sur les horodatages ;
 les comparaisons natives dpkg/APT conservent leur ordre et aucun epoch n'est ajouté.
@@ -1540,7 +1537,7 @@ les comparaisons natives dpkg/APT conservent leur ordre et aucun epoch n'est ajo
 `cicd_project` suit six étapes affichées : 1 commit/tag, 2 pushes Git,
 3 build Docker, 4 build Debian, 5 publications, 6 bilan. Le build Docker
 conserve l'activation exacte `PROJECT_DOCKERED=Yes`. Le build Debian utilise
-`projects_build_deb`, moteur de `rid projects build debian <ID PROJECT>`,
+`projects_build_deb`, moteur de `diu projects build debian <ID PROJECT>`,
 uniquement pour `PROJECT_DEBIAN_PACKAGE=Yes`, `YES` ou `1`. Les clés absentes,
 vides ou différentes n'appellent pas le builder Debian ; le bilan l'indique.
 Les deux activations sont indépendantes, sans fuite vers le projet suivant.
@@ -1554,9 +1551,12 @@ Lors d'un rejeu, le clone temporaire privé est nettoyé à la fin du flux. Le
 contexte Docker provient des fichiers suivis du commit et ne contient ni `.git`,
 ni configuration locale, ni identifiants de forge ; le build lit la configuration
 nécessaire hors de ce contexte. Le paquet Debian est conservé dans
-`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les pushes de branche
-sont limités aux avances possibles sans retour en arrière. Les releases Debian
-peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les historiques
+divergents sont fusionnés dans une copie isolée, avec priorité aux fichiers
+versionnés locaux en conflit et protection par SHA attendu lors du push. Un tag
+distant divergent est remplacé sous lease sans sauvegarde ; les artefacts de cette
+forge ne sont pas publiés durant cette exécution et leur cohérence doit être vérifiée.
+Les releases Debian peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
 existants restent intacts. DIU ne vérifie pas l'immutabilité des tags Docker
 distants : leur publication est donc ignorée lors d'un rejeu ; ce choix ne bloque
 pas la publication Debian.
@@ -1568,16 +1568,18 @@ les fonctions Debian. Les conditions de complétude des fournisseurs,
 dont le registre GitLab, sont conservées. GitHub publie Docker, Debian ou les
 deux selon leur activation. Un échec de build empêche toutes les releases et retourne
 un code non nul avec bilan partiel ; les pushes déjà réalisés restent publiés.
-Une indisponibilité reconnue permet les builds locaux et ignore les seules
-publications du fournisseur concerné. Aucune invocation récursive du bootstrap.
+Une indisponibilité reconnue pendant le push permet les builds locaux et ignore
+les publications du fournisseur concerné. Pendant une release, elle laisse
+poursuivre les autres fournisseurs et signale une publication non confirmée,
+potentiellement partielle. Aucune invocation récursive du bootstrap.
 Le bilan conserve ses onze premiers paramètres et reçoit le statut du build
 Debian dans un douzième paramètre facultatif.
-Les contrats sont `projects-cicd`, `projects-debian-build` et `rid-help`.
+Les contrats sont `projects-cicd`, `projects-debian-build` et `diu-help`.
 
 ### Publications GitHub Docker et Debian
 
 `projects_github_release` sélectionne les artefacts pour la commande directe
-`rid projects github release <ID PROJECT>`. Les deux indicateurs acceptent
+`diu projects github release <ID PROJECT>`. Les deux indicateurs acceptent
 Yes/YES/1. Le corps GHCR historique est conservé dans
 `projects_github_release_docker`. Debian utilise
 `projects_github_release_debian` dans `modules/projects/github-release.sh`,
@@ -1597,7 +1599,7 @@ Le contrat est `openspec/specs/projects-github-debian-release/spec.md`.
 ### Construction Debian déclarative
 
 `projects_build_deb` dans `modules/projects/debian-build.sh` implémente
-`rid projects build debian <ID PROJECT>`. La recette publique JSON et la lecture
+`diu projects build debian <ID PROJECT>`. La recette publique JSON et la lecture
 littérale isolée de `PROJECT_DEBIAN_PACKAGE` évitent toute exécution de
 configuration. `jq` valide les données ; `dpkg-deb --root-owner-group` assemble
 le staging. Le format, les refus, la version, la rotation et les limites sont
@@ -1631,7 +1633,7 @@ public `git_update` enregistre ensuite l'exception de confiance système du
 projet. La configuration générale du projet relève de `update_projects` ;
 les parcours de clonage utilisent leur configuration interne dédiée.
 
-`rid projects git init <ID PROJECT>` et `rid projects git update <ID PROJECT>`
+`diu projects git init <ID PROJECT>` et `diu projects git update <ID PROJECT>`
 enregistrent le chemin absolu canonique du projet dans `safe.directory` avec
 `git config --system --add`. Cet enregistrement nécessite les droits
 d'écriture sur la configuration Git système (normalement `/etc/gitconfig`).
@@ -1650,7 +1652,7 @@ en place. La mise à jour ne l'enregistre qu'après le succès des variables
 locales. Une erreur de lecture ou d'écriture provoque un diagnostic et un
 retour non nul ; les écritures déjà effectuées ne sont pas annulées.
 
-`rid projects git status <ID PROJECTS>` affiche `safe.directory : présente`
+`diu projects git status <ID PROJECTS>` affiche `safe.directory : présente`
 ou `absente`, avec la mention `système, entrée exacte` et le chemin canonique,
 avant les opérations sur le dépôt. Ses replis de configuration utilisent
 `git_update_local` sans ajouter d'exception. Une erreur de lecture n'est pas
@@ -1667,8 +1669,8 @@ précédentes laisse les exceptions déjà installées en place ; leur révocati
 `PROJECT_ORCHESTRATED_CODING` déclare le mode de développement : `No` pour
 un agent de codage autonome, `Yes` pour un agent piloté par un orchestrateur.
 La variable est facultative pour les projets existants ; son absence ou une
-valeur littérale vide vaut `No`. `rid projects create <ID PROJECT>` et
-`rid projects update <ID PROJECT>` la demandent avec la valeur enregistrée,
+valeur littérale vide vaut `No`. `diu projects create <ID PROJECT>` et
+`diu projects update <ID PROJECT>` la demandent avec la valeur enregistrée,
 sinon `No`. Une entrée vide conserve le défaut, une autre réponse que `Yes`
 ou `No` est redemandée ; une fin d'entrée empêche l'enregistrement.
 
@@ -1693,7 +1695,7 @@ La création et la synchronisation ne copient pas `ORCHESTRATED_CODING.md` et
 la synchronisation conserve les documents déjà présents. Le lecteur du mode
 continue à valider la configuration avant copie.
 
-`rid projects sync` synchronise `AGENTS.md`, `.gitignore`
+`diu projects sync` synchronise `AGENTS.md`, `.gitignore`
 et copie également
 `DEVELOPMENT_MAP.md` depuis le modèle seulement si aucune entrée de ce nom
 n'existe à la racine du projet, indépendamment du mode de pilotage. Cette
@@ -1802,7 +1804,7 @@ Le remote configuré pour GitLab ou GitHub peut donc être différent de
 `origin`. Un push fournisseur ne doit pas modifier le remote d'un autre
 fournisseur.
 
-La publication `rid projects github release <ID PROJECT>` construit ses
+La publication `diu projects github release <ID PROJECT>` construit ses
 références GHCR avec `REMOTE_GITHUB_OWNER` et `REMOTE_GITHUB_REPOSITORY`
 convertis en minuscules uniquement dans le chemin Docker. Le résumé CI/CD
 affiche la même cible normalisée. Les variables chargées, `project.env`,
@@ -1842,7 +1844,7 @@ silencieux vers une saisie Username/Password n'est autorisé.
 
 ### Indisponibilité pendant une publication Git
 
-Les commandes `rid projects forgejo|gitlab|github push <ID PROJECT>` distinguent
+Les commandes `diu projects forgejo|gitlab|github push <ID PROJECT>` distinguent
 une indisponibilité reconnue d'un échec de publication. DNS, connexion TCP
 impossible, délai dépassé et HTTP 502/503/504 produisent un message
 « serveur indisponible — publication non confirmée » et un retour zéro.
@@ -1862,6 +1864,13 @@ indisponibilités » si aucune autre erreur n'est rencontrée. Le parcours
 `forgejo push all` distingue également ce résultat d'un succès complet.
 Une coupure pendant le tag peut laisser la branche publiée : aucune annulation
 automatique n'est effectuée et une reprise reste nécessaire.
+
+Pendant les releases CI/CD, un contexte privé par fournisseur transmet les
+indisponibilités reconnues des transports Git, API et Docker. Le bilan indique
+une publication potentiellement partielle ; aucun rollback n'est tenté. Les
+refus d'authentification, les erreurs TLS et les autres échecs restent bloquants.
+Les diagnostics Docker sont qualifiés uniquement sur des motifs réseau natifs
+reconnus ; un diagnostic ambigu reste une erreur.
 
 `git_with_token` conserve le code Git original. Hors contexte de push, les
 commandes de clonage et de release directe conservent leur gestion d'erreur.
@@ -1915,7 +1924,8 @@ tests/test_forgejo_credential_bootstrap.py.
 
 Les modules `lib/forgejo-auth.sh`, `lib/gitlab-auth.sh` et
 `lib/github-auth.sh` résolvent le remote HTTPS, vérifient les identifiants et
-délèguent les opérations Git au cœur commun. Le token ne doit apparaître ni
+délèguent les opérations Git au cœur commun. L’autorité du remote GitLab est
+traitée littéralement, y compris pour les adresses IPv6 entre crochets. Le token ne doit apparaître ni
 dans les journaux, ni dans les diagnostics, ni dans les URL.
 
 Forgejo dispose en plus de fonctions API authentifiées pour les opérations de
@@ -1935,7 +1945,7 @@ github_push  <PROJECT_ID>
 
 La publication vérifie le projet, `project.env`, le remote attendu, la branche
 et les identifiants avant de pousser. Les aides CLI doivent rester cohérentes
-avec les commandes `rid projects <provider> update|push`.
+avec les commandes `diu projects <provider> update|push`.
 
 Pour Forgejo, un dépôt existant conserve le fetch authentifié préalable et
 `--force-with-lease`. Un dépôt annoncé absent ne déclenche ni fetch ni
@@ -1953,7 +1963,7 @@ paquet présent dans `dist/`, ses métadonnées et l'état Git, puis utilise l'A
 Forgejo pour créer ou alimenter une release sans remplacer une release
 existante. Les détails du build, des deux syntaxes CLI, du projet source et de la sélection de version V2 restent dans `BUILD.md`.
 
-`rid diu update` consulte d'abord anonymement les releases publiques de
+`diu diu update` consulte d'abord anonymement les releases publiques de
 `https://github.com/AzenorPixs/diu`, sans checkout, configuration ni jeton
 GitHub. Curl ignore sa configuration personnelle pour éviter toute authentification
 implicite. Si GitHub fournit un paquet admissible, il est retenu même si Forgejo
@@ -1963,12 +1973,18 @@ invalide ou ne fournit aucun paquet admissible, le bloc Forgejo du projet local
 est analysé indépendamment s'il est disponible et ses releases publiques sont
 consultées en secours. GitLab est ignoré. Sans candidat, la commande échoue.
 
+Avec `diu diu update <VERSION>`, la version Debian exacte est recherchée dans
+les releases GitHub publiques seulement. Un candidat admissible est installé
+même si la version locale est égale ou supérieure ; une version invalide,
+absente ou inaccessible échoue sans secours Forgejo. Les métadonnées du paquet
+restent vérifiées avant installation. Les arguments supplémentaires sont refusés.
+
 Chaque source est paginée ; les brouillons et préversions sont exclus et les
 versions stables x.y.z sont prioritaires avant comparaison Debian des assets
 `diu_<version>_all.deb` associés au tag `v<version>`. Le paquet est vérifié
 (nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
 Toute erreur après sélection (téléchargement, validation ou installation) bloque
-sans essai sur l'autre source. `rid update diu` est un alias compatible.
+sans essai sur l'autre source. `diu update diu` est un alias compatible.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de
@@ -1983,10 +1999,21 @@ inexploitable arrête la publication sans message de succès. Le corps de répon
 n’est pas journalisé et aucun réessai ou effacement distant n’est ajouté.
 Les tests de tests/test_projects.py utilisent uniquement des transports simulés.
 
+## Parcours système ciblés
+
+`diu system update` exécute les phases APT, GitHub, Flatpak puis réseau et
+agrège leurs erreurs. Les commandes `diu system apt update`, `diu system
+github update` et `diu system flatpak update` exécutent chacune leur seule
+phase. APT comprend le bilan Debian et celui du moteur ; GitHub vérifie ses
+dépendances et Codex CLI configuré ; Flatpak vérifie ses dépendances et Flathub.
+Les anciennes syntaxes `system update apt [debian]`, `system update debian`
+et `system update flatpak` sont supprimées. Dans `diu update`, la phase GitHub
+conserve le report de Codex CLI vers la mise à jour des logiciels.
+
 ## Orchestration des mises à jour
 
-`rid update` est routé par `manage_update_action` vers `update_all` lorsqu'il
-n'a pas d'argument. `rid update diu` reste limité à la mise à jour du DIUE.
+`diu update` est routé par `manage_update_action` vers `update_all` lorsqu'il
+n'a pas d'argument. `diu update diu` reste limité à la mise à jour du DIUE.
 Une commande avec moteur explicite reste limitée à ce moteur.
 
 Le parcours actuel dans `modules/diu/update-all.sh` appelle successivement
@@ -2057,8 +2084,10 @@ le générateur. Le pipeline APT est vérifié par nombre d’appels, contenu tr
 et préservation des trousseaux ; l’ordre de démarrage curl/gpg n’est pas imposé.
 
 Les annotations ShellCheck locales distinguent les usages indirects Bash
-(portée dynamique de forgejo_username) et les marqueurs littéraux de dpkg-deb
-(Package et Version). Aucune désactivation globale n’est appliquée.
+(portée dynamique, variables chargées par source et résultats des modules),
+les expansions volontairement différées et les diagnostics dont la structure
+existante est conservée. Les marqueurs de dpkg-deb (Package et Version) sont
+littéraux. Aucune désactivation globale n’est appliquée.
 
 
 Les tests isolés sont regroupés dans `tests/test_*.py`. Ils couvrent notamment
@@ -2129,27 +2158,27 @@ document.
 
 ## Informations des modules
 
-Chaque module fournit un fichier `infos.sh`. `rid infos` appelle directement,
+Chaque module fournit un fichier `infos.sh`. `diu infos` appelle directement,
 dans cet ordre, desktop, diu, environnements, ia, projects, softwares et system.
-Chaque commande `rid <module> infos` affiche au moins le titre du module.
+Chaque commande `diu <module> infos` affiche au moins le titre du module.
 La commande française `environnements` correspond au dossier `modules/environments/`.
-`rid diu infos` réutilise `diu_version` pour afficher la version du paquet DIU
+`diu diu infos` réutilise `diu_version` pour afficher la version du paquet DIU
 installé ; une version indisponible produit un diagnostic et un statut non nul.
 
 `modules/system/infos.sh` contient :
 
-- `system_info_network`, appelée par `rid system infos network`, conserve
+- `system_info_network`, appelée par `diu system infos network`, conserve
   l'affichage des interfaces Ethernet 1 et 2 UP de l'ancienne `display_infos` ;
-- `system_info_debian`, appelée par `rid system infos debian`, affiche les blocs
+- `system_info_debian`, appelée par `diu system infos debian`, affiche les blocs
   SYSTEM DEBIAN, SYSTEM APT OFFICIAL, SYSTEM APT UNOFFICIAL et SYSTEM FLATPAK ;
-- `system_info_drivers`, appelée par `rid system infos drivers`, affiche
+- `system_info_drivers`, appelée par `diu system infos drivers`, affiche
   `SYSTEM_DRIVERS_DISPLAY_LINK`, puis la version du paquet `displaylink-driver`
   uniquement si la variable vaut `1`. Le paquet doit être en état `installed`
   avec une version non vide. Une lecture impossible affiche une version `UNSET`,
   un diagnostic et un statut non nul, sans modifier la configuration ;
-- `system_info`, appelée par `rid system infos`, affiche le titre SYSTEM puis
+- `system_info`, appelée par `diu system infos`, affiche le titre SYSTEM puis
   les informations Debian, pilotes, réseau dans cet ordre. Cette agrégation
-  est également utilisée par `rid infos`. `rid system update` reste inchangé.
+  est également utilisée par `diu infos`.
 
 Les variables affichées sont explicitement sélectionnées, sous forme NOM=valeur.
 Une variable absente affiche UNSET ; une valeur vide est préservée. L'ordre
@@ -2188,8 +2217,8 @@ de `variables.sh`, sans transférer son ancienne valeur ni la sauvegarder.
 
 `modules/system/drivers.sh` expose :
 
-- `system_drivers_install_displaylink` : `rid system drivers install displaylink` ;
-- `system_drivers_remove_displaylink` : `rid system drivers remove displaylink`.
+- `system_drivers_install_displaylink` : `diu system drivers install displaylink` ;
+- `system_drivers_remove_displaylink` : `diu system drivers remove displaylink`.
 
 L'installation accepte seulement `SYSTEM_DEBIAN_ENVIRONNEMENT=PHYSICAL` ou
 `PROXMOX`, quelle que soit la valeur statique DisplayLink. Elle installe ou
@@ -2233,3 +2262,17 @@ APT partiellement effectuée ou un service déjà arrêté ne sont pas annulés
 automatiquement. Une nouvelle exécution reprend à partir de l'état constaté.
 Les commandes ne valident pas l'activation des écrans dans GNOME ; celle-ci
 reste à contrôler sur le poste.
+
+### Configuration des hôtes réseau
+
+`system network hosts` affiche le fichier courant ; `system network hosts update`
+affiche une ligne de résultat avec coche verte ou croix rouge et cause courte.
+La commande ciblée conserve son code d’échec sans diagnostic générique multiligne.
+
+`system_network_hosts` lit toujours `/root/diu/config/hosts.json`, quel que soit
+le point d'entrée. Il crée les fichiers de production et de développement
+absents avec un tableau vide, puis valide les couples de production avant la
+génération. Un JSON invalide préserve `/etc/hosts`. Les commandes `system
+network hosts` gèrent exclusivement le JSON de production ; après ajout,
+les couples sont triés par IP numérique puis par FQDN. Le paquet inclut un
+modèle vide comme conffile Debian.

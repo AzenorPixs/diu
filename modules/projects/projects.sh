@@ -4,7 +4,7 @@
 
 projects_update() {
     if [[ "$#" -ne 0 ]]; then
-        print_error 'Usage : rid projects update (sans identifiant pour tous les modèles).'
+        print_error 'Usage : diu projects update (sans identifiant pour tous les modèles).'
         return 1
     fi
     projects_template_all_all
@@ -417,6 +417,8 @@ project_orchestrated_coding_prompt() {
 }
 
 # Génération ou mise à jour des variables générales du <PROJECT_ID>.
+# Les variables PROJECT_* sont chargées par source dans le shell courant.
+# shellcheck disable=SC2031
 update_projects() {
     # shellcheck disable=SC1091
     . "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/project-version.sh" || return 1
@@ -543,6 +545,8 @@ update_projects() {
     return 0
 }
 
+# Les variables PROJECT_* sont chargées par source dans le shell courant.
+# shellcheck disable=SC2031
 create_project() {
     local project_id="${1:-}"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"
@@ -658,6 +662,8 @@ create_project() {
     return 0
 }
 
+# Les variables PROJECT_* sont chargées par source dans le shell courant.
+# shellcheck disable=SC2031
 delete_project() {
     local project_id="$1"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}"

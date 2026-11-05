@@ -8,7 +8,7 @@ identifiant, sans transférer aucune métadonnée Git.
 
 ### Requirement: Commande de clonage local d'un projet
 
-DIU MUST accepter `rid projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`
+DIU MUST accepter `diu projects clone <ID PROJECT SOURCE> <ID PROJECT DESTINATION>`
 et appeler `clone_project` avec les deux identifiants dans cet ordre. La
 commande MUST exiger les deux identifiants, refuser un identifiant contenant
 un chemin, une source absente ou non répertoire, une source sans `project.env`
@@ -18,7 +18,7 @@ satisfait.
 
 #### Scenario: Clonage d'un projet valide
 
-- **WHEN** l'utilisateur exécute `rid projects clone source destination` pour
+- **WHEN** l'utilisateur exécute `diu projects clone source destination` pour
   une source valide et une destination absente
 - **THEN** DIU crée le projet `destination` à partir de `source`
 

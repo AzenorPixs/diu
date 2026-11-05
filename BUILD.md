@@ -18,7 +18,7 @@ au tag `v<VERSION>` de `HEAD`, sans déplacer un tag existant.
 ## Construction générique par recette
 
 ```bash
-rid projects build debian <ID PROJECT>
+diu projects build debian <ID PROJECT>
 ```
 
 Le moteur `modules/projects/debian-build.sh` sélectionne un enfant direct de
@@ -42,7 +42,10 @@ facultatif `depends`. Chaque copie de `files` définit une `source` relative au
 projet et une `destination` absolue dans le paquet. Un champ facultatif
 `version` fournit une version Debian littérale, après PROJECT_VERSION. Sans
 ces deux valeurs, les règles de tags et de repli calendaire ci-dessous s'appliquent.
-Les sources sont les fichiers de travail, y compris non committés.
+Les sources sont les fichiers de travail, y compris non committés. Pour une
+copie de fichier, `conffile: true` déclare sa destination comme fichier de
+configuration Debian ; `empty_json: true` exige un tableau JSON vide, contrôlé
+avant et après copie.
 
 Les champs inconnus et les caractères de contrôle sont refusés. Sources et
 recette doivent être non symboliques ; les liens et fichiers spéciaux dans les
@@ -62,19 +65,19 @@ supprimés. Un paquet de même nom de fichier est remplacé ; les autres noms,
 architectures et fichiers sont conservés. Un échec avant dépôt ne lance aucune
 rotation. Une erreur de rotation est signalée même si le nouveau paquet existe.
 Cette commande ne lance ni tests, installation, commit, push ou release.
-Le bootstrap commun de `rid` charge et initialise toujours sa configuration.
+Le bootstrap commun de `diu` charge et initialise toujours sa configuration.
 
-`rid projects build help`, `rid projects build debian help` et
-`rid projects build debian diu help` (ou `?`) expliquent ce contrat avant bootstrap.
-La syntaxe `rid projects build deb <ID PROJECT>` et ses aides restent des alias compatibles.
-`rid` utilise le moteur installé sous `/root/diu` ; `ridt` utilise celui du dépôt.
+`diu projects build help`, `diu projects build debian help` et
+`diu projects build debian diu help` (ou `?`) expliquent ce contrat avant bootstrap.
+La syntaxe `diu projects build deb <ID PROJECT>` et ses aides restent des alias compatibles.
+`diu` utilise le moteur installé sous `/root/diu` ; `diut` utilise celui du dépôt.
 
 ## Construction Debian dans la CI/CD générique
 
-`rid projects cicd <ID PROJECT> [VERSION]` enregistre si fournie la version
+`diu projects cicd <ID PROJECT> [VERSION]` enregistre si fournie la version
 stable dans PROJECT_VERSION avant de suivre les six étapes commit/tag, pushes Git,
 build Docker, build Debian, publications et bilan. À l'étape 4, il appelle
-le même moteur que `rid projects build debian <ID PROJECT>`, uniquement pour
+le même moteur que `diu projects build debian <ID PROJECT>`, uniquement pour
 PROJECT_DEBIAN_PACKAGE=Yes/YES/1, même si Docker est désactivé. Les règles
 existantes de recette, version, copie, dépôt et rotation restent celles du
 constructeur déclaratif. Une recette absente ou un échec de build bloque les
@@ -84,16 +87,23 @@ Pour une version déjà attribuée, le build utilise le commit du tag dans un
 contexte isolé. Le paquet est conservé sous `dist/replay/<TAG>/<SHA256>/` sans écraser
 un fichier existant. DIU ne vérifie pas l'immutabilité du tag Docker distant :
 sa publication est ignorée pendant le rejeu ; la publication Debian reste indépendante.
+La branche Git divergente est réconciliée dans une copie isolée avec priorité
+aux fichiers versionnés locaux en conflit. Le tag distant divergent est remplacé
+avec un lease explicite sans sauvegarde. Dans ce cas, la publication des artefacts
+de la forge concernée est ignorée et leur cohérence doit être vérifiée.
 
 Les publications constituent l'étape 5 et le bilan des deux builds l'étape 6.
 Debian seul utilise les publications Forgejo/GitLab/GitHub, avec les mêmes
 conditions de paquet et de version pour GitHub que sur Forgejo. Les fournisseurs indisponibles ne sont
-pas publiés, mais les builds locaux activés restent exécutés. Les tests utilisent
+pas publiés, mais les builds locaux activés restent exécutés. Si une panne
+réseau reconnue interrompt une release, le flux poursuit les autres fournisseurs
+et indique une publication non confirmée, potentiellement partielle. Les autres
+échecs restent bloquants ; les releases directes gardent leur contrat. Les tests utilisent
 uniquement fixtures, paquets locaux et transports simulés, sans CI/CD réelle.
 
 ## Publication Debian GitHub
 
-`rid projects github release <ID PROJECT>` sélectionne Docker seul, Debian seul
+`diu projects github release <ID PROJECT>` sélectionne Docker seul, Debian seul
 ou les deux avec les indicateurs Yes/YES/1. Docker reste publié sur GHCR et
 Debian dans GitHub Releases. Pour les deux, la présence du paquet est vérifiée
 avant Docker ; un échec ultérieur peut laisser une publication partielle,
@@ -126,7 +136,7 @@ et [assets de release](https://docs.github.com/en/rest/releases/assets).
 
 ## Compatibilité du constructeur historique DIU
 
-`rid projects deb [ID PROJECT]`, `rid proj deb <ID PROJECT>` et `cicddiu`
+`diu projects deb [ID PROJECT]`, `diu proj deb <ID PROJECT>` et `cicddiu`
 conservent le constructeur `build_deb_diu`, indépendant de la nouvelle recette.
 Leurs règles spécifiques sont décrites dans les sections suivantes.
 La nouvelle recette DIU produit les mêmes métadonnées, contenu, modes et
@@ -159,11 +169,11 @@ Pour le flux `cicddiu`, `ENV_DEVOPS_PROJECTS_ROOT` doit valoir
 
 ## Point d'entrée et chaîne d'appel
 
-La commande `ridt projects cicddiu` utilise le script DIU de l'environnement de
+La commande `diut projects cicddiu` utilise le script DIU de l'environnement de
 développement. Le chemin d'exécution est le suivant :
 
 ```text
-ridt projects cicddiu
+diut projects cicddiu
         │
         ▼
 root-install-debian.sh
@@ -197,11 +207,11 @@ modules/projects/diu-packaging.sh
 Elle peut également être déclenchée directement avec :
 
 ```bash
-rid projects deb
+diu projects deb
 ```
 
-La commande directe est rid projects deb [ID PROJECT], avec diu par défaut.
-L’alias rid proj deb <ID PROJECT> exige une source explicite. L’aide des deux
+La commande directe est diu projects deb [ID PROJECT], avec diu par défaut.
+L’alias diu proj deb <ID PROJECT> exige une source explicite. L’aide des deux
 syntaxes est disponible avant le bootstrap ; les arguments supplémentaires
 sont refusés. Les appels sans argument de cicddiu restent compatibles.
 
@@ -286,6 +296,7 @@ uniquement :
 root-install-debian.sh
 lib/
 modules/
+config/hosts.json (tableau JSON vide)
 ```
 
 Ces éléments sont placés sous :
@@ -295,11 +306,17 @@ Ces éléments sont placés sous :
 ```
 
 Le paquet installe donc son contenu applicatif sous `/root/diu`.
+Le paquet du constructeur historique crée lors de sa configuration
+`/usr/local/bin/diu` vers le point d'entrée installé si ce chemin est libre ;
+toute entrée existante est conservée. Le constructeur générique ne fournit
+pas ce script de configuration. Le script installé effectue aussi cette vérification à chaque démarrage en root,
+même lorsque le paquet a été construit sans script de configuration. Le lien de développement `diut` est créé ultérieurement par DIU après chargement
+de la configuration lorsque sa cible existe.
 
 Les éléments suivants ne sont pas embarqués :
 
 - `variables.sh` ;
-- `config/` ;
+- les autres fichiers de `config/` ;
 - `deb/` ;
 - `dist/` ;
 - `.git/` ;
@@ -310,8 +327,9 @@ Les éléments suivants ne sont pas embarqués :
 - les fichiers de secrets ou d'identifiants reconnus par le contrôle du
   staging.
 
-L'exclusion de `variables.sh` et de `config/` évite d'écraser la configuration
-locale d'une machine lors de l'installation ou de la mise à jour du paquet.
+Le modèle `config/hosts.json` doit contenir un tableau JSON vide ; le paquet le
+déclare comme conffile Debian. Les autres fichiers de configuration locale et
+`variables.sh` restent exclus.
 La nouvelle gestion des variables distribuée avec le module `diu` initialise
 et met à jour cette configuration au moment de l'exécution du DIU.
 
@@ -353,7 +371,7 @@ Version: <version>
 Architecture: all
 Maintainer: Anthony DEMARD <postmaster@pixs.fr>
 Description: Debian Installeur Unifié
-Depends: awk
+Depends: awk, python3
 ```
 
 `Architecture: all` indique que le paquet distribue des scripts et ne contient
@@ -421,7 +439,7 @@ Les vérifications minimales portent sur :
 - la version et sa concordance avec le nom du fichier ;
 - l'architecture `all` ;
 - le mainteneur ;
-- la dépendance `awk` ;
+- les dépendances `awk` et `python3` ;
 - la présence de `root-install-debian.sh`, `lib/` et `modules/` sous
   `/root/diu` ;
 - l'absence des configurations locales, sources de développement, secrets,

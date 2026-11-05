@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-04T04:55:19Z
+Début du relevé (UTC) : 2026-11-05T21:24:50Z
 Environnement d'exécution DIU : PROXMOX
 
 ## Configuration locale — project.env
@@ -114,10 +114,6 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
   * 11.19.1
   * /home/devops/node/current/bin/npm
 
-
-## Dépendances JavaScript du projet
-
-  * Inventaire incomplet : sous-dossier inaccessible ou modifié pendant la découverte
 
 # OpenCode
 
