@@ -1,0 +1,2 @@
+## Conception
+Extraire les trois phases de system_update en fonctions réutilisées par le routage direct et le parcours général. Les états de bilan nécessaires sont partagés dans le même shell. La phase réseau reste après les moteurs. Les échecs de phase sont agrégés sans empêcher les phases suivantes, conformément au comportement existant. Le mode global DIU conserve le report de Codex CLI. Les interfaces internes encore utilisées restent disponibles.

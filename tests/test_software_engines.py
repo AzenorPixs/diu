@@ -114,6 +114,51 @@ if manage_system_action engine remove apt extra; then exit 1; fi
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_system_update_routes_and_isolates_engines(self):
+        result = self.run_engine(r'''
+system_update_engine() { echo "$1" >> "$FIXTURE/actions"; [[ "$1" != github ]]; }
+system_network_update() { echo network >> "$FIXTURE/actions"; }
+for engine in apt github flatpak; do
+    : > "$FIXTURE/actions"
+    manage_system_action engine "$engine" update || [[ "$engine" == github ]]
+    [[ "$(cat "$FIXTURE/actions")" == "$engine" ]]
+done
+: > "$FIXTURE/actions"
+if manage_system_action engine update; then exit 1; fi
+[[ "$(cat "$FIXTURE/actions")" == $'apt\ngithub\nflatpak' ]]
+: > "$FIXTURE/actions"
+if manage_system_action update; then exit 1; fi
+[[ "$(cat "$FIXTURE/actions")" == $'apt\ngithub\nflatpak\nnetwork' ]]
+for args in 'update apt' 'update apt debian' 'update debian' 'update flatpak' 'apt update' 'github update' 'flatpak update' 'engine apt update extra'; do
+    : > "$FIXTURE/actions"
+    if manage_system_action $args; then exit 1; fi
+    [[ ! -s "$FIXTURE/actions" ]]
+done
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_targeted_phases_do_not_run_other_phases(self):
+        result = self.run_engine(r'''
+system_update_package_versions() { printf 'pkg\t1\n'; }
+system_apt_update() { echo apt-work >> "$FIXTURE/actions"; }
+system_engine_ensure_dependencies() { echo "$1-deps" >> "$FIXTURE/actions"; }
+system_network_update() { echo network >> "$FIXTURE/actions"; }
+flatpak() { echo flathub >> "$FIXTURE/actions"; echo flathub; }
+software_github_codex_cli_version() { echo 1; }
+software_github_codex_cli_update() { echo github-work >> "$FIXTURE/actions"; }
+SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=1 SYSTEM_FLATPAK_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+for engine in apt github flatpak; do
+    : > "$FIXTURE/actions"
+    manage_system_action engine "$engine" update
+    case "$engine" in
+        apt) [[ "$(cat "$FIXTURE/actions")" == $'apt-deps\napt-work' ]] ;;
+        github) [[ "$(cat "$FIXTURE/actions")" == $'github-deps\ngithub-work' ]] ;;
+        flatpak) [[ "$(cat "$FIXTURE/actions")" == $'flatpak-deps\nflathub' ]] ;;
+    esac
+done
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_invalid_legacy_flatpak_state_is_not_persisted(self):
         result = self.run_engine(r'''
 sed "s#^variable_config_file=.*#variable_config_file=\"$FIXTURE/system.env\"#" \

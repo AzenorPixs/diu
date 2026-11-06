@@ -37,50 +37,30 @@ et le format historique pour Bookworm et les versions antérieures.
   l'ancien `debian.sources` géré par le DIU est supprimé.
 
 ### Requirement: Mise à jour du sous-module APT
-
-Le sous-module `diu system update apt` SHALL régénérer la configuration des
-dépôts Debian officiels avant d'actualiser les index et d'exécuter la
-transaction unique `apt-get dist-upgrade -y`. Cette régénération SHALL prendre
-en compte `SYSTEM_APT_DEBIAN_UPDATES`, `SYSTEM_APT_DEBIAN_BACKPORT`,
-`SYSTEM_APT_DEBIAN_CONTRIB`, `SYSTEM_APT_DEBIAN_NONFRFEE` et
-`SYSTEM_APT_DEBIAN_SOURCES`, tout en préservant les dépôts tiers.
+`diu system engine apt update` SHALL régénérer les dépôts Debian et tiers gérés, mettre à jour les index et exécuter une transaction dist-upgrade, le nettoyage et les prérequis, puis produire le bilan système et APT.
 
 #### Scenario: Variables activées
-
 - **WHEN** les variables contrib, non-free et backports valent `1`
-- **THEN** les composants et suites correspondants sont présents avant la
-  mise à jour globale appelée par `diuu`
+- **THEN** les composants et suites correspondants sont présents.
 
 #### Scenario: Variables désactivées
-
 - **WHEN** une variable de dépôt vaut `0`
-- **THEN** l'élément correspondant est absent de la configuration Debian
-  régénérée
+- **THEN** l'élément correspondant est absent de la configuration régénérée.
 
 #### Scenario: Mise à jour officielle
-
-- **WHEN** `diu system update apt debian` est exécuté
-- **THEN** seuls les paquets des dépôts Debian officiels sont traités et les
-  cibles sont affichées paquet par paquet
+- **WHEN** les dépôts officiels sont configurés
+- **THEN** ils sont régénérés avant la transaction APT globale.
 
 #### Scenario: Mise à jour APT globale
-
-- **WHEN** `diu system update apt` est exécuté
-- **THEN** APT actualise ses index puis exécute une seule transaction
-  `dist-upgrade -y`
+- **WHEN** `diu system engine apt update` est exécuté
+- **THEN** les index sont actualisés et une transaction dist-upgrade est exécutée.
 
 ### Requirement: Isolation de Flatpak du sous-module APT
-
-Le sous-module APT de `system` SHALL ne pas appliquer `SYSTEM_FLATPAK_ENGINE` et
-SHALL ne jamais appeler `flatpak update`. Seule la commande explicite
-`diu system update flatpak` SHALL pouvoir mettre à jour le paquet Debian
-`flatpak`.
+Le parcours APT SHALL NOT exécuter les contrôles ciblés du moteur Flatpak ni appeler `flatpak update`.
 
 #### Scenario: Mise à jour APT
-
-- **WHEN** `diu system update apt` est exécuté
-- **THEN** aucune mise à jour ciblée de Flatpak n'est invoquée
-- **AND** `flatpak update` n'est pas exécuté
+- **WHEN** `diu system engine apt update` est exécuté
+- **THEN** aucun contrôle ciblé Flatpak ni `flatpak update` n'est exécuté.
 
 ### Requirement: Moteur commun des dépôts tiers
 

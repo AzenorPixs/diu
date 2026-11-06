@@ -20,6 +20,15 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
+`diu system update` lance `diu system engine update` puis `diu system network update`. La mise à jour des moteurs enchaîne les parcours `diu system engine apt update`,
+`diu system engine github update` et `diu system engine flatpak update`. Le parcours APT produit son bilan Debian ; GitHub vérifie le moteur et
+met à jour Codex CLI lorsqu’il est configuré ; Flatpak vérifie ses dépendances
+et Flathub. Chaque parcours ciblé est indépendant. Les anciennes commandes
+`diu system apt update`, `diu system github update` et `diu system flatpak update`
+ne sont plus acceptées. Les anciennes syntaxes
+`diu system update apt [debian]`, `diu system update debian` et
+`diu system update flatpak` ne sont plus acceptées.
+
 `diu system network hosts` affiche `/etc/hosts`. `diu system network hosts update`
 reconstruit ce fichier et affiche une coche verte si la mise à jour réussit ;
 en cas d’échec, une croix rouge indique brièvement la cause. La génération utilise les

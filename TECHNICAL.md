@@ -1999,6 +1999,18 @@ inexploitable arrête la publication sans message de succès. Le corps de répon
 n’est pas journalisé et aucun réessai ou effacement distant n’est ajouté.
 Les tests de tests/test_projects.py utilisent uniquement des transports simulés.
 
+## Parcours système ciblés
+
+`diu system engine update` exécute les phases APT, GitHub et Flatpak ; `diu system update` exécute ces phases puis le réseau et
+agrège leurs erreurs. Les commandes `diu system engine apt update`, `diu system
+engine github update` et `diu system engine flatpak update` exécutent chacune leur seule
+phase. APT comprend le bilan Debian et celui du moteur ; GitHub vérifie ses
+dépendances et Codex CLI configuré ; Flatpak vérifie ses dépendances et Flathub.
+Les anciennes commandes ciblées `system apt update`, `system github update` et
+`system flatpak update` sont supprimées. Les anciennes syntaxes `system update apt [debian]`, `system update debian`
+et `system update flatpak` sont supprimées. Dans `diu update`, la phase GitHub
+exécute Codex CLI selon les conditions habituelles du moteur système.
+
 ## Orchestration des mises à jour
 
 `diu update` est routé par `manage_update_action` vers `update_all` lorsqu'il
@@ -2007,11 +2019,10 @@ Une commande avec moteur explicite reste limitée à ce moteur.
 
 Le parcours actuel dans `modules/diu/update-all.sh` appelle successivement
 `diu_update`, `system_update`, `environments_update`, `ia_update`,
-`projects_update` puis `softwares_update`. La mise à jour des projets décrite
-ci-dessus est donc incluse une seule fois. Son échec est mémorisé : le module
-softwares est encore appelé, puis le code non nul projects est rendu. Lorsque
-projects réussit, une erreur DIU est conservée ; si DIU et projects réussissent,
-le code final softwares est conservé.
+`projects_update`. La mise à jour des projets décrite ci-dessus est incluse
+une seule fois. Une erreur projects est prioritaire, puis une erreur DIU ;
+si ces deux étapes réussissent, le résultat est nul. La commande indépendante
+`diu softwares update` n’est pas appelée dans ce parcours.
 
 Chaque fonction appelée définit ses propres prérequis et traitements.
 `environments_update` retourne actuellement un succès sans opération.

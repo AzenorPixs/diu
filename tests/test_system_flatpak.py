@@ -64,7 +64,7 @@ if source "$variable_source"; then exit 1; fi
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("valeur invalide", result.stderr)
 
-    def test_install_remove_update_and_apply_are_isolated(self):
+    def test_install_remove_and_apply_are_isolated(self):
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=absent
 system_flatpak_install
@@ -72,8 +72,6 @@ grep -Fx 'export SYSTEM_FLATPAK_ENGINE=1' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
 PACKAGE_STATE=installed
 system_flatpak_remove
 grep -Fx 'export SYSTEM_FLATPAK_ENGINE=0' "$SYSTEM_FLATPAK_ENGINE_CONFIG_FILE"
-PACKAGE_STATE=installed
-system_flatpak_update
 SYSTEM_FLATPAK_ENGINE=UNSET
 system_flatpak_apply
 ! grep -q 'flatpak update' "$CALLS"
@@ -82,7 +80,6 @@ system_flatpak_apply
         self.assertIn("apt-get install -y -- flatpak", calls)
         self.assertIn("flatpak remote-add --if-not-exists flathub", calls)
         self.assertNotIn("apt-get remove -y -- flatpak", calls)
-        self.assertIn("apt-get install --only-upgrade -y -- flatpak", calls)
         self.assertNotIn("flatpak update", calls)
 
     def test_failures_do_not_persist_enabled_state(self):
@@ -141,14 +138,15 @@ system_flatpak_install
     def test_update_absent_and_routing(self):
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=absent
-manage_system_action update flatpak
+SYSTEM_FLATPAK_ENGINE=0
+manage_system_action engine flatpak update
 manage_system_action engine install flatpak
 PACKAGE_STATE=installed
 manage_system_action engine remove flatpak
 if manage_system_action engine install flatpak extra; then exit 1; fi
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("Flatpak est absent", result.stdout)
+        self.assertIn("moteur désactivé", result.stdout)
         self.assertNotIn("--only-upgrade", calls)
         self.assertIn("apt-get install -y -- flatpak", calls)
         self.assertNotIn("apt-get remove -y -- flatpak", calls)
@@ -156,7 +154,7 @@ if manage_system_action engine install flatpak extra; then exit 1; fi
     def test_help_includes_flatpak_commands(self):
         for arguments in (("system", "help"), ("system", "engine", "help"),
                           ("system", "engine", "remove", "flatpak", "help"),
-                          ("system", "update", "flatpak", "help")):
+                          ("system", "engine", "flatpak", "update", "help")):
             result = subprocess.run(["bash", str(ROOT / "root-install-debian.sh"), *arguments],
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
