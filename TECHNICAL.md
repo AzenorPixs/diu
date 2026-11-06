@@ -1985,6 +1985,9 @@ versions stables x.y.z sont prioritaires avant comparaison Debian des assets
 (nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
 Toute erreur après sélection (téléchargement, validation ou installation) bloque
 sans essai sur l'autre source. `diu update diu` est un alias compatible.
+Un résultat réussi affiche une coche et les versions, sans les détails des
+opérations ; les diagnostics capturés sont affichés en cas d'échec. Une
+installation dpkg échouée peut laisser une modification partielle du système.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de

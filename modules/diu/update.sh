@@ -77,7 +77,7 @@ _diu_update_select() {
             [[ -z "$requested_version" || "$version" == "$requested_version" ]] || continue
             [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
             if [[ -z "$best_version" ]] || _diu_update_version_gt "$version" "$best_version"; then
-                best_version="$version"; best_url="$url"; best_provider="$provider"
+                best_version="$version"; best_url="$url"
             fi
         done <<< "$rows"
         page=$((page + 1))
@@ -88,7 +88,7 @@ _diu_update_select() {
 
 # Exécuter dans un sous-shell afin de limiter configuration et temporaires.
 update_diu() (
-    local best_version='' best_url='' best_provider='' installed='' status='' temp_dir='' file=''
+    local best_version='' best_url='' installed='' status='' temp_dir='' file='' log=''
     local project_path='' requested_version="${1:-}"
     local package_version='' package_name='' package_arch=''
     local executable
@@ -110,31 +110,32 @@ update_diu() (
     if [[ -z "$installed" ]] || ! dpkg --validate-version "$installed" >/dev/null 2>&1; then
         print_error 'Version installée du DIU invalide.'; return 1
     fi
-    if ! _diu_update_select GITHUB; then
+    temp_dir="$(mktemp -d)" || { print_error 'Impossible de créer le répertoire temporaire.'; return 1; }
+    log="$temp_dir/update.log"
+    if ! _diu_update_select GITHUB >"$log" 2>&1; then
         if [[ -n "$requested_version" ]]; then
+            cat "$log" >&2
             print_error "Version DIU $requested_version indisponible sur GitHub."; return 1
         fi
-        best_version=''; best_url=''; best_provider=''
-        print_info 'GitHub indisponible ou sans paquet admissible ; tentative Forgejo.'
-        _diu_update_select FORGEJO || { print_error 'Aucun fournisseur DIU disponible avec un paquet admissible.'; return 1; }
+        best_version=''; best_url=''
+        _diu_update_select FORGEJO >>"$log" 2>&1 || { cat "$log" >&2; print_error 'Aucun fournisseur DIU disponible avec un paquet admissible.'; return 1; }
     fi
     if [[ -z "$requested_version" ]] && ! _diu_update_version_gt "$best_version" "$installed"; then
-        print_info "DIU déjà à jour : $installed (dernière version : $best_version)."
+        print_success "DIU déjà à jour : $installed (dernière version : $best_version)."
         return 0
     fi
-    temp_dir="$(mktemp -d)" || { print_error 'Impossible de créer le répertoire temporaire.'; return 1; }
     file="$temp_dir/diu_${best_version}_all.deb"
-    print_info "Téléchargement DIU $best_version depuis $best_provider."
-    curl --disable --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" || { print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
+    curl --disable --compressed --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 300 --output "$file" "$best_url" >>"$log" 2>&1 || { cat "$log" >&2; print_error 'Téléchargement du paquet DIU échoué.'; return 1; }
     # Les champs dpkg sont des expressions littérales.
     # shellcheck disable=SC2016
-    package_name="$(dpkg-deb --show --showformat='${Package}' "$file" 2>/dev/null)" || { print_error 'Lecture du nom du paquet impossible.'; return 1; }
+    package_name="$(dpkg-deb --show --showformat='${Package}' "$file" 2>>"$log")" || { cat "$log" >&2; print_error 'Lecture du nom du paquet impossible.'; return 1; }
     # shellcheck disable=SC2016
-    package_version="$(dpkg-deb --show --showformat='${Version}' "$file" 2>/dev/null)" || { print_error 'Lecture de la version du paquet impossible.'; return 1; }
+    package_version="$(dpkg-deb --show --showformat='${Version}' "$file" 2>>"$log")" || { cat "$log" >&2; print_error 'Lecture de la version du paquet impossible.'; return 1; }
     # shellcheck disable=SC2016
-    package_arch="$(dpkg-deb --show --showformat='${Architecture}' "$file" 2>/dev/null)" || { print_error "Lecture de l'architecture du paquet impossible."; return 1; }
-    [[ "$package_name" == diu && "$package_version" == "$best_version" && "$package_arch" == all ]] || { print_error 'Métadonnées du paquet DIU incohérentes.'; return 1; }
-    dpkg --install "$file" || { print_error 'Installation du paquet DIU échouée.'; return 1; }
+    package_arch="$(dpkg-deb --show --showformat='${Architecture}' "$file" 2>>"$log")" || { cat "$log" >&2; print_error "Lecture de l'architecture du paquet impossible."; return 1; }
+    [[ "$package_name" == diu && "$package_version" == "$best_version" && "$package_arch" == all ]] || { cat "$log" >&2; print_error 'Métadonnées du paquet DIU incohérentes.'; return 1; }
+    dpkg --install "$file" >>"$log" 2>&1 || { cat "$log" >&2; print_error 'Installation du paquet DIU échouée.'; return 1; }
+    print_success "DIU ($installed --> $best_version) : mis à jour."
 )
 
 # Isolation de la mise à jour lors du parcours global.

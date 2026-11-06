@@ -95,6 +95,7 @@ source "$ROOT/lib/github-auth.sh"
 source "$ROOT/modules/diu/update.sh"
 print_error() { printf 'ERROR: %s\n' "$*" >&2; }
 print_info() { :; }
+print_success() { :; }
 dpkg-query() { printf 'installed 1.0.0'; }
 dpkg() {
     if [[ "$1" == --install ]]; then printf 'installed\n' >> "$INSTALLS"; return 0; fi

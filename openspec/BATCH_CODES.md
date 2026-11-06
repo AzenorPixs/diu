@@ -42,6 +42,8 @@ Delta SCM du 2026-11-04 : [manage-system-network-hosts](changes/archive/2026-11-
 
 - [diu-command-links](changes/archive/2026-11-04-diu-command-links/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; voir [bilan](changes/archive/2026-11-04-diu-command-links/STATISTICS.md) ; dépendance `migrate-env-devops-projects-root` archivée ; attribution à traiter par ACL.
 
+Delta SCM du 2026-11-06 : [concise-diu-update-output](changes/concise-diu-update-output/proposal.md), actif, **code non attribué** ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-04 : [force-diu-update-version](changes/archive/2026-11-04-force-diu-update-version/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-04 : [public-github-diu-update](changes/archive/2026-11-04-public-github-diu-update/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
