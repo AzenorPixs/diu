@@ -4,6 +4,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- DIU : affichage synthétique avec coche pour une mise à jour réussie ou inutile ; les détails techniques sont réservés aux échecs.
+
 - Mise à jour système : commandes ciblées sous `diu system engine <moteur> update` et commande groupée `diu system engine update` ; les anciennes syntaxes ciblées directement sous `system` sont retirées.
 
 - Mise à jour : `diu update` ne lance plus `diu softwares update`, qui reste disponible séparément ; les aides décrivent les deux parcours.
