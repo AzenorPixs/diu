@@ -441,3 +441,15 @@ Les aides système et engine SHALL présenter les commandes de mise à jour grou
 #### Scenario: Aide ciblée
 - **WHEN** l'aide de `diu system engine apt update`, `github update` ou `flatpak update` est demandée
 - **THEN** elle présente la commande ciblée correspondante.
+
+### Requirement: Découverte des aides réseau
+
+L'aide système SHALL distinguer l'affichage de `/etc/hosts` de la gestion du JSON et indiquer les aides contextuelles réseau disponibles.
+
+#### Scenario: Aide système
+- **WHEN** l'aide de `system` est demandée
+- **THEN** elle indique que `system network hosts` affiche `/etc/hosts` et montre comment consulter les aides réseau et hosts
+
+#### Scenario: Aide réseau
+- **WHEN** l'aide de `system network` est demandée
+- **THEN** elle présente les sous-commandes hosts et indique comment consulter leur aide

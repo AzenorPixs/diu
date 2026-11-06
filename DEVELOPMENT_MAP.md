@@ -198,7 +198,14 @@ flowchart TB
   class P_DIU_FORGEJO_FALLBACK provisoire
 ```
 
-Delta SCM du 2026-11-06 : [concise-diu-update-output](openspec/changes/concise-diu-update-output/proposal.md), code non attribué, actif ; contrat de sortie synthétique validé en strict, réalisation en cours. Attribution ultérieure par ACL.
+Delta SCM du 2026-11-06 : [concise-diu-update-output](openspec/changes/archive/2026-11-06-concise-diu-update-output/proposal.md), code non attribué, archivé ; sortie DIU, résultat réseau et aides, validation stricte et 1 216 tests dont 2 ignorés. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_OUTPUT["concise-diu-update-output — code non attribué — ARCHIVÉ"]
+  class P_DIU_OUTPUT provisoire
+```
 
 Delta SCM du 2026-11-03 : [github-only-diu-update](openspec/changes/archive/2026-11-03-github-only-diu-update/proposal.md), code non attribué, archivé ; 1 121 tests exécutés dont 2 ignorés, validation OpenSpec stricte réussie. Les comptages historiques excluent ce delta. Attribution ultérieure par ACL.
 

@@ -5,3 +5,5 @@ Conserver les opérations et leur ordre. Capturer les sorties de sélection, té
 ## Limites
 
 Une installation dpkg échouée peut avoir partiellement modifié le système ; les diagnostics sont conservés et aucun retour arrière automatique n'est ajouté.
+
+La mise à jour réseau appelle le même rapport que la commande hosts ciblée. Les mises à jour englobantes héritent ainsi du résultat et de son statut. L'aide générale distingue l'affichage du fichier et la gestion du JSON et indique l'accès aux aides contextuelles.

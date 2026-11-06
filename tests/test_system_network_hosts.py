@@ -243,21 +243,22 @@ system_network_hosts() {
         write) printf '/etc/hosts: Permission denied\n' >&2; return 1 ;;
     esac
 }
-dispatch_arguments system network hosts update
+dispatch_arguments system network $TEST_ACTION
 '''
         for value, returncode, symbol, fragment in (
             ('ok', 0, '✅', 'mis à jour'),
             ('json', 1, '❌', 'configuration JSON'),
             ('write', 1, '❌', 'impossible'),
         ):
-            with self.subTest(value=value):
-                result = subprocess.run(['bash', '-c', script], env=dict(os.environ, ROOT=str(ROOT), TEST_RESULT=value),
-                                        capture_output=True, text=True)
-                self.assertEqual(result.returncode, returncode, result.stdout + result.stderr)
-                lines = (result.stdout + result.stderr).splitlines()
-                self.assertEqual(len(lines), 1, lines)
-                self.assertIn(symbol, lines[0])
-                self.assertIn(fragment, lines[0])
+            for action in ('update', 'hosts update'):
+                with self.subTest(value=value, action=action):
+                    result = subprocess.run(['bash', '-c', script], env=dict(os.environ, ROOT=str(ROOT), TEST_RESULT=value, TEST_ACTION=action),
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, returncode, result.stdout + result.stderr)
+                    lines = (result.stdout + result.stderr).splitlines()
+                    self.assertEqual(len(lines), 1, lines)
+                    self.assertIn(symbol, lines[0])
+                    self.assertIn(fragment, lines[0])
 
     def test_update_result_real_generation_on_fixture(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
@@ -336,7 +337,47 @@ if manage_system_action network hosts bogus; then exit 5; fi
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([line for line in result.stdout.splitlines()
                           if line in ('✅ /etc/hosts mis à jour.', 'hosts')],
-                         ['✅ /etc/hosts mis à jour.'] + ['hosts'] * 3)
+                         ['✅ /etc/hosts mis à jour.'] * 4)
+
+    def test_network_update_reports_and_propagates_hosts_failure(self):
+        script = r'''
+source "$ROOT/modules/system/apt.sh"
+source "$ROOT/modules/system/network.sh"
+system_network_hosts() { printf 'Configuration hosts invalide\n' >&2; return 7; }
+manage_system_action network update
+'''
+        result = subprocess.run(['bash', '-c', script], env=dict(os.environ, ROOT=str(ROOT)),
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 7)
+        self.assertEqual(result.stdout, '')
+        self.assertEqual(result.stderr, '❌ /etc/hosts : configuration JSON invalide ou illisible.\n')
+
+    def test_global_update_propagates_network_failure(self):
+        script = r'''
+source "$ROOT/modules/system/apt.sh"
+source "$ROOT/modules/system/network.sh"
+source "$ROOT/modules/diu/update-all.sh"
+system_network_hosts() { printf 'Configuration hosts invalide\n' >&2; return 7; }
+system_engines_update() { :; }
+diu_update() { :; }
+environments_update() { :; }
+ia_update() { :; }
+projects_update() { :; }
+manage_update_action
+'''
+        result = subprocess.run(['bash', '-c', script], env=dict(os.environ, ROOT=str(ROOT)),
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stderr, '❌ /etc/hosts : configuration JSON invalide ou illisible.\n')
+
+    def test_system_help_explains_hosts_and_contextual_help(self):
+        result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), 'system', 'help'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('diu system network hosts                               → Affiche le contenu actuel de /etc/hosts.', result.stdout)
+        self.assertIn('diu system network help', result.stdout)
+        self.assertIn('diu system network hosts help', result.stdout)
+        self.assertIn('diu system infos network help', result.stdout)
 
     def test_help(self):
         script = r'''source "$ROOT/lib/diu-help.sh"; diu_display_help_context system network hosts update'''
