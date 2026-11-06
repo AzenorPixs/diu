@@ -4,6 +4,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Réseau : la mise à jour système affiche le résultat de reconstruction de `/etc/hosts` ; les aides réseau et hosts sont explicitées.
+
 - DIU : affichage synthétique avec coche pour une mise à jour réussie ou inutile ; les détails techniques sont réservés aux échecs.
 
 - Mise à jour système : commandes ciblées sous `diu system engine <moteur> update` et commande groupée `diu system engine update` ; les anciennes syntaxes ciblées directement sous `system` sont retirées.

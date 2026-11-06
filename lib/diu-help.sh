@@ -74,13 +74,14 @@ diu_display_help_context() {
             diu_display_command_error system network hosts
             return 2
         fi
-        diu_help_line 'diu system network update' 'Met à jour la configuration réseau.'
+        diu_help_line 'diu system network update' 'Met à jour le réseau et reconstruit /etc/hosts.'
         diu_help_line 'diu system network hosts' 'Affiche le contenu actuel de /etc/hosts.'
         diu_help_line 'diu system network hosts update' 'Reconstruit /etc/hosts depuis le hosts.json de production.'
         diu_help_line 'diu system network hosts add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
         diu_help_line 'diu system network hosts del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'
         diu_help_line 'diu system network hosts del all' 'Vide le hosts.json de production.'
         diu_help_line 'diu system network hosts list' 'Liste les couples du hosts.json de production.'
+        diu_help_line 'diu system network hosts <action> help' "Affiche l'aide de l'action hosts."
         printf '%s\n' 'Lors de la reconstruction de /etc/hosts, les entrées existantes sont remplacées.'
         return 0
     fi
@@ -275,7 +276,10 @@ diu_display_help_context() {
             diu_help_line 'diu system infos network' 'Affiche les informations réseau.'
             diu_help_line 'diu system network update' 'Met à jour la configuration réseau et reconstruit /etc/hosts.'
             diu_help_line 'diu system network hosts update' 'Reconstruit /etc/hosts.'
-            diu_help_line 'diu system network hosts' 'Gère les couples du hosts.json de production.'
+            diu_help_line 'diu system network hosts' 'Affiche le contenu actuel de /etc/hosts.'
+            diu_help_line 'diu system network help' 'Présente les commandes réseau et la gestion du hosts.json.'
+            diu_help_line 'diu system network hosts help' 'Présente les commandes hosts et leurs aides.'
+            diu_help_line 'diu system infos network help' 'Présente les informations réseau.'
             diu_help_line 'diu system infos debian' 'Affiche la configuration Debian, APT et Flatpak.'
             diu_help_line 'diu system infos drivers' "Affiche l’état DisplayLink et la version du pilote installé."
             diu_help_line 'diu system install apt <Dépôt>' 'Installe un dépôt APT.'

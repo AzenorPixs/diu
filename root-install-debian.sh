@@ -500,7 +500,8 @@ dispatch_arguments() {
 
         system)
             shift
-            if [[ $# -eq 3 && "$1" == network && "$2" == hosts && "$3" == update ]]; then
+            if [[ ( $# -eq 3 && "$1" == network && "$2" == hosts && "$3" == update ) ||
+                  ( $# -eq 2 && "$1" == network && "$2" == update ) ]]; then
                 if manage_system_action "$@"; then
                     exit 0
                 else
