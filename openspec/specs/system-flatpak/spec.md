@@ -58,36 +58,20 @@ SHALL pas persister l'état `1`.
 - **THEN** aucune commande système n'est exécutée
 
 ### Requirement: Commandes ciblées Flatpak
-
-DIU SHALL exposer les commandes Flatpak ciblées, persister l’état après succès seulement, limiter l’update au paquet Debian installé et fournir les aides prévues.
-Les modalités normatives détaillées ci-dessous SHALL être respectées.
+DIU SHALL exposer les commandes d'activation, de désactivation et de vérification ciblée Flatpak. L'activation SHALL persister `1` après succès, la désactivation SHALL persister `0` sans retirer les dépendances. `diu system engine flatpak update` SHALL vérifier les dépendances et Flathub si le moteur est actif, sans lancer `flatpak update`.
 
 #### Scenario: Installation ciblée
-
 - **WHEN** `diu system engine install flatpak` réussit
-- **THEN** `SYSTEM_FLATPAK_ENGINE=1` est persisté après la configuration de Flathub
+- **THEN** l'état activé est persisté après configuration de Flathub.
 
 #### Scenario: Mise à jour ciblée absente
-
-- **WHEN** `diu system update flatpak` est invoqué alors que le paquet est absent
-- **THEN** le DIU signale cet état et ne l'installe pas
-
-#### Scenario: Aide des commandes
-
-- **WHEN** l'aide de la commande Flatpak ou de son parent system est demandée
-- **THEN** elle décrit les commandes install, remove et update Flatpak
+- **WHEN** `diu system engine flatpak update` est exécuté avec moteur actif
+- **THEN** les dépendances et Flathub sont vérifiés sans mettre à jour les applications.
 
 #### Scenario: Actions Flatpak ciblées et persistance
+- **WHEN** le moteur est activé ou désactivé
+- **THEN** son état est persisté seulement après succès et les dépendances sont conservées à la désactivation.
 
-- **WHEN** une installation, suppression, mise à jour ciblée ou aide Flatpak est demandée
-- **THEN** les règles suivantes s’appliquent dans les cas qu’elles décrivent :
-
-Le DIU SHALL accepter `diu system engine install flatpak`, `diu system engine remove
-flatpak` et `diu system update flatpak`. L'installation SHALL persister `1`
-uniquement après l'installation et la configuration de Flathub réussies ; la
-désactivation SHALL persister `0` sans désinstaller les dépendances. La mise à jour SHALL
-cibler uniquement le paquet Debian installé et SHALL ne jamais exécuter
-`flatpak update`; son absence SHALL être signalée sans installation implicite.
-Les commandes et leurs parents SHALL être accessibles par le mécanisme d'aide
-existant.
-
+#### Scenario: Aide des commandes
+- **WHEN** l'aide des commandes Flatpak est demandée
+- **THEN** elle présente les commandes actuelles du moteur.

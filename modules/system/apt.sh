@@ -318,19 +318,21 @@ system_update_report_apt_softwares() {
     return "$result"
 }
 
-system_update() {
+system_update_engine() {
+    local selected="$1"
     local workdir status=0 apt_status=0 warning=0 version
     local before_codex='' after_codex='' engine label changed
     workdir="$(mktemp -d)" || { print_error 'Impossible de préparer le bilan de mise à jour.'; return 1; }
     version="$(cat /etc/debian_version 2>/dev/null)" || version='inconnue'
-    if ! system_update_package_versions > "$workdir/before"; then
+    if [[ "$selected" == apt ]] && ! system_update_package_versions > "$workdir/before"; then
         print_error 'Impossible de relever les versions initiales des paquets.'
         rm -rf -- "$workdir"
         return 1
     fi
-    if [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]] && declare -F software_github_codex_cli_version >/dev/null; then
+    if [[ "$selected" == github && "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]] && declare -F software_github_codex_cli_version >/dev/null; then
         before_codex="$(software_github_codex_cli_version 2>/dev/null)" || before_codex=''
     fi
+    if [[ "$selected" == apt ]]; then
     local spinner_pid=''
     if [[ -t 1 ]]; then
         system_update_show_spinner "$BASHPID" &
@@ -373,7 +375,10 @@ system_update() {
         printf '✅ Système Debian %s à jour\n' "$version"
     fi
     [[ -z "$changed" ]] || printf '%s\n' "$changed"
-    for engine in apt github flatpak; do
+    fi
+    # Une seule phase, avec les mêmes branches de traitement que le parcours complet.
+    # shellcheck disable=SC2066
+    for engine in "$selected"; do
         local enabled
         case "$engine" in
             apt) enabled="${SYSTEM_APT_ENGINE:-1}"; label=APT ;;
@@ -421,8 +426,23 @@ system_update() {
                 fi ;;
         esac
     done
-    system_network_update || status=1
     rm -rf -- "$workdir"
+    return "$status"
+}
+
+
+system_engines_update() {
+    local status=0 engine
+    for engine in apt github flatpak; do
+        system_update_engine "$engine" || status=1
+    done
+    return "$status"
+}
+
+system_update() {
+    local status=0
+    system_engines_update || status=1
+    system_network_update || status=1
     return "$status"
 }
 
@@ -494,17 +514,6 @@ system_flatpak_install() {
 
 system_flatpak_remove() {
     system_flatpak_persist_state 0
-}
-
-system_flatpak_update() {
-    local state
-
-    state="$(system_flatpak_package_state)" || return 1
-    if [[ "$state" == absent ]]; then
-        print_info "Flatpak est absent : aucune mise à jour à appliquer."
-        return 0
-    fi
-    apt-get install --only-upgrade -y -- flatpak
 }
 
 system_apt_repository_variable() {
@@ -643,8 +652,18 @@ manage_system_action() {
     local action="${1:-}" repository=""
     case "$action" in
         engine)
-            [[ $# -eq 3 ]] || { print_error 'Usage : diu system engine {install|remove} {apt|github|flatpak}'; return 2; }
-            system_engine_action "$2" "$3"
+            case "${2:-}" in
+                update)
+                    [[ $# -eq 2 ]] || { print_error 'Usage : diu system engine update'; return 2; }
+                    system_engines_update ;;
+                apt|github|flatpak)
+                    [[ $# -eq 3 && "$3" == update ]] || { print_error "Usage : diu system engine $2 update"; return 2; }
+                    system_update_engine "$2" ;;
+                install|remove)
+                    [[ $# -eq 3 ]] || { print_error 'Usage : diu system engine {install|remove} {apt|github|flatpak}'; return 2; }
+                    system_engine_action "$2" "$3" ;;
+                *) print_error 'Usage : diu system engine {update|apt update|github update|flatpak update|install|remove}'; return 2 ;;
+            esac
             ;;
         network)
             shift
@@ -704,29 +723,10 @@ manage_system_action() {
             fi
             ;;
         update)
-            shift
-            if [[ "${1:-}" == flatpak && $# -eq 1 ]]; then
-                system_flatpak_update
-                return
-            fi
-            if [[ "${1:-}" == apt ]]; then
-                shift
-            fi
-            case "${1:-}" in
-                debian)
-                    [[ $# -eq 1 ]] || { print_error "Usage : diu system update apt"; return 2; }
-                    system_apt_update
-                    ;;
-                '') system_update ;;
-                *) print_error "Usage : diu system update {flatpak|apt [debian]}"; return 2 ;;
-            esac
-            ;;
-        apt)
-            shift
-            [[ "${1:-}" == update && $# -eq 1 ]] || { print_error "Usage : diu system apt update"; return 2; }
-            system_apt_update
+            [[ $# -eq 1 ]] || { print_error 'Usage : diu system update'; return 2; }
+            system_update
             ;;
         '') system_update ;;
-        *) print_error "Usage : diu system {install|remove} apt <repository> | update [flatpak|apt [debian]] | network {update|hosts update}"; return 2 ;;
+        *) print_error "Usage : diu system {update|engine|network update}"; return 2 ;;
     esac
 }

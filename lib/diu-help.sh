@@ -46,6 +46,27 @@ diu_display_help_context() {
         return 0
     fi
 
+    if [[ "$context:$subcontext" == system:engine ]]; then
+        if [[ $# -gt 4 ]]; then
+            diu_display_command_error system engine
+            return 2
+        fi
+        case "$leaf:$target" in
+            :|install:|remove:|install:apt|install:github|install:flatpak|remove:apt|remove:github|remove:flatpak)
+                diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
+                diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
+                diu_help_line 'diu system engine update' 'Met à jour successivement les trois moteurs.'
+                diu_help_line 'diu system engine apt update' 'Met à jour le système APT et affiche son bilan.'
+                diu_help_line 'diu system engine github update' 'Vérifie GitHub et met à jour Codex CLI si configuré.'
+                diu_help_line 'diu system engine flatpak update' 'Vérifie Flatpak et Flathub.' ;;
+            update:) diu_help_line 'diu system engine update' 'Met à jour successivement les trois moteurs.' ;;
+            apt:|github:|flatpak:|apt:update|github:update|flatpak:update)
+                diu_help_line "diu system engine ${leaf} update" 'Exécute uniquement le parcours du moteur indiqué.' ;;
+            *) diu_display_command_error system engine; return 2 ;;
+        esac
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == system:network ]]; then
         if [[ $# -gt 6 || ( -n "$leaf" && "$leaf" != update && "$leaf" != hosts ) ||
               ( "$leaf" == update && -n "$target" ) ||
@@ -212,6 +233,7 @@ diu_display_help_context() {
             diu_help_line 'diu version' 'Affiche la version du DIU.'
             ;;
         softwares::)
+            diu_help_line 'diu softwares update' 'Met à jour les logiciels séparément de diu update.'
             diu_help_line 'diu softwares infos' 'Affiche les informations du module.'
             diu_help_line 'diu softwares install apt <SOFTWARE>' 'Installe un logiciel APT.'
             diu_help_line 'diu softwares remove apt <SOFTWARE>' 'Désinstalle un logiciel APT.'
@@ -230,6 +252,7 @@ diu_display_help_context() {
             diu_help_line "diu softwares ${subcontext} flatpak <SOFTWARE>" 'Opération sur un logiciel Flatpak.'
             ;;
         softwares:update:)
+            diu_help_line 'diu softwares update' 'Met à jour les logiciels ; commande indépendante de diu update.'
             diu_help_line 'diu softwares update apt [SOFTWARE]' 'Met à jour les logiciels APT.'
             diu_help_line 'diu softwares update github [SOFTWARE]' 'Met à jour les logiciels GitHub.'
             ;;
@@ -259,28 +282,16 @@ diu_display_help_context() {
             diu_help_line 'diu system remove apt <Dépôt>' 'Supprime un dépôt APT.'
             diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
             diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
-            diu_help_line 'diu system update flatpak' 'Met à jour le paquet Flatpak.'
-            diu_help_line 'diu system update apt' 'Régénère les dépôts APT.'
-            diu_help_line 'diu system apt update' 'Met à jour le système APT Debian.'
-            ;;
-        system:engine:|system:engine:install|system:engine:remove)
-            diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
-            diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
+            diu_help_line 'diu system engine update' 'Met à jour successivement les trois moteurs.'
+            diu_help_line 'diu system engine apt update' 'Met à jour le système APT Debian et affiche son bilan.'
+            diu_help_line 'diu system engine github update' 'Vérifie le moteur GitHub et met à jour Codex CLI si configuré.'
+            diu_help_line 'diu system engine flatpak update' 'Vérifie le moteur Flatpak et Flathub.'
             ;;
         system:install:|system:remove:)
             diu_help_line "diu system ${subcontext} apt <Dépôt>" 'Opération sur un dépôt APT.'
             ;;
-        system:update:flatpak)
-            diu_help_line "diu system ${subcontext} ${leaf}" "Exécute l'opération système demandée."
-            ;;
         system:update:)
-            diu_help_line 'diu system network update' 'Inclus dans la mise à jour système ; reconstruit /etc/hosts.'
-            diu_help_line 'diu system update flatpak' 'Met à jour le paquet Flatpak.'
-            diu_help_line 'diu system update apt' 'Met à jour APT.'
-            diu_help_line 'diu system update apt debian' 'Met à jour les paquets Debian.'
-            ;;
-        system:apt:|system:apt:update|system:update:apt)
-            diu_help_line 'diu system apt update' 'Met à jour le système APT Debian.'
+            diu_help_line 'diu system update' 'Met à jour APT, GitHub, Flatpak et le réseau.'
             ;;
         system:install:apt|system:remove:apt)
             diu_help_line "diu system ${subcontext} apt <Dépôt>" 'Opération sur un dépôt APT reconnu.'
@@ -440,7 +451,8 @@ diu_display_help_context() {
             diu_help_line "diu ${context} apt <SOFTWARE>" 'Opération sur un logiciel tiers.'
             ;;
         update::)
-            diu_help_line 'diu update' 'Met à jour le DIU en premier, puis les autres modules et les modèles via diu projects update.'
+            diu_help_line 'diu update' 'Met à jour DIU, système, environnements, IA et modèles via diu projects update ; sans diu softwares update.'
+            diu_help_line 'diu softwares update' 'Met à jour séparément les logiciels.'
             diu_help_line 'diu update diu' 'Alias de diu diu update.'
             ;;
         *)
@@ -463,7 +475,7 @@ diu_display_command_error() {
 
     if [[ -z "$subcontext" ]]; then
         case "$context:${action:-}" in
-            docker:root|docker:rootless|ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall|system:install|system:remove|system:update|system:apt|softwares:install|softwares:remove|softwares:update|softwares:apt|softwares:flatpak|projects:docker|projects:git|projects:gitlab|projects:github|projects:forgejo)
+            docker:root|docker:rootless|ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall|system:install|system:remove|system:update|system:engine|softwares:install|softwares:remove|softwares:update|softwares:apt|softwares:flatpak|projects:docker|projects:git|projects:gitlab|projects:github|projects:forgejo)
                 subcontext="$action"
                 ;;
         esac

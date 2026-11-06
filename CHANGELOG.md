@@ -4,6 +4,12 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased
 
+- Mise à jour système : commandes ciblées sous `diu system engine <moteur> update` et commande groupée `diu system engine update` ; les anciennes syntaxes ciblées directement sous `system` sont retirées.
+
+- Mise à jour : `diu update` ne lance plus `diu softwares update`, qui reste disponible séparément ; les aides décrivent les deux parcours.
+
+- Mise à jour système : parcours ciblés APT, GitHub et Flatpak composés par `diu system update` ; anciennes syntaxes `system update apt [debian]`, `system update debian` et `system update flatpak` supprimées.
+
 - Mise à jour système : afficher une seule ligne de bilan Codex CLI et préserver les diagnostics de la recette en cas d’échec.
 
 - Mise à jour système : ne plus présenter le message de compatibilité de l’interface APT comme une erreur de mise à jour ; les autres avertissements restent signalés.

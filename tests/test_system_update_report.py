@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SystemUpdateReportTests(unittest.TestCase):
-    def run_update(self, extra=''):
+    def run_update(self, extra='', command='system_update'):
         with tempfile.TemporaryDirectory(dir=ROOT) as fixture:
             env = dict(os.environ, ROOT=str(ROOT), FIXTURE=fixture)
             script = r'''
@@ -26,7 +26,7 @@ software_apt_chatgpt_version() {
 system_apt_update() { touch "$FIXTURE/updated"; printf 'sortie apt masquée\n'; }
 SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=0 SYSTEM_FLATPAK_ENGINE=0
 SOFTWARES_APT_CHATGPT=1
-''' + extra + '\nsystem_update\n'
+''' + extra + '\n' + command + '\n'
             return subprocess.run(['bash', '-c', script], env=env, text=True,
                                   capture_output=True)
 
@@ -111,6 +111,22 @@ software_github_codex_cli_update() { touch "$FIXTURE/codex"; }
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Codex CLI : 1 → 2', result.stdout)
         self.assertEqual(result.stdout.count('Codex CLI'), 1)
+
+    def test_universal_update_runs_system_codex_once_without_softwares(self):
+        result = self.run_update(r'''
+source "$ROOT/modules/diu/update-all.sh"
+SYSTEM_GITHUB_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+software_github_codex_cli_version() { echo 1; }
+software_github_codex_cli_update() { echo called >> "$FIXTURE/calls"; }
+diu_update() { :; }
+environments_update() { :; }
+ia_update() { :; }
+projects_update() { :; }
+softwares_update() { echo unexpected; return 9; }
+''', 'update_all; cat "$FIXTURE/calls"')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines().count('called'), 1)
+        self.assertNotIn('unexpected', result.stdout)
 
     def test_github_up_to_date_is_reported_once(self):
         result = self.run_update(r'''
