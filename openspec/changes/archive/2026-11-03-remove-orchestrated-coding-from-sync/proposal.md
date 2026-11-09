@@ -1,6 +1,6 @@
 # Retirer le protocole de la synchronisation
 
-La synchronisation unitaire et groupée ne doit plus dépendre de ORCHESTRATED_CODING.md. La création de projet conserve ses règles actuelles.
+La synchronisation unitaire et groupée ne doit plus dépendre de ancien protocole local. La création de projet conserve ses règles actuelles.
 
 ## Capabilities
 

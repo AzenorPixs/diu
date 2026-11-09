@@ -8,26 +8,43 @@ Git du modèle, tout en conservant les fichiers de travail attendus.
 
 ### Requirement: Copie d'un modèle sans dépôt Git
 
-DIU MUST copier `/home/${ENV_DEVOPS_USER}/datas/template` en excluant `project.env`, le répertoire `.git` racine, `ORCHESTRATED_CODING.md`, et `pyproject.toml` racine sauf type `PYTHON` selon projects-template-devops. Un projet Python MAY conserver ce manifeste copié. DIU MUST NOT créer, initialiser ou configurer de dépôt Git pendant cette copie.
+DIU MUST copier le modèle en excluant les entrées racine `project.env`, `.git`, `.worktrees`, `config`, `output`, `.cab-tests` et `openspec`. DIU MUST exclure `pyproject.toml` sauf pour le type PYTHON. Aucun traitement particulier ne vise l'ancien document de protocole. La copie MUST NOT initialiser ni configurer de dépôt Git.
 
 #### Scenario: Modèle contenant un dépôt Git
 
 - **WHEN** le modèle contient un répertoire `.git` à sa racine
-- **THEN** le nouveau projet ne contient ni `.git` ni `ORCHESTRATED_CODING.md`
-- **AND THEN** les autres fichiers sont copiés sous réserve du type pour `pyproject.toml`
+- **THEN** le nouveau projet ne contient pas ce dépôt Git
 
 #### Scenario: Modèle sans dépôt Git
 
 - **WHEN** le modèle ne contient pas de répertoire `.git`
-- **THEN** les autres éléments sont copiés sous réserve du type pour `pyproject.toml` et de l'exclusion de `ORCHESTRATED_CODING.md`
-- **AND THEN** aucun dépôt Git n'est créé dans le nouveau projet
+- **THEN** les éléments non exclus sont copiés et aucun dépôt Git n'est créé
 
 #### Scenario: Projet non Python depuis un modèle Python
 
-- **WHEN** le modèle contient un `pyproject.toml` racine et PROJECT_TYPE est absent ou différent de PYTHON
-- **THEN** ce manifeste n'est pas copié et `.git` et `ORCHESTRATED_CODING.md` sont exclus
+- **WHEN** le type du projet diffère de PYTHON
+- **THEN** `pyproject.toml` n'est pas copié
 
 #### Scenario: Projet Python depuis un modèle Python
 
-- **WHEN** le modèle contient un `pyproject.toml` racine et PROJECT_TYPE vaut PYTHON
-- **THEN** ce manifeste peut être copié sans modification et `.git` et `ORCHESTRATED_CODING.md` sont exclus
+- **WHEN** le type du projet est PYTHON
+- **THEN** le manifeste `pyproject.toml` peut être copié
+
+### Requirement: Dossiers locaux vierges et initialisation OpenSpec
+
+DIU MUST créer `config`, `output` et `.cab-tests` vides dans le nouveau projet, indépendamment de leur présence dans le modèle. DIU MUST initialiser OpenSpec après la copie sans reprendre le répertoire OpenSpec du modèle. Une erreur de création MUST être signalée et retourner un code non nul.
+
+#### Scenario: Modèle avec données locales
+
+- **WHEN** les dossiers locaux du modèle contiennent des fichiers
+- **THEN** le projet reçoit les trois dossiers vides sans les fichiers du modèle
+
+#### Scenario: Modèle OpenSpec existant
+
+- **WHEN** le modèle contient un dossier OpenSpec avec des données
+- **THEN** ces données ne sont pas copiées et l'initialisation OpenSpec reste appelée
+
+#### Scenario: Échec de création
+
+- **WHEN** la création d'un dossier local échoue
+- **THEN** DIU signale l'échec et ne déclare pas le projet créé

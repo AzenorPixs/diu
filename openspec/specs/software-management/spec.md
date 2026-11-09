@@ -107,15 +107,15 @@ SHALL signaler cet état sans effet de bord inattendu.
 - **THEN** DIU signale cet état sans réinstallation inutile
 
 ### Requirement: Commandes modulaires du moteur APT
-
-DIU SHALL accepter les commandes `diu softwares install apt <SOFTWARE>`,
-`diu softwares remove apt <SOFTWARE>`, `diu softwares update apt <SOFTWARE>`
-et `diu softwares apt update`.
+DIU SHALL accepter `diu softwares install apt <SOFTWARE>`, `diu softwares remove apt <SOFTWARE>` et `diu softwares update apt <SOFTWARE>`. DIU SHALL refuser `diu softwares apt update` sans lancer de mise à jour APT.
 
 #### Scenario: Commande granulaire
-
 - **WHEN** l'utilisateur invoque `diu softwares install apt <SOFTWARE>`
 - **THEN** DIU route l'action vers le moteur APT du module `softwares`
+
+#### Scenario: Ancienne commande refusée
+- **WHEN** l'utilisateur invoque `diu softwares apt update`
+- **THEN** DIU retourne une erreur sans lancer de mise à jour APT
 
 ### Requirement: Opérations granulaires idempotentes
 
@@ -138,10 +138,10 @@ arbitraire depuis l'entrée utilisateur, et SHALL propager les erreurs.
 - **THEN** DIU retourne une erreur sans appeler APT
 
 ### Requirement: Mise à jour globale APT
-`diu softwares apt update` SHALL mettre à jour tous les paquets installés avec APT. Elle SHALL NOT rejouer les fonctions granulaires `install`, `remove` ou `update` propres aux logiciels. `diu update` SHALL NOT appeler cette commande via `softwares_update`.
+`diu softwares update apt` SHALL mettre à jour tous les paquets installés avec APT avant les mises à jour sélectives applicables. `diu update` SHALL NOT appeler cette mise à jour via `softwares_update`.
 
 #### Scenario: Mise à jour globale
-- **WHEN** l'utilisateur invoque `diu softwares apt update`
+- **WHEN** l'utilisateur invoque `diu softwares update apt`
 - **THEN** DIU met à jour les paquets installés avec APT une seule fois
 
 #### Scenario: Mise à jour globale du DIU
@@ -240,20 +240,14 @@ le paquet : les mises à jour APT sont gérées globalement.
 - **AND** la ligne desktop contient `CODEX_HOME`
 
 ### Requirement: Mise à jour globale APT du module softwares
-
-`diu softwares update apt` SHALL exécuter `diu softwares apt update`, puis
-réexécuter les mises à jour sélectives des logiciels APT reconnus et installés.
-La phase sélective SHALL toujours être exécutée après la phase APT. Les
-logiciels absents ou non déclarés SHALL être ignorés sans installation.
+`diu softwares update apt` SHALL exécuter la mise à jour APT globale, puis les mises à jour sélectives des logiciels APT reconnus et installés. La phase sélective SHALL toujours être exécutée après la phase APT. Les logiciels absents ou non déclarés SHALL être ignorés sans installation.
 
 #### Scenario: Ordre des phases
-
 - **WHEN** l'utilisateur invoque `diu softwares update apt`
 - **THEN** DIU exécute d'abord la mise à jour APT globale
 - **AND** DIU exécute ensuite les mises à jour sélectives applicables
 
 #### Scenario: Logiciel absent
-
 - **WHEN** un logiciel reconnu n'est pas installé
 - **THEN** DIU ne rejoue pas sa mise à jour sélective
 - **AND** DIU ne l'installe pas

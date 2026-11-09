@@ -239,7 +239,6 @@ diu_display_help_context() {
             diu_help_line 'diu softwares install apt <SOFTWARE>' 'Installe un logiciel APT.'
             diu_help_line 'diu softwares remove apt <SOFTWARE>' 'Désinstalle un logiciel APT.'
             diu_help_line 'diu softwares update apt [SOFTWARE]' 'Met à jour un ou tous les logiciels APT.'
-            diu_help_line 'diu softwares apt update' 'Met à jour les paquets installés avec APT.'
             diu_help_line 'diu softwares install github <SOFTWARE>' 'Installe depuis une release GitHub.'
             diu_help_line 'diu softwares remove github <SOFTWARE>' 'Désinstalle un logiciel GitHub.'
             diu_help_line 'diu softwares update github [SOFTWARE]' 'Met à jour un ou tous les logiciels GitHub.'
@@ -256,9 +255,6 @@ diu_display_help_context() {
             diu_help_line 'diu softwares update' 'Met à jour les logiciels ; commande indépendante de diu update.'
             diu_help_line 'diu softwares update apt [SOFTWARE]' 'Met à jour les logiciels APT.'
             diu_help_line 'diu softwares update github [SOFTWARE]' 'Met à jour les logiciels GitHub.'
-            ;;
-        softwares:apt:update)
-            diu_help_line 'diu softwares apt update' 'Met à jour les paquets installés avec APT.'
             ;;
         softwares:flatpak:)
             diu_help_line 'diu softwares flatpak update' 'Met à jour les paquets installés avec Flatpak.'

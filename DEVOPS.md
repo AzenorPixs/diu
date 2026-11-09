@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-06T08:45:02Z
+Début du relevé (UTC) : 2026-11-09T09:38:43Z
 Environnement d'exécution DIU : PHYSICAL
 
 ## Configuration locale — project.env
@@ -105,7 +105,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenSpec
 
-  * 1.16.0
+  * 1.16.1
   * /home/devops/.local/npm/bin/openspec
 
 

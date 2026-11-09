@@ -81,15 +81,19 @@ La création et la mise à jour demandent également le nom, le type (BASH par
 défaut, GO, JAVASCRIPT, PERL et PYTHON sont proposés), les options Docker et
 paquet Debian (`Yes` ou `No`, `No` par défaut) et `PROJECT_VERSION` au format
 `x.y.z`. La mise à jour propose la version existante ; une version est requise
-si elle est absente. La création et la synchronisation ne copient pas
-`ORCHESTRATED_CODING.md` ; les documents existants restent intacts.
+si elle est absente.
 
-`diu projects sync <ID PROJECT>` (y compris `sync all`) initialise aussi
-`DEVELOPMENT_MAP.md` depuis le modèle, avec la personnalisation Markdown,
-uniquement si cette entrée est absente du projet. Toute version existante
-reste intacte, indépendamment du mode de pilotage. Si la copie est nécessaire,
-une source absente ou non régulière provoque une erreur avant les copies du
-modèle dans ce projet ; le parcours groupé poursuit les autres projets.
+À la création, `.worktrees/`, `config/`, `output/`, `.cab-tests/` et
+`openspec/` ne sont pas copiés depuis le modèle. Les trois dossiers `config/`,
+`output/` et `.cab-tests/` sont créés vides ; OpenSpec est initialisé ensuite.
+
+`diu projects sync <ID PROJECT>` (y compris `sync all`) synchronise uniquement
+les fichiers `AGENTS.md` et `.gitignore`. Les autres fichiers, notamment
+`DEVELOPMENT_MAP.md`, `CHANGELOG.md` et `DEVOPS.md`, restent intacts. Il crée `.cab-tests`
+à la racine du projet lorsque le dossier manque ; son contenu existant est
+conservé et aucun contenu n'est copié depuis le modèle.
+Les autres dossiers, notamment `.git`, `.worktree` et `output`, ne sont pas
+synchronisés.
 
 La création exclut le `.git` à la racine du modèle : son dépôt Git n'est pas
 transféré au nouveau projet. Les autres fichiers cachés, dont `.gitignore`,

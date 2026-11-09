@@ -433,6 +433,7 @@ forgejo_api_get /tmp /repos/owner/project
     def test_software_help_lists_available_commands(self):
         result = self.run_diu('softwares', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('diu softwares apt update', result.stdout)
         self.assertIn('diu softwares install apt <SOFTWARE>', result.stdout)
         self.assertIn('diu softwares update github [SOFTWARE]', result.stdout)
         self.assertIn('diu softwares flatpak update', result.stdout)

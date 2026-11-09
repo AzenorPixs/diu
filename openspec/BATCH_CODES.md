@@ -1,6 +1,8 @@
 # Codes de lot — Debian Installeur Unifié
 
 
+Delta SCM du 2026-11-06 : [remove-softwares-apt-update](changes/archive/2026-11-06-remove-softwares-apt-update/proposal.md), **code non attribué**, archivé ; OpenSpec strict, contrôles ciblés et 1 220 tests globaux dont 2 ignorés réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-06 : [nest-system-engine-update](changes/archive/2026-11-06-nest-system-engine-update/proposal.md), code non attribué ; archivé, 1 212 tests globaux dont 2 ignorés avec Python DevOps, tests ciblés, Bash et OpenSpec strict réussis ; sans CI/CD ; attribution ultérieure par ACL.
 Delta SCM du 2026-11-05 : [decouple-softwares-from-universal-update](changes/archive/2026-11-05-decouple-softwares-from-universal-update/proposal.md), archivé, **code non attribué** ; OpenSpec strict validé, 132 tests ciblés et 1 211 tests globaux dont 2 ignorés ; livraison à vérifier ; attribution ultérieure par ACL.
 
@@ -31,6 +33,8 @@ Delta SCM du 2026-11-04 : [rename-projects-network-hosts-commands](changes/archi
 
 Delta SCM du 2026-11-04 : [manage-production-hosts-entries](changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
+- [adjust-project-sync-local-resources](changes/archive/2026-11-06-adjust-project-sync-local-resources/proposal.md) : code non attribué ; change archivé le 2026-11-06, contrat de synchronisation et 52 tests ciblés vérifiés ; livraison non effectuée ; attribution ultérieure par ACL.
+- [isolate-created-project-directories](changes/archive/2026-11-06-isolate-created-project-directories/proposal.md) : code non attribué ; change archivé le 2026-11-06, création des dossiers locaux et 61 tests ciblés vérifiés ; livraison non effectuée ; attribution ultérieure par ACL.
 - [reconcile-cicd-git-publication](changes/reconcile-cicd-git-publication/proposal.md) : code non attribué ; change actif, réalisation testée sur fixtures, synchronisation et publication en attente au 2026-11-04 ; attribution ultérieure par ACL.
 - [handle-cicd-release-unavailability](changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; validation globale : 1 171 tests exécutés dont 2 ignorés et OpenSpec strict réussi ; attribution ultérieure par ACL.
 

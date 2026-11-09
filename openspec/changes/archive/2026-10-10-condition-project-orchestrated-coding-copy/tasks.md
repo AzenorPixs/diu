@@ -51,7 +51,7 @@
 | README.md | Présentation de Yes/No complétée avec la copie et la préservation du protocole |
 | CHANGELOG.md | Entrée Unreleased ajoutée sans version ni date de publication inventée |
 | OpenSpec | Deltas conditionnels cohérents avec les deux changes actifs réconciliés ; aucune reprise de leurs autres objectifs |
-| ORCHESTRATED_CODING.md racine | Absent, optionnel pour SCM, non créé |
+| ancien protocole local racine | Absent, optionnel pour SCM, non créé |
 
 Les témoins du routage, des modules git.sh et template.sh et des deux suites
 de tests existantes sont identiques. Le contrôle est ciblé, sans inspection Git

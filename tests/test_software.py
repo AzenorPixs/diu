@@ -112,6 +112,20 @@ class SoftwareTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                 self.assertEqual(calls, '')
 
+    def test_removed_apt_update_has_no_effect(self):
+        result, calls, _ = self.run_shell("system_apt_update() { echo apt >> \"$CALLS\"; }; manage_softwares_action apt update")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(calls, '')
+
+    def test_apt_update_preserves_global_then_selective(self):
+        result, calls, _ = self.run_shell(r'''
+system_apt_update() { echo global >> "$CALLS"; }
+software_apt_update_selective() { echo selective >> "$CALLS"; }
+manage_softwares_action update apt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['global', 'selective'])
+
     def test_apt_future_is_explicit(self):
         result, calls, _ = self.run_shell('manage_software_action install apt foo')
         self.assertEqual(result.returncode, 1)

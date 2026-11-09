@@ -34,7 +34,7 @@ exiger `DEVOPS.md`, les répertoires OpenCode du modèle ou la source CAB
 ### Requirement: Copie ciblée et autoritaire du modèle
 
 DIU MUST copier uniquement AGENTS.md, .gitignore et PROMPTS récursivement,
-et ORCHESTRATED_CODING.md seulement pour Yes lu selon
+et ancien protocole local seulement pour Yes lu selon
 implement-projects-update. Le modèle MUST écraser les éléments copiés.
 DIU MUST préserver les autres destinations et MUST NOT copier, créer,
 personnaliser, supprimer ou modifier les droits ou le propriétaire de
@@ -64,12 +64,12 @@ DEVOPS.md à la racine, en mode unitaire ou groupé.
 #### Scenario: Copie du protocole pour un projet piloté
 
 - **WHEN** le mode destination vaut Yes et le document modèle est disponible
-- **THEN** ORCHESTRATED_CODING.md est copié, personnalisé et reçoit le propriétaire du projet
+- **THEN** ancien protocole local est copié, personnalisé et reçoit le propriétaire du projet
 
 #### Scenario: Préservation du protocole pour un projet autonome
 
 - **WHEN** le mode destination vaut No ou est absent ou vide
-- **THEN** ORCHESTRATED_CODING.md n'est pas copié et sa destination existante reste intacte
+- **THEN** ancien protocole local n'est pas copié et sa destination existante reste intacte
 
 ## ADDED Requirements
 

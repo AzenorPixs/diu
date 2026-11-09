@@ -125,7 +125,7 @@ l'absence de cette entrée dans le projet créé, la préservation du marqueur
 dans le modèle et la copie de `.gitignore`. Les assertions antérieures de
 personnalisation Markdown et de préservation de project.env restent actives.
 Les suites de copie conditionnelle et de génération DevOps couvrent les règles
-existantes de ORCHESTRATED_CODING.md et pyproject.toml, ainsi que des créations
+existantes de ancien protocole local et pyproject.toml, ainsi que des créations
 depuis des modèles sans dépôt Git.
 
 | Élément | État et preuve |

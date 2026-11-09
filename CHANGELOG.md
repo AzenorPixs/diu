@@ -2,7 +2,15 @@
 
 Toutes les évolutions significatives du Debian Installer Unified seront documentées dans ce fichier.
 
-## Unreleased
+## Unreleased - date à définir
+
+- Suppression de `diu softwares apt update` ; utiliser `diu system engine apt update` ou le parcours `diu softwares update apt` selon le besoin. Les scripts appelant l’ancienne syntaxe doivent être adaptés.
+
+- Création des projets : ne pas copier les dossiers locaux ni OpenSpec du
+  modèle ; créer `config`, `output` et `.cab-tests` vides et initialiser OpenSpec.
+
+- Synchronisation des projets : seuls `AGENTS.md` et `.gitignore` sont
+  synchronisés ; créer `.cab-tests` s'il manque et préserver ses données.
 
 - Réseau : la mise à jour système affiche le résultat de reconstruction de `/etc/hosts` ; les aides réseau et hosts sont explicitées.
 
@@ -90,7 +98,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 - Création et mise à jour des projets : questionnaire harmonisé, validation
   des options Yes/No et saisie obligatoire de PROJECT_VERSION. Création et
-  synchronisation ne requièrent ni ne copient `ORCHESTRATED_CODING.md` ;
+  synchronisation ne requièrent ni ne copient `ancien protocole local` ;
   les documents déjà présents restent intacts.
 
 - CI/CD : harmonisation des informations affichées pour les publications
@@ -577,7 +585,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   tableau arithmétique simplifié, sans changement des affectations de
   configuration ni des interfaces.
 
-- Copie de `ORCHESTRATED_CODING.md` depuis le modèle uniquement pour
+- Copie de `ancien protocole local` depuis le modèle uniquement pour
   `PROJECT_ORCHESTRATED_CODING=Yes`, à la création et à la synchronisation
   unitaire ou groupée. Le document est personnalisé ; pour `No` ou une
   variable absente ou vide, aucune copie ni suppression d'une destination

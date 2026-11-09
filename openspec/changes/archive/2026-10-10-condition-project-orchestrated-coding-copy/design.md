@@ -9,7 +9,7 @@ personnalisation Markdown existante. sync all applique la décision par projet
 et conserve sa poursuite après échec.
 
 La création lit le mode après le questionnaire et avant la copie du modèle.
-Pour No elle ajoute ORCHESTRATED_CODING.md aux exclusions racine existantes,
+Pour No elle ajoute ancien protocole local aux exclusions racine existantes,
 sans remplacer l'exclusion de project.env ni celle de pyproject.toml.
 Pour Yes elle vérifie le document modèle avant de copier. Un échec conserve
 le répertoire et la configuration déjà créés ; aucune suppression automatique

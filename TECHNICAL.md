@@ -1691,21 +1691,16 @@ les options Docker et paquet Debian acceptent `Yes` ou `No`. La version
 `PROJECT_VERSION` est obligatoire et conforme au format `x.y.z` sans zéro
 initial ; une version existante est proposée par défaut. Une saisie invalide
 est redemandée et une fin d'entrée interrompt la configuration avant écriture.
-La création et la synchronisation ne copient pas `ORCHESTRATED_CODING.md` et
-la synchronisation conserve les documents déjà présents. Le lecteur du mode
-continue à valider la configuration avant copie.
+Le lecteur du mode continue à valider la configuration avant copie.
 
-`diu projects sync` synchronise `AGENTS.md`, `.gitignore`
-et copie également
-`DEVELOPMENT_MAP.md` depuis le modèle seulement si aucune entrée de ce nom
-n'existe à la racine du projet, indépendamment du mode de pilotage. Cette
-nouvelle copie est personnalisée et reçoit le propriétaire prévu. Une entrée
-existante, même un répertoire ou un lien symbolique pendant, reste intacte
-(contenu, droits, propriétaire et date de modification). La source n'est
-exigée comme fichier régulier que si une copie est nécessaire ; sinon,
-son absence est sans effet. Une source requise absente ou non régulière
-provoque un échec avant toute copie dans ce projet. `sync all` applique cette
-décision par projet et poursuit après les échecs avec un code global non nul.
+`diu projects sync` synchronise `AGENTS.md` et `.gitignore`.
+Il ne copie ni ne modifie `DEVELOPMENT_MAP.md`, `CHANGELOG.md` ou `DEVOPS.md`
+et n'exige pas leur présence dans le modèle, en mode unitaire comme groupé.
+La synchronisation crée aussi un dossier `.cab-tests` vide à la racine du
+projet lorsqu'il manque, sans consulter son éventuel contenu dans le modèle.
+Un dossier existant et ses données restent intacts. Une erreur de création ou
+de changement du propriétaire du nouveau dossier est signalée ; les écritures
+déjà effectuées ne sont pas annulées.
 En mode unitaire ou groupé,
 `PROMPTS/` n'est plus exigé dans le modèle et reste exclu de la synchronisation :
 une destination existante est préservée, y compris ses droits et son propriétaire,
@@ -1720,7 +1715,10 @@ La référence est `openspec/specs/projects-sync/spec.md`.
 À la création, `create_project` exclut également l'entrée `.git` à la racine
 du modèle dans sa sélection `find`, avant la copie récursive par `cp -a`.
 Les autres fichiers cachés, dont `.gitignore`, sont conservés ; les exclusions
-existantes de `project.env` et des documents conditionnels restent applicables.
+de `project.env`, `.worktrees`, `config`, `output`, `.cab-tests` et `openspec`
+restent applicables. Les trois dossiers `config`, `output` et `.cab-tests`
+sont créés vides avant l'initialisation OpenSpec et la génération DevOps.
+Le manifeste `pyproject.toml` reste conditionné au type Python.
 Aucune opération Git n'est lancée par cette copie. L'exclusion ne concerne
 pas les `.git` imbriqués et ne modifie aucun projet existant. La référence est
 `openspec/specs/projects-template-creation/spec.md`.
