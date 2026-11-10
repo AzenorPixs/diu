@@ -471,7 +471,11 @@ runuser() {
             result = subprocess.run(['bash', str(ROOT / 'root-install-debian.sh'), *command, 'help'],
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, (command, result.stderr))
-            self.assertIn('PROJECT_VERSION=x.y.z', result.stdout)
+            if len(command) == 3 and command[1] in ('forgejo', 'github', 'gitlab') and command[2] == 'push':
+                self.assertIn('PROJECT_VERSION reste inchangée', result.stdout)
+                self.assertIn('horodatage si absente', result.stdout)
+            else:
+                self.assertIn('PROJECT_VERSION=x.y.z', result.stdout)
             self.assertNotIn('variables.sh', result.stderr)
 
 

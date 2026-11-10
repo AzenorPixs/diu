@@ -8,12 +8,12 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-VARIABLE = 'SOFTWARES_CROWDSEC_BOUNCER_API_KEY'
+VARIABLE = 'SOFTWARE_APT_CROWDSEC_BOUNCER_API_KEY'
 
 
 class CrowdsecApiKeyTests(unittest.TestCase):
     def run_module(self, directory, body, **values):
-        module = (ROOT / 'modules/diu/variables/softwares/software_crowdsec_bouncer_api_key.sh').read_text()
+        module = (ROOT / 'modules/diu/variables/softwares/desired_crowdsec_secret.sh').read_text()
         module = module.replace(
             'variable_config_file="/root/diu/config/${scope}.env"',
             'variable_config_file="$TEST_CONFIG"')
@@ -21,8 +21,12 @@ class CrowdsecApiKeyTests(unittest.TestCase):
         script.write_text(module)
         env = dict(os.environ, TEST_CONFIG=str(Path(directory) / 'softwares.env'))
         env.update({name: str(value) for name, value in values.items()})
-        return subprocess.run(['bash', '-c', 'set -Eeuo pipefail\nsource "$TEST_MODULE"\n' + body],
-                              env=dict(env, TEST_MODULE=str(script)), text=True,
+        prelude = ('set -Eeuo pipefail\nsource "$TEST_ROOT/modules/softwares/desired-state.sh"\n'
+                   'source "$TEST_ROOT/modules/softwares/migration.sh"\n'
+                   'source "$TEST_ROOT/modules/softwares/global-declarations.sh"\n'
+                   'software_secure_sensitive_configuration "$TEST_CONFIG"\nsource "$TEST_MODULE"\n')
+        return subprocess.run(['bash', '-c', prelude + body],
+                              env=dict(env, TEST_MODULE=str(script), TEST_ROOT=str(ROOT)), text=True,
                               capture_output=True)
 
     def test_empty_default_is_persisted_without_logging(self):
@@ -39,7 +43,7 @@ class CrowdsecApiKeyTests(unittest.TestCase):
             config.write_text(f'export {VARIABLE}=synthetic-Key_123\n')
             config.chmod(0o644)
             result = self.run_module(directory, f'[[ "${{{VARIABLE}}}" == synthetic-Key_123 ]]',
-                                     SOFTWARES_CROWDSEC_BOUNCER_API_KEY='synthetic-Key_123')
+                                     SOFTWARE_APT_CROWDSEC_BOUNCER_API_KEY='synthetic-Key_123')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(config.stat().st_mode & 0o777, 0o600)
             self.assertEqual(result.stdout, '')

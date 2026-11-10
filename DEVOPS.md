@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-05T22:17:08Z
+Début du relevé (UTC) : 2026-11-10T18:43:16Z
 Environnement d'exécution DIU : PROXMOX
 
 ## Configuration locale — project.env
@@ -117,14 +117,14 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenCode
 
-  * 2.2.5
+  * 2.2.7
   * /home/devops/.opencode/bin/opencode
   * La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env
 
 
 # OpenSpec
 
-  * 1.16.0
+  * 1.17.0
   * /home/devops/.local/npm/bin/openspec
 
 

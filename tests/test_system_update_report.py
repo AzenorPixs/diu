@@ -23,9 +23,10 @@ system_update_package_versions() {
 software_apt_chatgpt_version() {
     if [[ -f "$FIXTURE/updated" ]]; then printf 2; else printf 1; fi
 }
+system_apt_update_external_applications() { :; }
 system_apt_update() { touch "$FIXTURE/updated"; printf 'sortie apt masquée\n'; }
 SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=0 SYSTEM_FLATPAK_ENGINE=0
-SOFTWARES_APT_CHATGPT=1
+SOFTWARE_APT_CHATGPT=1
 ''' + extra + '\n' + command + '\n'
             return subprocess.run(['bash', '-c', script], env=env, text=True,
                                   capture_output=True)
@@ -91,7 +92,7 @@ SOFTWARES_APT_CHATGPT=1
         self.assertIn('échec APT', result.stdout)
 
     def test_disabled_software_is_not_shown(self):
-        result = self.run_update('SOFTWARES_APT_CHATGPT=0')
+        result = self.run_update('SOFTWARE_APT_CHATGPT=0')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('ChatGPT :', result.stdout)
 
@@ -104,35 +105,36 @@ SOFTWARES_APT_CHATGPT=1
 
     def test_enabled_github_software_is_updated_and_reported(self):
         result = self.run_update(r'''
-SYSTEM_GITHUB_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_CODEX_CLI=1
 software_github_codex_cli_version() { if [[ -f "$FIXTURE/codex" ]]; then echo 2; else echo 1; fi; }
-software_github_codex_cli_update() { touch "$FIXTURE/codex"; }
+system_github_update_applications() { touch "$FIXTURE/codex"; }
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Codex CLI : 1 → 2', result.stdout)
         self.assertEqual(result.stdout.count('Codex CLI'), 1)
 
-    def test_universal_update_runs_system_codex_once_without_softwares(self):
+    def test_universal_update_runs_system_codex_once_then_convergence(self):
         result = self.run_update(r'''
 source "$ROOT/modules/diu/update-all.sh"
-SYSTEM_GITHUB_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+source "$ROOT/modules/diu/update-playlist.sh"
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_CODEX_CLI=1
 software_github_codex_cli_version() { echo 1; }
-software_github_codex_cli_update() { echo called >> "$FIXTURE/calls"; }
+system_github_update_applications() { echo called >> "$FIXTURE/calls"; }
 diu_update() { :; }
 environments_update() { :; }
 ia_update() { :; }
 projects_update() { :; }
 softwares_update() { echo unexpected; return 9; }
-''', 'update_all; cat "$FIXTURE/calls"')
-        self.assertEqual(result.returncode, 0, result.stderr)
+''', 'update_all; result=$?; cat "$FIXTURE/calls"; exit "$result"')
+        self.assertEqual(result.returncode, 9, result.stderr)
         self.assertEqual(result.stdout.splitlines().count('called'), 1)
-        self.assertNotIn('unexpected', result.stdout)
+        self.assertIn('unexpected', result.stdout)
 
     def test_github_up_to_date_is_reported_once(self):
         result = self.run_update(r'''
-SYSTEM_GITHUB_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_CODEX_CLI=1
 software_github_codex_cli_version() { echo 0.166.0; }
-software_github_codex_cli_update() { echo 'Codex CLI est déjà à jour (0.166.0).'; }
+system_github_update_applications() { echo 'Codex CLI est déjà à jour (0.166.0).'; }
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.count('Codex CLI'), 1)
@@ -140,9 +142,9 @@ software_github_codex_cli_update() { echo 'Codex CLI est déjà à jour (0.166.0
 
     def test_github_failure_keeps_recipe_diagnostics(self):
         result = self.run_update(r'''
-SYSTEM_GITHUB_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_CODEX_CLI=1
 software_github_codex_cli_version() { echo 0.166.0; }
-software_github_codex_cli_update() { echo 'détail de la recette'; echo 'erreur GitHub' >&2; return 1; }
+system_github_update_applications() { echo 'détail de la recette'; echo 'erreur GitHub' >&2; return 1; }
 ''')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('détail de la recette', result.stdout)
@@ -151,7 +153,7 @@ software_github_codex_cli_update() { echo 'détail de la recette'; echo 'erreur 
 
     def test_other_enabled_apt_software_is_reported(self):
         result = self.run_update(r'''
-SOFTWARES_APT_APACHE2=1
+SOFTWARE_APT_APACHE2=1
 system_update_package_versions() { printf 'chatgpt\t1\napache2\t2.4\n'; }
 system_apt_update() { :; }
 ''')
@@ -179,7 +181,7 @@ exit 0
 
     def test_github_version_is_visible_when_dependencies_fail(self):
         result = self.run_update(r'''
-SYSTEM_GITHUB_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_CODEX_CLI=1
 software_github_codex_cli_version() { echo 1.2; }
 system_engine_ensure_dependencies() { [[ "$1" != github ]]; }
 ''')

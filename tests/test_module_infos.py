@@ -29,7 +29,7 @@ def function_from(path, name):
 class ModuleInfosTests(unittest.TestCase):
     def run_shell(self, code, arguments=()):
         env = {k: v for k, v in os.environ.items()
-               if not k.startswith(('SYSTEM_', 'SOFTWARES_APT_CROWDSEC', 'INTERFACE_ETHERNET'))}
+               if not k.startswith(('SYSTEM_', 'SOFTWARE_APT_CROWDSEC', 'INTERFACE_ETHERNET'))}
         imports = ''.join(f'source "{ROOT}/modules/{m}/infos.sh"\n' for m in MODULES)
         return subprocess.run(['bash', '-c', 'set -Eeuo pipefail\n' + imports + code,
                                'bash', *arguments], env=env, capture_output=True, text=True)
@@ -55,19 +55,19 @@ class ModuleInfosTests(unittest.TestCase):
         self.assertIn('SYSTEM_TIME_ZONE=\n', r.stdout)
 
     def test_software_inventory_displays_names_and_colors_without_variables(self):
-        r = self.run_shell('SOFTWARES_APT_CROWDSEC=1\n'
-                           'SOFTWARES_APT_CROWDSEC_AGENT=0\n'
-                           'SOFTWARES_APT_CROWDSEC_BOUNCER=1\nsoftwares_infos')
+        r = self.run_shell('SOFTWARE_APT_CROWDSEC=1\n'
+                           'SOFTWARE_APT_CROWDSEC_AGENT=0\n'
+                           'SOFTWARE_APT_CROWDSEC_BOUNCER=1\nsoftwares_infos')
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('\x1b[32m✓\x1b[0m \x1b[32mcrowdsec ', r.stdout)
         self.assertIn('\x1b[31m✗\x1b[0m \x1b[33mcrowdsec-agent ', r.stdout)
         self.assertIn('codex-cli', r.stdout)
         self.assertIn('Flatpak', r.stdout)
-        self.assertNotIn('SOFTWARES_APT_', r.stdout)
+        self.assertNotIn('SOFTWARE_APT_', r.stdout)
 
     def test_engine_availability_and_unknown_state(self):
         r = self.run_shell("SYSTEM_GITHUB_ENGINE=1\ncommand() { [[ $2 != flatpak ]]; }\n"
-                           "unset SOFTWARES_APT_APACHE2\nsoftwares_infos")
+                           "unset SOFTWARE_APT_APACHE2\nsoftwares_infos")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('\x1b[1;32mAPT', r.stdout)
         self.assertIn('\x1b[1;32mGitHub', r.stdout)

@@ -51,10 +51,10 @@ system_apt_unofficial_detect() {
 system_apt_unofficial_legacy_value() {
     case "$1" in
         SYSTEM_APT_LEMONLDAP)
-            [[ "${SOFTWARES_APT_LEMONLDAP:-0}" == 1 ]] && printf '1' || printf '0'
+            [[ "${SOFTWARE_APT_LEMONLDAP:-0}" == 1 ]] && printf '1' || printf '0'
             ;;
         SYSTEM_APT_MONGODB)
-            if [[ "${SOFTWARES_APT_MONGODB:-0}" == 1 ]]; then
+            if [[ "${SOFTWARE_APT_MONGODB:-0}" == 1 ]]; then
                 case "${MONGODB_VERSION:-}" in
                     4|4.0|4.4) printf '4' ;;
                     5|5.0|6|6.0|7|7.0|8|8.0) printf '%s' "${MONGODB_VERSION%%.*}" ;;
@@ -65,7 +65,7 @@ system_apt_unofficial_legacy_value() {
             fi
             ;;
         SYSTEM_APT_WAZUH)
-            if [[ "${SOFTWARES_APT_WAZUH_SERVER:-0}" == 1 && "${WAZUH_SERVER_UPGRADE:-0}" == 1 ]]; then
+            if [[ "${SOFTWARE_APT_WAZUH_SERVER:-0}" == 1 && "${WAZUH_SERVER_UPGRADE:-0}" == 1 ]]; then
                 printf '4'
             else
                 printf '0'

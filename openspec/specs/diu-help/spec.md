@@ -425,8 +425,31 @@ Les aides GitHub release et CI/CD SHALL décrire Docker seul, Debian seul et le 
 - **THEN** les deux types d'artefacts et leur activation sont présentés sans lecture de configuration
 
 ### Requirement: Aide de la séparation des mises à jour
-Les aides SHALL indiquer que `diu update` ne lance pas `diu softwares update` et SHALL présenter cette dernière commande comme disponible séparément.
+Les aides SHALL indiquer que `diu update` lance la convergence `diu softwares update` en dernier et que la mise à jour des versions relève des commandes système.
 
 #### Scenario: Aide de mise à jour
 - **WHEN** l'utilisateur demande l'aide de `diu update` ou de `diu softwares update`
-- **THEN** l'aide décrit la séparation et la commande directe sans exécuter de mise à jour
+- **THEN** l'aide décrit la convergence et la commande directe sans exécuter de mise à jour
+
+### Requirement: Aide des mises à jour des moteurs système
+Les aides système et engine SHALL présenter les commandes de mise à jour groupée et ciblées sous `diu system engine`, sans présenter les anciennes syntaxes ciblées.
+
+#### Scenario: Aide de la hiérarchie engine
+- **WHEN** l'aide de `diu system` ou `diu system engine` est demandée
+- **THEN** elle présente `diu system engine update` et les trois commandes ciblées APT, GitHub et Flatpak.
+
+#### Scenario: Aide ciblée
+- **WHEN** l'aide de `diu system engine apt update`, `github update` ou `flatpak update` est demandée
+- **THEN** elle présente la commande ciblée correspondante.
+
+### Requirement: Découverte des aides réseau
+
+L'aide système SHALL distinguer l'affichage de `/etc/hosts` de la gestion du JSON et indiquer les aides contextuelles réseau disponibles.
+
+#### Scenario: Aide système
+- **WHEN** l'aide de `system` est demandée
+- **THEN** elle indique que `system network hosts` affiche `/etc/hosts` et montre comment consulter les aides réseau et hosts
+
+#### Scenario: Aide réseau
+- **WHEN** l'aide de `system network` est demandée
+- **THEN** elle présente les sous-commandes hosts et indique comment consulter leur aide

@@ -156,7 +156,7 @@ La commande `diu projects cicd <ID PROJECT> [VERSION]` SHALL accepter une versio
 - **THEN** la commande échoue avant toute écriture et sans lancer le flux
 
 ### Requirement: Reprise idempotente du CI/CD
-Le flux SHALL indiquer comme informations les étapes déjà satisfaites. Pour une version déjà attribuée, il SHALL poursuivre les étapes sur les sources isolées du commit du tag, préserver les modifications en attente, ne pas remplacer de tag ou d'artefact existant et ne pas ramener une branche distante en arrière. Les erreurs réelles SHALL rester bloquantes.
+Le flux SHALL indiquer comme informations les étapes déjà satisfaites. Pour une version déjà attribuée, il SHALL poursuivre les étapes sur les sources isolées du commit du tag, préserver les modifications en attente, préserver les artefacts existants et appliquer la règle d’autorité des tags aux références distantes. Les erreurs réelles SHALL rester bloquantes.
 
 #### Scenario: Version attribuée à un autre commit
 - **WHEN** la version demandée désigne déjà un autre commit
@@ -172,12 +172,12 @@ Le flux SHALL indiquer comme informations les étapes déjà satisfaites. Pour u
 - **THEN** ils sont préservés et exclus des sources de construction
 
 #### Scenario: Branche distante plus récente
-- **WHEN** la branche distante ne peut pas être avancée sans retour en arrière
-- **THEN** elle reste inchangée et le bilan indique l'opération ignorée
+- **WHEN** un tag distant est supérieur à la version demandée
+- **THEN** le fournisseur est refusé avant toute modification distante
 
 #### Scenario: Erreur de vérification distante
-- **WHEN** le fournisseur est inaccessible ou que son tag pointe sur un commit incohérent
-- **THEN** le flux signale l'erreur ou l'indisponibilité selon les règles applicables sans déplacer le tag
+- **WHEN** le fournisseur est inaccessible ou qu’une référence change pendant la publication
+- **THEN** le flux signale l’erreur ou l’indisponibilité selon les règles applicables
 
 #### Scenario: Immutabilité Docker non confirmée
 - **WHEN** le rejeu ne peut pas confirmer l'immutabilité du tag Docker distant

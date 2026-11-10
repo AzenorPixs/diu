@@ -50,6 +50,12 @@ if [[ "${1:-}:${2:-}" == projects:build && "${!#}" != help && "${!#}" != "?" ]];
     fi
 fi
 
+if [[ ( "${1:-}" == install || "${1:-}" == remove || "${1:-}" == update ) &&
+      ( "${2:-}" == apt || "${2:-}" == github ) ]]; then
+    printf '%s\n' 'Cette syntaxe logicielle a été supprimée. Utilisez diu softwares.' >&2
+    exit 2
+fi
+
 if [[ "${1:-}" == help || "${1:-}" == "?" ]]; then
     diu_display_help_context
     exit 0
@@ -86,8 +92,16 @@ fi
 
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/softwares/desired-state.sh"
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/softwares/migration.sh"
+# Ne jamais tracer les valeurs sensibles de la configuration.
+set +x
+software_secure_sensitive_configuration /root/diu/config/softwares.env || exit 1
+# shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/system/variables-cleanup.sh"
 config_cleanup || exit 1
+software_prepare_migration /root/diu/config/softwares.env || exit 1
 # Chargement externe ; analyse séparée, sans lecture de la configuration privée.
 # shellcheck source=/dev/null
 . "/root/diu/variables.sh"
@@ -200,12 +214,21 @@ config_cleanup || exit 1
 # shellcheck source=/dev/null
 . "$BASH_SCRIPT_PATH/modules/system/infos.sh"
 
+# Les déclarations GLOBAL utilisent les détecteurs et le catalogue de convergence.
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/softwares/bootstrap.sh"
+software_load_convergence_modules "$BASH_SCRIPT_PATH" || exit 1
+# shellcheck source=/dev/null
+. "$BASH_SCRIPT_PATH/modules/diu/update-playlist.sh"
+
 # Creer l'arborescence.
 mkdir -p "$BASH_SCRIPT_PATH/config"
 mkdir -p "$BASH_SCRIPT_PATH/deb"
 
 # Chargement de la configuration et initialisation des variables manquantes
-config_load
+config_load || exit 1
+# Les anciennes déclarations désactivées peuvent définir des fonctions historiques.
+software_load_convergence_modules "$BASH_SCRIPT_PATH" || exit 1
 
 # Vérifier qu'on est root
 if [ "$EUID" -ne 0 ]; then
@@ -490,7 +513,7 @@ dispatch_arguments() {
 
         softwares)
             shift
-            manage_softwares_action "$@"
+            software_dispatch /root/diu/config/softwares.env "$@"
             ;;
 
         update)
@@ -500,7 +523,8 @@ dispatch_arguments() {
 
         system)
             shift
-            if [[ $# -eq 3 && "$1" == network && "$2" == hosts && "$3" == update ]]; then
+            if [[ ( $# -eq 3 && "$1" == network && "$2" == hosts && "$3" == update ) ||
+                  ( $# -eq 2 && "$1" == network && "$2" == update ) ]]; then
                 if manage_system_action "$@"; then
                     exit 0
                 else
@@ -1624,8 +1648,8 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
-                    gitlab_push \
-                        "$project_id"
+                    if [[ $# -gt 4 ]]; then print_error 'Usage : diu projects gitlab push <ID PROJECT> [VERSION]'; return 2; fi
+                    projects_provider_push_direct gitlab "$project_id" "${4:-}"
                     ;;
                 release)
                     projects_gitlab_release \
@@ -1667,8 +1691,8 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
-                    github_push \
-                        "${project_id}"
+                    if [[ $# -gt 4 ]]; then print_error 'Usage : diu projects github push <ID PROJECT> [VERSION]'; return 2; fi
+                    projects_provider_push_direct github "$project_id" "${4:-}"
                     ;;
                 release)
                     projects_github_release \
@@ -1700,11 +1724,13 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
+                    if [[ $# -gt 4 || ( "${project_id}" == "all" && $# -gt 3 ) ]]; then
+                        print_error 'Usage : diu projects forgejo push <ID PROJECT> [VERSION]'; return 2
+                    fi
                     if [[ "${project_id}" == "all" ]]; then
                         forgejo_push_all
                     else
-                        forgejo_push \
-                            "${project_id}"
+                        projects_provider_push_direct forgejo "${project_id}" "${4:-}"
                     fi
                     ;;
                 release)
@@ -4751,8 +4777,9 @@ EOF
 	fi
 
   chown -R "$ENV_DEVOPS_USER":"$ENV_DEVOPS_GROUP" /home/"$ENV_DEVOPS_USER"
-  find /home/"$ENV_DEVOPS_USER" -type d -exec chmod 2775 {} +
-  find /home/"$ENV_DEVOPS_USER" -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
+  find /home/"$ENV_DEVOPS_USER" -type d -exec chmod 2770 {} +
+  find /home/"$ENV_DEVOPS_USER" -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' ! -path "/home/$ENV_DEVOPS_USER/.opencode/state/cgpt-approval-bridge/*.hmac.key" -exec chmod 0770 {} +
+  find /home/"$ENV_DEVOPS_USER" -type f -path "/home/$ENV_DEVOPS_USER/.opencode/state/cgpt-approval-bridge/*.hmac.key" -exec chmod 0770 {} + || { print_error "Normalisation de la clé HMAC CAB impossible."; return 1; }
   find /home/"$ENV_DEVOPS_USER" -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
 
   ############################################################
@@ -8021,7 +8048,7 @@ then
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -p tcp --dport 50000 -j ACCEPT" >> /root/fwon.sh
 	fi
-	if [[ "${SOFTWARES_APT_OMADA:-0}" -eq 1 ]]
+	if [[ "${SOFTWARE_APT_OMADA:-0}" -eq 1 ]]
 	then
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /etc/rc.local
 		echo "iptables -A INPUT -i $INTERFACE_SERVER -p udp --dport 19810 -j ACCEPT" >> /root/fwon.sh
@@ -8266,7 +8293,7 @@ then
 
 	fi
 
-	if [[ "${SOFTWARES_APT_CROWDSEC_BOUNCER:-0}" == "1" ]]
+	if [[ "${SOFTWARE_APT_CROWDSEC_BOUNCER:-0}" == "1" ]]
 	then
 		{
 		    echo '# RESTART CROWDSEC FIREWALL BOUNCER'
@@ -8407,5 +8434,8 @@ if [[ "${SYSTEM_DEBIAN_ENVIRONNEMENT}" == "PROXMOX" ]]; then
 fi
 
 system_info_network
+
+# Les logiciels sont convergés après la préparation des comptes et services.
+software_converge_all /root/diu/config/softwares.env || exit 1
 
 exit 0

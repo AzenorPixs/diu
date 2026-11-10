@@ -1,5 +1,9 @@
 # Cadrage technique du DIUE
 
+La normalisation DevOps applique `2770` aux répertoires et `0770` aux fichiers
+ordinaires, y compris les clés HMAC du journal CAB, sans suivre les liens ; les
+fichiers sensibles conservent leurs règles spécifiques.
+
 Les moteurs sont configurés par `SYSTEM_APT_ENGINE`, `SYSTEM_GITHUB_ENGINE` et `SYSTEM_FLATPAK_ENGINE` dans le scope system. Le défaut APT est 1 ; GitHub est initialisé par détection locale ; Flatpak reprend `SYSTEM_FLATPAK` ou conserve sa détection historique, y compris `UNSET`. Les commandes `diu system engine install|remove apt|github|flatpak` activent ou désactivent le moteur. L’activation assure les paquets requis ; la désactivation conserve les dépendances, tandis que les opérations logicielles explicites sont refusées et les mises à jour globales ignorent ce moteur. Les opérations système APT restent distinctes. La configuration est persistée après succès. Les tests isolés peuvent substituer les chemins de persistance par `SYSTEM_ENGINE_CONFIG_FILE` et `SYSTEM_FLATPAK_ENGINE_CONFIG_FILE` ; le repli historique `SYSTEM_FLATPAK_CONFIG_FILE` reste reconnu.
 
 La vue `diu infos softwares`, également appelée par `diu infos` et `diu softwares infos`, présente les logiciels déclarés sous APT, GitHub et Flatpak. Les en-têtes signalent les moteurs activés dont les dépendances locales sont disponibles ; les états 1 et 0 sont respectivement verts et jaunes, et les états inconnus portent `?`. Aucun nom de variable ou secret n’est affiché.
@@ -727,8 +731,9 @@ vers leur nouveau nom système dans `system.env`. Pour `JOURNALD_MAX_USE` et
 `JOURNALD_KEEP_FREE`, il transfère la dernière taille littérale journald
 simple, sans l’évaluer. `NO_SLEEP` suit également la migration littérale
 `0|1` sans évaluation.
-`APACHE2` est migrée séparément vers `SOFTWARES_APT_APACHE2` dans
-`softwares.env`, avec validation littérale et priorité au nouveau nom.
+`APACHE2` est d'abord reprise sous son nom historique `SOFTWARES_APT_APACHE2`,
+puis migrée vers `SOFTWARE_APT_APACHE2` dans `softwares.env`, avec validation
+littérale et priorité à une valeur cible existante.
 Les réglages `CROWDSEC_AGENT`, `SYSTEM_CROWDSEC_AGENT`,
 `CROWDSEC_BOUNCER`, `SYSTEM_APT_CROWDSEC` et `CROWDSEC_BOUNCER_API_KEY` sont
 migrés vers les noms logiciels dédiés dans `softwares.env`. Les valeurs 0/1
@@ -779,54 +784,54 @@ Le résumé de mise à jour affiche `DIU_VERSION`, déclarée dynamiquement dans
 scope `diu` depuis la version retournée par `dpkg-query` pour le paquet `diu`.
 L’ancienne valeur `VERSION_ALIAS` n’est pas transférée.
 
-Le contrôle d’installation Apache2 utilise `SOFTWARES_APT_APACHE2`, déclaré
+Le contrôle d’installation Apache2 utilise `SOFTWARE_APT_APACHE2`, déclaré
 dans le scope `softwares`; l’ancienne valeur `APACHE2` est migrée vers
 `softwares.env`.
-Le contrôle d’installation de Fastfetch utilise `SOFTWARES_APT_FASTFETCH`,
+Le contrôle d’installation de Fastfetch utilise `SOFTWARE_APT_FASTFETCH`,
 déclaré dans le scope `softwares`; l’ancienne valeur `FASTFETCH` est migrée
 vers `softwares.env`.
-Le contrôle d’installation jsvc utilise `SOFTWARES_APT_JSVC`, déclaré dans le
+Le contrôle d’installation jsvc utilise `SOFTWARE_APT_JSVC`, déclaré dans le
 scope `softwares`; l’ancienne valeur `JSVC` est migrée vers `softwares.env`.
-Le contrôle d’installation LemonLDAP-NG utilise `SOFTWARES_APT_LEMONLDAP` dans
+Le contrôle d’installation LemonLDAP-NG utilise `SOFTWARE_APT_LEMONLDAP` dans
 `softwares.env`; sa valeur initialise `SYSTEM_APT_LEMONLDAP` uniquement si le
 réglage du dépôt système n’existe pas déjà.
-Le contrôle d’installation MongoDB utilise `SOFTWARES_APT_MONGODB` dans
+Le contrôle d’installation MongoDB utilise `SOFTWARE_APT_MONGODB` dans
 `softwares.env`; `MONGODB_VERSION` reste séparé pour sélectionner la branche
 du dépôt `SYSTEM_APT_MONGODB`.
-Le contrôle OpenJDK utilise `SOFTWARES_APT_OPENJDK` dans `softwares.env`; le
+Le contrôle OpenJDK utilise `SOFTWARE_APT_OPENJDK` dans `softwares.env`; le
 point d’entrée conserve la sélection Java selon la version Debian.
-Le contrôle Omada utilise `SOFTWARES_APT_OMADA` dans `softwares.env` pour
+Le contrôle Omada utilise `SOFTWARE_APT_OMADA` dans `softwares.env` pour
 l’installation et le firewall; `OMADA_VERSION` et `SYSLOG_SERVER_SKIL_OMADA`
 restent séparés.
-Le contrôle Open vSwitch utilise `SOFTWARES_APT_OPENVSWITCH` dans
+Le contrôle Open vSwitch utilise `SOFTWARE_APT_OPENVSWITCH` dans
 `softwares.env`; l’ancienne valeur `OPENVSWITCH` y est migrée.
-Le contrôle du serveur PostgreSQL utilise `SOFTWARES_APT_POSTGRESQL` dans
+Le contrôle du serveur PostgreSQL utilise `SOFTWARE_APT_POSTGRESQL` dans
 `softwares.env`; l’ancienne valeur `POSTGRESQL` y est migrée.
-Le contrôle Postfix utilise `SOFTWARES_APT_POSTFIX` dans `softwares.env`; la
+Le contrôle Postfix utilise `SOFTWARE_APT_POSTFIX` dans `softwares.env`; la
 valeur distincte `POSTFIX_RELAY_HOST` continue à configurer le relais.
-Le contrôle de `qemu-guest-agent` utilise `SOFTWARES_APT_QEMU_GUEST_AGENT` dans
-`softwares.env`; le paquet reste désactivé par défaut.
-Le contrôle Syncthing utilise `SOFTWARES_APT_SYNCTHING` dans `softwares.env`
+Le contrôle de `qemu-guest-agent` utilise `SOFTWARE_APT_QEMU_GUEST_AGENT` dans
+`softwares.env`; son état initial est détecté lorsque la variable est absente.
+Le contrôle Syncthing utilise `SOFTWARE_APT_SYNCTHING` dans `softwares.env`
 pour l’installation du paquet ; le DIU ne crée ni ne modifie `.stignore`.
-Le contrôle Webmin utilise `SOFTWARES_APT_WEBMIN` dans `softwares.env`; son
+Le contrôle Webmin utilise `SOFTWARE_APT_WEBMIN` dans `softwares.env`; son
 dépôt APT reste contrôlé séparément par `SYSTEM_APT_WEBMIN`.
-Le contrôle de l’agent Wazuh utilise `SOFTWARES_APT_WAZUH_AGENT` dans
+Le contrôle de l’agent Wazuh utilise `SOFTWARE_APT_WAZUH_AGENT` dans
 `softwares.env`; `WAZUH_CLIENT_VERSION` reste le sélecteur de version séparé.
-Le contrôle Wazuh Server utilise `SOFTWARES_APT_WAZUH_SERVER` dans
+Le contrôle Wazuh Server utilise `SOFTWARE_APT_WAZUH_SERVER` dans
 `softwares.env`; son repli vers `SYSTEM_APT_WAZUH` respecte
 `WAZUH_SERVER_UPGRADE`.
-Le contrôle Zoom utilise `SOFTWARES_APT_ZOOM` dans `softwares.env` pour le
+Le contrôle Zoom utilise `SOFTWARE_APT_ZOOM` dans `softwares.env` pour le
 parcours de téléchargement et d’installation du paquet Debian.
-Le contrôle Zsh utilise `SOFTWARES_APT_ZSH` dans `softwares.env` pour
+Le contrôle Zsh utilise `SOFTWARE_APT_ZSH` dans `softwares.env` pour
 l’installation et la configuration de Zsh/Fish.
 Le contrôle de `/etc/rc.local` utilise `SYSTEM_RC_LOCAL` dans `system.env`;
 l’ancienne valeur `RCLOCAL=0|1` y est migrée.
-Le client rsyslog utilise `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env`;
+Le client rsyslog utilise `SOFTWARE_APT_SYSLOG_CLIENT` dans `softwares.env`;
 `SYSLOG_CLIENT_SERVER` conserve l’adresse distante.
-Le serveur rsyslog utilise `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env`;
+Le serveur rsyslog utilise `SOFTWARE_APT_SYSLOG_SERVER` dans `softwares.env`;
 les options `SYSLOG_SERVER_SKIL_*` continuent à sélectionner les catégories de
 journaux.
-Le serveur OpenSSH utilise `SOFTWARES_APT_SSH_SERVER` dans `softwares.env`;
+Le serveur OpenSSH utilise `SOFTWARE_APT_SSH_SERVER` dans `softwares.env`;
 les clés `KEY_SSH_ADMIN` et `KEY_SSH_ACME` ne sont pas renommées.
 
 ### Déclarations unitaires
@@ -989,14 +994,12 @@ bloc et ne supprime pas un fichier `nosleep.conf` déjà présent.
 
 ### CrowdSec dans le scope logiciels
 
-Les interrupteurs `SOFTWARES_APT_CROWDSEC`,
-`SOFTWARES_APT_CROWDSEC_AGENT` et `SOFTWARES_APT_CROWDSEC_BOUNCER` sont
-déclarés dans le scope `softwares`. Le dépôt CrowdSec est configuré par APT;
-les paquets `crowdsec` et `crowdsec-firewall-bouncer-iptables` sont installés
-par APT. La clé `SOFTWARES_CROWDSEC_BOUNCER_API_KEY` est aussi stockée dans
-`softwares.env`, qui est protégé en mode `0600` dès qu'il contient la clé.
-L’application à la configuration YAML ne transmet pas la valeur dans les
-arguments d’un processus enfant ni dans la sortie.
+`SOFTWARE_APT_CROWDSEC` pilote le dépôt et les variables
+`SOFTWARE_APT_CROWDSEC_AGENT` et `SOFTWARE_APT_CROWDSEC_BOUNCER` pilotent les
+rôles. Le paquet du bouncer est conservé si l'agent en a besoin ; l'API locale
+prévaut lorsque les deux rôles sont demandés. La clé
+`SOFTWARE_APT_CROWDSEC_BOUNCER_API_KEY` est conservée dans `softwares.env`
+protégé en mode `0600` et n'est pas passée dans les arguments d'un processus.
 
 Le profil de bureau utilise `DESKTOP`, déclaré en `STATIC`, `ENABLE`, scope
 `desktop`, défaut `0`. La valeur historique `DESKTOP=0|1` est déplacée de
@@ -1267,239 +1270,43 @@ persistent les variables du scope `system`, puis régénèrent la configuration.
 
 ## Moteurs logiciels
 
-Le routage logiciel passe par `manage_software_action` pour les commandes
-génériques et par `manage_softwares_action` pour les commandes modulaires.
-Les commandes génériques reconnaissent trois moteurs : `deb`, `apt` et
-`github`. Les commandes modulaires ajoutent le moteur d'applications `flatpak`
-pour l'installation, la suppression et la mise à jour des applications système.
-La préparation du client et du remote Flatpak relève séparément du module
-`system`, selon `software-flatpak` et `system-flatpak`.
+`diu softwares install|remove <apt|flatpak|github> <logiciel>` enregistre
+respectivement l'état désiré 1 ou 0 puis applique l'opération. `diu softwares
+update <moteur> [logiciel]` compare l'état désiré à l'état réel et converge
+sans changer le désir. Sans moteur, l'ordre est APT, Flatpak, GitHub. Les
+anciennes syntaxes `diu install/remove/update apt|github` sont refusées.
 
-Les identifiants logiciels sont validés avant routage. Une recette doit être
-déclarée explicitement par le moteur ; le nom fourni par l'utilisateur ne doit
-jamais devenir directement un nom de fonction ou une commande shell.
+Les variables sont `SOFTWARE_APT_*`, `SOFTWARE_FLATPAK_*` et
+`SOFTWARE_GITHUB_*`. Les anciennes déclarations GLOBAL sont désactivées après
+migration des valeurs ; une valeur cible présente reste prioritaire. En
+l'absence d'une valeur, l'initialisation utilise l'état réel, puis les
+changements externes ne réécrivent plus le désir. Une détection ou persistance
+ambiguë interrompt la convergence concernée. Les identifiants Flatpak sont
+codés de façon réversible et les applications système existantes sont reprises
+lors du premier inventaire.
 
-### Apache2 via APT
+Les registres déclaratifs fournissent les détecteurs et traitements propres à
+chaque logiciel ; les moteurs utilisent des opérations génériques. Une coche
+verte signale un état conforme et une croix rouge un écart avant correction.
+Une simulation APT interdit les retraits non déclarés. Les versions sont mises
+à jour par `diu system engine <moteur> update`, sans modifier l'état désiré.
+Le registre APT conserve les logiciels DIU historiques, y compris les rôles
+syslog et CrowdSec. Les deux rôles syslog partagent `rsyslog` ; les fichiers
+historiques non identifiables sont préservés et les conflits signalés.
 
-`modules/diu/variables/softwares/software_apt_apache2.sh` déclare
-`SOFTWARES_APT_APACHE2` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-Une valeur existante `0` ou `1` est conservée; une valeur absente est
-persistée dans `/root/diu/config/softwares.env`. L’ancienne valeur littérale
-`APACHE2=0|1` est migrée exactement vers ce scope si aucune nouvelle valeur
-n’est déjà définie. Une valeur `1` garde l’installation Apache2 et de ses
-dépendances existantes selon la version Debian détectée.
+`SOFTWARE_GITHUB_CODEX_CLI` contrôle Codex CLI. La recette GitHub utilise les
+releases `openai/codex`, vérifie l'empreinte SHA-256 et préserve le profil
+utilisateur. Les paquets Debian externes Omada, Wazuh et Zoom sont mis à jour
+par le moteur système APT. L'enregistrement de l'agent Wazuh exige les
+paramètres sécurisés `SOFTWARE_APT_WAZUH_AGENT_MANAGER` et
+`SOFTWARE_APT_WAZUH_AGENT_REGISTRATION_PASSWORD` ; les paramètres optionnels
+`SOFTWARE_APT_WAZUH_AGENT_GROUP` et `SOFTWARE_APT_WAZUH_AGENT_PROTOCOL`
+complètent la configuration.
 
-### Fastfetch par APT
-
-`modules/diu/variables/softwares/software_apt_fastfetch.sh` déclare
-`SOFTWARES_APT_FASTFETCH` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `FASTFETCH=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
-d’entrée conserve les installations APT existantes selon la version Debian.
-
-### jsvc par APT
-
-`modules/diu/variables/softwares/software_apt_jsvc.sh` déclare
-`SOFTWARES_APT_JSVC` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `JSVC=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
-d’entrée conserve l’installation APT conditionnelle de jsvc.
-
-### LemonLDAP-NG par APT
-
-`modules/diu/variables/softwares/software_apt_lemonldap.sh` déclare
-`SOFTWARES_APT_LEMONLDAP` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `LEMONLDAP=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie. Elle sert
-aussi de repli à l’initialisation du dépôt `SYSTEM_APT_LEMONLDAP`; une valeur
-système déjà configurée reste prioritaire.
-
-### MongoDB par APT
-
-`modules/diu/variables/softwares/software_apt_mongodb.sh` déclare
-`SOFTWARES_APT_MONGODB` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `MONGODB=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie.
-`MONGODB_VERSION` reste inchangée et sélectionne la branche utilisée pour
-initialiser `SYSTEM_APT_MONGODB`; une valeur déjà configurée de ce réglage
-système reste prioritaire.
-
-### OpenJDK par APT
-
-`modules/diu/variables/softwares/software_apt_openjdk.sh` déclare
-`SOFTWARES_APT_OPENJDK` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `OPENJDK=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie. Le point
-d’entrée garde OpenJDK 17 sur Bullseye/Bookworm et OpenJDK 21 sur Trixie.
-
-### Omada
-
-`modules/diu/variables/softwares/software_apt_omada.sh` déclare
-`SOFTWARES_APT_OMADA` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `OMADA=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie. L’installation
-du paquet et les règles firewall suivent ce réglage; `OMADA_VERSION` et
-`SYSLOG_SERVER_SKIL_OMADA` ne sont pas migrées.
-
-### Open vSwitch par APT
-
-`modules/diu/variables/softwares/software_apt_openvswitch.sh` déclare
-`SOFTWARES_APT_OPENVSWITCH` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `OPENVSWITCH=0|1` est transférée exactement
-vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
-point d’entrée conserve l’installation APT conditionnelle de
-`openvswitch-switch`.
-
-### Serveur PostgreSQL par APT
-
-`modules/diu/variables/softwares/software_apt_postgresql.sh` déclare
-`SOFTWARES_APT_POSTGRESQL` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `POSTGRESQL=0|1` est transférée exactement
-vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
-point d’entrée conserve l’installation APT conditionnelle du serveur
-PostgreSQL.
-
-### Postfix par APT
-
-`modules/diu/variables/softwares/software_apt_postfix.sh` déclare
-`SOFTWARES_APT_POSTFIX` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `POSTFIX=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie.
-`POSTFIX_RELAY_HOST` reste distinct et configure `relayhost` lorsque Postfix
-est activé.
-
-### qemu-guest-agent par APT
-
-`modules/diu/variables/softwares/software_apt_qemu_guest_agent.sh` déclare
-`SOFTWARES_APT_QEMU_GUEST_AGENT` en `STATIC`, `ENABLE`, scope `softwares`,
-défaut `0`. L’ancienne valeur littérale `QEMU_GUEST_AGENT=0|1` est transférée
-exactement vers `softwares.env` si la nouvelle variable n’y est pas déjà
-définie. Le point d’entrée conserve l’installation APT conditionnelle du
-paquet `qemu-guest-agent`.
-
-### Client syslog par APT
-
-`modules/diu/variables/softwares/software_apt_syslog_client.sh` déclare
-`SOFTWARES_APT_SYSLOG_CLIENT` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `SYSLOG_CLIENT=0|1` est transférée exactement
-vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
-`SYSLOG_CLIENT_SERVER` reste distincte et indique la destination des journaux.
-
-### Serveur syslog par APT
-
-`modules/diu/variables/softwares/software_apt_syslog_server.sh` déclare
-`SOFTWARES_APT_SYSLOG_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `SYSLOG_SERVER=0|1` est transférée exactement
-vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Les
-variables `SYSLOG_SERVER_SKIL_*` restent distinctes pour configurer les
-catégories de journaux.
-
-### Serveur OpenSSH par APT
-
-`modules/diu/variables/softwares/software_apt_ssh_server.sh` déclare
-`SOFTWARES_APT_SSH_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `SSH=0|1` est transférée exactement vers
-`softwares.env` si la nouvelle variable n’y est pas déjà définie. Les blocs
-existants d’installation et de préparation des clés restent pilotés par cette
-variable; les valeurs `KEY_SSH_*` restent distinctes.
-
-### Syncthing par APT
-
-`modules/diu/variables/softwares/software_apt_syncthing.sh` déclare
-`SOFTWARES_APT_SYNCTHING` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `SYNCTHING=0|1` est transférée exactement
-vers `softwares.env` si la nouvelle variable n’y est pas déjà définie. Le
-point d’entrée conserve l’installation APT sans créer ni modifier `.stignore`.
-
-### Webmin par APT
-
-`modules/diu/variables/softwares/software_apt_webmin.sh` déclare
-`SOFTWARES_APT_WEBMIN` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `WEBMIN=0|1` est transférée exactement vers
-`softwares.env` si le nouveau nom n’y est pas déjà défini.
-`SYSTEM_APT_WEBMIN` reste le réglage distinct du dépôt tiers.
-
-### Agent Wazuh par paquet Debian
-
-`modules/diu/variables/softwares/software_apt_wazuh_agent.sh` déclare
-`SOFTWARES_APT_WAZUH_AGENT` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `WAZUH_CLIENT=0|1` est transférée exactement
-vers `softwares.env` si le nouveau nom n’y est pas déjà défini.
-`WAZUH_CLIENT_VERSION` reste inchangée et sélectionne la version du paquet.
-
-### Wazuh Server
-
-`modules/diu/variables/softwares/software_apt_wazuh_server.sh` déclare
-`SOFTWARES_APT_WAZUH_SERVER` en `STATIC`, `ENABLE`, scope `softwares`, défaut
-`0`. L’ancienne valeur littérale `WAZUH_SERVER=0|1` est transférée exactement
-vers `softwares.env` si la nouvelle variable n’y est pas déjà définie.
-`WAZUH_SERVER_UPGRADE` reste distincte et détermine le repli initial du dépôt
-`SYSTEM_APT_WAZUH`.
-
-### Zoom par paquet Debian
-
-`modules/diu/variables/softwares/software_apt_zoom.sh` déclare
-`SOFTWARES_APT_ZOOM` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `ZOOM=0|1` est transférée exactement vers
-`softwares.env` si le nouveau nom n’y est pas déjà défini. Le consommateur
-conserve le téléchargement, l’installation et la mise à jour du paquet Debian.
-
-### Contrôle système de RC.local
-
-`modules/diu/variables/system/system_rc_local.sh` déclare
-`SYSTEM_RC_LOCAL` en `STATIC`, `ENABLE`, scope `system`, défaut `0`. L’ancienne
-valeur littérale `RCLOCAL=0|1` est transférée exactement vers `system.env` si
-la nouvelle variable n’y est pas déjà définie; `/etc/rc.local` reste généré
-conditionnellement.
-
-### Zsh et Fish par APT
-
-`modules/diu/variables/softwares/software_apt_zsh.sh` déclare
-`SOFTWARES_APT_ZSH` en `STATIC`, `ENABLE`, scope `softwares`, défaut `0`.
-L’ancienne valeur littérale `ZSH=0|1` est transférée exactement vers
-`softwares.env` si le nouveau nom n’y est pas déjà défini. Le point d’entrée
-conserve l’installation APT et la configuration de Zsh, Fish et des outils
-associés.
-
-### Moteur `apt`
-
-Le moteur `apt` utilise une table de recettes explicite. La recette actuelle
-est `chatgpt` :
-
-- l'installation prépare d'abord le dépôt OpenAI/ChatGPT via le moteur
-  `system` si nécessaire, puis installe le paquet ;
-- la désinstallation retire le paquet, le dépôt associé et met à jour l'état
-  persistant ;
-- la mise à jour vérifie que le logiciel est installé ;
-- la mise à jour globale combine l'actualisation APT et les recettes des
-  logiciels tiers reconnus.
-
-Un logiciel sans recette échoue explicitement sans appeler APT.
-
-`SOFTWARES_APT_CHATGPT` représente l'état persistant de l'intégration dans le
-scope `softwares`. Les anciennes variables de personnalisation de profil non
-prévues par la spécification ne doivent pas être recréées.
-
-### Moteur `github`
-
-`SOFTWARES_APT_CODEX_CLI` est `DYNAMIC` et `ENABLE` dans le scope `softwares`.
-À chaque chargement, sa valeur est recalculée depuis la présence d'un
-exécutable `codex` dans le PATH du processus DIU, puis persistée lorsque la
-configuration est accessible en écriture. Le repli est `0` ; une installation
-hors de ce PATH n'est pas détectée.
-
-La recette actuelle est `codex-cli`. Elle :
-
-- accepte uniquement Linux x86_64 ;
-- interroge la dernière release du dépôt GitHub `openai/codex` ;
-- vérifie le tag attendu, l'archive et son digest SHA-256 ;
-- installe la version validée sous `/usr/local/lib/codex` par défaut ;
-- expose le binaire via `/usr/local/bin/codex` par défaut ;
-- conserve le profil utilisateur lors d'une désinstallation ;
-- persiste son état dans `SOFTWARES_APT_CODEX_CLI` du scope `softwares`.
-
-La recette ne modifie pas `HOME` pour simuler un profil différent. Toute
-nouvelle recette doit suivre le même registre explicite et rester idempotente.
+La configuration SSH préserve les clés existantes et ajoute les clés DIU ; la
+configuration Zsh préserve le contenu existant et ne recopie pas les secrets
+vers d'autres comptes. `SYSTEM_RC_LOCAL` reste le contrôle distinct de
+`/etc/rc.local` dans le scope `system`.
 
 ## Projets et configuration Git
 
@@ -1515,11 +1322,16 @@ Les règles de packaging sont détaillées dans BUILD.md.
 Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
 une description explicite est conservée. Une version `PROJECT_VERSION` déjà attribuée déclenche
 un rejeu isolé du commit marqué, sans remplacer le tag local ni inclure les changements
-locaux en attente. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
-dépôts vérifiés, il peut être créé sur HEAD.
-Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
-qu'il désigne HEAD avant tout transport ; les branches et protections restent
-inchangées (leases Forgejo/GitHub, push normal GitLab).
+locaux en attente. Un arbre inchangé ne crée pas de commit vide ; un push ou
+CI/CD peut créer le tag local sur HEAD avant le contrôle des tags distants.
+Les pushes directs individuels préparent le commit et le tag de la version
+explicite ou d'un horodatage, sans modifier PROJECT_VERSION. Une version déjà
+attribuée utilise le rejeu isolé CI/CD. GitHub et GitLab préparent leurs
+identifiants dans le projet source avant création du clone afin de les conserver.
+La publication contrôle tous les tags distants : une version supérieure ou
+non comparable bloque le push ; sinon la branche et le tag demandé sont alignés
+sur le commit sélectionné sous lease. Une version stable prime sur un horodatage. La comparaison porte sur les tags observés avant le push ; les leases protègent la branche et le tag ciblé, pas la création concurrente d’un autre tag. Le parcours
+groupé conserve sa sélection et ses protections précédentes.
 Le build Docker produit latest et le tag VERSION. Une publication versionnée
 utilise cette image locale précise et le tag Git attendu ; une image absente
 ou un paquet de version différente bloque la publication. Les autres tags de
@@ -1551,10 +1363,10 @@ Lors d'un rejeu, le clone temporaire privé est nettoyé à la fin du flux. Le
 contexte Docker provient des fichiers suivis du commit et ne contient ni `.git`,
 ni configuration locale, ni identifiants de forge ; le build lit la configuration
 nécessaire hors de ce contexte. Le paquet Debian est conservé dans
-`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les historiques
-divergents sont fusionnés dans une copie isolée, avec priorité aux fichiers
-versionnés locaux en conflit et protection par SHA attendu lors du push. Un tag
-distant divergent est remplacé sous lease sans sauvegarde ; les artefacts de cette
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les branches
+distantes sont alignées sur le commit sélectionné après contrôle des tags et
+sous protection par SHA attendu. Un tag distant divergent est remplacé sous
+lease sans sauvegarde ; les artefacts de cette
 forge ne sont pas publiés durant cette exécution et leur cohérence doit être vérifiée.
 Les releases Debian peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
 existants restent intacts. DIU ne vérifie pas l'immutabilité des tags Docker
@@ -1691,21 +1503,16 @@ les options Docker et paquet Debian acceptent `Yes` ou `No`. La version
 `PROJECT_VERSION` est obligatoire et conforme au format `x.y.z` sans zéro
 initial ; une version existante est proposée par défaut. Une saisie invalide
 est redemandée et une fin d'entrée interrompt la configuration avant écriture.
-La création et la synchronisation ne copient pas `ORCHESTRATED_CODING.md` et
-la synchronisation conserve les documents déjà présents. Le lecteur du mode
-continue à valider la configuration avant copie.
+Le lecteur du mode continue à valider la configuration avant copie.
 
-`diu projects sync` synchronise `AGENTS.md`, `.gitignore`
-et copie également
-`DEVELOPMENT_MAP.md` depuis le modèle seulement si aucune entrée de ce nom
-n'existe à la racine du projet, indépendamment du mode de pilotage. Cette
-nouvelle copie est personnalisée et reçoit le propriétaire prévu. Une entrée
-existante, même un répertoire ou un lien symbolique pendant, reste intacte
-(contenu, droits, propriétaire et date de modification). La source n'est
-exigée comme fichier régulier que si une copie est nécessaire ; sinon,
-son absence est sans effet. Une source requise absente ou non régulière
-provoque un échec avant toute copie dans ce projet. `sync all` applique cette
-décision par projet et poursuit après les échecs avec un code global non nul.
+`diu projects sync` synchronise `AGENTS.md` et `.gitignore`.
+Il ne copie ni ne modifie `DEVELOPMENT_MAP.md`, `CHANGELOG.md` ou `DEVOPS.md`
+et n'exige pas leur présence dans le modèle, en mode unitaire comme groupé.
+La synchronisation crée aussi un dossier `.cab-tests` vide à la racine du
+projet lorsqu'il manque, sans consulter son éventuel contenu dans le modèle.
+Un dossier existant et ses données restent intacts. Une erreur de création ou
+de changement du propriétaire du nouveau dossier est signalée ; les écritures
+déjà effectuées ne sont pas annulées.
 En mode unitaire ou groupé,
 `PROMPTS/` n'est plus exigé dans le modèle et reste exclu de la synchronisation :
 une destination existante est préservée, y compris ses droits et son propriétaire,
@@ -1720,7 +1527,10 @@ La référence est `openspec/specs/projects-sync/spec.md`.
 À la création, `create_project` exclut également l'entrée `.git` à la racine
 du modèle dans sa sélection `find`, avant la copie récursive par `cp -a`.
 Les autres fichiers cachés, dont `.gitignore`, sont conservés ; les exclusions
-existantes de `project.env` et des documents conditionnels restent applicables.
+de `project.env`, `.worktrees`, `config`, `output`, `.cab-tests` et `openspec`
+restent applicables. Les trois dossiers `config`, `output` et `.cab-tests`
+sont créés vides avant l'initialisation OpenSpec et la génération DevOps.
+Le manifeste `pyproject.toml` reste conditionné au type Python.
 Aucune opération Git n'est lancée par cette copie. L'exclusion ne concerne
 pas les `.git` imbriqués et ne modifie aucun projet existant. La référence est
 `openspec/specs/projects-template-creation/spec.md`.
@@ -1947,8 +1757,10 @@ La publication vérifie le projet, `project.env`, le remote attendu, la branche
 et les identifiants avant de pousser. Les aides CLI doivent rester cohérentes
 avec les commandes `diu projects <provider> update|push`.
 
-Pour Forgejo, un dépôt existant conserve le fetch authentifié préalable et
-`--force-with-lease`. Un dépôt annoncé absent ne déclenche ni fetch ni
+Dans le parcours Forgejo classique, utilisé notamment par `forgejo push all`,
+un dépôt existant conserve le fetch authentifié préalable et `--force-with-lease`.
+Le push individuel utilise la réconciliation CI/CD décrite ci-dessus. Un dépôt
+annoncé absent ne déclenche ni fetch ni
 création API : le premier push utilise
 `--force-with-lease=refs/heads/<branche>:` pour attendre explicitement
 l'absence de la branche distante, même si une référence de suivi locale est
@@ -1985,6 +1797,9 @@ versions stables x.y.z sont prioritaires avant comparaison Debian des assets
 (nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
 Toute erreur après sélection (téléchargement, validation ou installation) bloque
 sans essai sur l'autre source. `diu update diu` est un alias compatible.
+Un résultat réussi affiche une coche et les versions, sans les détails des
+opérations ; les diagnostics capturés sont affichés en cas d'échec. Une
+installation dpkg échouée peut laisser une modification partielle du système.
 La recherche et le téléchargement activent `curl --compressed` : les
 encodages HTTP pris en charge localement, dont Zstandard lorsque disponible,
 sont décodés avant l'analyse JSON et les contrôles du paquet. Un échec de
@@ -2001,12 +1816,14 @@ Les tests de tests/test_projects.py utilisent uniquement des transports simulés
 
 ## Parcours système ciblés
 
-`diu system update` exécute les phases APT, GitHub, Flatpak puis réseau et
-agrège leurs erreurs. Les commandes `diu system apt update`, `diu system
-github update` et `diu system flatpak update` exécutent chacune leur seule
-phase. APT comprend le bilan Debian et celui du moteur ; GitHub vérifie ses
-dépendances et Codex CLI configuré ; Flatpak vérifie ses dépendances et Flathub.
-Les anciennes syntaxes `system update apt [debian]`, `system update debian`
+`diu system engine update` exécute les phases APT, GitHub et Flatpak ; `diu system update` exécute ces phases puis le réseau et
+agrège leurs erreurs. Les commandes `diu system engine apt update`, `diu system
+engine github update` et `diu system engine flatpak update` exécutent chacune leur seule
+phase. APT comprend le bilan Debian et les paquets externes gérés ; GitHub met
+à jour Codex CLI configuré ; Flatpak vérifie ses dépendances et met à jour les
+applications système.
+Les anciennes commandes ciblées `system apt update`, `system github update` et
+`system flatpak update` sont supprimées. Les anciennes syntaxes `system update apt [debian]`, `system update debian`
 et `system update flatpak` sont supprimées. Dans `diu update`, la phase GitHub
 exécute Codex CLI selon les conditions habituelles du moteur système.
 
@@ -2016,16 +1833,15 @@ exécute Codex CLI selon les conditions habituelles du moteur système.
 n'a pas d'argument. `diu update diu` reste limité à la mise à jour du DIUE.
 Une commande avec moteur explicite reste limitée à ce moteur.
 
-Le parcours actuel dans `modules/diu/update-all.sh` appelle successivement
-`diu_update`, `system_update`, `environments_update`, `ia_update`,
-`projects_update`. La mise à jour des projets décrite ci-dessus est incluse
-une seule fois. Une erreur projects est prioritaire, puis une erreur DIU ;
-si ces deux étapes réussissent, le résultat est nul. La commande indépendante
-`diu softwares update` n’est pas appelée dans ce parcours.
+Le parcours appelle successivement `diu_update`, `system_update`,
+`environments_update`, `ia_update`, `projects_update` puis `softwares_update`.
+Les erreurs sont agrégées, avec priorité à projects, DIU, système,
+environnements, IA puis logiciels. La convergence logiciels est toujours la
+dernière étape.
 
 Chaque fonction appelée définit ses propres prérequis et traitements.
 `environments_update` retourne actuellement un succès sans opération.
-`softwares_update` délègue aux moteurs APT, GitHub et Flatpak du module.
+`softwares_update` délègue aux moteurs APT, Flatpak et GitHub du module.
 `update_all` n'implémente pas d'isolation généralisée des participants, de
 signalement uniforme des modules non applicables ou de bilan global enrichi.
 La spécification de référence est `openspec/specs/universal-update/spec.md`.
@@ -2267,11 +2083,13 @@ reste à contrôler sur le poste.
 `system network hosts` affiche le fichier courant ; `system network hosts update`
 affiche une ligne de résultat avec coche verte ou croix rouge et cause courte.
 La commande ciblée conserve son code d’échec sans diagnostic générique multiligne.
+`system network update` exécute le même parcours de reconstruction et affiche
+le même résultat ; `system update` et `update` l'incluent une seule fois.
 
 `system_network_hosts` lit toujours `/root/diu/config/hosts.json`, quel que soit
 le point d'entrée. Il crée les fichiers de production et de développement
 absents avec un tableau vide, puis valide les couples de production avant la
-génération. Un JSON invalide préserve `/etc/hosts`. Les commandes `system
-network hosts` gèrent exclusivement le JSON de production ; après ajout,
+génération. Un JSON invalide préserve `/etc/hosts`. Les sous-commandes `system
+network hosts add`, `del` et `list` gèrent exclusivement le JSON de production ; après ajout,
 les couples sont triés par IP numérique puis par FQDN. Le paquet inclut un
 modèle vide comme conffile Debian.

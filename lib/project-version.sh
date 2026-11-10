@@ -114,7 +114,11 @@ PY
 project_version_commit_parameters() {
     local version_project_path="$1" selected_project_version=""
     local -n version_commit_name_ref="$2" version_commit_tag_ref="$3"
-    selected_project_version="$(project_version_get "$version_project_path/project.env")" || return 1
+    if [[ "${PROJECTS_DIRECT_PUSH_ACTIVE:-0}" == 1 ]]; then
+        selected_project_version="$PROJECTS_DIRECT_PUSH_VERSION"
+    else
+        selected_project_version="$(project_version_get "$version_project_path/project.env")" || return 1
+    fi
     if [[ -n "$selected_project_version" ]]; then
         # Sortie par référence vers le paramètre de l'appelant.
         # shellcheck disable=SC2034

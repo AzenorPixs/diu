@@ -2,7 +2,7 @@
 
 ## Why
 
-Le document ORCHESTRATED_CODING.md ne concerne que les projets pilotés.
+Le document ancien protocole local ne concerne que les projets pilotés.
 La création le copie actuellement sans condition et la synchronisation
 ne le copie jamais, indépendamment du mode enregistré pour le projet.
 

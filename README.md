@@ -1,8 +1,26 @@
 # Debian Installer Unifié (DIU)
 
+La normalisation du compte DevOps applique `2770` aux répertoires et `0770`
+aux fichiers ordinaires et aux clés HMAC du journal CAB ; les fichiers sensibles
+conservent leurs règles spécifiques.
+
 Les moteurs logiciels se pilotent avec `diu system engine install apt|github|flatpak` et `diu system engine remove apt|github|flatpak`. L’activation vérifie les dépendances et la désactivation conserve les paquets installés. L’état `SYSTEM_FLATPAK` existant est repris dans `SYSTEM_FLATPAK_ENGINE` ; `SYSTEM_APT_ENGINE` vaut 1 par défaut. La vue `diu infos softwares` tient compte de ces états.
 
 `diu infos softwares` présente les logiciels déclarés par moteur, avec un indicateur de disponibilité et la couleur de leur état configuré. La même vue figure dans `diu infos` ; `diu softwares infos` reste disponible. Un état inconnu est marqué `?`.
+
+`diu softwares install|remove <apt|flatpak|github> <logiciel>` enregistre
+l'état désiré puis installe ou désinstalle le logiciel. `diu softwares update
+<moteur> [logiciel]` compare cet état à l'état réel et corrige les écarts ;
+sans moteur, il converge APT, Flatpak puis GitHub. `diu update` exécute cette
+convergence en dernière étape. Les mises à jour de versions restent dans
+`diu system engine <moteur> update`.
+
+Les variables `SOFTWARE_APT_*`, `SOFTWARE_FLATPAK_*` et `SOFTWARE_GITHUB_*`
+sont initialisées une fois depuis l'état réel et conservent ensuite l'état
+demandé. Les anciennes valeurs sont reprises lors de la migration ; les
+anciennes syntaxes `diu install/remove/update apt|github` sont supprimées.
+Si une valeur migrée vaut 0 alors que le logiciel est installé, la première
+convergence demande sa désinstallation.
 
 Le paquet issu du constructeur historique crée le lien `diu` lors de sa
 configuration si son nom est libre. Le constructeur générique ne fournit pas
@@ -20,11 +38,12 @@ Le DIU installe et configure Debian grâce à une architecture modulaire en
 Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
-`diu system update` enchaîne les parcours `diu system apt update`,
-`diu system github update`, `diu system flatpak update`, puis la mise à jour
-réseau. Le parcours APT produit son bilan Debian ; GitHub vérifie le moteur et
+`diu system update` lance `diu system engine update` puis `diu system network update`. La mise à jour des moteurs enchaîne les parcours `diu system engine apt update`,
+`diu system engine github update` et `diu system engine flatpak update`. Le parcours APT produit son bilan Debian ; GitHub vérifie le moteur et
 met à jour Codex CLI lorsqu’il est configuré ; Flatpak vérifie ses dépendances
-et Flathub. Chaque parcours ciblé est indépendant. Les anciennes syntaxes
+et Flathub. Chaque parcours ciblé est indépendant. Les anciennes commandes
+`diu system apt update`, `diu system github update` et `diu system flatpak update`
+ne sont plus acceptées. Les anciennes syntaxes
 `diu system update apt [debian]`, `diu system update debian` et
 `diu system update flatpak` ne sont plus acceptées.
 
@@ -80,15 +99,19 @@ La création et la mise à jour demandent également le nom, le type (BASH par
 défaut, GO, JAVASCRIPT, PERL et PYTHON sont proposés), les options Docker et
 paquet Debian (`Yes` ou `No`, `No` par défaut) et `PROJECT_VERSION` au format
 `x.y.z`. La mise à jour propose la version existante ; une version est requise
-si elle est absente. La création et la synchronisation ne copient pas
-`ORCHESTRATED_CODING.md` ; les documents existants restent intacts.
+si elle est absente.
 
-`diu projects sync <ID PROJECT>` (y compris `sync all`) initialise aussi
-`DEVELOPMENT_MAP.md` depuis le modèle, avec la personnalisation Markdown,
-uniquement si cette entrée est absente du projet. Toute version existante
-reste intacte, indépendamment du mode de pilotage. Si la copie est nécessaire,
-une source absente ou non régulière provoque une erreur avant les copies du
-modèle dans ce projet ; le parcours groupé poursuit les autres projets.
+À la création, `.worktrees/`, `config/`, `output/`, `.cab-tests/` et
+`openspec/` ne sont pas copiés depuis le modèle. Les trois dossiers `config/`,
+`output/` et `.cab-tests/` sont créés vides ; OpenSpec est initialisé ensuite.
+
+`diu projects sync <ID PROJECT>` (y compris `sync all`) synchronise uniquement
+les fichiers `AGENTS.md` et `.gitignore`. Les autres fichiers, notamment
+`DEVELOPMENT_MAP.md`, `CHANGELOG.md` et `DEVOPS.md`, restent intacts. Il crée `.cab-tests`
+à la racine du projet lorsque le dossier manque ; son contenu existant est
+conservé et aucun contenu n'est copié depuis le modèle.
+Les autres dossiers, notamment `.git`, `.worktree` et `output`, ne sont pas
+synchronisés.
 
 La création exclut le `.git` à la racine du modèle : son dépôt Git n'est pas
 transféré au nouveau projet. Les autres fichiers cachés, dont `.gitignore`,
@@ -119,8 +142,10 @@ initial sur les trois entiers sauf 0. Une valeur présente vide, invalide ou
 dupliquée provoque une erreur ; sans clé, les mécanismes antérieurs restent
 inchangés. Debian utilise d'abord cette valeur, puis la recette et les tags
 selon le constructeur. Docker produit les tags VERSION et latest.
-Le tag Git est `v1.0.0` ; les pushes vérifient qu'il désigne HEAD et ne le
-remplacent jamais. Pour une nouvelle livraison après attribution d'un tag,
+Le tag Git local est `v1.0.0` et ne change pas de commit. Les pushes directs
+acceptent une version explicite ou utilisent un horodatage ; une version déjà
+attribuée est rejouée isolément. La réconciliation CI/CD peut remplacer un tag
+distant divergent sous protection de sa valeur observée. Pour une nouvelle livraison après attribution d'un tag,
 incrémenter PROJECT_VERSION. Un arbre inchangé ne crée pas de commit vide.
 Les publications Docker utilisent l'image locale versionnée et refusent une
 image absente ; les publications Debian refusent un paquet de version différente.
@@ -131,16 +156,18 @@ Le flux `diu projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
 facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
 Une version `PROJECT_VERSION` déjà attribuée est rejouée depuis une copie isolée du commit de
 son tag : les modifications locales en attente restent disponibles et ne sont
-pas incluses. Le tag local reste inchangé. Une branche distante divergente est
-fusionnée dans une copie isolée, avec priorité aux fichiers versionnés locaux
-en conflit. Un tag distant divergent est remplacé sous protection par sa valeur
-observée, sans tag de sauvegarde. Si le tag est remplacé, la publication des
+pas incluses. Le tag local reste inchangé. Avant chaque push, DIU refuse un
+tag distant supérieur ou non comparable. Sinon la branche distante est alignée
+sur le commit sélectionné et le tag divergent est remplacé, avec protection par
+leur valeur observée. Une version stable prime sur un horodatage. Le contrôle
+des autres tags est une photographie avant le push : leur création concurrente
+n’est pas couverte par le lease. Si le tag est remplacé, la publication des
 artefacts de cette forge est ignorée et leur cohérence reste à vérifier. Le paquet issu du rejeu est conservé sous
 `dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. La publication Docker
 est ignorée lors du rejeu, DIU ne vérifiant pas l'immutabilité du tag distant ;
 les publications Debian restent indépendantes. Avec un
-arbre inchangé et un tag absent de tous les dépôts vérifiés, le tag peut être
-créé sur le commit courant sans commit vide. La forme historique explicite
+arbre inchangé et un tag local absent, le tag peut être créé sur le commit
+courant sans commit vide ; les tags distants sont contrôlés avant publication. La forme historique explicite
 `diu projects cicd <ID PROJECT> <MESSAGE> <TAG>` reste disponible.
 
 Le flux exécute six étapes :
@@ -178,7 +205,7 @@ diu projects build debian <ID PROJECT>
 La syntaxe `diu projects build deb <ID PROJECT>` reste un alias compatible.
 
 Le projet fournit `build/debian-package.json`, qui décrit les métadonnées et
-les copies ; cette recette reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
+les copies ; elle peut fixer le mode octal d’un fichier et reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
 dans `project.env` doit valoir `Yes`, `YES` ou `1`. Sinon, la commande informe
 que le projet ne produit aucun paquet Debian et termine sans construction.
 Pour un projet activé, une recette absente empêche le build avec une erreur.
@@ -186,7 +213,7 @@ Le résultat est déposé dans `dist/` ; les anciens paquets de même nom et
 architecture y sont supprimés après succès. Le format et les contrôles sont
 décrits dans [BUILD.md](BUILD.md). L'aide est disponible avec
 `diu projects build debian help` ou `?`, avant bootstrap.
-La recette DIU reproduit le paquet historique ; `diu projects deb diu` et
+La recette DIU reproduit le paquet historique, avec un point d’entrée toujours exécutable ; `diu projects deb diu` et
 `rcicddiu` conservent leur fonctionnement. Aucun paquet n'est installé par le build.
 
 Pour construire une image avec `diu projects docker build <ID PROJECT>`, le
@@ -249,9 +276,18 @@ de réalignement bloque la publication. Pour un dépôt annoncé absent, le
 premier push attend explicitement l'absence de la branche distante : une
 ancienne référence de suivi locale ne le bloque plus et une création
 concurrente reste protégée. La création du dépôt dépend de l'activation
-push-to-create sur Forgejo. Les dépôts existants gardent le fetch préalable
-et les tags sont publiés sans forçage. Ces corrections s'appliquent aussi au
-parcours groupé `forgejo push all`.
+push-to-create sur Forgejo. Les pushes directs individuels réutilisent la réconciliation Git CI/CD :
+les branches et le tag demandé sont alignés sur le commit local sous lease si
+aucun tag distant supérieur ou non comparable ne bloque la publication. `forgejo push all` conserve son parcours groupé.
+
+Les commandes `diu projects forgejo|gitlab|github push <ID PROJECT> [VERSION]`
+préparent le commit et le tag avant le push. VERSION suit le format `x.y.z` ;
+sans argument, le tag utilise l'horodatage. Ce choix ne modifie pas
+`PROJECT_VERSION`. Une version déjà attribuée est rejouée depuis le commit du
+tag, en préservant les changements locaux en attente. Les identifiants GitHub
+et GitLab sont préparés dans le projet source avant le rejeu et restent
+disponibles après suppression du clone. Les artefacts associés
+à un éventuel tag distant remplacé doivent être vérifiés.
 
 Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue
 est signalée comme « serveur indisponible — publication non confirmée ».

@@ -74,7 +74,7 @@ system_apt_configure_unofficial() {
         *) print_error "Activation de dépôt APT invalide : wazuh"; return 1 ;;
     esac
     [[ "${SYSTEM_DEBIAN_RELEASE}" == bullseye ]] && mongodb_release=bullseye
-    system_apt_repository_engine "${SOFTWARES_APT_CROWDSEC:-0}" crowdsec \
+    system_apt_repository_engine "${SOFTWARE_APT_CROWDSEC:-0}" crowdsec \
         https://packagecloud.io/crowdsec/crowdsec/gpgkey deb any "" http://packagecloud.io/crowdsec/crowdsec/any || return 1
     system_apt_repository_engine "${SYSTEM_APT_DOCKER:-0}" docker \
         https://download.docker.com/linux/debian/gpg deb "${SYSTEM_DEBIAN_RELEASE}" "" https://download.docker.com/linux/debian stable || return 1
@@ -281,7 +281,7 @@ system_update_report_apt_softwares() {
         [[ -f "$file" ]] || continue
         name="${file##*/software_apt_}"; name="${name%.sh}"
         [[ "$name" == codex_cli ]] && continue
-        variable="SOFTWARES_APT_${name^^}"
+        variable="SOFTWARE_APT_${name^^}"
         [[ "${!variable:-0}" == 1 ]] || continue
         case "$name" in
             chatgpt) packages='chatgpt'; name='ChatGPT' ;;
@@ -290,7 +290,7 @@ system_update_report_apt_softwares() {
             fastfetch) packages='fastfetch neofetch' ;;
             lemonldap) packages='lemonldap-ng' ;;
             mongodb) packages='mongodb-org' ;;
-            omada) packages='omada' ;;
+            omada) packages='omadac' ;;
             openjdk) packages='openjdk-17-jre-headless openjdk-21-jre-headless' ;;
             openvswitch) packages='openvswitch-switch' ;;
             ssh_server) packages='openssh-server' ;;
@@ -329,7 +329,7 @@ system_update_engine() {
         rm -rf -- "$workdir"
         return 1
     fi
-    if [[ "$selected" == github && "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]] && declare -F software_github_codex_cli_version >/dev/null; then
+    if [[ "$selected" == github && "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]] && declare -F software_github_codex_cli_version >/dev/null; then
         before_codex="$(software_github_codex_cli_version 2>/dev/null)" || before_codex=''
     fi
     if [[ "$selected" == apt ]]; then
@@ -343,6 +343,9 @@ system_update_engine() {
     {
         if [[ "${SYSTEM_APT_ENGINE:-1}" == 1 ]]; then system_engine_ensure_dependencies apt || apt_status=$?; fi
         if (( apt_status == 0 )); then system_apt_update || apt_status=$?; fi
+        if (( apt_status == 0 )) && [[ "${SYSTEM_APT_ENGINE:-1}" == 1 ]]; then
+            system_apt_update_external_applications /root/diu/config/softwares.env || apt_status=$?
+        fi
     } > "$workdir/apt.log" 2>&1 < /dev/null
     if [[ -n "$spinner_pid" ]]; then
         kill "$spinner_pid" 2>/dev/null || :
@@ -393,7 +396,7 @@ system_update_engine() {
         esac
         if [[ "$engine" != apt ]] && ! system_engine_ensure_dependencies "$engine"; then
             printf '❌ %s : dépendances indisponibles.\n' "$label"
-            if [[ "$engine" == github && "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 ]]; then
+            if [[ "$engine" == github && "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]]; then
                 printf '   • Codex CLI : %s\n' "${before_codex:-version indisponible}"
             fi
             status=1
@@ -413,8 +416,8 @@ system_update_engine() {
             apt)
                 system_update_report_apt_softwares "$workdir/before" "$workdir/after" || status=1 ;;
             github)
-                if [[ "${SOFTWARES_APT_CODEX_CLI:-0}" == 1 && "${DIU_UPDATE_DEFER_SOFTWARES:-0}" != 1 ]]; then
-                    if ! software_github_codex_cli_update > "$workdir/codex.log"; then
+                if [[ "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]]; then
+                    if ! system_github_update_applications /root/diu/config/softwares.env > "$workdir/codex.log"; then
                         cat "$workdir/codex.log"
                         printf '%s\n' '   ❌ Codex CLI : mise à jour échouée.'
                         status=1
@@ -424,6 +427,8 @@ system_update_engine() {
                     elif [[ -n "$before_codex" && "$before_codex" != "$after_codex" ]]; then printf '   • Codex CLI : %s → %s\n' "$before_codex" "$after_codex"
                     else printf '   • Codex CLI : %s\n' "$after_codex"; fi
                 fi ;;
+            flatpak)
+                system_flatpak_update_applications || status=1 ;;
         esac
     done
     rm -rf -- "$workdir"
@@ -431,11 +436,17 @@ system_update_engine() {
 }
 
 
-system_update() {
+system_engines_update() {
     local status=0 engine
     for engine in apt github flatpak; do
         system_update_engine "$engine" || status=1
     done
+    return "$status"
+}
+
+system_update() {
+    local status=0
+    system_engines_update || status=1
     system_network_update || status=1
     return "$status"
 }
@@ -512,7 +523,7 @@ system_flatpak_remove() {
 
 system_apt_repository_variable() {
     case "${1,,}" in
-        crowdsec|crodwsec) printf '%s' SOFTWARES_APT_CROWDSEC ;;
+        crowdsec|crodwsec) printf '%s' SOFTWARE_APT_CROWDSEC ;;
         docker) printf '%s' SYSTEM_APT_DOCKER ;;
         lemonldap|lemonldap-ng) printf '%s' SYSTEM_APT_LEMONLDAP ;;
         mongodb|mongodb-4|mongodb-5|mongodb-6|mongodb-7|mongodb-8) printf '%s' SYSTEM_APT_MONGODB ;;
@@ -530,7 +541,7 @@ system_apt_repository_variable() {
 system_apt_set_repository_variable() {
     local repository="$1" value="$2" variable_config_file="/root/diu/config/system.env"
     local current_line
-    [[ "$repository" == SOFTWARES_APT_CROWDSEC ]] && variable_config_file="/root/diu/config/softwares.env"
+    [[ "$repository" == SOFTWARE_APT_CROWDSEC ]] && variable_config_file="/root/diu/config/softwares.env"
     [[ "$value" =~ ^(0|1|4|5|6|7|8)$ ]] || return 1
     export "${repository}=${value}"
     if [[ -f "$variable_config_file" ]]; then
@@ -646,8 +657,18 @@ manage_system_action() {
     local action="${1:-}" repository=""
     case "$action" in
         engine)
-            [[ $# -eq 3 ]] || { print_error 'Usage : diu system engine {install|remove} {apt|github|flatpak}'; return 2; }
-            system_engine_action "$2" "$3"
+            case "${2:-}" in
+                update)
+                    [[ $# -eq 2 ]] || { print_error 'Usage : diu system engine update'; return 2; }
+                    system_engines_update ;;
+                apt|github|flatpak)
+                    [[ $# -eq 3 && "$3" == update ]] || { print_error "Usage : diu system engine $2 update"; return 2; }
+                    system_update_engine "$2" ;;
+                install|remove)
+                    [[ $# -eq 3 ]] || { print_error 'Usage : diu system engine {install|remove} {apt|github|flatpak}'; return 2; }
+                    system_engine_action "$2" "$3" ;;
+                *) print_error 'Usage : diu system engine {update|apt update|github update|flatpak update|install|remove}'; return 2 ;;
+            esac
             ;;
         network)
             shift
@@ -710,11 +731,7 @@ manage_system_action() {
             [[ $# -eq 1 ]] || { print_error 'Usage : diu system update'; return 2; }
             system_update
             ;;
-        apt|github|flatpak)
-            [[ $# -eq 2 && "$2" == update ]] || { print_error "Usage : diu system $action update"; return 2; }
-            system_update_engine "$action"
-            ;;
         '') system_update ;;
-        *) print_error "Usage : diu system {update|apt update|github update|flatpak update|network update}"; return 2 ;;
+        *) print_error "Usage : diu system {update|engine|network update}"; return 2 ;;
     esac
 }

@@ -157,10 +157,11 @@ class EnvironmentLoadOrderTests(unittest.TestCase):
             script = path / 'config.sh'
             script.write_text(SOURCE.read_text().replace('/root/diu/config', '$TEST_CONFIG_DIR'))
             env = dict(os.environ, BASH_SCRIPT_PATH=str(path),
-                       TEST_CONFIG_DIR=str(config_dir), TEST_SCRIPT=str(script))
+                       TEST_CONFIG_DIR=str(config_dir), TEST_SCRIPT=str(script), TEST_ROOT=str(ROOT))
             for name in ('ENV_DEVOPS_USER', 'ENV_DEVOPS_PROJECTS_ROOT', 'DEVOPS_PROJECTS_ROOT'):
                 env.pop(name, None)
-            command = ['bash', '-c', 'set -Eeuo pipefail; source "$TEST_SCRIPT"; '
+            command = ['bash', '-c', 'set -Eeuo pipefail; source "$TEST_ROOT/modules/softwares/desired-state.sh"; '
+                       'source "$TEST_ROOT/modules/softwares/migration.sh"; source "$TEST_SCRIPT"; '
                        'config_load; printf "%s|%s" "$ENV_DEVOPS_USER" "$ENV_DEVOPS_PROJECTS_ROOT"']
             for _ in range(2):
                 result = subprocess.run(command, env=env, text=True, capture_output=True)

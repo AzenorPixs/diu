@@ -70,7 +70,7 @@ n'a été effectué.
   dont « Copie du protocole pour un projet piloté » et « Préservation du
   protocole pour un projet autonome », auparavant omis.
 - README.md, proposal.md et design.md précisent la copie conditionnelle de
-  ORCHESTRATED_CODING.md selon implement-projects-update : Yes copie le
+  ancien protocole local selon implement-projects-update : Yes copie le
   document requis ; No, une valeur absente ou vide préserve la destination
   sans exiger la source.
 - L'exigence principale « Source de synchronisation contrôlée » est

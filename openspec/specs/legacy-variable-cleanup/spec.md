@@ -281,7 +281,7 @@ pour contrôler la création de `nosleep.conf`.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `APACHE2` vers
-`SOFTWARES_APT_APACHE2` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_APACHE2` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Une affectation nécessitant une interprétation shell SHALL bloquer le
 nettoyage sans modifier les fichiers.
 
@@ -290,13 +290,13 @@ nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `APACHE2`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_APACHE2` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_APACHE2` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: Valeur SOFTWARES_APT_APACHE2 déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_APACHE2`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_APACHE2`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur APACHE2 ambiguë
@@ -309,13 +309,13 @@ nettoyage sans modifier les fichiers.
 
 ### Requirement: Consommateur Apache2 migré
 
-Le point d’entrée SHALL utiliser `SOFTWARES_APT_APACHE2` à la place de
+Le point d’entrée SHALL utiliser `SOFTWARE_APT_APACHE2` à la place de
 `APACHE2` pour activer le bloc d’installation Apache2.
 
 #### Scenario: Utilisation du nouveau nom
 
 - **WHEN** le DIU décide d’installer Apache2
-- **THEN** il consulte `SOFTWARES_APT_APACHE2` et conserve le comportement APT
+- **THEN** il consulte `SOFTWARE_APT_APACHE2` et conserve le comportement APT
   existant
 
 ### Requirement: Migration de CROWDSEC_AGENT
@@ -330,12 +330,12 @@ Les valeurs agent/bouncer/dépôt `0` ou `1` sont préservées exactement.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `CROWDSEC_AGENT`
 - **THEN** la dernière valeur littérale `0` ou `1` est transférée exactement
-  vers `SOFTWARES_APT_CROWDSEC_AGENT` si aucune valeur nouvelle n'existe
+  vers `SOFTWARE_APT_CROWDSEC_AGENT` si aucune valeur nouvelle n'existe
 - **AND** les anciennes affectations sont supprimées
 
 #### Scenario: Nouvelle valeur CROWDSEC_AGENT déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_CROWDSEC_AGENT`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_CROWDSEC_AGENT`
 - **THEN** sa valeur reste prioritaire et n'est pas réécrite
 
 #### Scenario: Ancienne valeur CROWDSEC_AGENT ambiguë
@@ -567,7 +567,7 @@ modification des fichiers. Les paramètres suffixés `ENV_IA_USER`,
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `FASTFETCH` vers
-`SOFTWARES_APT_FASTFETCH` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_FASTFETCH` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Une affectation nécessitant une interprétation shell SHALL
 bloquer le nettoyage sans modifier les fichiers.
 
@@ -576,13 +576,13 @@ bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `FASTFETCH`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_FASTFETCH` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_FASTFETCH` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: Valeur SOFTWARES_APT_FASTFETCH déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_FASTFETCH`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_FASTFETCH`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur FASTFETCH ambiguë
@@ -597,7 +597,7 @@ bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `JSVC` vers
-`SOFTWARES_APT_JSVC` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_JSVC` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Une affectation nécessitant une interprétation shell SHALL bloquer le
 nettoyage sans modifier les fichiers.
 
@@ -606,12 +606,12 @@ nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `JSVC`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_JSVC` dans `softwares.env` si aucune nouvelle valeur n’existe
+  `SOFTWARE_APT_JSVC` dans `softwares.env` si aucune nouvelle valeur n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_JSVC déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_JSVC`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_JSVC`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur JSVC ambiguë
@@ -626,7 +626,7 @@ nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `LEMONLDAP` vers
-`SOFTWARES_APT_LEMONLDAP` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_LEMONLDAP` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Une affectation nécessitant une interprétation shell SHALL
 bloquer le nettoyage sans modifier les fichiers.
 
@@ -635,13 +635,13 @@ bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `LEMONLDAP`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_LEMONLDAP` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_LEMONLDAP` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_LEMONLDAP déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_LEMONLDAP`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_LEMONLDAP`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur LEMONLDAP ambiguë
@@ -656,7 +656,7 @@ bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `MONGODB` vers
-`SOFTWARES_APT_MONGODB` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_MONGODB` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Il SHALL préserver `MONGODB_VERSION`. Une affectation nécessitant une
 interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
@@ -665,14 +665,14 @@ interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `MONGODB`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_MONGODB` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_MONGODB` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** une affectation `MONGODB_VERSION` SHALL rester inchangée
 
 #### Scenario: SOFTWARES_APT_MONGODB déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_MONGODB`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_MONGODB`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur MONGODB ambiguë
@@ -687,7 +687,7 @@ interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `OPENJDK` vers
-`SOFTWARES_APT_OPENJDK` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_OPENJDK` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Une affectation nécessitant une interprétation shell SHALL bloquer le
 nettoyage sans modifier les fichiers.
 
@@ -696,13 +696,13 @@ nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `OPENJDK`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_OPENJDK` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_OPENJDK` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_OPENJDK déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_OPENJDK`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_OPENJDK`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur OPENJDK ambiguë
@@ -717,7 +717,7 @@ nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `OMADA` vers
-`SOFTWARES_APT_OMADA` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_OMADA` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Il SHALL préserver `OMADA_VERSION`. Une affectation nécessitant une
 interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
@@ -726,13 +726,13 @@ interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `OMADA`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_OMADA` dans `softwares.env` si aucune nouvelle valeur n’existe
+  `SOFTWARE_APT_OMADA` dans `softwares.env` si aucune nouvelle valeur n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** une affectation `OMADA_VERSION` SHALL rester inchangée
 
 #### Scenario: SOFTWARES_APT_OMADA déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_OMADA`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_OMADA`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur OMADA ambiguë
@@ -747,7 +747,7 @@ interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `OPENVSWITCH` vers
-`SOFTWARES_APT_OPENVSWITCH` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_OPENVSWITCH` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Une affectation nécessitant une interprétation shell SHALL
 bloquer le nettoyage sans modifier les fichiers.
 
@@ -756,13 +756,13 @@ bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `OPENVSWITCH`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_OPENVSWITCH` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_OPENVSWITCH` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_OPENVSWITCH déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_OPENVSWITCH`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_OPENVSWITCH`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur OPENVSWITCH ambiguë
@@ -777,7 +777,7 @@ bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `POSTGRESQL` vers
-`SOFTWARES_APT_POSTGRESQL` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_POSTGRESQL` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Une affectation nécessitant une interprétation shell SHALL
 bloquer le nettoyage sans modifier les fichiers.
 
@@ -786,13 +786,13 @@ bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `POSTGRESQL`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_POSTGRESQL` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_POSTGRESQL` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_POSTGRESQL déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_POSTGRESQL`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_POSTGRESQL`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur POSTGRESQL ambiguë
@@ -807,7 +807,7 @@ bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `POSTFIX` vers
-`SOFTWARES_APT_POSTFIX` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_POSTFIX` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Il SHALL préserver `POSTFIX_RELAY_HOST`. Une affectation nécessitant
 une interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
@@ -816,14 +816,14 @@ une interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `POSTFIX`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_POSTFIX` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_POSTFIX` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** `POSTFIX_RELAY_HOST` SHALL rester inchangée
 
 #### Scenario: SOFTWARES_APT_POSTFIX déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_POSTFIX`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_POSTFIX`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur POSTFIX ambiguë
@@ -838,7 +838,7 @@ une interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `QEMU_GUEST_AGENT` vers
-`SOFTWARES_APT_QEMU_GUEST_AGENT` dans `softwares.env` si le nouveau nom n’y est
+`SOFTWARE_APT_QEMU_GUEST_AGENT` dans `softwares.env` si le nouveau nom n’y est
 pas déjà déclaré. Une affectation nécessitant une interprétation shell SHALL
 bloquer le nettoyage sans modifier les fichiers.
 
@@ -847,13 +847,13 @@ bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `QEMU_GUEST_AGENT`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_QEMU_GUEST_AGENT` dans `softwares.env` si aucune nouvelle
+  `SOFTWARE_APT_QEMU_GUEST_AGENT` dans `softwares.env` si aucune nouvelle
   valeur n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_QEMU_GUEST_AGENT déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_QEMU_GUEST_AGENT`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_QEMU_GUEST_AGENT`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur ambiguë
@@ -868,7 +868,7 @@ bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `SYSLOG_CLIENT` vers
-`SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env` si le nouveau nom n’y est
+`SOFTWARE_APT_SYSLOG_CLIENT` dans `softwares.env` si le nouveau nom n’y est
 pas déjà déclaré. Il SHALL préserver `SYSLOG_CLIENT_SERVER`. Une affectation
 nécessitant une interprétation shell SHALL bloquer le nettoyage sans modifier
 les fichiers.
@@ -878,14 +878,14 @@ les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `SYSLOG_CLIENT`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_SYSLOG_CLIENT` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_SYSLOG_CLIENT` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** `SYSLOG_CLIENT_SERVER` SHALL rester inchangée
 
 #### Scenario: SOFTWARES_APT_SYSLOG_CLIENT déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_SYSLOG_CLIENT`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_SYSLOG_CLIENT`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur SYSLOG_CLIENT ambiguë
@@ -900,7 +900,7 @@ les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `SYSLOG_SERVER` vers
-`SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env` si le nouveau nom n’y est
+`SOFTWARE_APT_SYSLOG_SERVER` dans `softwares.env` si le nouveau nom n’y est
 pas déjà déclaré. Il SHALL préserver les variables `SYSLOG_SERVER_SKIL_*`. Une
 affectation nécessitant une interprétation shell SHALL bloquer le nettoyage
 sans modifier les fichiers.
@@ -910,14 +910,14 @@ sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `SYSLOG_SERVER`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_SYSLOG_SERVER` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_SYSLOG_SERVER` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** les affectations `SYSLOG_SERVER_SKIL_*` SHALL rester inchangées
 
 #### Scenario: SOFTWARES_APT_SYSLOG_SERVER déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_SYSLOG_SERVER`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_SYSLOG_SERVER`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur SYSLOG_SERVER ambiguë
@@ -932,7 +932,7 @@ sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `SSH` vers
-`SOFTWARES_APT_SSH_SERVER` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_SSH_SERVER` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Il SHALL préserver les variables `KEY_SSH_*`. Une affectation
 nécessitant une interprétation shell SHALL bloquer le nettoyage sans modifier
 les fichiers.
@@ -942,14 +942,14 @@ les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `SSH`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_SSH_SERVER` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_SSH_SERVER` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** les affectations `KEY_SSH_*` SHALL rester inchangées
 
 #### Scenario: SOFTWARES_APT_SSH_SERVER déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_SSH_SERVER`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_SSH_SERVER`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur SSH ambiguë
@@ -964,7 +964,7 @@ les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `SYNCTHING` vers
-`SOFTWARES_APT_SYNCTHING` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_SYNCTHING` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Une affectation nécessitant une interprétation shell SHALL
 bloquer le nettoyage sans modifier les fichiers.
 
@@ -973,13 +973,13 @@ bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `SYNCTHING`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_SYNCTHING` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_SYNCTHING` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_SYNCTHING déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_SYNCTHING`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_SYNCTHING`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur SYNCTHING ambiguë
@@ -994,7 +994,7 @@ bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `WEBMIN` vers
-`SOFTWARES_APT_WEBMIN` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_WEBMIN` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Il SHALL préserver `SYSTEM_APT_WEBMIN`. Une affectation nécessitant
 une interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
@@ -1003,14 +1003,14 @@ une interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `WEBMIN`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_WEBMIN` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_WEBMIN` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** `SYSTEM_APT_WEBMIN` SHALL rester inchangée
 
 #### Scenario: SOFTWARES_APT_WEBMIN déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_WEBMIN`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_WEBMIN`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur WEBMIN ambiguë
@@ -1025,7 +1025,7 @@ une interprétation shell SHALL bloquer le nettoyage sans modifier les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `WAZUH_CLIENT` vers
-`SOFTWARES_APT_WAZUH_AGENT` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_WAZUH_AGENT` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Il SHALL préserver `WAZUH_CLIENT_VERSION`. Une affectation
 nécessitant une interprétation shell SHALL bloquer le nettoyage sans modifier
 les fichiers.
@@ -1035,14 +1035,14 @@ les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `WAZUH_CLIENT`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_WAZUH_AGENT` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_WAZUH_AGENT` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** `WAZUH_CLIENT_VERSION` SHALL rester inchangée
 
 #### Scenario: SOFTWARES_APT_WAZUH_AGENT déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_WAZUH_AGENT`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_WAZUH_AGENT`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur WAZUH_CLIENT ambiguë
@@ -1057,7 +1057,7 @@ les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `WAZUH_SERVER` vers
-`SOFTWARES_APT_WAZUH_SERVER` dans `softwares.env` si le nouveau nom n’y est pas
+`SOFTWARE_APT_WAZUH_SERVER` dans `softwares.env` si le nouveau nom n’y est pas
 déjà déclaré. Il SHALL préserver `WAZUH_SERVER_UPGRADE`. Une affectation
 nécessitant une interprétation shell SHALL bloquer le nettoyage sans modifier
 les fichiers.
@@ -1067,14 +1067,14 @@ les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `WAZUH_SERVER`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_WAZUH_SERVER` dans `softwares.env` si aucune nouvelle valeur
+  `SOFTWARE_APT_WAZUH_SERVER` dans `softwares.env` si aucune nouvelle valeur
   n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 - **AND** `WAZUH_SERVER_UPGRADE` SHALL rester inchangée
 
 #### Scenario: SOFTWARES_APT_WAZUH_SERVER déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_WAZUH_SERVER`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_WAZUH_SERVER`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur WAZUH_SERVER ambiguë
@@ -1089,7 +1089,7 @@ les fichiers.
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
 dernière valeur littérale simple `0` ou `1` de `ZOOM` vers
-`SOFTWARES_APT_ZOOM` dans `softwares.env` si le nouveau nom n’y est pas déjà
+`SOFTWARE_APT_ZOOM` dans `softwares.env` si le nouveau nom n’y est pas déjà
 déclaré. Une affectation nécessitant une interprétation shell SHALL bloquer le
 nettoyage sans modifier les fichiers.
 
@@ -1098,12 +1098,12 @@ nettoyage sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `ZOOM`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_ZOOM` dans `softwares.env` si aucune nouvelle valeur n’existe
+  `SOFTWARE_APT_ZOOM` dans `softwares.env` si aucune nouvelle valeur n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_ZOOM déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_ZOOM`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_ZOOM`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur ZOOM ambiguë
@@ -1117,7 +1117,7 @@ nettoyage sans modifier les fichiers.
 ### Requirement: Migration de ZSH vers le scope logiciels
 
 Avant de sourcer `/root/diu/variables.sh`, `config_cleanup` SHALL migrer la
-dernière valeur littérale simple `0` ou `1` de `ZSH` vers `SOFTWARES_APT_ZSH`
+dernière valeur littérale simple `0` ou `1` de `ZSH` vers `SOFTWARE_APT_ZSH`
 dans `softwares.env` si le nouveau nom n’y est pas déjà déclaré. Une
 affectation nécessitant une interprétation shell SHALL bloquer le nettoyage
 sans modifier les fichiers.
@@ -1127,12 +1127,12 @@ sans modifier les fichiers.
 - **WHEN** `variables.sh` contient une ou plusieurs affectations simples de
   `ZSH`
 - **THEN** la dernière valeur SHALL être transférée exactement vers
-  `SOFTWARES_APT_ZSH` dans `softwares.env` si aucune nouvelle valeur n’existe
+  `SOFTWARE_APT_ZSH` dans `softwares.env` si aucune nouvelle valeur n’existe
 - **AND** les anciennes affectations SHALL être supprimées
 
 #### Scenario: SOFTWARES_APT_ZSH déjà configurée
 
-- **WHEN** `softwares.env` déclare déjà `SOFTWARES_APT_ZSH`
+- **WHEN** `softwares.env` déclare déjà `SOFTWARE_APT_ZSH`
 - **THEN** cette valeur SHALL rester prioritaire et ne pas être réécrite
 
 #### Scenario: Ancienne valeur ZSH ambiguë

@@ -2,9 +2,42 @@
 
 Toutes les évolutions significatives du Debian Installer Unified seront documentées dans ce fichier.
 
-## Unreleased
+## Unreleased - date à définir
 
-- Mise à jour : `diu update` ne lance plus `diu softwares update`, qui reste disponible séparément ; les aides décrivent les deux parcours.
+- Logiciels : migration vers les états désirés `SOFTWARE_APT_*`,
+  `SOFTWARE_FLATPAK_*` et `SOFTWARE_GITHUB_*`, convergence générique par moteur,
+  conservation des logiciels pris en charge et convergence en fin de `diu update`.
+  Les mises à jour de versions relèvent du système ; les anciennes syntaxes
+  `diu install/remove/update apt|github` sont retirées.
+
+Les entrées antérieures ci-dessous décrivent les noms et comportements en
+vigueur lors de leur introduction, avant la migration logicielle ci-dessus.
+
+- Paquets Debian : la recette peut fixer le mode des fichiers ; le script DIU est installé en `0755`.
+
+- Push direct et CI/CD : refuser les tags distants supérieurs ou non comparables ; sinon aligner branche et tag sur le commit sélectionné sous lease. Les versions stables priment sur les horodatages.
+
+- Rejeu des pushes GitHub et GitLab : préparer les identifiants dans le projet source pour les conserver après suppression du clone temporaire.
+
+- Push direct Forgejo, GitLab et GitHub : version optionnelle ou horodatage, commit/tag, rejeu isolé et réconciliation Git CI/CD sous lease. PROJECT_VERSION reste inchangée.
+
+- Normaliser les répertoires DevOps en `2770` et les fichiers ordinaires, dont les clés HMAC CAB, en `0770` ; les fichiers sensibles gardent leurs règles spécifiques.
+
+- Suppression de `diu softwares apt update` ; utiliser `diu system engine apt update` ou le parcours `diu softwares update apt` selon le besoin. Les scripts appelant l’ancienne syntaxe doivent être adaptés.
+
+- Création des projets : ne pas copier les dossiers locaux ni OpenSpec du
+  modèle ; créer `config`, `output` et `.cab-tests` vides et initialiser OpenSpec.
+
+- Synchronisation des projets : seuls `AGENTS.md` et `.gitignore` sont
+  synchronisés ; créer `.cab-tests` s'il manque et préserver ses données.
+
+- Réseau : la mise à jour système affiche le résultat de reconstruction de `/etc/hosts` ; les aides réseau et hosts sont explicitées.
+
+- DIU : affichage synthétique avec coche pour une mise à jour réussie ou inutile ; les détails techniques sont réservés aux échecs.
+
+- Mise à jour système : commandes ciblées sous `diu system engine <moteur> update` et commande groupée `diu system engine update` ; les anciennes syntaxes ciblées directement sous `system` sont retirées.
+
+- Mise à jour : `diu update` lance `diu softwares update` en dernière étape ; les aides décrivent les deux parcours.
 
 - Mise à jour système : parcours ciblés APT, GitHub et Flatpak composés par `diu system update` ; anciennes syntaxes `system update apt [debian]`, `system update debian` et `system update flatpak` supprimées.
 
@@ -14,8 +47,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 - `diu system update` présente un bilan Debian et les moteurs logiciels ; les logiciels DIU activés affichent leurs versions. Les opérations APT et le nettoyage sont masqués pendant leur exécution, avec diagnostic en cas de problème. Les applications Flatpak sans variable DIU ne sont pas sélectionnées.
 
-- Codex CLI : recalculer l'état à chaque chargement selon l'exécutable présent
-  dans le PATH du DIU, y compris après une installation ou suppression externe.
+- Codex CLI : initialiser l'état depuis l'exécutable détecté, puis conserver le
+  désir dans `SOFTWARE_GITHUB_CODEX_CLI` jusqu'à une commande explicite.
 
 - Moteurs logiciels : commandes `diu system engine install|remove apt|github|flatpak`, dépendances vérifiées à l’activation et conservées à la désactivation. `SYSTEM_FLATPAK_ENGINE` reprend l’état historique ; les anciennes commandes d’installation et retrait Flatpak sont remplacées.
 
@@ -33,9 +66,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 - Réseau : `system network hosts` affiche `/etc/hosts` ; la mise à jour ciblée
   indique son résultat sur une ligne avec une coche verte ou une croix rouge.
 
-- CI/CD : réconciliation isolée des branches divergentes, priorité aux fichiers
-  versionnés locaux en conflit et remplacement des tags distants divergents sous
-  lease. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
+- CI/CD : contrôle des tags et alignement des branches et tags distants sous
+  lease sur le commit sélectionné. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
   présents sont signalés sans prétendre vérifier leur contenu.
 
 - Réseau : les commandes `system network hosts add`, `del` et `list`
@@ -84,7 +116,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 - Création et mise à jour des projets : questionnaire harmonisé, validation
   des options Yes/No et saisie obligatoire de PROJECT_VERSION. Création et
-  synchronisation ne requièrent ni ne copient `ORCHESTRATED_CODING.md` ;
+  synchronisation ne requièrent ni ne copient `ancien protocole local` ;
   les documents déjà présents restent intacts.
 
 - CI/CD : harmonisation des informations affichées pour les publications
@@ -571,7 +603,7 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
   tableau arithmétique simplifié, sans changement des affectations de
   configuration ni des interfaces.
 
-- Copie de `ORCHESTRATED_CODING.md` depuis le modèle uniquement pour
+- Copie de `ancien protocole local` depuis le modèle uniquement pour
   `PROJECT_ORCHESTRATED_CODING=Yes`, à la création et à la synchronisation
   unitaire ou groupée. Le document est personnalisé ; pour `No` ou une
   variable absente ou vide, aucune copie ni suppression d'une destination

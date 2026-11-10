@@ -62,7 +62,7 @@ cicd_project fixture automatic vautomatic
             self.assertEqual((extract / 'opt/fixture/data').read_text(), 'tagged\n')
             self.assertEqual((project / 'payload/data').read_text(), 'modified\n')
 
-    def test_missing_tag_is_pushed_without_rewinding_advanced_branch(self):
+    def test_missing_tag_aligns_advanced_branch(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:
             base = Path(temp)
             project, remote = base / 'fixture', base / 'remote.git'
@@ -83,6 +83,7 @@ cicd_project fixture automatic vautomatic
             newer = git(project, 'rev-parse', 'HEAD').stdout.strip()
             git(project, 'push', str(remote), 'main')
             git(project, 'checkout', '-q', '--detach', 'v1.0.0')
+            tagged = git(project, 'rev-parse', 'HEAD').stdout.strip()
             git(project, 'remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
             script = r'''
 set -Eeuo pipefail
@@ -107,7 +108,7 @@ projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
                                     text=True, capture_output=True, env={**os.environ, 'BARE': str(remote), 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(git(remote, 'rev-parse', 'refs/heads/main').stdout.strip(), newer)
+            self.assertEqual(git(remote, 'rev-parse', 'refs/heads/main').stdout.strip(), tagged)
             self.assertEqual(git(remote, 'rev-parse', 'refs/tags/v1.0.0^{commit}').stdout.strip(), tagged)
 
     def test_interrupt_removes_private_replay_context(self):
@@ -337,7 +338,7 @@ cicd_project fixture automatic vautomatic
             self.assertEqual(artifacts[0].read_text(), 'tagged\n')
             self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
 
-    def test_replay_preserves_remote_branch_ahead_and_existing_tag(self):
+    def test_replay_aligns_remote_branch_ahead_and_existing_tag(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:
             base = Path(temp)
             project, remote = base / 'fixture', base / 'remote.git'
@@ -357,6 +358,7 @@ cicd_project fixture automatic vautomatic
             newer = git(project, 'rev-parse', 'HEAD').stdout.strip()
             git(project, 'push', str(remote), 'main', 'refs/tags/v1.0.0')
             git(project, 'checkout', '-q', '--detach', 'v1.0.0')
+            tagged = git(project, 'rev-parse', 'HEAD').stdout.strip()
             git(project, 'remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
             script = r'''
 set -Eeuo pipefail
@@ -373,7 +375,7 @@ projects_cicd_replay_git_transport() {
   case "$operation" in
     ls-remote) shift; git -C "$path" ls-remote "$BARE" "$@" ;;
     fetch) shift 2; git -C "$path" fetch --no-tags "$BARE" "$@" ;;
-    push) printf 'unexpected push\n' >&2; return 1 ;;
+    push) shift; git -C "$path" push "$BARE" "$@" ;;
   esac
 }
 projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
@@ -382,8 +384,8 @@ printf 'STATUS:%s\n' "$PROJECTS_CICD_REPLAY_GIT_STATUS"
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
                                     text=True, capture_output=True, env={**os.environ, 'BARE': str(remote), 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('STATUS:branche conservée', result.stdout)
-            self.assertEqual(git(remote, 'rev-parse', 'refs/heads/main').stdout.strip(), newer)
+            self.assertIn('STATUS:branche alignée sur le commit local', result.stdout)
+            self.assertEqual(git(remote, 'rev-parse', 'refs/heads/main').stdout.strip(), tagged)
 
     def test_prepare_failure_removes_temporary_context(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:

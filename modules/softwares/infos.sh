@@ -8,7 +8,8 @@ softwares_infos() {
         [[ -f "$file" ]] || continue
         name="${file##*/software_apt_}"
         name="${name%.sh}"
-        variable="SOFTWARES_APT_${name^^}"
+        variable="SOFTWARE_APT_${name^^}"
+        [[ "$name" == codex_cli ]] && variable=SOFTWARE_GITHUB_CODEX_CLI
         value="${!variable-}"
         name="${name//_/-}"
         if [[ "$name" == codex-cli ]]; then

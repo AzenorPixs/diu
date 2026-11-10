@@ -14,7 +14,7 @@ modèle est une source de fichiers, pas une source de dépôt Git ; voir
 - Conserver l'exclusion de `project.env` et les substitutions Markdown.
 - Conserver l'exclusion du `pyproject.toml` racine pour un projet dont le type
   est absent ou différent de `PYTHON`, selon `projects-template-devops`, et la
-  copie conditionnelle de `ORCHESTRATED_CODING.md` selon
+  copie conditionnelle de `ancien protocole local` selon
   `implement-projects-update`.
 
 **Non-Goals:**
@@ -30,7 +30,7 @@ modèle est une source de fichiers, pas une source de dépôt Git ; voir
   et évite d'introduire une dépendance supplémentaire.
 - Préserver les décisions de copie conditionnelles existantes :
   `pyproject.toml` seulement pour un projet Python et
-  `ORCHESTRATED_CODING.md` seulement pour un projet dont le mode vaut `Yes`.
+  `ancien protocole local` seulement pour un projet dont le mode vaut `Yes`.
   L'exclusion de `.git` ne modifie pas ces décisions de copie.
 - Contrôler le résultat au moyen d'un modèle de test contenant `.git` et un
   fichier caché ordinaire. Cela vérifie l'exclusion précise sans supprimer

@@ -177,7 +177,7 @@ en cas d'échec. sync all décide par projet et poursuit après une erreur.
 | README.md | Mis à jour : condition Yes, préservation en No et source requise |
 | CHANGELOG.md | Entrée Unreleased ajoutée ; aucune version ou date de publication inventée |
 | OpenSpec | 4 ajouts, 1 modification, 7 tâches closes, 1 archive ; deux changes actifs réconciliés et conservés |
-| ORCHESTRATED_CODING.md racine | Absent, facultatif pour SCM ; non créé ni restauré |
+| ancien protocole local racine | Absent, facultatif pour SCM ; non créé ni restauré |
 
 Le canon projects-sync historique cite encore les ressources OpenCode alors
 que leur retrait est déjà implémenté et couvert par le change actif

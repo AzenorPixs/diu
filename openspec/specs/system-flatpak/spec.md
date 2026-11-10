@@ -58,14 +58,14 @@ SHALL pas persister l'état `1`.
 - **THEN** aucune commande système n'est exécutée
 
 ### Requirement: Commandes ciblées Flatpak
-DIU SHALL exposer les commandes d'activation, de désactivation et de vérification ciblée Flatpak. L'activation SHALL persister `1` après succès, la désactivation SHALL persister `0` sans retirer les dépendances. `diu system flatpak update` SHALL vérifier les dépendances et Flathub si le moteur est actif, sans lancer `flatpak update`.
+DIU SHALL exposer les commandes d'activation, de désactivation et de vérification ciblée Flatpak. L'activation SHALL persister `1` après succès, la désactivation SHALL persister `0` sans retirer les dépendances. `diu system engine flatpak update` SHALL vérifier les dépendances et Flathub si le moteur est actif, sans lancer `flatpak update`.
 
 #### Scenario: Installation ciblée
 - **WHEN** `diu system engine install flatpak` réussit
 - **THEN** l'état activé est persisté après configuration de Flathub.
 
 #### Scenario: Mise à jour ciblée absente
-- **WHEN** `diu system flatpak update` est exécuté avec moteur actif
+- **WHEN** `diu system engine flatpak update` est exécuté avec moteur actif
 - **THEN** les dépendances et Flathub sont vérifiés sans mettre à jour les applications.
 
 #### Scenario: Actions Flatpak ciblées et persistance

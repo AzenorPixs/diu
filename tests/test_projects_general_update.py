@@ -87,6 +87,7 @@ manage_project_action "$@"
         script = r'''
 source "$TEST_ROOT/modules/projects/projects.sh"
 source "$TEST_ROOT/modules/diu/update-all.sh"
+source "$TEST_ROOT/modules/diu/update-playlist.sh"
 system_update() { printf 'system\n'; }
 diu_update() { printf 'diu\n'; }
 environments_update() { printf 'environments\n'; }
@@ -96,17 +97,18 @@ softwares_update() { printf 'softwares\n'; return "$TEST_SOFTWARES_STATUS"; }
 manage_update_action
 '''
         for projects, softwares, expected in (('0', '0', 0), ('7', '0', 7),
-                                              ('0', '5', 0), ('7', '5', 7)):
+                                              ('0', '5', 5), ('7', '5', 7)):
             with self.subTest(projects=projects, softwares=softwares):
                 result = self.run_shell(script, TEST_PROJECTS_STATUS=projects,
                                         TEST_SOFTWARES_STATUS=softwares)
                 self.assertEqual(result.returncode, expected, result.stderr)
                 self.assertEqual(result.stdout.splitlines(),
-                                 ['diu', 'system', 'environments', 'ia', 'models:0'])
+                                 ['diu', 'system', 'environments', 'ia', 'models:0', 'softwares'])
 
     def test_global_update_reports_diu_failure_after_other_modules(self):
         script = r"""
 source "$TEST_ROOT/modules/diu/update-all.sh"
+source "$TEST_ROOT/modules/diu/update-playlist.sh"
 diu_update() { printf 'diu\n'; return 7; }
 system_update() { printf 'system\n'; }
 environments_update() { printf 'environments\n'; }
@@ -118,7 +120,7 @@ manage_update_action
         result = self.run_shell(script)
         self.assertEqual(result.returncode, 7, result.stderr)
         self.assertEqual(result.stdout.splitlines(),
-                         ['diu', 'system', 'environments', 'ia', 'projects'])
+                         ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
 
     def test_explicit_diu_and_software_updates_do_not_update_projects(self):
         script = r'''
@@ -128,12 +130,13 @@ diu_update() { printf 'diu-only\n'; }
 manage_software_action() { printf 'software:%s\n' "$*"; }
 manage_update_action "$@"
 '''
-        for arguments, expected in ((('diu',), 'diu-only\n'),
-                                    (('apt', 'example'), 'software:update apt example\n'),
-                                    (('github',), 'software:update github\n')):
+        for arguments, expected in ((('diu',), 'diu-only\n'),):
             result = self.run_shell(script, *arguments)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, expected)
+        for arguments in (('apt', 'example'), ('github',)):
+            result = self.run_shell(script, *arguments)
+            self.assertEqual(result.returncode, 2, result.stderr)
 
     def test_diu_update_dispatch(self):
         source = ENTRYPOINT.read_text(encoding='utf-8')
@@ -158,6 +161,7 @@ dispatch_arguments "$@"
         script = dispatch + '\n' + self.project_dispatch() + r'''
 source "$TEST_ROOT/modules/projects/projects.sh"
 source "$TEST_ROOT/modules/diu/update-all.sh"
+source "$TEST_ROOT/modules/diu/update-playlist.sh"
 system_update() { :; }
 diu_update() { :; }
 environments_update() { :; }
@@ -173,7 +177,7 @@ printf 'UNEXPECTED-INSTALLATION\n'
                     result = self.run_shell(script, *arguments, TEST_STATUS=status)
                     self.assertEqual(result.returncode, int(status), result.stderr)
                     self.assertEqual(result.stdout.count('models\n'), 1)
-                    self.assertNotIn('softwares\n', result.stdout)
+                    self.assertEqual('softwares\n' in result.stdout, arguments == ('update',))
                     self.assertNotIn('UNEXPECTED-INSTALLATION', result.stdout)
 
     def test_real_general_path_reuses_selection_order_and_counts(self):

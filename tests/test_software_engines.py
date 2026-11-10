@@ -95,11 +95,12 @@ manage_softwares_action update
         result = self.run_engine(r'''
 system_engine_ensure_dependencies() { echo "$1" >> "$FIXTURE/actions"; }
 system_apt_update() { echo system-apt >> "$FIXTURE/actions"; }
+system_apt_update_external_applications() { echo apt-external >> "$FIXTURE/actions"; }
 system_flatpak_apply() { echo flatpak-apply >> "$FIXTURE/actions"; }
 system_network_update() { echo network >> "$FIXTURE/actions"; }
 SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=0 SYSTEM_FLATPAK_ENGINE=0
 system_update
-[[ "$(cat "$FIXTURE/actions")" == $'apt\nsystem-apt\nnetwork' ]]
+[[ "$(cat "$FIXTURE/actions")" == $'apt\nsystem-apt\napt-external\nnetwork' ]]
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -120,13 +121,16 @@ system_update_engine() { echo "$1" >> "$FIXTURE/actions"; [[ "$1" != github ]]; 
 system_network_update() { echo network >> "$FIXTURE/actions"; }
 for engine in apt github flatpak; do
     : > "$FIXTURE/actions"
-    manage_system_action "$engine" update || [[ "$engine" == github ]]
+    manage_system_action engine "$engine" update || [[ "$engine" == github ]]
     [[ "$(cat "$FIXTURE/actions")" == "$engine" ]]
 done
 : > "$FIXTURE/actions"
+if manage_system_action engine update; then exit 1; fi
+[[ "$(cat "$FIXTURE/actions")" == $'apt\ngithub\nflatpak' ]]
+: > "$FIXTURE/actions"
 if manage_system_action update; then exit 1; fi
 [[ "$(cat "$FIXTURE/actions")" == $'apt\ngithub\nflatpak\nnetwork' ]]
-for args in 'update apt' 'update apt debian' 'update debian' 'update flatpak'; do
+for args in 'update apt' 'update apt debian' 'update debian' 'update flatpak' 'apt update' 'github update' 'flatpak update' 'engine apt update extra'; do
     : > "$FIXTURE/actions"
     if manage_system_action $args; then exit 1; fi
     [[ ! -s "$FIXTURE/actions" ]]
@@ -138,19 +142,21 @@ done
         result = self.run_engine(r'''
 system_update_package_versions() { printf 'pkg\t1\n'; }
 system_apt_update() { echo apt-work >> "$FIXTURE/actions"; }
+system_apt_update_external_applications() { echo apt-external >> "$FIXTURE/actions"; }
 system_engine_ensure_dependencies() { echo "$1-deps" >> "$FIXTURE/actions"; }
 system_network_update() { echo network >> "$FIXTURE/actions"; }
 flatpak() { echo flathub >> "$FIXTURE/actions"; echo flathub; }
 software_github_codex_cli_version() { echo 1; }
-software_github_codex_cli_update() { echo github-work >> "$FIXTURE/actions"; }
-SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=1 SYSTEM_FLATPAK_ENGINE=1 SOFTWARES_APT_CODEX_CLI=1
+system_github_update_applications() { echo github-work >> "$FIXTURE/actions"; }
+system_flatpak_update_applications() { echo flatpak-work >> "$FIXTURE/actions"; }
+SYSTEM_APT_ENGINE=1 SYSTEM_GITHUB_ENGINE=1 SYSTEM_FLATPAK_ENGINE=1 SOFTWARE_GITHUB_CODEX_CLI=1
 for engine in apt github flatpak; do
     : > "$FIXTURE/actions"
-    manage_system_action "$engine" update
+    manage_system_action engine "$engine" update
     case "$engine" in
-        apt) [[ "$(cat "$FIXTURE/actions")" == $'apt-deps\napt-work' ]] ;;
+        apt) [[ "$(cat "$FIXTURE/actions")" == $'apt-deps\napt-work\napt-external' ]] ;;
         github) [[ "$(cat "$FIXTURE/actions")" == $'github-deps\ngithub-work' ]] ;;
-        flatpak) [[ "$(cat "$FIXTURE/actions")" == $'flatpak-deps\nflathub' ]] ;;
+        flatpak) [[ "$(cat "$FIXTURE/actions")" == $'flatpak-deps\nflathub\nflatpak-work' ]] ;;
     esac
 done
 ''')

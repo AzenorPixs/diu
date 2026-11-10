@@ -17,6 +17,7 @@ print_title() { printf '%s\n' "$*"; }
 source "$ROOT/modules/softwares/software.sh"
 source "$ROOT/modules/softwares/apt.sh"
 source "$ROOT/modules/diu/update-all.sh"
+source "$ROOT/modules/diu/update-playlist.sh"
 apt-get() {
     printf 'apt-get %s\n' "$*" >> "$CALLS"
     if [[ "$*" == *indextargets* ]]; then
@@ -111,6 +112,20 @@ class SoftwareTests(unittest.TestCase):
                 result, calls, _ = self.run_shell(f'manage_software_action {args}')
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                 self.assertEqual(calls, '')
+
+    def test_removed_apt_update_has_no_effect(self):
+        result, calls, _ = self.run_shell("system_apt_update() { echo apt >> \"$CALLS\"; }; manage_softwares_action apt update")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(calls, '')
+
+    def test_apt_update_preserves_global_then_selective(self):
+        result, calls, _ = self.run_shell(r'''
+system_apt_update() { echo global >> "$CALLS"; }
+software_apt_update_selective() { echo selective >> "$CALLS"; }
+manage_softwares_action update apt
+''')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(calls.splitlines(), ['global', 'selective'])
 
     def test_apt_future_is_explicit(self):
         result, calls, _ = self.run_shell('manage_software_action install apt foo')
@@ -220,83 +235,11 @@ manage_softwares_action remove apt chatgpt
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('OK softwares/apt/chatgpt (2.4.0): désinstallé.', result.stdout)
 
-    def test_chatgpt_variables_detect_package_and_default_home(self):
-        result, _, _ = self.run_shell(r'''
-source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
-    printf '%s\n' "$SOFTWARES_APT_CHATGPT"
-''')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout.splitlines()[-1], '0')
 
-    def test_codex_cli_variables_persist_defaults(self):
-        result, _, _ = self.run_shell(r'''
-variable_source="$TMPDIR/software_apt_codex_cli.sh"
-sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
-    "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
-SOFTWARES_APT_CODEX_CLI=0
-PATH="/usr/bin:/bin"
-source "$variable_source"
-    cat "$TMPDIR/softwares.env"
-''')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout.splitlines()[-1:], ['export SOFTWARES_APT_CODEX_CLI=0'])
 
-    def test_codex_cli_state_is_redetected_on_each_load(self):
-        result, _, _ = self.run_shell(r'''
-variable_source="$TMPDIR/software_apt_codex_cli.sh"
-sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
-    "$ROOT/modules/diu/variables/softwares/software_apt_codex_cli.sh" > "$variable_source"
-mkdir -p "$TMPDIR/codex-bin"
-PATH="$TMPDIR/codex-bin:/usr/bin:/bin"
-SOFTWARES_APT_CODEX_CLI=1
-source "$variable_source"
-[[ "$SOFTWARES_APT_CODEX_CLI" == 0 ]]
-printf '#!/bin/sh\nexit 0\n' > "$TMPDIR/codex-bin/codex"
-chmod +x "$TMPDIR/codex-bin/codex"
-source "$variable_source"
-[[ "$SOFTWARES_APT_CODEX_CLI" == 1 ]]
-grep -Fx 'export SOFTWARES_APT_CODEX_CLI=1' "$TMPDIR/softwares.env"
-rm "$TMPDIR/codex-bin/codex"
-source "$variable_source"
-[[ "$SOFTWARES_APT_CODEX_CLI" == 0 ]]
-grep -Fx 'export SOFTWARES_APT_CODEX_CLI=0' "$TMPDIR/softwares.env"
-''')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_chatgpt_variables_persist_without_home(self):
-        result, _, _ = self.run_shell(r'''
-variable_source="$TMPDIR/software_apt_chatgpt.sh"
-sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
-    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
-dpkg-query() { printf 'unknown'; }
-source "$variable_source"
-    cat "$TMPDIR/softwares.env"
-''')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout.splitlines()[-1:], ['export SOFTWARES_APT_CHATGPT=0'])
 
-    def test_chatgpt_static_value_is_not_redetected_when_defined(self):
-        result, _, _ = self.run_shell(r'''
-SOFTWARES_APT_CHATGPT=0
-dpkg-query() { printf 'installed'; }
-source "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh"
-    printf '%s\n' "$SOFTWARES_APT_CHATGPT"
-''')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout.splitlines()[-1], '0')
 
-    def test_chatgpt_home_is_removed_from_persisted_config(self):
-        result, _, _ = self.run_shell(r'''
-variable_source="$TMPDIR/software_apt_chatgpt.sh"
-sed "s#^variable_config_file=.*#variable_config_file=\"$TMPDIR/softwares.env\"#" \
-    "$ROOT/modules/diu/variables/softwares/software_apt_chatgpt.sh" > "$variable_source"
-printf 'export SOFTWARES_APT_CHATGPT=0\nexport SOFTWARES_APT_CHATGPT_HOME=\\~/.codex\n' > "$TMPDIR/softwares.env"
-source "$TMPDIR/softwares.env"
-source "$variable_source"
-    cat "$TMPDIR/softwares.env"
-''')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout.splitlines()[-1:], ['export SOFTWARES_APT_CHATGPT=0'])
 
     def test_chatgpt_install_prepares_repository_without_changing_desktop(self):
         result, calls, _ = self.run_shell(r'''
@@ -403,14 +346,14 @@ manage_update_action
 printf 'AFTER\n'
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects'])
+        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
         self.assertIn('AFTER', result.stdout)
 
-    def test_software_failure_does_not_affect_universal_update(self):
+    def test_software_failure_is_reported_by_universal_update(self):
         result, calls, _ = self.run_shell(GLOBAL_MODULES + '\nmanage_update_action\n',
                                           SOFTWARES_FAILURE='1')
-        self.assertEqual(result.returncode, 0)
-        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects'])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(calls.splitlines(), ['diu', 'system', 'environments', 'ia', 'projects', 'softwares'])
 
     def test_hermes_installed_but_stopped_is_included(self):
         result, calls, _ = self.run_shell(module_function('modules/ia/hermes.sh', 'ia_update') + r'''

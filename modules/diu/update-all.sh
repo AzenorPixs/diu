@@ -1,21 +1,7 @@
 #!/usr/bin/env bash
 
 update_all() {
-    local diu_status=0 projects_status=0
-
-    diu_update || diu_status=$?
-    system_update
-    environments_update
-    ia_update
-    projects_update || projects_status=$?
-
-    if [[ "${projects_status}" -ne 0 ]]; then
-        return "${projects_status}"
-    fi
-    if [[ "${diu_status}" -ne 0 ]]; then
-        return "${diu_status}"
-    fi
-    return 0
+    diu_update_playlist
 }
 
 manage_update_action() {
@@ -24,6 +10,7 @@ manage_update_action() {
     elif [[ "$1" == diu && $# -eq 1 ]]; then
         diu_update
     else
-        manage_software_action update "$@"
+        printf '%s\n' 'Commande de mise à jour inconnue.' >&2
+        return 2
     fi
 }

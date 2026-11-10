@@ -6,7 +6,7 @@ Correction de la synchronisation unitaire et groupée ; code de lot non attribu�
 
 ## 2. Résultat
 
-Le document ORCHESTRATED_CODING.md est exclu de la synchronisation ; la création de projet reste inchangée.
+Le document ancien protocole local est exclu de la synchronisation ; la création de projet reste inchangée.
 
 ## 3. Fichiers
 

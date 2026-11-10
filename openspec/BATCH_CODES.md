@@ -1,5 +1,11 @@
 # Codes de lot — Debian Installeur Unifié
 
+Correctif du 9 novembre 2026 : [preserve-cab-hmac-key-permissions](changes/preserve-cab-hmac-key-permissions/proposal.md), ACTIF, code non attribué ; attribution ultérieure par ACL.
+
+
+Delta SCM du 2026-11-06 : [remove-softwares-apt-update](changes/archive/2026-11-06-remove-softwares-apt-update/proposal.md), **code non attribué**, archivé ; OpenSpec strict, contrôles ciblés et 1 220 tests globaux dont 2 ignorés réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-06 : [nest-system-engine-update](changes/archive/2026-11-06-nest-system-engine-update/proposal.md), code non attribué ; archivé, 1 212 tests globaux dont 2 ignorés avec Python DevOps, tests ciblés, Bash et OpenSpec strict réussis ; sans CI/CD ; attribution ultérieure par ACL.
 Delta SCM du 2026-11-05 : [decouple-softwares-from-universal-update](changes/archive/2026-11-05-decouple-softwares-from-universal-update/proposal.md), archivé, **code non attribué** ; OpenSpec strict validé, 132 tests ciblés et 1 211 tests globaux dont 2 ignorés ; livraison à vérifier ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-05 : [split-system-update-engines](changes/archive/2026-11-05-split-system-update-engines/proposal.md), archivé, **code non attribué** ; 1209 tests dont 2 ignorés, OpenSpec strict et contrôles Bash réussis ; CI/CD non effectuée ; attribution ultérieure par ACL.
@@ -29,6 +35,8 @@ Delta SCM du 2026-11-04 : [rename-projects-network-hosts-commands](changes/archi
 
 Delta SCM du 2026-11-04 : [manage-production-hosts-entries](changes/archive/2026-11-04-manage-production-hosts-entries/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
+- [adjust-project-sync-local-resources](changes/archive/2026-11-06-adjust-project-sync-local-resources/proposal.md) : code non attribué ; change archivé le 2026-11-06, contrat de synchronisation et 52 tests ciblés vérifiés ; livraison non effectuée ; attribution ultérieure par ACL.
+- [isolate-created-project-directories](changes/archive/2026-11-06-isolate-created-project-directories/proposal.md) : code non attribué ; change archivé le 2026-11-06, création des dossiers locaux et 61 tests ciblés vérifiés ; livraison non effectuée ; attribution ultérieure par ACL.
 - [reconcile-cicd-git-publication](changes/reconcile-cicd-git-publication/proposal.md) : code non attribué ; change actif, réalisation testée sur fixtures, synchronisation et publication en attente au 2026-11-04 ; attribution ultérieure par ACL.
 - [handle-cicd-release-unavailability](changes/archive/2026-11-04-handle-cicd-release-unavailability/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; validation globale : 1 171 tests exécutés dont 2 ignorés et OpenSpec strict réussi ; attribution ultérieure par ACL.
 
@@ -39,6 +47,8 @@ Delta SCM du 2026-11-04 : [configure-system-hosts-json](changes/archive/2026-11-
 Delta SCM du 2026-11-04 : [manage-system-network-hosts](changes/archive/2026-11-04-manage-system-network-hosts/proposal.md), archivé, **code non attribué** ; contrôles ciblés validés ; attribution ultérieure par ACL.
 
 - [diu-command-links](changes/archive/2026-11-04-diu-command-links/proposal.md) : code non attribué ; change archivé le 2026-11-04 ; voir [bilan](changes/archive/2026-11-04-diu-command-links/STATISTICS.md) ; dépendance `migrate-env-devops-projects-root` archivée ; attribution à traiter par ACL.
+
+Delta SCM du 2026-11-06 : [concise-diu-update-output](changes/archive/2026-11-06-concise-diu-update-output/proposal.md), archivé, **code non attribué** ; validation stricte et 1 216 tests dont 2 ignorés ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-04 : [force-diu-update-version](changes/archive/2026-11-04-force-diu-update-version/proposal.md), archivé, **code non attribué** ; validation globale réussie ; attribution ultérieure par ACL.
 

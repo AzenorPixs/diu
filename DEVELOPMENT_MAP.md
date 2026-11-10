@@ -1,5 +1,42 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-11 : [converge-software-desired-state](openspec/changes/archive/2026-11-11-converge-software-desired-state/proposal.md), **code non attribué**, archivé ; migration des états désirés et convergence APT, Flatpak et GitHub raccordées ; 1 326 tests globaux dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis. [Statistiques individuelles](openspec/changes/archive/2026-11-11-converge-software-desired-state/STATISTICS.md) produites ; delta global refusé car registre incompatible, livraison en cours. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-10 : [debian-recipe-file-mode](openspec/changes/archive/2026-11-10-debian-recipe-file-mode/proposal.md), **code non attribué**, archivé ; mode explicite des fichiers dans les recettes Debian et mode 0755 pour le point d’entrée DIU ; 15 tests ciblés, 1 238 tests globaux dont 2 ignorés et OpenSpec strict réussis ; livraison à vérifier. Attribution ultérieure par ACL.
+
+
+Delta SCM du 2026-11-10 : [fix-replay-provider-credentials](openspec/changes/archive/2026-11-10-fix-replay-provider-credentials/proposal.md), **code non attribué**, archivé ; identifiants GitHub et GitLab préparés dans le projet source avant rejeu ; 1 236 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; état de livraison à constater sur les forges. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-10 : [enforce-provider-version-authority](openspec/changes/archive/2026-11-10-enforce-provider-version-authority/proposal.md), **code non attribué**, archivé ; contrôle des tags et alignement protégé des références pour pushes directs et CI/CD ; 1 236 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; état de livraison à constater sur les forges. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-10 : [fix-direct-provider-push](openspec/changes/archive/2026-11-10-fix-direct-provider-push/proposal.md), **code non attribué**, archivé ; pushes directs Forgejo, GitLab et GitHub alignés sur la réconciliation CI/CD, aides mises à jour ; 1 226 tests exécutés dont 2 ignorés, contrôles Bash, ShellCheck et OpenSpec strict réussis ; CI/CD 1.3.4 publiée sur Forgejo et GitHub, GitLab non configuré. Attribution ultérieure par ACL.
+
+Correctif du 9 novembre 2026 : `preserve-cab-hmac-key-permissions`, ACTIF,
+code non attribué ; normalisation des répertoires en 2770, fichiers ordinaires et HMAC en 0770 ; 3/3 tâches historiques validées ;
+livraison indépendante à déterminer. [Tâches](openspec/changes/preserve-cab-hmac-key-permissions/tasks.md).
+
+
+Delta SCM du 2026-11-06 : [remove-softwares-apt-update](openspec/changes/archive/2026-11-06-remove-softwares-apt-update/proposal.md), **code non attribué**, archivé ; OpenSpec strict, contrôles ciblés et 1 220 tests globaux dont 2 ignorés réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  REMOVE_APT_UPDATE["remove-softwares-apt-update — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class REMOVE_APT_UPDATE provisoire
+```
+Delta SCM du 2026-11-06 : [isolate-created-project-directories](openspec/changes/archive/2026-11-06-isolate-created-project-directories/proposal.md), code non attribué, archivé ; création de trois dossiers locaux vides et initialisation OpenSpec sans copie du modèle, 61 tests ciblés réussis ; livraison non effectuée. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-06 : [adjust-project-sync-local-resources](openspec/changes/archive/2026-11-06-adjust-project-sync-local-resources/proposal.md), code non attribué, archivé ; synchronisation limitée à `AGENTS.md` et `.gitignore`, création locale de `.cab-tests`, 52 tests ciblés réussis ; livraison non effectuée. Attribution ultérieure par ACL.
+
+
+Delta SCM du 2026-11-06 : [nest-system-engine-update](openspec/changes/archive/2026-11-06-nest-system-engine-update/proposal.md), code non attribué ; archivé, 1 212 tests globaux dont 2 ignorés avec Python DevOps, tests ciblés, Bash et OpenSpec strict réussis ; sans CI/CD ; attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  ENGINE_UPDATE["nest-system-engine-update — code non attribué — ARCHIVÉ"]
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  class ENGINE_UPDATE provisoire
+```
 Delta SCM du 2026-11-05 : [decouple-softwares-from-universal-update](openspec/changes/archive/2026-11-05-decouple-softwares-from-universal-update/proposal.md), archivé, **code non attribué** ; OpenSpec strict validé, 132 tests ciblés et 1 211 tests globaux dont 2 ignorés ; livraison à vérifier ; attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-05 : [split-system-update-engines](openspec/changes/archive/2026-11-05-split-system-update-engines/proposal.md), archivé, **code non attribué** ; 1209 tests dont 2 ignorés, OpenSpec strict et contrôles Bash réussis ; CI/CD non effectuée ; attribution ultérieure par ACL.
@@ -187,6 +224,15 @@ flowchart TB
   classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
   P_DIU_FORGEJO_FALLBACK["restore-diu-forgejo-fallback — code non attribué — ARCHIVÉ"]
   class P_DIU_FORGEJO_FALLBACK provisoire
+```
+
+Delta SCM du 2026-11-06 : [concise-diu-update-output](openspec/changes/archive/2026-11-06-concise-diu-update-output/proposal.md), code non attribué, archivé ; sortie DIU, résultat réseau et aides, validation stricte et 1 216 tests dont 2 ignorés. Attribution ultérieure par ACL.
+
+```mermaid
+flowchart TB
+  classDef provisoire fill:#fff6df,stroke:#8a6b20,stroke-dasharray:4 3
+  P_DIU_OUTPUT["concise-diu-update-output — code non attribué — ARCHIVÉ"]
+  class P_DIU_OUTPUT provisoire
 ```
 
 Delta SCM du 2026-11-03 : [github-only-diu-update](openspec/changes/archive/2026-11-03-github-only-diu-update/proposal.md), code non attribué, archivé ; 1 121 tests exécutés dont 2 ignorés, validation OpenSpec stricte réussie. Les comptages historiques excluent ce delta. Attribution ultérieure par ACL.
@@ -726,7 +772,7 @@ ARCHIVÉ décrit le rangement constaté, sans démontrer disponibilité, livrais
 | PRJ13 | PRJ | [condition-project-orchestrated-coding-copy](openspec/changes/archive/2026-10-10-condition-project-orchestrated-coding-copy/) | Copie conditionnelle du protocole de codage piloté | ARCHIVÉ | 7/7 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-10-10-condition-project-orchestrated-coding-copy/proposal.md), [tasks.md](openspec/changes/archive/2026-10-10-condition-project-orchestrated-coding-copy/tasks.md), [design.md](openspec/changes/archive/2026-10-10-condition-project-orchestrated-coding-copy/design.md), [STATISTICS.md](openspec/changes/archive/2026-10-10-condition-project-orchestrated-coding-copy/STATISTICS.md) |
 | PRJ14 | PRJ | [refactor-projects-template-copy](openspec/changes/archive/2026-10-15-refactor-projects-template-copy/) | Exclusion du dépôt Git lors de la copie du modèle | ARCHIVÉ | 3/3 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-10-15-refactor-projects-template-copy/proposal.md), [tasks.md](openspec/changes/archive/2026-10-15-refactor-projects-template-copy/tasks.md), [design.md](openspec/changes/archive/2026-10-15-refactor-projects-template-copy/design.md), [STATISTICS.md](openspec/changes/archive/2026-10-15-refactor-projects-template-copy/STATISTICS.md) |
 | PRJ15 | PRJ | [add-projects-sync-broker](openspec/changes/archive/2026-10-16-add-projects-sync-broker/) | Limitation de la synchronisation aux ressources autorisées | ARCHIVÉ | 7/7 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-10-16-add-projects-sync-broker/proposal.md), [tasks.md](openspec/changes/archive/2026-10-16-add-projects-sync-broker/tasks.md), [design.md](openspec/changes/archive/2026-10-16-add-projects-sync-broker/design.md), [STATISTICS.md](openspec/changes/archive/2026-10-16-add-projects-sync-broker/STATISTICS.md) |
-| PRJ16 | PRJ | [add-projects-sync-development-map-if-missing](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/) | Copie initiale de DEVELOPMENT_MAP.md pendant la synchronisation | ARCHIVÉ | 5/5 | Cases complètes ; qualification produit actuelle non rejouée | [proposal.md](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/proposal.md), [tasks.md](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/tasks.md), [design.md](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/design.md), [review.md](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/review.md), [STATISTICS.md](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/STATISTICS.md) |
+| PRJ16 | PRJ | [add-projects-sync-development-map-if-missing](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/) | Copie initiale de DEVELOPMENT_MAP.md pendant la synchronisation | ARCHIVÉ | 5/5 | Historique : le contrat actuel du 2026-11-06 ne synchronise plus la carte ; 50 tests ciblés réussis, livraison non effectuée | [proposal.md](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/proposal.md), [tasks.md](openspec/changes/archive/2026-10-28-add-projects-sync-development-map-if-missing/tasks.md), [contrat actuel](openspec/specs/projects-sync/spec.md) |
 | SW01 | SW | [add-software-management](openspec/changes/archive/2026-09-05-add-software-management/) | Proposal: Gestion des logiciels et mise à jour universelle | ARCHIVÉ | 21/26 | Cases historiques conservées ; archive close, aucune régularisation requise | [proposal.md](openspec/changes/archive/2026-09-05-add-software-management/proposal.md), [tasks.md](openspec/changes/archive/2026-09-05-add-software-management/tasks.md), [design.md](openspec/changes/archive/2026-09-05-add-software-management/design.md) |
 | SW02 | SW | [implement-module-softwares-apt](openspec/changes/archive/2026-09-05-implement-module-softwares-apt/) | Proposition : moteur APT du module softwares | ARCHIVÉ | 9/10 | Cases historiques conservées ; archive close, aucune régularisation requise | [proposal.md](openspec/changes/archive/2026-09-05-implement-module-softwares-apt/proposal.md), [tasks.md](openspec/changes/archive/2026-09-05-implement-module-softwares-apt/tasks.md), [design.md](openspec/changes/archive/2026-09-05-implement-module-softwares-apt/design.md) |
 | SW03 | SW | [update-debian-packages-once](openspec/changes/archive/2026-09-05-update-debian-packages-once/) | Proposal: Mise à jour groupée des paquets Debian | ARCHIVÉ | 2/4 | Cases historiques conservées ; archive close, aucune régularisation requise | [proposal.md](openspec/changes/archive/2026-09-05-update-debian-packages-once/proposal.md), [tasks.md](openspec/changes/archive/2026-09-05-update-debian-packages-once/tasks.md), [design.md](openspec/changes/archive/2026-09-05-update-debian-packages-once/design.md) |

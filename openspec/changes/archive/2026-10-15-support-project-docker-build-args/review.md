@@ -63,7 +63,7 @@ d'absence d'effets externes sont conservées.
 | CHANGELOG.md | Mis à jour | Entrée Unreleased du nouveau mécanisme sans annonce de publication |
 | OpenSpec | Change ciblé | Huit exigences ajoutées à modify-projects-docker-build, sans modification du contrat antérieur |
 | Prompts, licence, .gitignore, config OpenSpec | Inchangés | Empreintes vérifiées ; aucune opération d'outillage ou Git |
-| ORCHESTRATED_CODING.md | Non applicable | SCM directe, aucun pilotage |
+| ancien protocole local | Non applicable | SCM directe, aucun pilotage |
 | Autres changes actifs | Hors périmètre | Aucun n'est synchronisé ou archivé par cette session |
 | Consommateur | Adapté dans son dépôt | Fichier public, test de concordance et PROJECT/TECHNICAL/BUILD/README/CHANGELOG/exploitation actualisés ; runtime et référence inchangés |
 
