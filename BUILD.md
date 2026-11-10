@@ -87,9 +87,10 @@ Pour une version déjà attribuée, le build utilise le commit du tag dans un
 contexte isolé. Le paquet est conservé sous `dist/replay/<TAG>/<SHA256>/` sans écraser
 un fichier existant. DIU ne vérifie pas l'immutabilité du tag Docker distant :
 sa publication est ignorée pendant le rejeu ; la publication Debian reste indépendante.
-La branche Git divergente est réconciliée dans une copie isolée avec priorité
-aux fichiers versionnés locaux en conflit. Le tag distant divergent est remplacé
-avec un lease explicite sans sauvegarde. Dans ce cas, la publication des artefacts
+Avant chaque push, un tag distant supérieur ou non comparable bloque la
+publication. Sinon la branche distante est alignée sur le commit sélectionné et
+un tag divergent est remplacé, avec des leases explicites sans sauvegarde. Une
+version stable prime sur un horodatage. Dans ce cas, la publication des artefacts
 de la forge concernée est ignorée et leur cohérence doit être vérifiée.
 
 Les publications constituent l'étape 5 et le bilan des deux builds l'étape 6.

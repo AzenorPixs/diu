@@ -1,9 +1,13 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
-Delta SCM du 2026-11-10 : [fix-direct-provider-push](openspec/changes/archive/2026-11-10-fix-direct-provider-push/proposal.md), **code non attribué**, archivé ; pushes directs Forgejo, GitLab et GitHub alignés sur la réconciliation CI/CD, aides mises à jour ; 1 226 tests exécutés dont 2 ignorés, contrôles Bash, ShellCheck et OpenSpec strict réussis ; livraison en attente. Attribution ultérieure par ACL.
+Delta SCM du 2026-11-10 : [fix-replay-provider-credentials](openspec/changes/archive/2026-11-10-fix-replay-provider-credentials/proposal.md), **code non attribué**, archivé ; identifiants GitHub et GitLab préparés dans le projet source avant rejeu ; 1 236 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; état de livraison à constater sur les forges. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-10 : [enforce-provider-version-authority](openspec/changes/archive/2026-11-10-enforce-provider-version-authority/proposal.md), **code non attribué**, archivé ; contrôle des tags et alignement protégé des références pour pushes directs et CI/CD ; 1 236 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; état de livraison à constater sur les forges. Attribution ultérieure par ACL.
+
+Delta SCM du 2026-11-10 : [fix-direct-provider-push](openspec/changes/archive/2026-11-10-fix-direct-provider-push/proposal.md), **code non attribué**, archivé ; pushes directs Forgejo, GitLab et GitHub alignés sur la réconciliation CI/CD, aides mises à jour ; 1 226 tests exécutés dont 2 ignorés, contrôles Bash, ShellCheck et OpenSpec strict réussis ; CI/CD 1.3.4 publiée sur Forgejo et GitHub, GitLab non configuré. Attribution ultérieure par ACL.
 
 Correctif du 9 novembre 2026 : `preserve-cab-hmac-key-permissions`, ACTIF,
-code non attribué ; normalisation ciblée en 0770, 2/3 tâches validées ;
+code non attribué ; normalisation des répertoires en 2770, fichiers ordinaires et HMAC en 0770 ; 3/3 tâches historiques validées ;
 livraison indépendante à déterminer. [Tâches](openspec/changes/preserve-cab-hmac-key-permissions/tasks.md).
 
 

@@ -106,6 +106,105 @@ projects_provider_push_direct forgejo fixture 1.0.1
             self.assertEqual(git('rev-parse', 'HEAD'), git('rev-parse', 'v1.0.1^{commit}'))
             self.assertEqual(list(Path(tmp).glob('diu-cicd-replay.*')), [])
 
+    def test_clean_tree_creates_local_tag_without_unauthenticated_remote_probe(self):
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix='.direct-clean-') as tmp:
+            project = Path(tmp) / 'fixture'
+            project.mkdir()
+            (project / '.gitignore').write_text('project.env\n')
+            (project / 'project.env').write_text('PROJECT_ID=fixture\nPROJECT_NAME=Fixture\nPROJECT_TYPE=BASH\nGIT_USER_NAME=Fixture\nGIT_USER_EMAIL=fixture@example.test\nPROJECT_VERSION=1.0.0\n')
+            def git(*args):
+                return subprocess.run(['git', '-C', str(project), *args], check=True, capture_output=True, text=True).stdout.strip()
+            git('init', '-q', '-b', 'main')
+            git('config', 'user.name', 'Fixture')
+            git('config', 'user.email', 'fixture@example.test')
+            git('add', '.')
+            git('commit', '-qm', 'fixture')
+            git('remote', 'add', 'origin', 'https://invalid.example/owner/fixture.git')
+            script = r"""
+set -Eeuo pipefail
+source "$1/lib/project-version.sh"
+source "$1/modules/projects/git.sh"
+ENV_DEVOPS_USER=fixture
+ENV_DEVOPS_PROJECTS_ROOT="$2"
+runuser() { shift 3; "$@"; }
+check_devops_user() { :; }
+print_info() { :; }
+print_success() { :; }
+print_title() { :; }
+print_error() { printf '%s\n' "$*" >&2; }
+github_push() { :; }
+projects_provider_push_direct github fixture 1.0.2
+"""
+            result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), tmp],
+                                    env={**os.environ, 'GIT_CONFIG_GLOBAL':'/dev/null', 'GIT_CONFIG_NOSYSTEM':'1'},
+                                    text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(git('rev-parse', 'v1.0.2^{commit}'), git('rev-parse', 'HEAD'))
+
+    def test_replay_initializes_credentials_in_source_and_reuses_them(self):
+        for provider in ('github', 'gitlab'):
+            with self.subTest(provider=provider), tempfile.TemporaryDirectory(dir=ROOT, prefix='.direct-auth-') as tmp:
+                project = Path(tmp) / 'fixture'
+                project.mkdir()
+                (project / 'config').mkdir()
+                (project / '.gitignore').write_text('project.env\nconfig/\n')
+                (project / 'project.env').write_text('PROJECT_ID=fixture\nPROJECT_VERSION=1.0.2\n')
+                def git(*args):
+                    subprocess.run(['git', '-C', str(project), *args], check=True, capture_output=True)
+                git('init', '-q', '-b', 'main')
+                git('config', 'user.name', 'Fixture')
+                git('config', 'user.email', 'fixture@example.test')
+                git('add', '.')
+                git('commit', '-qm', 'fixture')
+                git('tag', 'v1.0.2')
+                script = r"""
+set -Eeuo pipefail
+source "$1/lib/project-version.sh"
+source "$1/modules/projects/git.sh"
+source "$1/lib/github-auth.sh"
+source "$1/lib/gitlab-auth.sh"
+ENV_DEVOPS_USER="$(id -un)"
+DEVOPS_GROUP="$(id -gn)"
+ENV_DEVOPS_PROJECTS_ROOT="$2"
+runuser() { shift 3; "$@"; }
+print_info() { :; }
+print_error() { printf 'ERROR:%s\n' "$*" >&2; }
+github_push() { [[ -f "$ENV_DEVOPS_PROJECTS_ROOT/fixture/config/github.username" && -f "$ENV_DEVOPS_PROJECTS_ROOT/fixture/config/github.token" ]]; }
+gitlab_push() { [[ -f "$ENV_DEVOPS_PROJECTS_ROOT/fixture/config/gitlab.username" && -f "$ENV_DEVOPS_PROJECTS_ROOT/fixture/config/gitlab.token" ]]; }
+projects_provider_push_direct "$3" fixture 1.0.2
+projects_provider_push_direct "$3" fixture 1.0.2 </dev/null
+"""
+                result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), tmp, provider],
+                                        input='fixture-user\nfixture-token\nfixture-token\n', text=True, capture_output=True,
+                                        env={**os.environ, 'TMPDIR': tmp, 'GIT_CONFIG_GLOBAL': '/dev/null', 'GIT_CONFIG_NOSYSTEM': '1'})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue((project / 'config' / f'{provider}.username').is_file())
+                self.assertTrue((project / 'config' / f'{provider}.token').is_file())
+                self.assertNotIn('fixture-token', result.stdout + result.stderr)
+                self.assertEqual(list(Path(tmp).glob('diu-cicd-replay.*')), [])
+
+    def test_replay_stops_before_clone_when_credential_preparation_fails(self):
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix='.direct-auth-fail-') as tmp:
+            project = Path(tmp) / 'fixture'
+            project.mkdir()
+            (project / '.git').mkdir()
+            (project / 'project.env').write_text('PROJECT_VERSION=1.0.2\n')
+            script = r"""
+source "$1/lib/project-version.sh"
+source "$1/modules/projects/git.sh"
+ENV_DEVOPS_USER=fixture
+ENV_DEVOPS_PROJECTS_ROOT="$2"
+runuser() { return 0; }
+print_info() { :; }
+print_error() { :; }
+_github_ensure_api_credentials() { return 1; }
+projects_cicd_replay_prepare() { echo 'unexpected clone'; }
+projects_provider_push_direct github fixture 1.0.2
+"""
+            result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), tmp], text=True, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn('unexpected clone', result.stdout)
+
     def test_dispatch_forwards_optional_version(self):
         script = r'''
 source <(sed -n '/^manage_project_action() {/,/^}/p' "$1/root-install-debian.sh")

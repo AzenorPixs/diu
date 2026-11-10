@@ -4,9 +4,13 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Push direct et CI/CD : refuser les tags distants supérieurs ou non comparables ; sinon aligner branche et tag sur le commit sélectionné sous lease. Les versions stables priment sur les horodatages.
+
+- Rejeu des pushes GitHub et GitLab : préparer les identifiants dans le projet source pour les conserver après suppression du clone temporaire.
+
 - Push direct Forgejo, GitLab et GitHub : version optionnelle ou horodatage, commit/tag, rejeu isolé et réconciliation Git CI/CD sous lease. PROJECT_VERSION reste inchangée.
 
-- Normaliser en `0770` les clés HMAC du journal CAB du compte DevOps, sans changer les autres règles de fichiers.
+- Normaliser les répertoires DevOps en `2770` et les fichiers ordinaires, dont les clés HMAC CAB, en `0770` ; les fichiers sensibles gardent leurs règles spécifiques.
 
 - Suppression de `diu softwares apt update` ; utiliser `diu system engine apt update` ou le parcours `diu softwares update apt` selon le besoin. Les scripts appelant l’ancienne syntaxe doivent être adaptés.
 
@@ -51,9 +55,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 - Réseau : `system network hosts` affiche `/etc/hosts` ; la mise à jour ciblée
   indique son résultat sur une ligne avec une coche verte ou une croix rouge.
 
-- CI/CD : réconciliation isolée des branches divergentes, priorité aux fichiers
-  versionnés locaux en conflit et remplacement des tags distants divergents sous
-  lease. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
+- CI/CD : contrôle des tags et alignement des branches et tags distants sous
+  lease sur le commit sélectionné. Les artefacts d'un tag remplacé restent à vérifier ; les paquets déjà
   présents sont signalés sans prétendre vérifier leur contenu.
 
 - Réseau : les commandes `system network hosts add`, `del` et `list`

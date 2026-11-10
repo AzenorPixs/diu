@@ -1,8 +1,8 @@
 # Cadrage technique du DIUE
 
-La normalisation DevOps applique `0770` aux fichiers HMAC du journal CAB
-dans `.opencode/state/cgpt-approval-bridge`, sans suivre les liens ; les
-autres fichiers conservent leurs règles habituelles.
+La normalisation DevOps applique `2770` aux répertoires et `0770` aux fichiers
+ordinaires, y compris les clés HMAC du journal CAB, sans suivre les liens ; les
+fichiers sensibles conservent leurs règles spécifiques.
 
 Les moteurs sont configurés par `SYSTEM_APT_ENGINE`, `SYSTEM_GITHUB_ENGINE` et `SYSTEM_FLATPAK_ENGINE` dans le scope system. Le défaut APT est 1 ; GitHub est initialisé par détection locale ; Flatpak reprend `SYSTEM_FLATPAK` ou conserve sa détection historique, y compris `UNSET`. Les commandes `diu system engine install|remove apt|github|flatpak` activent ou désactivent le moteur. L’activation assure les paquets requis ; la désactivation conserve les dépendances, tandis que les opérations logicielles explicites sont refusées et les mises à jour globales ignorent ce moteur. Les opérations système APT restent distinctes. La configuration est persistée après succès. Les tests isolés peuvent substituer les chemins de persistance par `SYSTEM_ENGINE_CONFIG_FILE` et `SYSTEM_FLATPAK_ENGINE_CONFIG_FILE` ; le repli historique `SYSTEM_FLATPAK_CONFIG_FILE` reste reconnu.
 
@@ -1519,12 +1519,15 @@ Les règles de packaging sont détaillées dans BUILD.md.
 Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
 une description explicite est conservée. Une version `PROJECT_VERSION` déjà attribuée déclenche
 un rejeu isolé du commit marqué, sans remplacer le tag local ni inclure les changements
-locaux en attente. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
-dépôts vérifiés, il peut être créé sur HEAD.
+locaux en attente. Un arbre inchangé ne crée pas de commit vide ; un push ou
+CI/CD peut créer le tag local sur HEAD avant le contrôle des tags distants.
 Les pushes directs individuels préparent le commit et le tag de la version
 explicite ou d'un horodatage, sans modifier PROJECT_VERSION. Une version déjà
-attribuée utilise le rejeu isolé CI/CD. La publication réutilise la réconciliation
-CI/CD et ses leases, avec signalement d'un tag distant remplacé. Le parcours
+attribuée utilise le rejeu isolé CI/CD. GitHub et GitLab préparent leurs
+identifiants dans le projet source avant création du clone afin de les conserver.
+La publication contrôle tous les tags distants : une version supérieure ou
+non comparable bloque le push ; sinon la branche et le tag demandé sont alignés
+sur le commit sélectionné sous lease. Une version stable prime sur un horodatage. La comparaison porte sur les tags observés avant le push ; les leases protègent la branche et le tag ciblé, pas la création concurrente d’un autre tag. Le parcours
 groupé conserve sa sélection et ses protections précédentes.
 Le build Docker produit latest et le tag VERSION. Une publication versionnée
 utilise cette image locale précise et le tag Git attendu ; une image absente
@@ -1557,10 +1560,10 @@ Lors d'un rejeu, le clone temporaire privé est nettoyé à la fin du flux. Le
 contexte Docker provient des fichiers suivis du commit et ne contient ni `.git`,
 ni configuration locale, ni identifiants de forge ; le build lit la configuration
 nécessaire hors de ce contexte. Le paquet Debian est conservé dans
-`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les historiques
-divergents sont fusionnés dans une copie isolée, avec priorité aux fichiers
-versionnés locaux en conflit et protection par SHA attendu lors du push. Un tag
-distant divergent est remplacé sous lease sans sauvegarde ; les artefacts de cette
+`dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. Les branches
+distantes sont alignées sur le commit sélectionné après contrôle des tags et
+sous protection par SHA attendu. Un tag distant divergent est remplacé sous
+lease sans sauvegarde ; les artefacts de cette
 forge ne sont pas publiés durant cette exécution et leur cohérence doit être vérifiée.
 Les releases Debian peuvent cibler un commit marqué ancêtre de la branche distante ; leurs assets
 existants restent intacts. DIU ne vérifie pas l'immutabilité des tags Docker

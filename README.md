@@ -1,7 +1,8 @@
 # Debian Installer Unifié (DIU)
 
-La normalisation du compte DevOps maintient les clés HMAC du journal CAB en
-`0770`, sans modifier la règle des fichiers voisins.
+La normalisation du compte DevOps applique `2770` aux répertoires et `0770`
+aux fichiers ordinaires et aux clés HMAC du journal CAB ; les fichiers sensibles
+conservent leurs règles spécifiques.
 
 Les moteurs logiciels se pilotent avec `diu system engine install apt|github|flatpak` et `diu system engine remove apt|github|flatpak`. L’activation vérifie les dépendances et la désactivation conserve les paquets installés. L’état `SYSTEM_FLATPAK` existant est repris dans `SYSTEM_FLATPAK_ENGINE` ; `SYSTEM_APT_ENGINE` vaut 1 par défaut. La vue `diu infos softwares` tient compte de ces états.
 
@@ -141,16 +142,18 @@ Le flux `diu projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
 facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
 Une version `PROJECT_VERSION` déjà attribuée est rejouée depuis une copie isolée du commit de
 son tag : les modifications locales en attente restent disponibles et ne sont
-pas incluses. Le tag local reste inchangé. Une branche distante divergente est
-fusionnée dans une copie isolée, avec priorité aux fichiers versionnés locaux
-en conflit. Un tag distant divergent est remplacé sous protection par sa valeur
-observée, sans tag de sauvegarde. Si le tag est remplacé, la publication des
+pas incluses. Le tag local reste inchangé. Avant chaque push, DIU refuse un
+tag distant supérieur ou non comparable. Sinon la branche distante est alignée
+sur le commit sélectionné et le tag divergent est remplacé, avec protection par
+leur valeur observée. Une version stable prime sur un horodatage. Le contrôle
+des autres tags est une photographie avant le push : leur création concurrente
+n’est pas couverte par le lease. Si le tag est remplacé, la publication des
 artefacts de cette forge est ignorée et leur cohérence reste à vérifier. Le paquet issu du rejeu est conservé sous
 `dist/replay/<TAG>/<SHA256>/` sans écraser un fichier existant. La publication Docker
 est ignorée lors du rejeu, DIU ne vérifiant pas l'immutabilité du tag distant ;
 les publications Debian restent indépendantes. Avec un
-arbre inchangé et un tag absent de tous les dépôts vérifiés, le tag peut être
-créé sur le commit courant sans commit vide. La forme historique explicite
+arbre inchangé et un tag local absent, le tag peut être créé sur le commit
+courant sans commit vide ; les tags distants sont contrôlés avant publication. La forme historique explicite
 `diu projects cicd <ID PROJECT> <MESSAGE> <TAG>` reste disponible.
 
 Le flux exécute six étapes :
@@ -260,14 +263,16 @@ premier push attend explicitement l'absence de la branche distante : une
 ancienne référence de suivi locale ne le bloque plus et une création
 concurrente reste protégée. La création du dépôt dépend de l'activation
 push-to-create sur Forgejo. Les pushes directs individuels réutilisent la réconciliation Git CI/CD :
-les branches divergentes sont fusionnées en copie isolée et un tag distant
-peut être remplacé sous lease. `forgejo push all` conserve son parcours groupé.
+les branches et le tag demandé sont alignés sur le commit local sous lease si
+aucun tag distant supérieur ou non comparable ne bloque la publication. `forgejo push all` conserve son parcours groupé.
 
 Les commandes `diu projects forgejo|gitlab|github push <ID PROJECT> [VERSION]`
 préparent le commit et le tag avant le push. VERSION suit le format `x.y.z` ;
 sans argument, le tag utilise l'horodatage. Ce choix ne modifie pas
 `PROJECT_VERSION`. Une version déjà attribuée est rejouée depuis le commit du
-tag, en préservant les changements locaux en attente. Les artefacts associés
+tag, en préservant les changements locaux en attente. Les identifiants GitHub
+et GitLab sont préparés dans le projet source avant le rejeu et restent
+disponibles après suppression du clone. Les artefacts associés
 à un éventuel tag distant remplacé doivent être vérifiés.
 
 Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue

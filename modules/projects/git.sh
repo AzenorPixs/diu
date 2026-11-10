@@ -553,10 +553,28 @@ projects_cicd_replay_merge_and_push() (
         "--force-with-lease=refs/heads/$branch:$branch_sha" "HEAD:refs/heads/$branch"
 )
 
+# Compare les versions reconnues ; une version stable prime sur un horodatage.
+projects_git_tag_not_newer() {
+    local requested="${1#v}" distant="${2#v}" requested_kind="" distant_kind="" highest=""
+    local stable='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local timestamp='^[0-9]{4}(\.[0-9]{2}){4}$'
+    if [[ "$requested" =~ $stable ]]; then requested_kind=stable
+    elif [[ "$requested" =~ $timestamp ]]; then requested_kind=timestamp
+    else return 2; fi
+    if [[ "$distant" =~ $stable ]]; then distant_kind=stable
+    elif [[ "$distant" =~ $timestamp ]]; then distant_kind=timestamp
+    else return 2; fi
+    if [[ "$requested_kind" == stable && "$distant_kind" == timestamp ]]; then return 0; fi
+    if [[ "$requested_kind" == timestamp && "$distant_kind" == stable ]]; then return 1; fi
+    [[ "$requested" == "$distant" ]] && return 0
+    highest="$(printf '%s\n%s\n' "$requested" "$distant" | LC_ALL=C sort -V | tail -n 1)" || return 2
+    [[ "$highest" == "$requested" ]]
+}
+
 # La publication des références utilise un lease explicite sur leur valeur observée.
 _projects_cicd_replay_git_provider() {
     local provider="$1" project_path="$2" remote="$3" branch="$4" tag="$5"
-    local refs="" head_sha="" branch_sha="" tag_sha="" peeled_sha="" sha="" ref=""
+    local refs="" head_sha="" selected_sha="" branch_sha="" tag_sha="" peeled_sha="" sha="" ref="" remote_tag="" compare_rc=0
     local prefix="REMOTE_${provider^^}" base_key="" owner_key="" repo_key="" expected_url="" actual_url=""
     PROJECTS_CICD_REPLAY_GIT_STATUS="déjà en ligne"
     base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
@@ -567,8 +585,17 @@ _projects_cicd_replay_git_provider() {
         return 1
     fi
     head_sha="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
+    selected_sha="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/tags/${tag}^{commit}")" || return 1
+    if [[ "$selected_sha" != "$head_sha" ]]; then
+        print_error "Le tag $tag ne désigne pas le commit sélectionné."
+        return 1
+    fi
+    if ! projects_git_tag_not_newer "$tag" "$tag"; then
+        print_error "Tag demandé non comparable : $tag."
+        return 1
+    fi
     refs="$(projects_cicd_replay_git_transport "$provider" "$project_path" ls-remote "$remote" \
-        "refs/heads/$branch" "refs/tags/$tag" "refs/tags/$tag^{}")" || return 1
+        "refs/heads/$branch" 'refs/tags/*')" || return 1
     while IFS=$'\t' read -r sha ref; do
         [[ -n "$sha$ref" ]] || continue
         if [[ ! "$sha" =~ ^([a-f0-9]{40}|[a-f0-9]{64})$ ]]; then
@@ -577,40 +604,33 @@ _projects_cicd_replay_git_provider() {
         fi
         case "$ref" in
             "refs/heads/$branch") branch_sha="$sha" ;;
-            "refs/tags/$tag") tag_sha="$sha" ;;
             "refs/tags/$tag^{}") peeled_sha="$sha" ;;
+            refs/tags/*^'{}') ;;
+            refs/tags/*)
+                remote_tag="${ref#refs/tags/}"
+                [[ "$remote_tag" == "$tag" ]] && tag_sha="$sha"
+                compare_rc=0
+                projects_git_tag_not_newer "$tag" "$remote_tag" || compare_rc=$?
+                if [[ "$compare_rc" == 1 ]]; then
+                    print_error "Le tag distant $remote_tag est supérieur à $tag ; publication refusée."
+                    return 1
+                elif [[ "$compare_rc" != 0 ]]; then
+                    print_error "Tag distant non comparable : $remote_tag ; publication refusée."
+                    return 1
+                fi
+                ;;
         esac
     done <<< "$refs"
-    if [[ -n "$branch_sha" ]]; then
-        projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
-            "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
-        if [[ "$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse --verify "refs/remotes/$remote/$branch")" != "$branch_sha" ]]; then
-            print_error "La branche $remote/$branch a changé pendant la vérification."
-            return 1
-        fi
-    fi
-    if [[ -n "$branch_sha" && "$branch_sha" != "$head_sha" ]]; then
-        if runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$branch_sha" "$head_sha"; then
-            projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" \
-                "--force-with-lease=refs/heads/$branch:$branch_sha" "HEAD:refs/heads/$branch" || return 1
-            projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
-                "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
-            PROJECTS_CICD_REPLAY_GIT_STATUS="branche avancée"
-        elif runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" merge-base --is-ancestor "$head_sha" "$branch_sha"; then
-            PROJECTS_CICD_REPLAY_GIT_STATUS="branche conservée"
-            print_info "Branche $remote/$branch conservée : aucun retour en arrière."
-        else
-            projects_cicd_replay_merge_and_push "$provider" "$project_path" "$remote" "$branch" "$branch_sha" || return 1
-            projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
-                "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
-            PROJECTS_CICD_REPLAY_GIT_STATUS="branche réconciliée"
-        fi
-    elif [[ -z "$branch_sha" ]]; then
+    if [[ "$branch_sha" != "$head_sha" ]]; then
         projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" \
-            "--force-with-lease=refs/heads/$branch:" "HEAD:refs/heads/$branch" || return 1
+            "--force-with-lease=refs/heads/$branch:$branch_sha" "HEAD:refs/heads/$branch" || return 1
         projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
             "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
-        PROJECTS_CICD_REPLAY_GIT_STATUS="branche créée"
+        if [[ -n "$branch_sha" ]]; then
+            PROJECTS_CICD_REPLAY_GIT_STATUS="branche alignée sur le commit local"
+        else
+            PROJECTS_CICD_REPLAY_GIT_STATUS="branche créée"
+        fi
     fi
     if [[ -z "$tag_sha" || "${peeled_sha:-$tag_sha}" != "$head_sha" ]]; then
         projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" \
@@ -699,6 +719,9 @@ projects_cicd_release_provider() {
 }
 
 _cicd_project_impl() {
+    # Consommé par git_commit dans la portée dynamique du flux.
+    # shellcheck disable=SC2034
+    local PROJECTS_VERSION_AUTHORITY=1
     local original_projects_root="${ENV_DEVOPS_PROJECTS_ROOT}"
     local ENV_DEVOPS_PROJECTS_ROOT
     printf -v ENV_DEVOPS_PROJECTS_ROOT '%s' "$original_projects_root"
@@ -2135,18 +2158,20 @@ git_commit() {
                 fi
                 return 0
             fi
-            while IFS= read -r remote; do
-                [[ -n "$remote" ]] || continue
-                if ! remote_refs="$(runuser -u "$ENV_DEVOPS_USER" -- env -u GIT_COMMON_DIR GIT_TERMINAL_PROMPT=0 git -C "$project_path" ls-remote --tags "$remote" "refs/tags/$commit_tag" "refs/tags/$commit_tag^{}")"; then
-                    print_error "Impossible de vérifier le tag sur le dépôt ${remote}."
-                    return 1
-                fi
-                if [[ -n "$remote_refs" ]]; then
-                    PROJECTS_GIT_COMMIT_STATUS=version_deja_attribuee
-                    print_info "Le tag ${commit_tag} existe déjà sur ${remote} ; aucune recréation locale."
-                    return 0
-                fi
-            done < <(runuser -u "$ENV_DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" remote)
+            if [[ "${PROJECTS_VERSION_AUTHORITY:-0}" != 1 ]]; then
+                while IFS= read -r remote; do
+                    [[ -n "$remote" ]] || continue
+                    if ! remote_refs="$(runuser -u "$ENV_DEVOPS_USER" -- env -u GIT_COMMON_DIR GIT_TERMINAL_PROMPT=0 git -C "$project_path" ls-remote --tags "$remote" "refs/tags/$commit_tag" "refs/tags/$commit_tag^{}")"; then
+                        print_error "Impossible de vérifier le tag sur le dépôt ${remote}."
+                        return 1
+                    fi
+                    if [[ -n "$remote_refs" ]]; then
+                        PROJECTS_GIT_COMMIT_STATUS=version_deja_attribuee
+                        print_info "Le tag ${commit_tag} existe déjà sur ${remote} ; aucune recréation locale."
+                        return 0
+                    fi
+                done < <(runuser -u "$ENV_DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" remote)
+            fi
             if ! runuser -u "$ENV_DEVOPS_USER" -- "${git_local_command[@]}" -C "$project_path" tag -a "$commit_tag" -m "$commit_name"; then
                 print_error "Échec de la création du tag ${commit_tag}."
                 return 1
@@ -4747,7 +4772,7 @@ projects_provider_push_direct() {
 _projects_provider_push_direct() {
     local provider="${1:-}" project_id="${2:-}" version="${3:-}"
     local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}" tag="" rc=0 tag_exists=0 probe_rc=0
-    local PROJECTS_DIRECT_PUSH_ACTIVE=1 PROJECTS_DIRECT_PUSH_VERSION=""
+    local PROJECTS_DIRECT_PUSH_ACTIVE=1 PROJECTS_DIRECT_PUSH_VERSION="" PROJECTS_VERSION_AUTHORITY=1
     local PROJECTS_CICD_REPLAY_ROOT="" PROJECTS_CICD_RECONCILE=1
     local ENV_DEVOPS_PROJECTS_ROOT="$ENV_DEVOPS_PROJECTS_ROOT"
     local version_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
@@ -4783,6 +4808,10 @@ _projects_provider_push_direct() {
     fi
     if [[ -n "${3:-}" && "$tag_exists" == 1 ]]; then
         print_info "Version $version déjà attribuée : rejeu isolé du tag ; modifications locales conservées."
+        case "$provider" in
+            github) _github_ensure_api_credentials "$project_path" || return 1 ;;
+            gitlab) _gitlab_initialize_credentials "$project_path" || return 1 ;;
+        esac
         projects_cicd_replay_prepare "$project_id" "$project_path" "$tag" || return 1
         trap 'runuser -u "$ENV_DEVOPS_USER" -- rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT" || exit 1' EXIT
         ENV_DEVOPS_PROJECTS_ROOT="$PROJECTS_CICD_REPLAY_ROOT"

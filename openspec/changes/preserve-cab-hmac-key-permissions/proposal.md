@@ -2,12 +2,12 @@
 
 ## Why
 
-La normalisation récursive DevOps applique 0775 à la clé HMAC CAB. Le développeur a validé une normalisation spécifique en 0770 et une adaptation coordonnée de CAB.
+La normalisation DevOps limite les droits des fichiers du compte et maintient la compatibilité des clés HMAC CAB avec les contrôles de CAB.
 
 ## What Changes
 
 - Normaliser en 0770 les seules clés `*.hmac.key` du répertoire de journal CAB du compte DevOps.
-- Préserver les règles de tous les autres fichiers et ne pas suivre les liens symboliques.
+- Appliquer 2770 aux répertoires et 0770 aux fichiers ordinaires ; conserver les règles spécifiques des fichiers sensibles et ne pas suivre les liens symboliques.
 
 ## Capabilities
 

@@ -11,7 +11,8 @@ diu_display_help_context() {
         projects::|projects:build:*|projects:deb:*|projects:docker:*|projects:git:*|projects:cicd:*|projects:cicddiu:*|projects:cicddr:*|projects:forgejo:push|projects:gitlab:push|projects:github:push|projects:forgejo:release|projects:gitlab:release|projects:github:release)
             if [[ "$leaf" == push && "$subcontext" =~ ^(forgejo|gitlab|github)$ ]]; then
                 printf '%s\n' 'Push direct : VERSION x.y.z ou horodatage si absente ; PROJECT_VERSION reste inchangée.'
-                printf '%s\n' 'Une version attribuée est rejouée isolément ; la réconciliation peut remplacer un tag distant sous protection.'
+                printf '%s\n' 'Tag distant supérieur ou non comparable : refus ; sinon branche et tag sont alignés sous lease.'
+                printf '%s\n' 'Version stable prioritaire sur horodatage ; une version attribuée est rejouée isolément.'
             else
                 printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z dans project.env ; sans cette clé, mécanismes actuels conservés.'
                 printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
@@ -393,6 +394,7 @@ diu_display_help_context() {
             printf '%s\n' "À l’étape 5, Debian peut être publié sur Forgejo, GitLab et GitHub selon leur configuration, même sans Docker."
             printf '%s\n' 'Les messages identifient la forge, le tag et les contrôles effectivement réalisés.'
             printf '%s\n' 'Un tag existant est rejoué depuis son commit isolé ; les modifications locales ne sont pas livrées.'
+            printf '%s\n' 'Tag distant supérieur ou non comparable : refus ; sinon branche et tag sont alignés sous lease. Stable prime sur horodatage.'
             printf '%s\n' "En rejeu, la publication Docker est ignorée : l'immutabilité du tag distant n'est pas vérifiée."
             ;;
         projects:cicddiu:|projects:cicddiu:*)

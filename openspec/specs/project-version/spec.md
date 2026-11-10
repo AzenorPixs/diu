@@ -27,7 +27,8 @@ Les commits et CICD SHALL utiliser le tag v<VERSION> lorsque PROJECT_VERSION est
 
 #### Scenario: Arbre inchangé
 - **WHEN** aucune modification n'est à enregistrer et que le tag de la version demandée est absent
-- **THEN** aucun commit vide n'est créé et le tag peut être créé sur HEAD si la vérification des dépôts configurés ne révèle aucune collision
+- **THEN** aucun commit vide n'est créé et le tag peut être créé sur HEAD
+- **AND THEN** un push direct ou CI/CD applique la règle d’autorité des versions avant toute modification distante
 
 #### Scenario: Tag déjà présent sur HEAD
 - **WHEN** le tag de la version demandée désigne déjà HEAD
@@ -91,3 +92,49 @@ Le CI/CD SHALL poursuivre le rejeu d'une version attribuée à partir du commit 
 - **WHEN** la version est déjà attribuée et des modifications locales sont présentes
 - **THEN** les étapes de construction et de publication utilisent le commit du tag dans un contexte isolé
 - **AND THEN** les modifications locales restent disponibles et ne sont pas livrées sous cette version
+
+### Requirement: Identifiants des pushes directs en rejeu
+Avant de créer le clone d'un push direct GitHub ou GitLab rejouant un tag existant, DIU SHALL préparer les identifiants dans le projet source. Les identifiants existants SHALL être réutilisés sans nouvelle saisie et la préparation SHALL échouer explicitement en cas d'erreur. Les secrets SHALL rester hors des diagnostics.
+
+#### Scenario: Identifiants déjà présents
+- **WHEN** un tag existant est rejoué et que les identifiants du fournisseur sont présents et valides dans le projet source
+- **THEN** le rejeu utilise ces identifiants sans demander leur saisie
+
+#### Scenario: Identifiants absents
+- **WHEN** les identifiants nécessaires à un push direct GitHub ou GitLab sont absents
+- **THEN** leur initialisation éventuelle a lieu dans le projet source avant le clonage et reste disponible après nettoyage du clone
+
+#### Scenario: Échec de préparation
+- **WHEN** la préparation des identifiants échoue
+- **THEN** aucun clone de rejeu ni transport Git n'est lancé
+
+#### Scenario: Autres parcours
+- **WHEN** le push direct concerne Forgejo ou que CI/CD exécute son parcours habituel
+- **THEN** ces parcours conservent leur comportement existant
+
+### Requirement: Autorité de la version sur les fournisseurs
+Avant un push individuel Forgejo, GitLab ou GitHub ou un push CI/CD, DIU SHALL comparer le tag demandé aux tags distants et refuser toute publication si un tag distant est supérieur ou non comparable. Une version stable SHALL primer sur un horodatage. Si les tags distants sont égaux ou inférieurs, la branche et le tag demandés SHALL désigner le commit local sélectionné avec protection par SHA attendu. Les autres tags SHALL être conservés.
+
+#### Scenario: Version distante supérieure
+- **WHEN** un tag distant est supérieur au tag demandé
+- **THEN** aucun push de branche ou de tag n'est effectué sur ce fournisseur
+
+#### Scenario: Version distante égale ou inférieure
+- **WHEN** tous les tags distants sont égaux ou inférieurs au tag demandé
+- **THEN** la branche distante et le tag demandé sont alignés sur le commit sélectionné, même si leur historique diffère
+
+#### Scenario: Version stable et horodatage
+- **WHEN** un tag stable est comparé à un tag horodaté
+- **THEN** la version stable est supérieure
+
+#### Scenario: Tag non comparable
+- **WHEN** un tag distant ou demandé ne peut être comparé aux formats stables et horodatés reconnus
+- **THEN** la publication est refusée avec un diagnostic
+
+#### Scenario: Modification concurrente
+- **WHEN** la branche ou le tag ciblé change après sa lecture
+- **THEN** le lease refuse son écrasement et l'erreur est signalée
+
+#### Scenario: Fournisseur d'un push direct
+- **WHEN** un fournisseur est indiqué dans la commande directe
+- **THEN** seul ce fournisseur est publié
