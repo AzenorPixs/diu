@@ -33,6 +33,7 @@ class EnvDevopsTests(unittest.TestCase):
             loader = loader.replace('/root/diu/config', '${TEST_CONFIG_DIR}')
             (app / 'config.sh').write_text(loader, encoding='utf-8')
             env = dict(os.environ, BASH_SCRIPT_PATH=str(app),
+                       TEST_ROOT=str(ROOT),
                        TEST_CONFIG_DIR=str(target / 'config'),
                        TEST_CONFIG=str(target / 'config/environnements.env'),
                        TEST_DECLARATIONS=str(declarations))
@@ -42,6 +43,8 @@ class EnvDevopsTests(unittest.TestCase):
 docker() { echo 'Docker interdit dans ce test' >&2; return 99; }
 lxc() { echo 'LXC interdit dans ce test' >&2; return 99; }
 lxc-start() { echo 'LXC interdit dans ce test' >&2; return 99; }
+source "$TEST_ROOT/modules/softwares/desired-state.sh"
+source "$TEST_ROOT/modules/softwares/migration.sh"
 source "$BASH_SCRIPT_PATH/config.sh"
 '''
             return subprocess.run(['bash', '-c', prelude + body], env=env,

@@ -74,7 +74,7 @@ system_network_hosts_report() {
 }
 
 system_network_update() {
-    system_network_hosts
+    system_network_hosts_report
 }
 
 system_network_manage_hosts() {

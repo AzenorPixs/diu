@@ -37,7 +37,7 @@ et le format historique pour Bookworm et les versions antérieures.
   l'ancien `debian.sources` géré par le DIU est supprimé.
 
 ### Requirement: Mise à jour du sous-module APT
-`diu system apt update` SHALL régénérer les dépôts Debian et tiers gérés, mettre à jour les index et exécuter une transaction dist-upgrade, le nettoyage et les prérequis, puis produire le bilan système et APT.
+`diu system engine apt update` SHALL régénérer les dépôts Debian et tiers gérés, mettre à jour les index et exécuter une transaction dist-upgrade, le nettoyage et les prérequis, puis produire le bilan système et APT.
 
 #### Scenario: Variables activées
 - **WHEN** les variables contrib, non-free et backports valent `1`
@@ -52,14 +52,14 @@ et le format historique pour Bookworm et les versions antérieures.
 - **THEN** ils sont régénérés avant la transaction APT globale.
 
 #### Scenario: Mise à jour APT globale
-- **WHEN** `diu system apt update` est exécuté
+- **WHEN** `diu system engine apt update` est exécuté
 - **THEN** les index sont actualisés et une transaction dist-upgrade est exécutée.
 
 ### Requirement: Isolation de Flatpak du sous-module APT
 Le parcours APT SHALL NOT exécuter les contrôles ciblés du moteur Flatpak ni appeler `flatpak update`.
 
 #### Scenario: Mise à jour APT
-- **WHEN** `diu system apt update` est exécuté
+- **WHEN** `diu system engine apt update` est exécuté
 - **THEN** aucun contrôle ciblé Flatpak ni `flatpak update` n'est exécuté.
 
 ### Requirement: Moteur commun des dépôts tiers
@@ -89,7 +89,7 @@ antérieures.
 
 Les dépôts tiers hors CrowdSec SHALL conserver leurs dix variables
 `SYSTEM_APT_*` dans le scope system. Le dépôt CrowdSec SHALL utiliser
-`SOFTWARES_APT_CROWDSEC` dans le scope logiciels. Sa valeur absente SHALL être
+`SOFTWARE_APT_CROWDSEC` dans le scope logiciels. Sa valeur absente SHALL être
 déduite des sources APT existantes et s'activer si l'agent ou le bouncer est
 activé; une valeur déjà configurée SHALL rester prioritaire. Les migrations
 historiques de `SYSTEM_APT_CROWDSEC` et `CROWDSEC_BOUNCER` SHALL préserver leur
@@ -98,7 +98,7 @@ valeur dans `softwares.env`.
 #### Scenario: Dépôt CrowdSec activé
 
 - **WHEN** le dépôt CrowdSec existe déjà ou l'agent/le bouncer est activé
-- **AND** `SOFTWARES_APT_CROWDSEC` n'est pas configurée
+- **AND** `SOFTWARE_APT_CROWDSEC` n'est pas configurée
 - **THEN** le DIU active le dépôt APT CrowdSec
 
 #### Scenario: Activation historique sans source présente
@@ -256,31 +256,31 @@ OpenAI, ChatGPT ou Codex, puis persistée.
 `SYSTEM_APT_LEMONLDAP` SHALL rester le réglage système explicite du dépôt APT.
 Si aucune source LemonLDAP n’est détectée et si `SYSTEM_APT_LEMONLDAP` n’est
 pas déjà configurée, sa valeur initiale SHALL être activée lorsque
-`SOFTWARES_APT_LEMONLDAP=1`.
+`SOFTWARE_APT_LEMONLDAP=1`.
 
 #### Scenario: Installation logicielle active sans dépôt configuré
 
 - **WHEN** aucune source LemonLDAP APT n’est détectée
-- **AND** `SOFTWARES_APT_LEMONLDAP` vaut `1`
+- **AND** `SOFTWARE_APT_LEMONLDAP` vaut `1`
 - **THEN** le DIU SHALL persister `SYSTEM_APT_LEMONLDAP=1` dans `system.env`
 
 #### Scenario: Réglage système explicite prioritaire
 
 - **WHEN** `SYSTEM_APT_LEMONLDAP` est déjà configurée
-- **THEN** sa valeur SHALL rester prioritaire sur `SOFTWARES_APT_LEMONLDAP`
+- **THEN** sa valeur SHALL rester prioritaire sur `SOFTWARE_APT_LEMONLDAP`
 
 ### Requirement: Repli du dépôt MongoDB depuis le réglage logiciel
 
 `SYSTEM_APT_MONGODB` SHALL rester le réglage système explicite du dépôt APT.
 Si aucune source MongoDB n’est détectée et si `SYSTEM_APT_MONGODB` n’est pas
 déjà configurée, sa valeur initiale SHALL être déterminée par
-`SOFTWARES_APT_MONGODB` et `MONGODB_VERSION`. Lorsque le logiciel est actif, la
+`SOFTWARE_APT_MONGODB` et `MONGODB_VERSION`. Lorsque le logiciel est actif, la
 version déclarée SHALL sélectionner la branche du dépôt comme auparavant.
 
 #### Scenario: Installation logicielle active sans dépôt configuré
 
 - **WHEN** aucune source MongoDB APT n’est détectée
-- **AND** `SOFTWARES_APT_MONGODB` vaut `1`
+- **AND** `SOFTWARE_APT_MONGODB` vaut `1`
 - **AND** `MONGODB_VERSION` contient une version prise en charge
 - **THEN** le DIU SHALL persister la branche correspondante dans
   `SYSTEM_APT_MONGODB`
@@ -295,12 +295,12 @@ version déclarée SHALL sélectionner la branche du dépôt comme auparavant.
 `SYSTEM_APT_WAZUH` SHALL rester le réglage système explicite du dépôt APT.
 Lorsque sa valeur n’est pas configurée et qu’aucune source n’est détectée, le
 repli historique SHALL activer la branche Wazuh 4 uniquement lorsque
-`SOFTWARES_APT_WAZUH_SERVER=1` et `WAZUH_SERVER_UPGRADE=1`.
+`SOFTWARE_APT_WAZUH_SERVER=1` et `WAZUH_SERVER_UPGRADE=1`.
 
 #### Scenario: Serveur et mise à niveau activés sans dépôt détecté
 
 - **WHEN** aucune source Wazuh APT n’est détectée
-- **AND** `SOFTWARES_APT_WAZUH_SERVER=1`
+- **AND** `SOFTWARE_APT_WAZUH_SERVER=1`
 - **AND** `WAZUH_SERVER_UPGRADE=1`
 - **THEN** le DIU SHALL persister `SYSTEM_APT_WAZUH=4`
 

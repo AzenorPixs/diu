@@ -90,6 +90,45 @@ class ProjectsBuildDebTests(unittest.TestCase):
         self.assertFalse(any('debian-package.json' in p for p in manifest))
         self.assertTrue(all(entry[1:3] == (0, 0) for entry in manifest.values()))
 
+    def test_explicit_file_mode_and_invalid_modes(self):
+        source = self.project / 'payload/file with spaces'
+        source.chmod(0o644)
+        self.recipe['files'] = [{'source': 'payload/file with spaces',
+                                 'destination': '/usr/bin/example', 'mode': '0755'}]
+        self.save_recipe()
+        result = self.run_build()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        package = self.project / 'dist/example-package_2.3_amd64.deb'
+        manifest = self.archive_manifest(package)
+        self.assertEqual(manifest['./usr/bin/example'][0], 0o755)
+        self.assertEqual(source.stat().st_mode & 0o777, 0o644)
+        original = package.read_bytes()
+        for mode in ['755', '1755', '0788', '0755\n', '', 755, None]:
+            with self.subTest(mode=mode):
+                self.recipe['files'][0]['mode'] = mode
+                self.save_recipe()
+                self.assertNotEqual(self.run_build().returncode, 0)
+                self.assertEqual(package.read_bytes(), original)
+        self.recipe['files'] = [{'source': 'payload', 'destination': '/opt/example',
+                                 'mode': '0755'}]
+        self.save_recipe()
+        self.assertNotEqual(self.run_build().returncode, 0)
+        self.assertEqual(package.read_bytes(), original)
+
+    def test_diu_recipe_installs_executable_from_nonexecutable_source(self):
+        self.recipe = json.loads((ROOT / 'build/debian-package.json').read_text())
+        self.save_recipe()
+        (self.project / 'root-install-debian.sh').write_text('#!/bin/sh\n')
+        (self.project / 'root-install-debian.sh').chmod(0o644)
+        for directory in ['lib', 'modules', 'config']:
+            (self.project / directory).mkdir()
+        (self.project / 'config/hosts.json').write_text('[]\n')
+        result = self.run_build()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        package = self.project / 'dist/diu_2026.11.02.12.00_all.deb'
+        self.assertEqual(self.archive_manifest(package)['./root/diu/root-install-debian.sh'][0], 0o755)
+        self.assertEqual((self.project / 'root-install-debian.sh').stat().st_mode & 0o777, 0o644)
+
     def test_activation_exact_values_and_nonexecution(self):
         for value in ['Yes', 'YES', '1', '"Yes"', "'YES'"]:
             with self.subTest(value=value):

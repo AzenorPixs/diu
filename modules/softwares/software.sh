@@ -2,7 +2,7 @@
 
 # Les moteurs tiers seront ajoutés lorsque leurs recettes seront disponibles.
 softwares_update() {
-    manage_softwares_action update
+    software_dispatch /root/diu/config/softwares.env update
 }
 
 manage_software_action() {

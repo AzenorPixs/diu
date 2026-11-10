@@ -62,7 +62,7 @@ régénéré pendant les validations ; il est relu et conservé sans édition pa
 plan. Son contenu et les modifications préexistantes peuvent être inclus dans
 le commit complet prévu par SCM, sans être comptés comme livrables de ce change.
 L'état Git de clôture contient aussi les suppressions préexistantes de
-ORCHESTRATED_CODING.md et de DEVOPS.sync-conflict-20261102-205614-EWHSA4J.md.
+ancien protocole local et de DEVOPS.sync-conflict-20261102-205614-EWHSA4J.md.
 Elles sont conservées dans le snapshot complet SCM, sans suppression exécutée
 par ce plan ni attribution à la fonctionnalité livrée. Une consultation en
 lecture seule des métadonnées de chats n'a pas identifié de coordination liée.

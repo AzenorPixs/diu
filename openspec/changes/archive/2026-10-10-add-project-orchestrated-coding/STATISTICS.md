@@ -164,7 +164,7 @@ et seront enrichis lors de leur prochaine configuration interactive.
 | README.md | Mis à jour avec création, mise à jour et signification Yes/No |
 | CHANGELOG.md | Mis à jour dans Unreleased, sans inventer de version de publication |
 | OpenSpec | Deux canons synchronisés, sept blocs du delta concordants, six tâches cochées et une archive |
-| ORCHESTRATED_CODING.md | Inchangé, témoin identique ; cette session directe ne nécessite pas son activation |
+| ancien protocole local | Inchangé, témoin identique ; cette session directe ne nécessite pas son activation |
 
 Totaux : 17 + 26 + 9 + 17 = 69 tests finaux ; 16 + 69 = 85 exécutions
 réussies ; 7 fichiers préexistants + 8 nouveaux = 15 fichiers livrés ;

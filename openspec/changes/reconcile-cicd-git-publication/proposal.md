@@ -6,7 +6,7 @@ Les historiques indépendants et les tags distants divergents empêchent ou limi
 
 ## Changements
 
-- Réconcilier les branches par fournisseur dans un contexte isolé et privilégier tous les fichiers versionnés locaux en cas de conflit.
+- Contrôler les tags distants et aligner la branche sur le commit local sélectionné lorsque la version demandée fait autorité.
 - Publier les tags locaux, y compris en remplaçant un tag distant divergent avec protection contre les changements concurrents.
 - Préserver les modifications locales en attente lors du rejeu et signaler séparément les indisponibilités et les échecs réels.
 - Ne pas remplacer les artefacts publiés sans preuve de cohérence.

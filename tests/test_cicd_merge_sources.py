@@ -105,7 +105,7 @@ projects_cicd_merge_sources "$2" "$3" Fixture fixture@example.test
             self.assertFalse((local / 'source.txt').exists())
             self.assertEqual(git('status', '--porcelain'), '')
 
-    def test_replay_reconciles_unrelated_branch_without_changing_local_head(self):
+    def test_replay_aligns_unrelated_branch_without_changing_local_head(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-merge-test-') as tmp:
             base = Path(tmp)
             local, other, bare = base / 'local', base / 'other', base / 'remote.git'
@@ -160,10 +160,9 @@ projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(git(local, 'rev-parse', 'HEAD'), original)
             self.assertEqual(git(bare, 'show', 'main:source.txt'), 'local')
-            self.assertEqual(git(bare, 'show', 'main:extra.txt'), 'remote addition')
+            self.assertEqual(git(bare, 'rev-parse', 'refs/heads/main'), original)
             self.assertEqual(git(bare, 'rev-parse', 'refs/tags/v1.0.0'), original)
-            parents = git(bare, 'show', '-s', '--format=%P', 'main').split()
-            self.assertEqual(parents, [original, remote_head])
+            self.assertEqual(git(bare, 'ls-tree', '-r', '--name-only', 'main'), 'source.txt')
 
     def test_unrelated_histories_keep_local_conflict_and_remote_addition(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-merge-test-') as tmp:

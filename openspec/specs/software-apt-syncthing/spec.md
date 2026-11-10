@@ -9,28 +9,23 @@ et le comportement d’installation ; le DIU ne crée ni ne modifie `.stignore`.
 
 ### Requirement: Déclaration statique de SOFTWARES_APT_SYNCTHING
 
-Le DIU SHALL déclarer `SOFTWARES_APT_SYNCTHING` dans
-`modules/diu/variables/softwares/software_apt_syncthing.sh` avec `STATIC`,
-`ENABLE`, scope `softwares` et défaut `0`. Le chargeur existant SHALL
-découvrir cette déclaration sans modification.
+DIU SHALL déclarer `SOFTWARE_APT_SYNCTHING` dans le scope `softwares`, migrer la valeur existante avant de désactiver l'ancienne déclaration GLOBAL et initialiser la nouvelle valeur depuis l'état réel uniquement en l'absence de valeur récupérable. Les valeurs non binaires SHALL provoquer une erreur explicite.
 
 #### Scenario: Initialisation de la valeur absente
 
-- **WHEN** `SOFTWARES_APT_SYNCTHING` est absente au chargement
-- **THEN** le DIU SHALL persister
-  `export SOFTWARES_APT_SYNCTHING=0` dans `/root/diu/config/softwares.env`
-- **AND** SHALL exporter cette valeur dans le processus courant
+- **WHEN** aucune valeur nouvelle ou ancienne n'est disponible et que l'état réel est déterminable
+- **THEN** DIU initialise et persiste `SOFTWARE_APT_SYNCTHING` à partir de cet état réel
 
 #### Scenario: Valeur préconfigurée valide ou invalide
 
-- **WHEN** la variable vaut `0` ou `1`
-- **THEN** sa valeur SHALL être préservée et exportée sans réécriture
-- **WHEN** elle vaut toute autre valeur
-- **THEN** la déclaration SHALL échouer avec un diagnostic stderr
+- **WHEN** la valeur cible ou la valeur ancienne migrable vaut `0` ou `1`
+- **THEN** DIU conserve cette valeur et la rend disponible sous le nouveau nom
+- **WHEN** une valeur nécessaire à la migration est invalide ou ambiguë
+- **THEN** DIU refuse la migration et signale l'erreur
 
 ### Requirement: Consommateurs Syncthing renommés
 
-Les consommateurs SHALL utiliser `SOFTWARES_APT_SYNCTHING` à la place de
+Les consommateurs SHALL utiliser `SOFTWARE_APT_SYNCTHING` à la place de
 `SYNCTHING`. Une valeur absente SHALL être traitée comme `0`. Une valeur `1`
 SHALL conserver l’installation APT de Syncthing sans créer ni modifier
 `.stignore`.

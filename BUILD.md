@@ -45,7 +45,7 @@ ces deux valeurs, les règles de tags et de repli calendaire ci-dessous s'appliq
 Les sources sont les fichiers de travail, y compris non committés. Pour une
 copie de fichier, `conffile: true` déclare sa destination comme fichier de
 configuration Debian ; `empty_json: true` exige un tableau JSON vide, contrôlé
-avant et après copie.
+avant et après copie. Le champ facultatif `mode` fixe les permissions d’un fichier régulier copié, sous forme de quatre chiffres octaux entre `0000` et `0777` ; la source reste inchangée. Sans ce champ, le mode suit le comportement habituel de copie.
 
 Les champs inconnus et les caractères de contrôle sont refusés. Sources et
 recette doivent être non symboliques ; les liens et fichiers spéciaux dans les
@@ -87,9 +87,10 @@ Pour une version déjà attribuée, le build utilise le commit du tag dans un
 contexte isolé. Le paquet est conservé sous `dist/replay/<TAG>/<SHA256>/` sans écraser
 un fichier existant. DIU ne vérifie pas l'immutabilité du tag Docker distant :
 sa publication est ignorée pendant le rejeu ; la publication Debian reste indépendante.
-La branche Git divergente est réconciliée dans une copie isolée avec priorité
-aux fichiers versionnés locaux en conflit. Le tag distant divergent est remplacé
-avec un lease explicite sans sauvegarde. Dans ce cas, la publication des artefacts
+Avant chaque push, un tag distant supérieur ou non comparable bloque la
+publication. Sinon la branche distante est alignée sur le commit sélectionné et
+un tag divergent est remplacé, avec des leases explicites sans sauvegarde. Une
+version stable prime sur un horodatage. Dans ce cas, la publication des artefacts
 de la forge concernée est ignorée et leur cohérence doit être vérifiée.
 
 Les publications constituent l'étape 5 et le bilan des deux builds l'étape 6.
@@ -139,8 +140,9 @@ et [assets de release](https://docs.github.com/en/rest/releases/assets).
 `diu projects deb [ID PROJECT]`, `diu proj deb <ID PROJECT>` et `cicddiu`
 conservent le constructeur `build_deb_diu`, indépendant de la nouvelle recette.
 Leurs règles spécifiques sont décrites dans les sections suivantes.
-La nouvelle recette DIU produit les mêmes métadonnées, contenu, modes et
-propriétaires à sources et version identiques. Les horodatages peuvent faire
+La nouvelle recette DIU produit les mêmes métadonnées, contenu et propriétaires
+à sources et version identiques. Les modes sont identiques sauf celui du point
+d’entrée DIU, fixé à `0755` quelle que soit sa source. Les horodatages peuvent faire
 varier les octets de l'archive. `tests/test_projects_build_deb.py` compare les
 paquets de fixture et teste un projet sans arborescence DIU.
 

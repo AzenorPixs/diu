@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Initialisation sans écrasement de la carte de développement des projets."""
+"""Préservation de la carte de développement et du dossier local de tests."""
 import os
 from pathlib import Path
 import subprocess
@@ -30,7 +30,7 @@ class ProjectsDevelopmentMapTests(unittest.TestCase):
         self.template.mkdir(parents=True)
         (self.template / 'AGENTS.md').write_text('Template template\n', encoding='utf-8')
         (self.template / '.gitignore').write_text('ignored\n', encoding='utf-8')
-        (self.template / 'ORCHESTRATED_CODING.md').write_text('Template\n', encoding='utf-8')
+        (self.template / 'synthetic-document.md').write_text('Template\n', encoding='utf-8')
         self.source = self.template / 'DEVELOPMENT_MAP.md'
         self.source.write_text('Template template\n', encoding='utf-8')
 
@@ -59,14 +59,79 @@ class ProjectsDevelopmentMapTests(unittest.TestCase):
         return tuple(getattr(metadata, name) for name in
                      ('st_ino', 'st_mode', 'st_uid', 'st_gid', 'st_mtime_ns'))
 
-    def test_missing_map_is_personalized_and_owned_in_every_mode(self):
+    def test_missing_map_is_not_created_in_any_mode(self):
         for index, mode in enumerate(('Yes', 'No', '')):
             with self.subTest(mode=mode):
                 project = self.project(f'project {index}', mode)
                 self.assert_success(self.run_shell(f'sync_project "project {index}"'))
-                destination = project / 'DEVELOPMENT_MAP.md'
-                self.assertEqual(destination.read_text(), f'Projet & Test project {index}\n')
-                self.assertIn(str(destination), (self.path / 'owners.txt').read_text())
+                self.assertFalse((project / 'DEVELOPMENT_MAP.md').exists())
+
+    def test_cab_tests_created_empty_without_copying_template(self):
+        source = self.template / '.cab-tests'
+        source.mkdir()
+        (source / 'source.txt').write_text('source', encoding='utf-8')
+        project = self.project()
+        self.assert_success(self.run_shell('sync_project "project with spaces"'))
+        destination = project / '.cab-tests'
+        self.assertTrue(destination.is_dir())
+        self.assertEqual(list(destination.iterdir()), [])
+        self.assertIn(str(destination), (self.path / 'owners.txt').read_text())
+
+    def test_cab_tests_preserved_and_created_in_group_sync(self):
+        existing = self.project('existing') / '.cab-tests'
+        existing.mkdir()
+        existing.chmod(0o750)
+        data = existing / 'local.txt'
+        data.write_text('local', encoding='utf-8')
+        before = self.attributes(existing)
+        missing = self.project('missing') / '.cab-tests'
+        self.assert_success(self.run_shell('sync_project_all'))
+        self.assertEqual(data.read_text(), 'local')
+        self.assertEqual(self.attributes(existing), before)
+        self.assertTrue(missing.is_dir())
+        self.assertEqual(list(missing.iterdir()), [])
+        self.assertNotIn(str(existing), (self.path / 'owners.txt').read_text())
+
+    def test_cab_tests_file_reports_error(self):
+        project = self.project()
+        destination = project / '.cab-tests'
+        destination.write_text('local', encoding='utf-8')
+        result = self.run_shell('sync_project "project with spaces"')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Impossible de créer le répertoire .cab-tests', result.stderr)
+        self.assertEqual(destination.read_text(), 'local')
+
+    def test_changelog_and_devops_are_preserved_or_absent_in_both_modes(self):
+        for filename in ('CHANGELOG.md', 'DEVOPS.md'):
+            (self.template / filename).write_text('modèle\n', encoding='utf-8')
+        present = self.project('present')
+        absent = self.project('absent')
+        for filename in ('CHANGELOG.md', 'DEVOPS.md'):
+            (present / filename).write_text('local\n', encoding='utf-8')
+        before = {name: self.attributes(present / name) for name in ('CHANGELOG.md', 'DEVOPS.md')}
+        self.assert_success(self.run_shell('sync_project present'))
+        self.assert_success(self.run_shell('sync_project_all'))
+        for filename in ('CHANGELOG.md', 'DEVOPS.md'):
+            self.assertEqual((present / filename).read_text(), 'local\n')
+            self.assertEqual(self.attributes(present / filename), before[filename])
+            self.assertFalse((absent / filename).exists())
+
+    def test_unmanaged_directories_are_preserved_or_absent_in_both_modes(self):
+        names = ('.git', '.worktree', 'output')
+        present = self.project('present')
+        absent = self.project('absent')
+        for name in names:
+            (self.template / name).mkdir()
+            (self.template / name / 'source').write_text('source', encoding='utf-8')
+            (present / name).mkdir()
+            (present / name / 'local').write_text('local', encoding='utf-8')
+        before = {name: self.attributes(present / name) for name in names}
+        self.assert_success(self.run_shell('sync_project present'))
+        self.assert_success(self.run_shell('sync_project_all'))
+        for name in names:
+            self.assertEqual((present / name / 'local').read_text(), 'local')
+            self.assertEqual(self.attributes(present / name), before[name])
+            self.assertFalse((absent / name).exists())
 
     def test_existing_map_preserves_content_and_attributes_without_source(self):
         project = self.project()
@@ -82,18 +147,6 @@ class ProjectsDevelopmentMapTests(unittest.TestCase):
                 self.assertEqual(destination.read_text(), 'Template template local\n')
                 self.assertEqual(self.attributes(destination), before)
                 self.assertNotIn(str(destination), (self.path / 'owners.txt').read_text())
-
-    def test_second_sync_preserves_new_map_after_model_changes(self):
-        project = self.project()
-        self.assert_success(self.run_shell('sync_project "project with spaces"'))
-        destination = project / 'DEVELOPMENT_MAP.md'
-        before = self.attributes(destination)
-        (self.path / 'owners.txt').write_text('', encoding='utf-8')
-        self.source.write_text('nouveau modèle\n', encoding='utf-8')
-        self.assert_success(self.run_shell('sync_project "project with spaces"'))
-        self.assertEqual(destination.read_text(), 'Projet & Test project with spaces\n')
-        self.assertEqual(self.attributes(destination), before)
-        self.assertNotIn(str(destination), (self.path / 'owners.txt').read_text())
 
     def test_directory_and_symlinks_are_preserved_even_without_source(self):
         self.source.unlink()
@@ -121,68 +174,19 @@ class ProjectsDevelopmentMapTests(unittest.TestCase):
         self.assertEqual(target.read_text(), 'Template template local\n')
         self.assertEqual(self.attributes(target), target_before)
 
-    def test_missing_or_directory_source_fails_before_copy(self):
-        self.source.unlink()
-        for kind in ('missing', 'directory'):
-            with self.subTest(kind=kind):
-                if kind == 'directory':
-                    self.source.mkdir()
-                project = self.project(kind)
-                result = self.run_shell(f'sync_project {kind}')
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn('DEVELOPMENT_MAP.md', result.stderr)
-                self.assertEqual((project / 'AGENTS.md').read_text(), 'original\n')
-                self.assertFalse((project / '.gitignore').exists())
-                self.assertFalse((project / 'DEVELOPMENT_MAP.md').exists())
-                self.assertFalse((self.path / 'owners.txt').exists())
-
-    def test_grouped_sync_initializes_only_missing_maps_and_is_repeatable(self):
-        missing = self.project('a-missing', 'Yes')
-        present = self.project('b-present')
-        destination = present / 'DEVELOPMENT_MAP.md'
-        destination.write_text('local\n', encoding='utf-8')
-        before = self.attributes(destination)
-        self.assert_success(self.run_shell('sync_project_all'))
-        new_map = missing / 'DEVELOPMENT_MAP.md'
-        self.assertEqual(new_map.read_text(), 'Projet & Test a-missing\n')
-        new_before = self.attributes(new_map)
-        self.source.unlink()
-        self.assert_success(self.run_shell('sync_project_all'))
-        self.assertEqual(self.attributes(new_map), new_before)
-        self.assertEqual(destination.read_text(), 'local\n')
-        self.assertEqual(self.attributes(destination), before)
-        self.assertNotIn(str(destination), (self.path / 'owners.txt').read_text())
-
-    def test_grouped_failure_does_not_block_later_project_with_existing_map(self):
+    def test_group_sync_does_not_require_or_copy_source(self):
         self.source.unlink()
         missing = self.project('a-missing')
         present = self.project('b-present')
         destination = present / 'DEVELOPMENT_MAP.md'
         destination.write_text('local\n', encoding='utf-8')
         before = self.attributes(destination)
-        result = self.run_shell('sync_project_all')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('DEVELOPMENT_MAP.md', result.stderr)
-        self.assertEqual((missing / 'AGENTS.md').read_text(), 'original\n')
-        self.assertEqual((present / 'AGENTS.md').read_text(), 'Projet & Test b-present\n')
+        self.assert_success(self.run_shell('sync_project_all'))
+        self.assertFalse((missing / 'DEVELOPMENT_MAP.md').exists())
         self.assertEqual(destination.read_text(), 'local\n')
         self.assertEqual(self.attributes(destination), before)
-
-    def test_copy_failure_is_reported_without_false_success(self):
-        project = self.project()
-        result = self.run_shell(r'''
-cp() {
-    if [[ "$3" == */DEVELOPMENT_MAP.md && "$4" == "$ENV_DEVOPS_PROJECTS_ROOT/project with spaces/" ]]; then
-        return 1
-    fi
-    command cp "$@"
-}
-sync_project "project with spaces"
-''')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('Impossible de synchroniser le fichier : DEVELOPMENT_MAP.md', result.stderr)
-        self.assertNotIn('synchronisé avec succès', result.stdout)
-        self.assertFalse((project / 'DEVELOPMENT_MAP.md').exists())
+        self.assertEqual((missing / 'AGENTS.md').read_text(), 'Projet & Test a-missing\n')
+        self.assertEqual((present / 'AGENTS.md').read_text(), 'Projet & Test b-present\n')
 
 
 if __name__ == '__main__':

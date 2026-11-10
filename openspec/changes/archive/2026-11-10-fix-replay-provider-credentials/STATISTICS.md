@@ -1,0 +1,486 @@
+# Statistiques du change
+
+### Agents de codage — relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+| Modèle de LLM | Version | Fournisseur | Niveau de raisonnement | TTMT moyen | Tokens/seconde moyens | Temps de service (% total) |
+| --- | --- | --- | --- | --- | --- | --- |
+| N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+
+### Agents orchestrateurs — relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+| Modèle de LLM | Version | Fournisseur | Niveau de raisonnement | TTMT moyen | Tokens/seconde moyens | Temps de service (% total) |
+| --- | --- | --- | --- | --- | --- | --- |
+| N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+
+## 1. Statistiques générales et décisions
+
+### Relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+Change archivé ; mesures limitées aux preuves de ce relevé.
+
+Portée : increment.
+
+Agent coder : codex, modèle N/A, raisonnement N/A.
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Durée globale | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Durée hors pauses et attentes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens d’entrée | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de sortie | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de raisonnement | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de cache lus | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de cache écrits | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Total natif des tokens | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Compactions achevées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes d’autorisation distinctes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes approuvées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes refusées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes expirées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes annulées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+| Élément documenté | Valeur | Preuve |
+| --- | --- | --- |
+| Objectif | Identifiants conservés dans le projet source | Change OpenSpec archivé |
+| Collecte | Collecte native non disponible pour ce change | Session directe |
+
+## 2. Types de messages et d’outils
+
+### Relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Messages des codeurs | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Messages utilisateur | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Messages assistant | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels d’outils des codeurs | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels terminés | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Erreurs techniques | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels en cours | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+| Élément documenté | Valeur | Preuve |
+| --- | --- | --- |
+| Messages et outils | N/A : mesures exhaustives non disponibles | Session directe |
+
+## 3. Fichiers modifiés
+
+### Relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Écritures effectivement exécutées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Fichiers distincts touchés par change | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+| Élément documenté | Valeur | Preuve |
+| --- | --- | --- |
+| Fichiers | Code, tests, aides, documentation et spécifications | Diff du projet |
+
+## 4. Commandes
+
+### Relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Commandes exécutées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Commandes réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Commandes en échec | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tests exécutés dans le bilan final | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tests finaux réussis | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tests finaux échoués | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Fichiers ayant passé un contrôle syntaxique | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec standard réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec standard échouées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec strictes réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec strictes échouées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tâches OpenSpec prouvées et terminées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+| Élément documenté | Valeur | Preuve |
+| --- | --- | --- |
+| Validation globale | 1 236 tests exécutés, 2 ignorés, aucun échec | python3 -m unittest discover -s tests |
+| Autres contrôles | Bash, ShellCheck et OpenSpec strict réussis | Sorties des commandes |
+
+## 5. Accès web
+
+### Relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Appels aux outils web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels web réussis | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Recherches web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Consultations web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+| Élément documenté | Valeur | Preuve |
+| --- | --- | --- |
+| Web | N/A : mesure exhaustive indisponible | Session directe |
+
+## 6. Synthèse globale
+
+### Relevé 01a1c4e3-9664-7ab3-902a-0e0e1b04135c
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Écritures de fichiers | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Commandes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Autres outils | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Total | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+| Élément documenté | Valeur | Preuve |
+| --- | --- | --- |
+| Livraison | CI/CD prévue après archivage et contrôles finaux | État de session |
+
+
+<!-- CAB_SGS_SESSIONS_V1
+{
+  "format": "cab-sgs-1",
+  "sessions": [
+    {
+      "contribution": {
+        "agents": [
+          {
+            "agent": "codex",
+            "model": "N/A",
+            "reasoning": "N/A",
+            "role": "coder"
+          }
+        ],
+        "bounds": {
+          "end": null,
+          "start": null
+        },
+        "breakdowns": {},
+        "costs": {},
+        "metrics": {
+          "commands": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "commands_failure": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "commands_success": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "compactions": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "domain_command": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "domain_other": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "domain_total": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "domain_web": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "domain_write": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "duration": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "files_touched": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "messages": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "messages_assistant": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "messages_user": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "net_duration": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "openspec_standard_failure": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "openspec_standard_success": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "openspec_strict_failure": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "openspec_strict_success": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "permissions": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "permissions_approved": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "permissions_cancelled": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "permissions_expired": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "permissions_rejected": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "syntax_files": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tasks": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tests": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tests_failure": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tests_success": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tokens_cache_read": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tokens_cache_write": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tokens_input": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tokens_output": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tokens_reasoning": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tokens_total": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tools": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tools_completed": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tools_error": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "tools_running": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "web": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "web_open": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "web_search": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "web_success": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          },
+          "writes": {
+            "evidence": [],
+            "reason": "Mesure absente ou périmètre exhaustif non identifiable",
+            "state": "unavailable",
+            "value": null
+          }
+        },
+        "performance": [],
+        "proof_ids": [],
+        "sessions": [],
+        "web_calls": []
+      },
+      "details": {
+        "1": [
+          {
+            "label": "Objectif",
+            "proof": "Change OpenSpec archivé",
+            "value": "Identifiants conservés dans le projet source"
+          },
+          {
+            "label": "Collecte",
+            "proof": "Session directe",
+            "value": "Collecte native non disponible pour ce change"
+          }
+        ],
+        "2": [
+          {
+            "label": "Messages et outils",
+            "proof": "Session directe",
+            "value": "N/A : mesures exhaustives non disponibles"
+          }
+        ],
+        "3": [
+          {
+            "label": "Fichiers",
+            "proof": "Diff du projet",
+            "value": "Code, tests, aides, documentation et spécifications"
+          }
+        ],
+        "4": [
+          {
+            "label": "Validation globale",
+            "proof": "python3 -m unittest discover -s tests",
+            "value": "1 236 tests exécutés, 2 ignorés, aucun échec"
+          },
+          {
+            "label": "Autres contrôles",
+            "proof": "Sorties des commandes",
+            "value": "Bash, ShellCheck et OpenSpec strict réussis"
+          }
+        ],
+        "5": [
+          {
+            "label": "Web",
+            "proof": "Session directe",
+            "value": "N/A : mesure exhaustive indisponible"
+          }
+        ],
+        "6": [
+          {
+            "label": "Livraison",
+            "proof": "État de session",
+            "value": "CI/CD prévue après archivage et contrôles finaux"
+          }
+        ]
+      },
+      "id": "01a1c4e3-9664-7ab3-902a-0e0e1b04135c",
+      "input_sha256": "ca9e231f32232d62d6248d7e0dd2bcdbca74e591c1a52bba19dc8a47e3b951f8",
+      "scope": "increment",
+      "state": "archived"
+    }
+  ]
+}
+-->

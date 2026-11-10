@@ -39,7 +39,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
         (self.template / '.gitignore').write_text('ignored\n', encoding='utf-8')
         (self.template / 'README.md').write_text('Template template\n', encoding='utf-8')
         (self.template / 'pyproject.toml').write_text('[project]\n', encoding='utf-8')
-        self.source = self.template / 'ORCHESTRATED_CODING.md'
+        self.source = self.template / 'synthetic-document.md'
         self.source.write_text('Template template\n', encoding='utf-8')
         (self.template / 'project.env').write_text(
             'PROJECT_ORCHESTRATED_CODING=Yes\n', encoding='utf-8')
@@ -67,7 +67,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
 
     def test_sync_yes_preserves_existing_document(self):
         project = self.project('project with spaces', "'Yes'")
-        destination = project / 'ORCHESTRATED_CODING.md'
+        destination = project / 'synthetic-document.md'
         destination.write_text('old\n', encoding='utf-8')
         result = self.run_shell('sync_project "project with spaces"')
         self.assert_success(result)
@@ -79,7 +79,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
         for index, mode in enumerate(('No', None, '', '""')):
             with self.subTest(mode=mode):
                 project = self.project(f'project-{index}', mode)
-                destination = project / 'ORCHESTRATED_CODING.md'
+                destination = project / 'synthetic-document.md'
                 destination.write_text('Template template local\n', encoding='utf-8')
                 destination.chmod(0o640)
                 before = destination.stat()
@@ -102,7 +102,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
                     name = f'project-{source_exists}-{index}'
                     project = self.project(name, mode)
                     self.assert_success(self.run_shell(f'sync_project {name}'))
-                    self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
+                    self.assertFalse((project / 'synthetic-document.md').exists())
 
     def test_sync_yes_accepts_missing_or_directory_source(self):
         self.source.unlink()
@@ -115,7 +115,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
                 result = self.run_shell(f'sync_project {name}')
                 self.assert_success(result)
                 self.assertEqual((project / 'AGENTS.md').read_text(), f'Projet Test {name}\n')
-                self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
+                self.assertFalse((project / 'synthetic-document.md').exists())
 
     def test_sync_invalid_mode_fails_before_copy_or_shell_evaluation(self):
         project = self.project('invalid', '$(touch "$TEST_CASE_ROOT/marker")')
@@ -134,9 +134,9 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
         result = self.run_shell('sync_project_all')
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((bad / 'AGENTS.md').read_text(), 'original\n')
-        self.assertFalse((yes / 'ORCHESTRATED_CODING.md').exists())
+        self.assertFalse((yes / 'synthetic-document.md').exists())
         for project in (no, old):
-            self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
+            self.assertFalse((project / 'synthetic-document.md').exists())
             self.assertEqual((project / 'AGENTS.md').read_text(), f'Projet Test {project.name}\n')
 
     def test_sync_all_missing_source_updates_both_modes(self):
@@ -147,7 +147,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
         self.assert_success(result)
         self.assertEqual((yes / 'AGENTS.md').read_text(), 'Projet Test a-piloted\n')
         self.assertEqual((no / 'AGENTS.md').read_text(), 'Projet Test b-autonomous\n')
-        self.assertFalse((no / 'ORCHESTRATED_CODING.md').exists())
+        self.assertFalse((no / 'synthetic-document.md').exists())
 
     def test_creation_real_questionnaire_controls_copy_and_keeps_python_exclusion(self):
         for mode in ('Yes', 'No', ''):
@@ -158,8 +158,8 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
                                             f'New\n{project_type}\n\n\n{mode}\n1.0.0\n')
                     self.assert_success(result)
                     project = self.projects / name
-                    destination = project / 'ORCHESTRATED_CODING.md'
-                    self.assertFalse(destination.exists())
+                    destination = project / 'synthetic-document.md'
+                    self.assertEqual(destination.read_text(), f'New {name}\n')
                     self.assertIn(f'PROJECT_ORCHESTRATED_CODING={mode or "No"}\n',
                                   (project / 'project.env').read_text())
                     self.assertEqual((project / 'pyproject.toml').exists(), project_type == 'PYTHON')
@@ -175,7 +175,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
                     result = self.run_shell(f'create_project {name}', f'New\n\n\n\n{mode}\n1.0.0\n')
                     project = self.projects / name
                     self.assertTrue((project / 'project.env').exists())
-                    self.assertFalse((project / 'ORCHESTRATED_CODING.md').exists())
+                    self.assertEqual((project / 'synthetic-document.md').is_dir(), directory)
                     self.assert_success(result)
 
     def test_creation_invalid_persisted_mode_is_rejected_before_copy(self):

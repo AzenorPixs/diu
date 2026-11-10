@@ -139,7 +139,7 @@ system_flatpak_install
         result, calls = self.run_engine(r'''
 PACKAGE_STATE=absent
 SYSTEM_FLATPAK_ENGINE=0
-manage_system_action flatpak update
+manage_system_action engine flatpak update
 manage_system_action engine install flatpak
 PACKAGE_STATE=installed
 manage_system_action engine remove flatpak
@@ -154,7 +154,7 @@ if manage_system_action engine install flatpak extra; then exit 1; fi
     def test_help_includes_flatpak_commands(self):
         for arguments in (("system", "help"), ("system", "engine", "help"),
                           ("system", "engine", "remove", "flatpak", "help"),
-                          ("system", "flatpak", "update", "help")):
+                          ("system", "engine", "flatpak", "update", "help")):
             result = subprocess.run(["bash", str(ROOT / "root-install-debian.sh"), *arguments],
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

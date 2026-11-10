@@ -8,7 +8,7 @@ ressources OpenCode et CAB de ce flux, y compris le broker global.
 
 Le contrôle commun du modèle ne requiert plus que `AGENTS.md`, `.gitignore`
 et `PROMPTS`. La préparation, la copie et l'attribution des droits sont limitées
-à ces éléments et à la copie conditionnelle de `ORCHESTRATED_CODING.md`.
+à ces éléments et à la copie conditionnelle de `ancien protocole local`.
 Cette exception conserve le contrat `implement-projects-update` : le mode est
 lu dans la configuration destination, la copie est réalisée seulement pour
 `Yes` et une source requise absente ou non régulière fait échouer le projet

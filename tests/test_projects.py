@@ -869,6 +869,9 @@ create_project projet-test
             projects_root = temporary_path / 'projects'
             template_path.mkdir(parents=True)
             (template_path / '.git').mkdir()
+            for directory in ('.worktrees', 'config', 'output', '.cab-tests', 'openspec'):
+                (template_path / directory).mkdir()
+                (template_path / directory / 'template-marker').write_text('model', encoding='utf-8')
             (template_path / '.git' / 'template-marker').write_text(
                 'template repository\n', encoding='utf-8'
             )
@@ -901,7 +904,11 @@ chown() { :; }
 update_projects() {
     printf 'PROJECT_ID=%q\nPROJECT_NAME=%q\n' "$1" 'Projet & modèle' > "${ENV_DEVOPS_PROJECTS_ROOT}/$1/project.env"
 }
-projects_template_openspec() { printf 'openspec:%s\n' "$1"; }
+projects_template_openspec() {
+    [[ ! -e "$ENV_DEVOPS_PROJECTS_ROOT/$1/openspec" ]] || return 1
+    mkdir -p "$ENV_DEVOPS_PROJECTS_ROOT/$1/openspec"
+    printf 'openspec:%s\n' "$1"
+}
 projects_template_devops() { printf 'generation:%s\n' "$1"; }
 git() { printf 'unexpected-git-call\n'; return 99; }
 ENV_DEVOPS_USER="$2"
@@ -920,6 +927,10 @@ create_project projet-test
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, 'openspec:projet-test\ngeneration:projet-test\n')
             self.assertFalse((project_path / '.git').exists())
+            self.assertFalse((project_path / '.worktrees').exists())
+            for directory in ('config', 'output', '.cab-tests', 'openspec'):
+                self.assertTrue((project_path / directory).is_dir())
+                self.assertEqual(list((project_path / directory).iterdir()), [])
             self.assertEqual(
                 (template_path / '.git' / 'template-marker').read_text(encoding='utf-8'),
                 'template repository\n',
@@ -943,6 +954,31 @@ create_project projet-test
             project_env = (project_path / 'project.env').read_text(encoding='utf-8')
             self.assertIn('PROJECT_NAME=', project_env)
             self.assertNotIn('Ignoré', project_env)
+
+    def test_create_project_reports_local_directory_creation_failure(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            (temporary_path / 'datas' / 'template').mkdir(parents=True)
+            script = r'''
+source "$1/modules/projects/projects.sh"
+print_error() { printf '%s\n' "$*" >&2; }
+print_success() { :; }
+check_devops_user() { :; }
+install() { command mkdir -p "${!#}"; }
+update_projects() { printf 'PROJECT_ID=example\nPROJECT_NAME=Example\n' > "$ENV_DEVOPS_PROJECTS_ROOT/example/project.env"; }
+mkdir() { return 1; }
+ENV_DEVOPS_USER="$2"
+DEVOPS_GROUP=devops
+ENV_DEVOPS_PROJECTS_ROOT="$3"
+create_project example
+'''
+            result = subprocess.run(
+                ['bash', '-c', script, 'bash', str(ROOT),
+                 f'../{temporary_path.relative_to("/")}', str(temporary_path / 'projects')],
+                text=True, capture_output=True, check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Impossible de créer les répertoires locaux', result.stderr)
 
     def test_gitlab_release_reconfigures_missing_registry_and_preserves_its_port(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

@@ -18,8 +18,9 @@ config_load () {
     config_load_projects
     config_load_softwares
     config_load_system
-    config_generator
-    config_sort
+    software_prepare_loaded_environment /root/diu/config/softwares.env || return 1
+    config_generator || return 1
+    config_sort || return 1
 
 }
 

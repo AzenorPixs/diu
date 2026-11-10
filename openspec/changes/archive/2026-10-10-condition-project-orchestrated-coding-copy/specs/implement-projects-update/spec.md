@@ -3,7 +3,7 @@
 ### Requirement: Copie conditionnelle du protocole de codage piloté
 
 Pour la création depuis le modèle et la synchronisation, DIU MUST copier le
-document racine ORCHESTRATED_CODING.md si et seulement si
+document racine ancien protocole local si et seulement si
 project_orchestrated_coding_get retourne Yes depuis le project.env destination.
 La copie MUST suivre la personnalisation Markdown et les règles de propriété
 existantes.
@@ -34,7 +34,7 @@ et MUST NOT exiger le document source lors de la création ou synchronisation.
 ### Requirement: Échec avant copie du modèle
 
 Une valeur de mode invalide MUST provoquer un échec avant toute copie du
-modèle. Pour Yes, une source ORCHESTRATED_CODING.md absente ou non régulière
+modèle. Pour Yes, une source ancien protocole local absente ou non régulière
 MUST provoquer le même échec. La création MAY conserver le répertoire et la
 configuration déjà préparés ; elle MUST NOT annoncer un succès.
 

@@ -142,12 +142,3 @@ DIU MUST présenter les types BASH, GO, JAVASCRIPT, PERL et PYTHON sans interdir
 
 - **WHEN** une réponse binaire ou une version est invalide
 - **THEN** elle est redemandée et ne remplace pas la configuration
-
-### Requirement: Protocole de codage intégré à CAB
-
-La création et la synchronisation MUST NOT exiger ni copier ORCHESTRATED_CODING.md, quel que soit le mode de développement. La synchronisation MUST conserver tout document destination existant.
-
-#### Scenario: Mode piloté sans document source
-
-- **WHEN** un projet piloté est créé ou synchronisé sans document source
-- **THEN** l'absence du document ne provoque pas d'échec et aucune copie n'est effectuée

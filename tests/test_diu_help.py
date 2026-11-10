@@ -36,6 +36,22 @@ class DiuHelpTests(unittest.TestCase):
                 self.assertIn("diu softwares update", result.stdout)
                 self.assertIn("diu update", result.stdout)
 
+    def test_system_engine_help_hierarchy(self):
+        commands = [f"diu system engine {engine} update" for engine in ("apt", "github", "flatpak")]
+        for args in (("system", "help"), ("system", "engine", "help")):
+            result = self.run_diu(*args)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("diu system engine update", result.stdout)
+            for command in commands:
+                self.assertIn(command, result.stdout)
+            for engine in ("apt", "github", "flatpak"):
+                self.assertNotIn(f"diu system {engine} update", result.stdout)
+        for engine in ("apt", "github", "flatpak"):
+            result = self.run_diu("system", "engine", engine, "update", "help")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(f"diu system engine {engine} update", result.stdout)
+            self.assertNotEqual(self.run_diu("system", engine, "update", "help").returncode, 0)
+
     def test_diu_update_version_help_and_dispatch(self):
         result = self.run_diu('diu', 'update', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -417,6 +433,7 @@ forgejo_api_get /tmp /repos/owner/project
     def test_software_help_lists_available_commands(self):
         result = self.run_diu('softwares', 'help')
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('diu softwares apt update', result.stdout)
         self.assertIn('diu softwares install apt <SOFTWARE>', result.stdout)
         self.assertIn('diu softwares update github [SOFTWARE]', result.stdout)
         self.assertIn('diu softwares flatpak update', result.stdout)

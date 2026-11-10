@@ -12,7 +12,7 @@ par le développeur, sans création d'un second change.
 
 - Limiter les sources requises et les copies à `AGENTS.md`, `.gitignore`
   et `PROMPTS/` pour la synchronisation unitaire et groupée.
-- Conserver la copie conditionnelle de `ORCHESTRATED_CODING.md` pour un mode
+- Conserver la copie conditionnelle de `ancien protocole local` pour un mode
   destination `Yes` lu selon `implement-projects-update`. Pour `No`, une valeur
   absente ou vide, préserver la destination et ne pas exiger la source.
 - Retirer les copies de `.opencode/commands`, `.opencode/config`,

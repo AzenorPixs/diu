@@ -44,6 +44,7 @@ Thumbs.db
 # Fichiers temporaires
 # ----------------------------------------------------------
 .cache/
+/.cab-tests/
 *.err
 *.log
 *.out
@@ -178,9 +179,7 @@ venv/
 # ----------------------------------------------------------
 # Configuration DIU locale
 # ----------------------------------------------------------
-!/config/
-/config/*
-!/config/hosts.json
+/config/
 
 # ----------------------------------------------------------
 # Variables et secrets locaux
@@ -203,3 +202,6 @@ id_ed25519
 secrets.json
 secrets.yaml
 variables.sh
+
+# Environnement généré du checkout de qualification historique
+/.cab-cleanup-worktree/DEVOPS.md

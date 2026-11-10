@@ -136,13 +136,12 @@ manage_softwares_action() {
     case "$action:$engine" in
         install:apt|remove:apt|install:github|remove:github|install:flatpak|remove:flatpak)
             [[ $# -eq 3 ]] || { print_error "Syntaxe logicielle invalide."; return 2; } ;;
-        apt:update|flatpak:update)
+        flatpak:update)
             [[ $# -eq 2 ]] || { print_error "Syntaxe logicielle invalide."; return 2; } ;;
         update:apt|update:github)
             [[ $# -eq 2 || $# -eq 3 ]] || { print_error "Syntaxe logicielle invalide."; return 2; } ;;
     esac
     case "$action:$engine" in
-        apt:*) engine_state="${SYSTEM_APT_ENGINE:-1}" ;;
         flatpak:*) engine_state="${SYSTEM_FLATPAK_ENGINE:-UNSET}" ;;
         *:apt) engine_state="${SYSTEM_APT_ENGINE:-1}" ;;
         *:github) engine_state="${SYSTEM_GITHUB_ENGINE:-0}" ;;
@@ -156,10 +155,6 @@ manage_softwares_action() {
         install:apt|remove:apt)
             [[ $# -eq 3 ]] || { print_error "Usage : diu softwares $action apt <SOFTWARE>"; return 2; }
             software_apt_action "$action" "$software"
-            ;;
-        apt:update)
-            [[ $# -eq 2 ]] || { print_error "Usage : diu softwares apt update"; return 2; }
-            software_apt_update
             ;;
         update:apt)
             if [[ $# -eq 3 ]]; then

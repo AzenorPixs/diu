@@ -7,45 +7,27 @@ Déclarer l’interrupteur d’installation des paquets Apache2 par APT.
 ## Requirements
 
 ### Requirement: Déclaration statique de SOFTWARES_APT_APACHE2
-
-Le DIU SHALL déclarer `SOFTWARES_APT_APACHE2` dans
-`modules/diu/variables/softwares/software_apt_apache2.sh` avec `STATIC`,
-`ENABLE`, scope `softwares` et défaut `0`. Le chargeur existant SHALL
-découvrir cette déclaration sans modification.
+DIU SHALL déclarer `SOFTWARE_APT_APACHE2`, migrer la valeur existante avant désactivation de l'ancienne déclaration GLOBAL et initialiser l'état absent à partir de l'état réel. Toute valeur invalide SHALL être refusée.
 
 #### Scenario: Initialisation de la valeur absente
-
-- **WHEN** `SOFTWARES_APT_APACHE2` est absente au chargement
-- **THEN** le DIU SHALL persister
-  `export SOFTWARES_APT_APACHE2=0` dans `/root/diu/config/softwares.env`
-- **AND** SHALL exporter `SOFTWARES_APT_APACHE2=0` dans le processus courant
+- **WHEN** aucune valeur nouvelle ou ancienne n'est disponible et que l'état réel est déterminable
+- **THEN** DIU initialise et persiste `SOFTWARE_APT_APACHE2` selon l'état réel
 
 #### Scenario: Valeur préconfigurée valide
-
-- **WHEN** `SOFTWARES_APT_APACHE2` est déjà définie à `0` ou `1`
-- **THEN** le DIU SHALL préserver et exporter sa valeur sans réécriture
+- **WHEN** une valeur nouvelle ou ancienne migrable vaut `0` ou `1`
+- **THEN** DIU préserve sa valeur sous le nouveau nom
 
 #### Scenario: Valeur préconfigurée invalide
-
-- **WHEN** `SOFTWARES_APT_APACHE2` est définie à une valeur autre que `0` ou
-  `1`
-- **THEN** la déclaration SHALL échouer avec un diagnostic stderr
+- **WHEN** une valeur nécessaire est invalide ou ambiguë
+- **THEN** DIU refuse la migration avec un diagnostic
 
 ### Requirement: Consommateur Apache2 renommé
-
-Le consommateur APT Apache2 du point d’entrée SHALL utiliser
-`SOFTWARES_APT_APACHE2` à la place de `APACHE2`. Une valeur absente ou `0`
-SHALL ignorer son bloc sans erreur de variable non définie. Une valeur `1`
-SHALL conserver les installations APT existantes.
+Le consommateur APT Apache2 SHALL utiliser `SOFTWARE_APT_APACHE2`. Une valeur `0` SHALL ignorer son bloc. Une valeur `1` SHALL conserver les installations APT existantes.
 
 #### Scenario: Apache2 activé
-
-- **WHEN** `SOFTWARES_APT_APACHE2` vaut `1`
-- **THEN** le DIU SHALL conserver l’installation Apache2 existante pour la
-  version Debian détectée
+- **WHEN** `SOFTWARE_APT_APACHE2` vaut `1`
+- **THEN** DIU conserve l'installation Apache2 existante pour la version Debian détectée
 
 #### Scenario: Apache2 désactivé ou absent
-
-- **WHEN** `SOFTWARES_APT_APACHE2` est absent ou vaut `0`
-- **THEN** le bloc d’installation SHALL être ignoré sans erreur de variable
-  non définie
+- **WHEN** `SOFTWARE_APT_APACHE2` vaut `0`
+- **THEN** le bloc d'installation est ignoré

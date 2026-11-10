@@ -69,11 +69,10 @@ exiger `PROMPTS`, `DEVOPS.md`, les répertoires OpenCode du modèle ou la source
 
 ### Requirement: Copie ciblée et autoritaire du modèle
 
-DIU MUST écraser AGENTS.md et .gitignore depuis le modèle, et MUST NOT consulter ni copier ORCHESTRATED_CODING.md.
-DIU MUST copier DEVELOPMENT_MAP.md uniquement si sa destination est absente,
-selon les règles de copie initiale. DIU MUST préserver les autres destinations
-et MUST NOT copier, créer, personnaliser, supprimer ou modifier les droits ou
-le propriétaire de DEVOPS.md à la racine, en mode unitaire ou groupé.
+DIU MUST synchroniser exclusivement AGENTS.md et .gitignore depuis le modèle,
+en les écrasant. DIU MUST NOT consulter ni copier les autres fichiers du modèle
+et MUST préserver les autres destinations. La création de `.cab-tests` suit les
+règles spécifiques ci-dessous.
 
 #### Scenario: Écrasement d'un élément géré
 
@@ -85,6 +84,18 @@ le propriétaire de DEVOPS.md à la racine, en mode unitaire ou groupé.
 
 - **WHEN** le projet contient un élément hors de la sélection conservée
 - **THEN** cet élément reste intact après la synchronisation
+
+#### Scenario: Historique des évolutions absent ou présent
+
+- **WHEN** CHANGELOG.md est absent ou présent dans le projet
+- **THEN** la synchronisation ne le crée pas et préserve toute entrée existante
+- **AND THEN** sa source dans le modèle n'est pas requise
+
+#### Scenario: Dossiers non synchronisés
+
+- **WHEN** `.git`, `.worktree` ou `output` est présent ou absent dans le projet
+- **THEN** la synchronisation préserve toute entrée existante et ne crée pas ces dossiers
+- **AND THEN** leurs sources dans le modèle ne sont pas requises
 
 #### Scenario: Préservation du document d'environnement existant
 
@@ -99,12 +110,36 @@ le propriétaire de DEVOPS.md à la racine, en mode unitaire ou groupé.
 #### Scenario: Copie du protocole pour un projet piloté
 
 - **WHEN** la synchronisation unitaire ou groupée concerne un projet dont le mode vaut Yes
-- **THEN** ORCHESTRATED_CODING.md n'est pas requis dans le modèle et toute destination existante reste intacte
+- **THEN** ancien protocole local n'est pas requis dans le modèle et toute destination existante reste intacte
 
 #### Scenario: Préservation du protocole pour un projet autonome
 
 - **WHEN** la synchronisation unitaire ou groupée concerne un projet dont le mode vaut No ou est absent ou vide
-- **THEN** ORCHESTRATED_CODING.md n'est pas requis dans le modèle et toute destination existante reste intacte
+- **THEN** ancien protocole local n'est pas requis dans le modèle et toute destination existante reste intacte
+
+### Requirement: Répertoire local de tests CAB
+
+Pour chaque projet synchronisé, DIU MUST créer `.cab-tests` à la racine s'il
+est absent, sans consulter ni copier son contenu depuis le modèle. Un dossier
+existant et son contenu MUST rester inchangés. Un dossier nouvellement créé
+MUST recevoir le propriétaire prévu pour le projet. Si la création ou
+l'attribution du propriétaire échoue, la synchronisation MUST signaler l'échec
+et retourner un code non nul ; les écritures précédentes restent en place.
+
+#### Scenario: Dossier absent
+
+- **WHEN** le projet valide ne contient pas `.cab-tests`
+- **THEN** la synchronisation crée un dossier vide, y compris en mode groupé
+
+#### Scenario: Dossier existant
+
+- **WHEN** `.cab-tests` existe comme dossier et contient des données locales
+- **THEN** son contenu, ses droits et son propriétaire restent inchangés
+
+#### Scenario: Création impossible
+
+- **WHEN** une entrée incompatible empêche la création de `.cab-tests`
+- **THEN** la synchronisation signale l'erreur et retourne un code non nul
 
 ### Requirement: Préservation des prompts exclus
 
@@ -173,58 +208,19 @@ Une destination absente MUST rester absente.
 - **THEN** DIU conserve le message informatif et le code de succès existants
 - **AND THEN** le broker global reste intact ou absent
 
-### Requirement: Copie initiale de la carte de développement
+### Requirement: Préservation de la carte de développement
 
-DIU MUST copier DEVELOPMENT_MAP.md du modèle à la racine du projet seulement
-si aucune entrée de ce nom n'existe à destination. Une entrée existante,
-y compris répertoire ou lien symbolique pendant, MUST rester intacte sans
-personnalisation ni changement de droits ou de propriétaire. Cette décision
-MUST être indépendante de PROJECT_ORCHESTRATED_CODING et prise pour chaque
-projet en mode unitaire ou groupé.
+DIU MUST NOT consulter, copier, créer ou modifier DEVELOPMENT_MAP.md pendant
+la synchronisation unitaire ou groupée, quel que soit le mode de pilotage.
+La source modèle n'est pas requise. Toute entrée existante à destination,
+y compris un répertoire ou un lien symbolique, MUST rester intacte.
 
 #### Scenario: Carte absente du projet
 
-- **WHEN** la destination est absente et le modèle contient DEVELOPMENT_MAP.md
-  comme fichier régulier
-- **THEN** DIU copie ce document, personnalise Template et template selon
-  les règles Markdown et applique le propriétaire des ressources synchronisées
+- **WHEN** la carte est absente du projet, que la source modèle existe ou non
+- **THEN** la synchronisation ne crée pas de carte et peut réussir
 
-#### Scenario: Carte existante préservée après réexécution
+#### Scenario: Carte existante
 
-- **WHEN** une carte existe déjà et la synchronisation est exécutée ou répétée
-- **THEN** le contenu, les droits, le propriétaire, l'inode et la date de
-  modification restent inchangés
-- **AND THEN** la source de cette carte n'est pas requise
-
-#### Scenario: Entrée destination de type différent
-
-- **WHEN** DEVELOPMENT_MAP.md désigne un répertoire ou un lien symbolique,
-  y compris un lien pendant
-- **THEN** DIU préserve cette entrée et ne copie pas la carte du modèle
-
-### Requirement: Source conditionnelle de la carte de développement
-
-Si DEVELOPMENT_MAP.md est absent à destination, DIU MUST vérifier que la source
-modèle est un fichier régulier avant toute copie dans ce projet. Une source
-absente ou de type incorrect MUST provoquer un diagnostic explicite et un code
-non nul avant la copie des ressources du modèle. En mode groupé, cet échec
-MUST préserver le parcours des autres projets selon projects-sync-all.
-
-#### Scenario: Source absente ou incorrecte et carte à initialiser
-
-- **WHEN** la carte destination est absente et la source est absente ou désigne
-  un répertoire
-- **THEN** la synchronisation échoue sans copier de ressource dans ce projet
-
-#### Scenario: Synchronisation groupée avec états mixtes
-
-- **WHEN** certains projets possèdent une carte et d'autres n'en possèdent pas
-- **THEN** chaque carte existante est préservée et seules les cartes absentes
-  sont initialisées depuis une source régulière disponible
-
-#### Scenario: Échec conditionnel pendant le parcours groupé
-
-- **WHEN** la source est absente et un projet sans carte précède un projet
-  possédant déjà une carte
-- **THEN** le premier projet échoue avant copie, le second peut être synchronisé
-  et le parcours groupé retourne un code non nul
+- **WHEN** une entrée DEVELOPMENT_MAP.md existe dans le projet
+- **THEN** la synchronisation la préserve sans changement de contenu, droits ou propriétaire

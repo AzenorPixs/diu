@@ -41,10 +41,11 @@ set -Eeuo pipefail
 source "$ROOT/modules/diu/update.sh"
 print_error() { printf 'ERROR: %s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
+print_success() { printf '✅ %s\n' "$*"; }
 dpkg-query() { printf 'installed %s' "$INSTALLED"; }
 dpkg() {
   case "$1" in
-    --install) printf '%s\n' install >> "$CALLS"; return 0 ;;
+    --install) printf '%s\n' install >> "$CALLS"; echo 'détail dpkg'; [[ "$FAILURE" != dpkg ]] || { echo 'erreur dpkg' >&2; return 1; }; return 0 ;;
     *) command dpkg "$@" ;;
   esac
 }
@@ -91,6 +92,24 @@ diu_update "$@"
         result, calls = self.run_update('', releases, no_project=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, [asset, 'install'])
+        self.assertEqual(result.stdout, '✅ DIU (1.0.0 --> 2.0.0) : mis à jour.\n')
+        self.assertEqual(result.stderr, '')
+
+    def test_output_up_to_date_and_install_failure(self):
+        api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1'
+        asset = 'https://github.com/AzenorPixs/diu/2.deb'
+        releases = {api: [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]}
+        result, calls = self.run_update('', releases, installed='2.0.0')
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, '✅ DIU déjà à jour : 2.0.0 (dernière version : 2.0.0).\n')
+        self.assertEqual(result.stderr, '')
+        self.assertEqual(calls, [])
+        result, calls = self.run_update('', releases, failure='dpkg')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('détail dpkg', result.stderr)
+        self.assertIn('erreur dpkg', result.stderr)
+        self.assertNotIn('✅', result.stdout)
+        self.assertIn('install', calls)
 
     def test_requested_exact_version_installs_for_older_equal_and_newer(self):
         api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page='
@@ -161,6 +180,8 @@ diu_update "$@"
         result, calls = self.run_update(config, releases, failure='api.github.com', metadata={'PKG_VERSION': '9.9.0'})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, ['https://forge.example/team/diu/releases/diu_9.9.0_all.deb', 'install'])
+        self.assertEqual(result.stderr, '')
+        self.assertEqual(result.stdout, '✅ DIU (1.0.0 --> 9.9.0) : mis à jour.\n')
         self.assertIn('api.github.com', self.requests[0])
         self.assertIn('forge.example', self.requests[1])
 

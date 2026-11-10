@@ -125,27 +125,19 @@ software_flatpak_action install org.example.App
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn('flatpak update --system --noninteractive', calls)
 
-    def test_softwares_update_calls_flatpak_but_universal_update_does_not(self):
+    def test_universal_update_converges_flatpak_last(self):
         result, calls = self.run_shell(r'''
-software_apt_update_all() { :; }
-software_github_update_all() { :; }
-manage_softwares_action update
-''')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.count('flatpak update --system --noninteractive'), 1)
-
-        result, calls = self.run_shell(r'''
-software_apt_update_all() { :; }
-software_github_update_all() { :; }
+source "$ROOT/modules/diu/update-playlist.sh"
 system_update() { :; }
 diu_update() { :; }
 environments_update() { :; }
 ia_update() { :; }
 projects_update() { :; }
+softwares_update() { echo convergence >> "$CALLS"; }
 update_all
 ''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(calls.count('flatpak update --system --noninteractive'), 0)
+        self.assertEqual(calls.splitlines(), ['convergence'])
 
 
 if __name__ == '__main__':

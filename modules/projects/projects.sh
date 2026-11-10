@@ -38,6 +38,7 @@ sync_project() {
     local markdown_file=""
     local template_file=""
     local project_orchestrated_coding=""
+    local cab_tests_created=0
     local -a template_files=(AGENTS.md .gitignore)
     local -a synchronized_files=()
 
@@ -81,14 +82,6 @@ sync_project() {
         return 1
     fi
 
-    if [[ ! -e "${project_path}/DEVELOPMENT_MAP.md" && ! -L "${project_path}/DEVELOPMENT_MAP.md" ]]; then
-        if [[ ! -f "${template_path}/DEVELOPMENT_MAP.md" ]]; then
-            print_error 'Le fichier modèle DEVELOPMENT_MAP.md est introuvable ou non régulier.'
-            return 1
-        fi
-        template_files+=(DEVELOPMENT_MAP.md)
-    fi
-
     staging_path="$(mktemp -d)" || {
         print_error "Impossible de préparer la synchronisation du projet."
         return 1
@@ -118,10 +111,6 @@ sync_project() {
     done < <(find "${staging_path}" -type f -name '*.md' -print0)
 
     for template_file in "${template_files[@]}"; do
-        if [[ "${template_file}" == DEVELOPMENT_MAP.md ]] &&
-            [[ -e "${project_path}/${template_file}" || -L "${project_path}/${template_file}" ]]; then
-            continue
-        fi
         if ! cp -a -- "${staging_path}/${template_file}" "${project_path}/"; then
             rm -rf -- "${staging_path}"
             print_error "Impossible de synchroniser le fichier : ${template_file}"
@@ -135,6 +124,21 @@ sync_project() {
 
         rm -rf -- "${staging_path}"
         print_error "Impossible de définir le propriétaire des ressources synchronisées."
+        return 1
+    fi
+
+    if [[ ! -d "${project_path}/.cab-tests" ]]; then
+        cab_tests_created=1
+    fi
+    if ! mkdir -p -- "${project_path}/.cab-tests"; then
+        rm -rf -- "${staging_path}"
+        print_error "Impossible de créer le répertoire .cab-tests : ${project_path}"
+        return 1
+    fi
+    if [[ "${cab_tests_created}" -eq 1 ]] &&
+        ! chown "${ENV_DEVOPS_USER}:${DEVOPS_GROUP}" "${project_path}/.cab-tests"; then
+        rm -rf -- "${staging_path}"
+        print_error "Impossible de définir le propriétaire du répertoire .cab-tests."
         return 1
     fi
 
@@ -556,7 +560,7 @@ create_project() {
     local project_name_sed=""
     local project_id_sed=""
     local markdown_file=""
-    local -a template_exclusions=(! -name ORCHESTRATED_CODING.md)
+    local -a template_exclusions=(! -name .worktrees ! -name config ! -name output ! -name .cab-tests ! -name openspec)
 
     if [[ -z "${project_id}" ]]; then
         print_error "Usage : create_project <project_id>"
@@ -629,6 +633,11 @@ create_project() {
         -exec cp -a -- {} "${project_path}/" \;; then
 
         print_error "Impossible de copier le modèle de projet : ${template_path}"
+        return 1
+    fi
+
+    if ! mkdir -p -- "${project_path}/config" "${project_path}/output" "${project_path}/.cab-tests"; then
+        print_error "Impossible de créer les répertoires locaux du projet : ${project_path}"
         return 1
     fi
 

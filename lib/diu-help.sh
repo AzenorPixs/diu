@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC1091 source=lib/diu-softwares-help.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/diu-softwares-help.sh"
+
 diu_help_line() {
     printf '%-54s → %s\n' "$1" "$2"
 }
@@ -7,11 +10,29 @@ diu_help_line() {
 diu_display_help_context() {
     local context="${1:-}" subcontext="${2:-}" leaf="${3:-}" target="${4:-}"
 
+    if [[ "$context" == softwares && "$subcontext" != infos ]]; then
+        if [[ $# -gt 3 ]] || ! diu_softwares_convergence_help "$subcontext" "$leaf"; then
+            diu_display_command_error softwares
+            return 2
+        fi
+        return 0
+    fi
+    if [[ "$context:$subcontext:$leaf" == update:: ]]; then
+        diu_update_convergence_help
+        return 0
+    fi
+
     case "$context:$subcontext:$leaf" in
         projects::|projects:build:*|projects:deb:*|projects:docker:*|projects:git:*|projects:cicd:*|projects:cicddiu:*|projects:cicddr:*|projects:forgejo:push|projects:gitlab:push|projects:github:push|projects:forgejo:release|projects:gitlab:release|projects:github:release)
-            printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z dans project.env ; sans cette clé, mécanismes actuels conservés.'
-            printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
-            printf '%s\n' 'Un tag existant ne sera pas remplacé ; les publications vérifient sa concordance avec HEAD.'
+            if [[ "$leaf" == push && "$subcontext" =~ ^(forgejo|gitlab|github)$ ]]; then
+                printf '%s\n' 'Push direct : VERSION x.y.z ou horodatage si absente ; PROJECT_VERSION reste inchangée.'
+                printf '%s\n' 'Tag distant supérieur ou non comparable : refus ; sinon branche et tag sont alignés sous lease.'
+                printf '%s\n' 'Version stable prioritaire sur horodatage ; une version attribuée est rejouée isolément.'
+            else
+                printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z dans project.env ; sans cette clé, mécanismes actuels conservés.'
+                printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
+                printf '%s\n' 'Le tag local ne sera pas déplacé ; les publications vérifient sa concordance avec HEAD.'
+            fi
             ;;
     esac
 
@@ -46,6 +67,27 @@ diu_display_help_context() {
         return 0
     fi
 
+    if [[ "$context:$subcontext" == system:engine ]]; then
+        if [[ $# -gt 4 ]]; then
+            diu_display_command_error system engine
+            return 2
+        fi
+        case "$leaf:$target" in
+            :|install:|remove:|install:apt|install:github|install:flatpak|remove:apt|remove:github|remove:flatpak)
+                diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
+                diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
+                diu_help_line 'diu system engine update' 'Met à jour successivement les trois moteurs.'
+                diu_help_line 'diu system engine apt update' 'Met à jour le système APT et les logiciels APT externes.'
+                diu_help_line 'diu system engine github update' 'Met à jour les logiciels GitHub configurés.'
+                diu_help_line 'diu system engine flatpak update' 'Met à jour les applications Flatpak système.' ;;
+            update:) diu_help_line 'diu system engine update' 'Met à jour successivement les trois moteurs.' ;;
+            apt:|github:|flatpak:|apt:update|github:update|flatpak:update)
+                diu_help_line "diu system engine ${leaf} update" 'Exécute uniquement le parcours du moteur indiqué.' ;;
+            *) diu_display_command_error system engine; return 2 ;;
+        esac
+        return 0
+    fi
+
     if [[ "$context:$subcontext" == system:network ]]; then
         if [[ $# -gt 6 || ( -n "$leaf" && "$leaf" != update && "$leaf" != hosts ) ||
               ( "$leaf" == update && -n "$target" ) ||
@@ -53,13 +95,14 @@ diu_display_help_context() {
             diu_display_command_error system network hosts
             return 2
         fi
-        diu_help_line 'diu system network update' 'Met à jour la configuration réseau.'
+        diu_help_line 'diu system network update' 'Met à jour le réseau et reconstruit /etc/hosts.'
         diu_help_line 'diu system network hosts' 'Affiche le contenu actuel de /etc/hosts.'
         diu_help_line 'diu system network hosts update' 'Reconstruit /etc/hosts depuis le hosts.json de production.'
         diu_help_line 'diu system network hosts add <IP> <FQDN>' 'Ajoute et trie un couple dans le hosts.json de production.'
         diu_help_line 'diu system network hosts del <IP> <FQDN>' 'Supprime un couple du hosts.json de production.'
         diu_help_line 'diu system network hosts del all' 'Vide le hosts.json de production.'
         diu_help_line 'diu system network hosts list' 'Liste les couples du hosts.json de production.'
+        diu_help_line 'diu system network hosts <action> help' "Affiche l'aide de l'action hosts."
         printf '%s\n' 'Lors de la reconstruction de /etc/hosts, les entrées existantes sont remplacées.'
         return 0
     fi
@@ -211,42 +254,6 @@ diu_display_help_context() {
             diu_help_line 'diu system' 'Gestion du système Debian.'
             diu_help_line 'diu version' 'Affiche la version du DIU.'
             ;;
-        softwares::)
-            diu_help_line 'diu softwares update' 'Met à jour les logiciels séparément de diu update.'
-            diu_help_line 'diu softwares infos' 'Affiche les informations du module.'
-            diu_help_line 'diu softwares install apt <SOFTWARE>' 'Installe un logiciel APT.'
-            diu_help_line 'diu softwares remove apt <SOFTWARE>' 'Désinstalle un logiciel APT.'
-            diu_help_line 'diu softwares update apt [SOFTWARE]' 'Met à jour un ou tous les logiciels APT.'
-            diu_help_line 'diu softwares apt update' 'Met à jour les paquets installés avec APT.'
-            diu_help_line 'diu softwares install github <SOFTWARE>' 'Installe depuis une release GitHub.'
-            diu_help_line 'diu softwares remove github <SOFTWARE>' 'Désinstalle un logiciel GitHub.'
-            diu_help_line 'diu softwares update github [SOFTWARE]' 'Met à jour un ou tous les logiciels GitHub.'
-            diu_help_line 'diu softwares install flatpak <SOFTWARE>' 'Installe un logiciel Flatpak.'
-            diu_help_line 'diu softwares remove flatpak <SOFTWARE>' 'Désinstalle un logiciel Flatpak.'
-            diu_help_line 'diu softwares flatpak update' 'Met à jour les paquets installés avec Flatpak.'
-            ;;
-        softwares:install:|softwares:remove:)
-            diu_help_line "diu softwares ${subcontext} apt <SOFTWARE>" 'Opération sur un logiciel APT.'
-            diu_help_line "diu softwares ${subcontext} github <SOFTWARE>" 'Opération sur un logiciel GitHub.'
-            diu_help_line "diu softwares ${subcontext} flatpak <SOFTWARE>" 'Opération sur un logiciel Flatpak.'
-            ;;
-        softwares:update:)
-            diu_help_line 'diu softwares update' 'Met à jour les logiciels ; commande indépendante de diu update.'
-            diu_help_line 'diu softwares update apt [SOFTWARE]' 'Met à jour les logiciels APT.'
-            diu_help_line 'diu softwares update github [SOFTWARE]' 'Met à jour les logiciels GitHub.'
-            ;;
-        softwares:apt:update)
-            diu_help_line 'diu softwares apt update' 'Met à jour les paquets installés avec APT.'
-            ;;
-        softwares:flatpak:)
-            diu_help_line 'diu softwares flatpak update' 'Met à jour les paquets installés avec Flatpak.'
-            ;;
-        softwares:flatpak:update)
-            diu_help_line 'diu softwares flatpak update' 'Met à jour les paquets installés avec Flatpak.'
-            ;;
-        softwares:install:apt|softwares:remove:apt|softwares:install:github|softwares:remove:github|softwares:update:apt|softwares:update:github|softwares:install:flatpak|softwares:remove:flatpak)
-            diu_help_line "diu softwares ${subcontext} ${leaf} <SOFTWARE>" "Exécute l'opération demandée sur le logiciel."
-            ;;
         system::)
             diu_help_line 'diu system drivers install displaylink' 'Installe et valide le pilote DisplayLink.'
             diu_help_line 'diu system drivers remove displaylink' 'Supprime le pilote DisplayLink.'
@@ -254,29 +261,26 @@ diu_display_help_context() {
             diu_help_line 'diu system infos network' 'Affiche les informations réseau.'
             diu_help_line 'diu system network update' 'Met à jour la configuration réseau et reconstruit /etc/hosts.'
             diu_help_line 'diu system network hosts update' 'Reconstruit /etc/hosts.'
-            diu_help_line 'diu system network hosts' 'Gère les couples du hosts.json de production.'
+            diu_help_line 'diu system network hosts' 'Affiche le contenu actuel de /etc/hosts.'
+            diu_help_line 'diu system network help' 'Présente les commandes réseau et la gestion du hosts.json.'
+            diu_help_line 'diu system network hosts help' 'Présente les commandes hosts et leurs aides.'
+            diu_help_line 'diu system infos network help' 'Présente les informations réseau.'
             diu_help_line 'diu system infos debian' 'Affiche la configuration Debian, APT et Flatpak.'
             diu_help_line 'diu system infos drivers' "Affiche l’état DisplayLink et la version du pilote installé."
             diu_help_line 'diu system install apt <Dépôt>' 'Installe un dépôt APT.'
             diu_help_line 'diu system remove apt <Dépôt>' 'Supprime un dépôt APT.'
             diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
             diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
-            diu_help_line 'diu system apt update' 'Met à jour le système APT Debian et affiche son bilan.'
-            diu_help_line 'diu system github update' 'Vérifie le moteur GitHub et met à jour Codex CLI si configuré.'
-            diu_help_line 'diu system flatpak update' 'Vérifie le moteur Flatpak et Flathub.'
-            ;;
-        system:engine:|system:engine:install|system:engine:remove)
-            diu_help_line 'diu system engine install <apt|github|flatpak>' 'Active un moteur et vérifie ses dépendances.'
-            diu_help_line 'diu system engine remove <apt|github|flatpak>' 'Désactive un moteur sans supprimer ses dépendances.'
+            diu_help_line 'diu system engine update' 'Met à jour successivement les trois moteurs.'
+            diu_help_line 'diu system engine apt update' 'Met à jour le système APT Debian et affiche son bilan.'
+            diu_help_line 'diu system engine github update' 'Vérifie le moteur GitHub et met à jour Codex CLI si configuré.'
+            diu_help_line 'diu system engine flatpak update' 'Vérifie le moteur Flatpak et Flathub.'
             ;;
         system:install:|system:remove:)
             diu_help_line "diu system ${subcontext} apt <Dépôt>" 'Opération sur un dépôt APT.'
             ;;
         system:update:)
             diu_help_line 'diu system update' 'Met à jour APT, GitHub, Flatpak et le réseau.'
-            ;;
-        system:apt:|system:apt:update|system:github:|system:github:update|system:flatpak:|system:flatpak:update)
-            diu_help_line "diu system ${subcontext} update" 'Exécute uniquement le parcours du moteur indiqué.'
             ;;
         system:install:apt|system:remove:apt)
             diu_help_line "diu system ${subcontext} apt <Dépôt>" 'Opération sur un dépôt APT reconnu.'
@@ -373,6 +377,7 @@ diu_display_help_context() {
             printf '%s\n' "À l’étape 5, Debian peut être publié sur Forgejo, GitLab et GitHub selon leur configuration, même sans Docker."
             printf '%s\n' 'Les messages identifient la forge, le tag et les contrôles effectivement réalisés.'
             printf '%s\n' 'Un tag existant est rejoué depuis son commit isolé ; les modifications locales ne sont pas livrées.'
+            printf '%s\n' 'Tag distant supérieur ou non comparable : refus ; sinon branche et tag sont alignés sous lease. Stable prime sur horodatage.'
             printf '%s\n' "En rejeu, la publication Docker est ignorée : l'immutabilité du tag distant n'est pas vérifiée."
             ;;
         projects:cicddiu:|projects:cicddiu:*)
@@ -414,7 +419,7 @@ diu_display_help_context() {
             ;;
         projects:gitlab:|projects:github:|projects:forgejo:)
             diu_help_line "diu projects ${subcontext} update <ID PROJECT>" 'Met à jour la configuration distante.'
-            diu_help_line "diu projects ${subcontext} push <ID PROJECT>" 'Pousse le dépôt local.'
+            diu_help_line "diu projects ${subcontext} push <ID PROJECT> [VERSION]" 'Prépare commit et tag, puis réconcilie et publie le dépôt.'
             if [[ "${subcontext}" == "gitlab" ]]; then
                 diu_help_line 'diu projects gitlab clone <ID PROJECT>' 'Crée et fusionne un dépôt GitLab distant.'
             fi
@@ -427,17 +432,22 @@ diu_display_help_context() {
             diu_help_line "diu projects ${subcontext} release <ID PROJECT>" 'Publie les artefacts du projet.'
             ;;
         projects:docker:build|projects:git:update|projects:gitlab:clone|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:clone|projects:github:update|projects:github:push|projects:github:release|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
-            diu_help_line "diu projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."
+            if [[ "$leaf" == push && "$subcontext" =~ ^(forgejo|gitlab|github)$ ]]; then
+                diu_help_line "diu projects ${subcontext} push <ID PROJECT> [VERSION]" 'Commit et tag avant réconciliation Git ; VERSION x.y.z ou horodatage si absente.'
+                printf '%s\n' 'Une version déjà attribuée est rejouée isolément ; les modifications locales sont conservées.'
+            else
+                diu_help_line "diu projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."
+            fi
             if [[ "${context}:${subcontext}:${leaf}" == "projects:forgejo:push" ]]; then
                 diu_help_line 'diu projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
             fi
             ;;
         install::|remove::)
-            diu_help_line "diu ${context} apt <SOFTWARE>" 'Opération sur un logiciel tiers.'
+            diu_help_line "diu softwares ${context} <apt|flatpak|github> <SOFTWARE>" "Enregistre le désir et applique l'opération."
             ;;
         update::)
-            diu_help_line 'diu update' 'Met à jour DIU, système, environnements, IA et modèles via diu projects update ; sans diu softwares update.'
-            diu_help_line 'diu softwares update' 'Met à jour séparément les logiciels.'
+            diu_help_line 'diu update' 'Met à jour les modules puis converge les logiciels en dernier.'
+            diu_help_line 'diu softwares update' 'Converge les logiciels configurés.'
             diu_help_line 'diu update diu' 'Alias de diu diu update.'
             ;;
         *)
@@ -460,7 +470,7 @@ diu_display_command_error() {
 
     if [[ -z "$subcontext" ]]; then
         case "$context:${action:-}" in
-            docker:root|docker:rootless|ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall|system:install|system:remove|system:update|system:apt|softwares:install|softwares:remove|softwares:update|softwares:apt|softwares:flatpak|projects:docker|projects:git|projects:gitlab|projects:github|projects:forgejo)
+            docker:root|docker:rootless|ia:configure|ia:install|ia:start|ia:stop|ia:update|ia:uninstall|system:install|system:remove|system:update|system:engine|softwares:install|softwares:remove|softwares:update|softwares:apt|softwares:flatpak|projects:docker|projects:git|projects:gitlab|projects:github|projects:forgejo)
                 subcontext="$action"
                 ;;
         esac
