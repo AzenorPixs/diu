@@ -182,8 +182,15 @@ build_deb_diu
 
     def test_help_through_symbolic_link(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-links-test-') as tmp:
-            link = Path(tmp) / 'diu'
-            link.symlink_to(ROOT / 'root-install-debian.sh')
+            base = Path(tmp)
+            target = base / 'installed/root-install-debian.sh'
+            target.parent.mkdir()
+            shutil.copy(ROOT / 'root-install-debian.sh', target)
+            target.chmod(0o755)
+            (target.parent / 'lib').mkdir()
+            shutil.copy(ROOT / 'lib/diu-help.sh', target.parent / 'lib/diu-help.sh')
+            link = base / 'diu'
+            link.symlink_to(target)
             result = subprocess.run([str(link), 'help'], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(result.stdout.strip())

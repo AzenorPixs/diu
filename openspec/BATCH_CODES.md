@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Correctif du 9 novembre 2026 : [preserve-cab-hmac-key-permissions](changes/preserve-cab-hmac-key-permissions/proposal.md), ACTIF, code non attribué ; attribution ultérieure par ACL.
+
 
 Delta SCM du 2026-11-06 : [remove-softwares-apt-update](changes/archive/2026-11-06-remove-softwares-apt-update/proposal.md), **code non attribué**, archivé ; OpenSpec strict, contrôles ciblés et 1 220 tests globaux dont 2 ignorés réussis ; sans CI/CD ; attribution ultérieure par ACL.
 

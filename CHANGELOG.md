@@ -4,6 +4,10 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Push direct Forgejo, GitLab et GitHub : version optionnelle ou horodatage, commit/tag, rejeu isolé et réconciliation Git CI/CD sous lease. PROJECT_VERSION reste inchangée.
+
+- Normaliser en `0770` les clés HMAC du journal CAB du compte DevOps, sans changer les autres règles de fichiers.
+
 - Suppression de `diu softwares apt update` ; utiliser `diu system engine apt update` ou le parcours `diu softwares update apt` selon le besoin. Les scripts appelant l’ancienne syntaxe doivent être adaptés.
 
 - Création des projets : ne pas copier les dossiers locaux ni OpenSpec du

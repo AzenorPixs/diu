@@ -1,5 +1,9 @@
 # Cadrage technique du DIUE
 
+La normalisation DevOps applique `0770` aux fichiers HMAC du journal CAB
+dans `.opencode/state/cgpt-approval-bridge`, sans suivre les liens ; les
+autres fichiers conservent leurs règles habituelles.
+
 Les moteurs sont configurés par `SYSTEM_APT_ENGINE`, `SYSTEM_GITHUB_ENGINE` et `SYSTEM_FLATPAK_ENGINE` dans le scope system. Le défaut APT est 1 ; GitHub est initialisé par détection locale ; Flatpak reprend `SYSTEM_FLATPAK` ou conserve sa détection historique, y compris `UNSET`. Les commandes `diu system engine install|remove apt|github|flatpak` activent ou désactivent le moteur. L’activation assure les paquets requis ; la désactivation conserve les dépendances, tandis que les opérations logicielles explicites sont refusées et les mises à jour globales ignorent ce moteur. Les opérations système APT restent distinctes. La configuration est persistée après succès. Les tests isolés peuvent substituer les chemins de persistance par `SYSTEM_ENGINE_CONFIG_FILE` et `SYSTEM_FLATPAK_ENGINE_CONFIG_FILE` ; le repli historique `SYSTEM_FLATPAK_CONFIG_FILE` reste reconnu.
 
 La vue `diu infos softwares`, également appelée par `diu infos` et `diu softwares infos`, présente les logiciels déclarés sous APT, GitHub et Flatpak. Les en-têtes signalent les moteurs activés dont les dépendances locales sont disponibles ; les états 1 et 0 sont respectivement verts et jaunes, et les états inconnus portent `?`. Aucun nom de variable ou secret n’est affiché.
@@ -1517,9 +1521,11 @@ une description explicite est conservée. Une version `PROJECT_VERSION` déjà a
 un rejeu isolé du commit marqué, sans remplacer le tag local ni inclure les changements
 locaux en attente. Un arbre inchangé ne crée pas de commit vide ; si le tag est absent des
 dépôts vérifiés, il peut être créé sur HEAD.
-Les pushes individuels et groupés sélectionnent le tag déclaré et vérifient
-qu'il désigne HEAD avant tout transport ; les branches et protections restent
-inchangées (leases Forgejo/GitHub, push normal GitLab).
+Les pushes directs individuels préparent le commit et le tag de la version
+explicite ou d'un horodatage, sans modifier PROJECT_VERSION. Une version déjà
+attribuée utilise le rejeu isolé CI/CD. La publication réutilise la réconciliation
+CI/CD et ses leases, avec signalement d'un tag distant remplacé. Le parcours
+groupé conserve sa sélection et ses protections précédentes.
 Le build Docker produit latest et le tag VERSION. Une publication versionnée
 utilise cette image locale précise et le tag Git attendu ; une image absente
 ou un paquet de version différente bloque la publication. Les autres tags de
@@ -1945,8 +1951,10 @@ La publication vérifie le projet, `project.env`, le remote attendu, la branche
 et les identifiants avant de pousser. Les aides CLI doivent rester cohérentes
 avec les commandes `diu projects <provider> update|push`.
 
-Pour Forgejo, un dépôt existant conserve le fetch authentifié préalable et
-`--force-with-lease`. Un dépôt annoncé absent ne déclenche ni fetch ni
+Dans le parcours Forgejo classique, utilisé notamment par `forgejo push all`,
+un dépôt existant conserve le fetch authentifié préalable et `--force-with-lease`.
+Le push individuel utilise la réconciliation CI/CD décrite ci-dessus. Un dépôt
+annoncé absent ne déclenche ni fetch ni
 création API : le premier push utilise
 `--force-with-lease=refs/heads/<branche>:` pour attendre explicitement
 l'absence de la branche distante, même si une référence de suivi locale est

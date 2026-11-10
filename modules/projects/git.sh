@@ -1913,7 +1913,11 @@ git_commit() {
     local head_sha="" tag_sha="" remote="" remote_refs=""
     PROJECTS_GIT_COMMIT_STATUS=""
     project_version_commit_parameters "$project_path" commit_name commit_tag || return 1
-    selected_project_version="$(project_version_get "$project_env")" || return 1
+    if [[ "${PROJECTS_DIRECT_PUSH_ACTIVE:-0}" == 1 ]]; then
+        selected_project_version="$PROJECTS_DIRECT_PUSH_VERSION"
+    else
+        selected_project_version="$(project_version_get "$project_env")" || return 1
+    fi
 
 
     local project_name=""
@@ -2981,7 +2985,11 @@ _git_push_provider() {
         return 1
     fi
 
-    selected_project_version="$(project_version_get "$project_env")" || return 1
+    if [[ "${PROJECTS_DIRECT_PUSH_ACTIVE:-0}" == 1 ]]; then
+        selected_project_version="$PROJECTS_DIRECT_PUSH_VERSION"
+    else
+        selected_project_version="$(project_version_get "$project_env")" || return 1
+    fi
     if [[ -n "$selected_project_version" ]]; then
         current_tag="$(project_version_tag_for_head "$project_path" "$selected_project_version" "${ENV_DEVOPS_USER:-${ENV_DEVOPS_USER}}")" || return 1
     fi
@@ -4729,6 +4737,67 @@ github_update() {
     print_success \
         "Configuration GitHub enregistrée sans modifier la configuration générale."
     return 0
+}
+
+# Prépare un push direct avec les mêmes mécanismes Git que CI/CD.
+projects_provider_push_direct() {
+    ( _projects_provider_push_direct "$@" )
+}
+
+_projects_provider_push_direct() {
+    local provider="${1:-}" project_id="${2:-}" version="${3:-}"
+    local project_path="${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}" tag="" rc=0 tag_exists=0 probe_rc=0
+    local PROJECTS_DIRECT_PUSH_ACTIVE=1 PROJECTS_DIRECT_PUSH_VERSION=""
+    local PROJECTS_CICD_REPLAY_ROOT="" PROJECTS_CICD_RECONCILE=1
+    local ENV_DEVOPS_PROJECTS_ROOT="$ENV_DEVOPS_PROJECTS_ROOT"
+    local version_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    if [[ ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ || "$project_id" == .. ||
+          ! "$provider" =~ ^(forgejo|gitlab|github)$ || ! -d "$project_path" ]]; then
+        print_error 'Fournisseur ou projet invalide.'; return 1
+    fi
+    # Vérifier la configuration même si la sélection est temporaire.
+    project_version_get "$project_path/project.env" >/dev/null || return 1
+    if [[ -n "$version" ]]; then
+        if [[ ! "$version" =~ $version_pattern || ${#version} -gt 128 ]]; then
+            print_error 'La version doit respecter le format x.y.z.'; return 1
+        fi
+    else
+        version="$(date '+%Y.%m.%d.%H.%M')" || return 1
+    fi
+    PROJECTS_DIRECT_PUSH_VERSION="$version"
+    tag="v$version"
+    if [[ -e "$project_path/.git" ]]; then
+        if runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" show-ref --verify --quiet "refs/tags/$tag"; then
+            tag_exists=1
+        else
+            probe_rc=$?
+            if [[ "$probe_rc" -ne 1 ]]; then
+                print_error 'Impossible de vérifier le tag Git du projet.'
+                return 1
+            fi
+        fi
+    fi
+    if [[ -z "${3:-}" && "$tag_exists" == 1 ]]; then
+        print_error "Le tag horodaté $tag existe déjà ; publication annulée."
+        return 1
+    fi
+    if [[ -n "${3:-}" && "$tag_exists" == 1 ]]; then
+        print_info "Version $version déjà attribuée : rejeu isolé du tag ; modifications locales conservées."
+        projects_cicd_replay_prepare "$project_id" "$project_path" "$tag" || return 1
+        trap 'runuser -u "$ENV_DEVOPS_USER" -- rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT" || exit 1' EXIT
+        ENV_DEVOPS_PROJECTS_ROOT="$PROJECTS_CICD_REPLAY_ROOT"
+    else
+        git_commit "$project_id" "$version" "$tag" || return 1
+        if [[ "${PROJECTS_GIT_COMMIT_STATUS:-}" == version_deja_attribuee ]]; then
+            print_error "Le tag $tag est déjà attribué ; publication annulée."
+            return 1
+        fi
+    fi
+    "${provider}_push" "$project_id" || rc=$?
+    if [[ "$rc" -eq 0 && -n "${PROJECTS_GIT_CICD_STATUS:-}" ]]; then
+        print_info "Réconciliation $provider : $PROJECTS_GIT_CICD_STATUS"
+    fi
+    exit "$rc"
 }
 
 # Push vers le dépôt distant Forgejo du projet <PROJECT ID>

@@ -1,5 +1,8 @@
 # Debian Installer Unifié (DIU)
 
+La normalisation du compte DevOps maintient les clés HMAC du journal CAB en
+`0770`, sans modifier la règle des fichiers voisins.
+
 Les moteurs logiciels se pilotent avec `diu system engine install apt|github|flatpak` et `diu system engine remove apt|github|flatpak`. L’activation vérifie les dépendances et la désactivation conserve les paquets installés. L’état `SYSTEM_FLATPAK` existant est repris dans `SYSTEM_FLATPAK_ENGINE` ; `SYSTEM_APT_ENGINE` vaut 1 par défaut. La vue `diu infos softwares` tient compte de ces états.
 
 `diu infos softwares` présente les logiciels déclarés par moteur, avec un indicateur de disponibilité et la couleur de leur état configuré. La même vue figure dans `diu infos` ; `diu softwares infos` reste disponible. Un état inconnu est marqué `?`.
@@ -124,8 +127,10 @@ initial sur les trois entiers sauf 0. Une valeur présente vide, invalide ou
 dupliquée provoque une erreur ; sans clé, les mécanismes antérieurs restent
 inchangés. Debian utilise d'abord cette valeur, puis la recette et les tags
 selon le constructeur. Docker produit les tags VERSION et latest.
-Le tag Git est `v1.0.0` ; les pushes vérifient qu'il désigne HEAD et ne le
-remplacent jamais. Pour une nouvelle livraison après attribution d'un tag,
+Le tag Git local est `v1.0.0` et ne change pas de commit. Les pushes directs
+acceptent une version explicite ou utilisent un horodatage ; une version déjà
+attribuée est rejouée isolément. La réconciliation CI/CD peut remplacer un tag
+distant divergent sous protection de sa valeur observée. Pour une nouvelle livraison après attribution d'un tag,
 incrémenter PROJECT_VERSION. Un arbre inchangé ne crée pas de commit vide.
 Les publications Docker utilisent l'image locale versionnée et refusent une
 image absente ; les publications Debian refusent un paquet de version différente.
@@ -254,9 +259,16 @@ de réalignement bloque la publication. Pour un dépôt annoncé absent, le
 premier push attend explicitement l'absence de la branche distante : une
 ancienne référence de suivi locale ne le bloque plus et une création
 concurrente reste protégée. La création du dépôt dépend de l'activation
-push-to-create sur Forgejo. Les dépôts existants gardent le fetch préalable
-et les tags sont publiés sans forçage. Ces corrections s'appliquent aussi au
-parcours groupé `forgejo push all`.
+push-to-create sur Forgejo. Les pushes directs individuels réutilisent la réconciliation Git CI/CD :
+les branches divergentes sont fusionnées en copie isolée et un tag distant
+peut être remplacé sous lease. `forgejo push all` conserve son parcours groupé.
+
+Les commandes `diu projects forgejo|gitlab|github push <ID PROJECT> [VERSION]`
+préparent le commit et le tag avant le push. VERSION suit le format `x.y.z` ;
+sans argument, le tag utilise l'horodatage. Ce choix ne modifie pas
+`PROJECT_VERSION`. Une version déjà attribuée est rejouée depuis le commit du
+tag, en préservant les changements locaux en attente. Les artefacts associés
+à un éventuel tag distant remplacé doivent être vérifiés.
 
 Pendant un push Forgejo, GitLab ou GitHub, une indisponibilité réseau reconnue
 est signalée comme « serveur indisponible — publication non confirmée ».

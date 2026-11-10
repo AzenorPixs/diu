@@ -1,6 +1,6 @@
 # AGENTS.md — Debian Installeur Unifié
 
-Version : 0.6
+Version : 0.8
 
 ## 1. Contexte
 
@@ -61,6 +61,10 @@ En cas de contradiction, appliquer cet ordre :
 8. documentation officielle du projet ;
 9. code existant.
 
+Pour le choix des outils de développement, de construction, de test et de
+validation, `DEVOPS.md` fait autorité selon la section 13.1, sous réserve
+des instructions de priorité supérieure.
+
 `DEVELOPMENT_MAP.md` est une synthèse de cadrage subordonnée aux sources
 de vérité et aux preuves applicables. Il ne modifie pas leur ordre de
 priorité. Toute divergence DOIT être signalée et résolue avant d’utiliser
@@ -109,6 +113,23 @@ L'agent DOIT privilégier :
 * les répertoires directement concernés.
 
 Il NE DOIT PAS parcourir récursivement l'ensemble du dépôt lorsqu'une lecture ciblée suffit.
+
+L'agent DOIT réduire autant que possible les tokens d'entrée et de sortie du
+LLM, notamment par des recherches et lectures ciblées, des échanges concis et
+la réutilisation des informations déjà obtenues. Lorsque le fournisseur et
+l'outil le permettent, il DOIT optimiser l'écriture et la réutilisation du
+cache de prompt, en conservant stables les instructions et éléments réutilisés
+et en plaçant les données variables séparément. Il NE DOIT PAS supposer qu'une
+mise en cache ou une économie a eu lieu sans mesure disponible. Ces efforts
+ne doivent pas compromettre la qualité, la sécurité, les autorisations, les
+preuves ni les vérifications requises.
+
+Lorsque le skill `caveman` est disponible dans son environnement, l’agent
+DEVRAIT l’utiliser au niveau `lite` pour ses échanges. S’il est absent ou
+inaccessible, l’agent poursuit normalement sans demander ni proposer son
+installation. La concision préserve les informations nécessaires, notamment
+les autorisations, identifiants, preuves, résultats, erreurs et incertitudes.
+Les instructions du développeur et les règles du projet prévalent.
 
 ## 4. Principes fondamentaux
 
@@ -543,6 +564,22 @@ Avant toute proposition de commit, l'agent DOIT :
 ## 13. Langages de programmation
 
 ### 13.1. Règles communes
+
+`DEVOPS.md` constitue le référentiel faisant autorité pour le choix des
+outils de développement, de construction, de test et de validation, sous
+réserve des instructions de priorité supérieure. L'agent DOIT utiliser les
+outils qui y sont définis ; un outil hors de ce périmètre ne peut pas leur
+être substitué sans validation explicite du développeur.
+
+Si un outil nécessaire est absent de `DEVOPS.md`, l'agent DOIT demander
+explicitement au développeur l'autorisation de l'utiliser, en précisant son
+rôle et la justification du besoin, puis attendre son accord avant toute
+installation ou utilisation. Sa disponibilité sur la machine ne vaut pas
+autorisation. Si un outil prescrit est indisponible, l'agent DOIT le signaler
+et obtenir cet accord avant toute substitution. Seules les opérations
+nécessitant cet outil restent en attente ; les travaux indépendants déjà
+autorisés peuvent se poursuivre. Ces règles n'autorisent pas la modification
+ou la régénération de `DEVOPS.md`.
 
 Le code DOIT rester compatible avec les versions des langages, runtimes et dépendances supportées par le projet.
 

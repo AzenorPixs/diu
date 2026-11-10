@@ -1,5 +1,11 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-10 : [fix-direct-provider-push](openspec/changes/archive/2026-11-10-fix-direct-provider-push/proposal.md), **code non attribué**, archivé ; pushes directs Forgejo, GitLab et GitHub alignés sur la réconciliation CI/CD, aides mises à jour ; 1 226 tests exécutés dont 2 ignorés, contrôles Bash, ShellCheck et OpenSpec strict réussis ; livraison en attente. Attribution ultérieure par ACL.
+
+Correctif du 9 novembre 2026 : `preserve-cab-hmac-key-permissions`, ACTIF,
+code non attribué ; normalisation ciblée en 0770, 2/3 tâches validées ;
+livraison indépendante à déterminer. [Tâches](openspec/changes/preserve-cab-hmac-key-permissions/tasks.md).
+
 
 Delta SCM du 2026-11-06 : [remove-softwares-apt-update](openspec/changes/archive/2026-11-06-remove-softwares-apt-update/proposal.md), **code non attribué**, archivé ; OpenSpec strict, contrôles ciblés et 1 220 tests globaux dont 2 ignorés réussis ; sans CI/CD ; attribution ultérieure par ACL.
 

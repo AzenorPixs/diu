@@ -1625,8 +1625,8 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
-                    gitlab_push \
-                        "$project_id"
+                    if [[ $# -gt 4 ]]; then print_error 'Usage : diu projects gitlab push <ID PROJECT> [VERSION]'; return 2; fi
+                    projects_provider_push_direct gitlab "$project_id" "${4:-}"
                     ;;
                 release)
                     projects_gitlab_release \
@@ -1668,8 +1668,8 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
-                    github_push \
-                        "${project_id}"
+                    if [[ $# -gt 4 ]]; then print_error 'Usage : diu projects github push <ID PROJECT> [VERSION]'; return 2; fi
+                    projects_provider_push_direct github "$project_id" "${4:-}"
                     ;;
                 release)
                     projects_github_release \
@@ -1701,11 +1701,13 @@ manage_project_action() {
                         "${project_id}"
                     ;;
                 push)
+                    if [[ $# -gt 4 || ( "${project_id}" == "all" && $# -gt 3 ) ]]; then
+                        print_error 'Usage : diu projects forgejo push <ID PROJECT> [VERSION]'; return 2
+                    fi
                     if [[ "${project_id}" == "all" ]]; then
                         forgejo_push_all
                     else
-                        forgejo_push \
-                            "${project_id}"
+                        projects_provider_push_direct forgejo "${project_id}" "${4:-}"
                     fi
                     ;;
                 release)
@@ -4753,7 +4755,8 @@ EOF
 
   chown -R "$ENV_DEVOPS_USER":"$ENV_DEVOPS_GROUP" /home/"$ENV_DEVOPS_USER"
   find /home/"$ENV_DEVOPS_USER" -type d -exec chmod 2775 {} +
-  find /home/"$ENV_DEVOPS_USER" -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' -exec chmod 0775 {} +
+  find /home/"$ENV_DEVOPS_USER" -type f ! -name '.env*' ! -name '*.token' ! -name '*.username' ! -path "/home/$ENV_DEVOPS_USER/.opencode/state/cgpt-approval-bridge/*.hmac.key" -exec chmod 0775 {} +
+  find /home/"$ENV_DEVOPS_USER" -type f -path "/home/$ENV_DEVOPS_USER/.opencode/state/cgpt-approval-bridge/*.hmac.key" -exec chmod 0770 {} + || { print_error "Normalisation de la clé HMAC CAB impossible."; return 1; }
   find /home/"$ENV_DEVOPS_USER" -type f \( -name '.env*' -o -name '*.token' -o -name '*.username' \) -exec chmod 0660 {} +
 
   ############################################################

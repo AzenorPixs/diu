@@ -34,15 +34,37 @@ Les commits et CICD SHALL utiliser le tag v<VERSION> lorsque PROJECT_VERSION est
 - **THEN** le traitement l'indique sans recréer ni déplacer le tag
 
 ### Requirement: Push Git cohérent
-Les pushes Forgejo, GitHub et GitLab SHALL sélectionner v<VERSION> et vérifier qu'il désigne HEAD avant publication lorsque PROJECT_VERSION est déclarée. Ils SHALL conserver les branches, transports et protections existants et SHALL NOT créer ni remplacer un tag.
+Les pushes individuels Forgejo, GitLab et GitHub SHALL préparer commit et tag selon la version explicite ou un horodatage, puis réutiliser la réconciliation CI/CD protégée. Le tag sélectionné SHALL désigner HEAD avant transport. La sélection SHALL NOT modifier PROJECT_VERSION ni déplacer un tag local. Les appels internes CI/CD et `forgejo push all` SHALL conserver leur comportement.
+
+#### Scenario: Version explicite
+- **WHEN** un push direct reçoit une version valide
+- **THEN** la version doit être valide au format x.y.z sans zéro initial et le commit et son tag v<VERSION> sont préparés avant publication
+
+#### Scenario: Version omise
+- **WHEN** un push direct ne reçoit pas de version, même si PROJECT_VERSION est définie
+- **THEN** le tag vAAAA.MM.JJ.HH.MM est sélectionné pour le commit et la publication
+- **AND THEN** une collision de ce tag arrête la publication
+
+#### Scenario: Collision
+- **WHEN** une version explicite est déjà attribuée et des modifications locales sont en attente
+- **THEN** le commit du tag est rejoué dans un contexte isolé et les modifications locales sont conservées
+- **AND THEN** les références distantes divergentes sont réconciliées selon CI/CD avec protection par valeur attendue et résultat signalé
+
+#### Scenario: CI/CD
+- **WHEN** CI/CD appelle un fournisseur
+- **THEN** son parcours de sélection et de publication existant est conservé
 
 #### Scenario: Tag prioritaire
-- **WHEN** HEAD possède le tag déclaré ainsi que d'autres tags
-- **THEN** seul le tag déclaré est sélectionné pour publication
+- **WHEN** le commit sélectionné possède plusieurs tags
+- **THEN** seul le tag sélectionné pour cette commande est publié
 
 #### Scenario: Tag manquant ou incorrect
-- **WHEN** le tag déclaré est absent ou ne désigne pas HEAD
+- **WHEN** le tag requis par un appel interne est absent ou ne désigne pas HEAD
 - **THEN** aucun push de branche ni de tag n'est exécuté
+
+#### Scenario: Push groupé Forgejo
+- **WHEN** la commande `forgejo push all` est utilisée
+- **THEN** le parcours groupé existant est conservé
 
 ### Requirement: Publications des artefacts
 Les publications Debian et Docker SHALL utiliser PROJECT_VERSION en priorité. Un paquet Debian SHALL correspondre à cette version. Une publication Docker SHALL utiliser l'image locale versionnée et vérifier le tag Git correspondant avant transport, sans retaguer implicitement une ancienne image latest.

@@ -9,9 +9,14 @@ diu_display_help_context() {
 
     case "$context:$subcontext:$leaf" in
         projects::|projects:build:*|projects:deb:*|projects:docker:*|projects:git:*|projects:cicd:*|projects:cicddiu:*|projects:cicddr:*|projects:forgejo:push|projects:gitlab:push|projects:github:push|projects:forgejo:release|projects:gitlab:release|projects:github:release)
-            printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z dans project.env ; sans cette clé, mécanismes actuels conservés.'
-            printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
-            printf '%s\n' 'Un tag existant ne sera pas remplacé ; les publications vérifient sa concordance avec HEAD.'
+            if [[ "$leaf" == push && "$subcontext" =~ ^(forgejo|gitlab|github)$ ]]; then
+                printf '%s\n' 'Push direct : VERSION x.y.z ou horodatage si absente ; PROJECT_VERSION reste inchangée.'
+                printf '%s\n' 'Une version attribuée est rejouée isolément ; la réconciliation peut remplacer un tag distant sous protection.'
+            else
+                printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z dans project.env ; sans cette clé, mécanismes actuels conservés.'
+                printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
+                printf '%s\n' 'Le tag local ne sera pas déplacé ; les publications vérifient sa concordance avec HEAD.'
+            fi
             ;;
     esac
 
@@ -429,7 +434,7 @@ diu_display_help_context() {
             ;;
         projects:gitlab:|projects:github:|projects:forgejo:)
             diu_help_line "diu projects ${subcontext} update <ID PROJECT>" 'Met à jour la configuration distante.'
-            diu_help_line "diu projects ${subcontext} push <ID PROJECT>" 'Pousse le dépôt local.'
+            diu_help_line "diu projects ${subcontext} push <ID PROJECT> [VERSION]" 'Prépare commit et tag, puis réconcilie et publie le dépôt.'
             if [[ "${subcontext}" == "gitlab" ]]; then
                 diu_help_line 'diu projects gitlab clone <ID PROJECT>' 'Crée et fusionne un dépôt GitLab distant.'
             fi
@@ -442,7 +447,12 @@ diu_display_help_context() {
             diu_help_line "diu projects ${subcontext} release <ID PROJECT>" 'Publie les artefacts du projet.'
             ;;
         projects:docker:build|projects:git:update|projects:gitlab:clone|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:clone|projects:github:update|projects:github:push|projects:github:release|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
-            diu_help_line "diu projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."
+            if [[ "$leaf" == push && "$subcontext" =~ ^(forgejo|gitlab|github)$ ]]; then
+                diu_help_line "diu projects ${subcontext} push <ID PROJECT> [VERSION]" 'Commit et tag avant réconciliation Git ; VERSION x.y.z ou horodatage si absente.'
+                printf '%s\n' 'Une version déjà attribuée est rejouée isolément ; les modifications locales sont conservées.'
+            else
+                diu_help_line "diu projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."
+            fi
             if [[ "${context}:${subcontext}:${leaf}" == "projects:forgejo:push" ]]; then
                 diu_help_line 'diu projects forgejo push all' 'Pousse tous les dépôts Forgejo configurés.'
             fi
