@@ -67,8 +67,8 @@ projects_build_deb() (
     local project_id="${1:-}" project_path="" projects_root="" recipe="" enabled=""
     local package="" architecture="" maintainer="" description="" depends="" version=""
     local staging_dir="" build_dir="" package_file="" source="" destination="" real_source=""
-    local forbidden="" row="" previous="" tool="" conffile="" empty_json=""
-    local -a sources=() destinations=() conffiles=() empty_jsons=()
+    local forbidden="" row="" previous="" tool="" conffile="" empty_json="" mode=""
+    local -a sources=() destinations=() conffiles=() empty_jsons=() modes=()
 
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
@@ -119,10 +119,11 @@ projects_build_deb() (
         ((has("version") | not) or (.version | text)) and
         ((has("depends") | not) or (.depends | type == "array" and all(.[]; text))) and
         (.files | type == "array" and length > 0 and all(.[];
-            type == "object" and ((keys - ["destination","source","conffile","empty_json"]) | length == 0) and
+            type == "object" and ((keys - ["destination","source","conffile","empty_json","mode"]) | length == 0) and
             (.source | text) and (.destination | text) and
             ((has("conffile") | not) or (.conffile | type == "boolean")) and
-            ((has("empty_json") | not) or (.empty_json | type == "boolean"))))
+            ((has("empty_json") | not) or (.empty_json | type == "boolean")) and
+            ((has("mode") | not) or (.mode | type == "string" and length == 4 and test("^0[0-7]{3}$")))))
         ' "$recipe" >/dev/null 2>&1; then
         print_error 'Recette Debian invalide : métadonnées ou copies incorrectes.'
         return 1
@@ -154,6 +155,7 @@ projects_build_deb() (
         destination="$(jq -r '.destination' <<< "$row")"
         conffile="$(jq -r '.conffile // false' <<< "$row")"
         empty_json="$(jq -r '.empty_json // false' <<< "$row")"
+        mode="$(jq -r '.mode // empty' <<< "$row")"
         if [[ "$source" == /* || "$destination" != /* || "$destination" == /DEBIAN ||
             "$destination" == /DEBIAN/* ]] ||
             ! projects_debian_path_valid "$source" || ! projects_debian_path_valid "$destination"; then
@@ -169,8 +171,8 @@ projects_build_deb() (
             print_error 'Source Debian hors périmètre ou incluant la recette ou dist.'
             return 1
         fi
-        if [[ ( "$conffile" == true || "$empty_json" == true ) && ! -f "$real_source" ]]; then
-            print_error 'Les options conffile et empty_json exigent un fichier régulier.'
+        if [[ ( "$conffile" == true || "$empty_json" == true || -n "$mode" ) && ! -f "$real_source" ]]; then
+            print_error 'Les options conffile, empty_json et mode exigent un fichier régulier.'
             return 1
         fi
         if [[ "$empty_json" == true ]] && ! jq -se 'length == 1 and .[0] == []' "$real_source" >/dev/null 2>&1; then
@@ -200,7 +202,7 @@ projects_build_deb() (
         if [[ "$real_source" != "$project_path/$source" ]]; then
             print_error 'Source Debian traversant un lien symbolique.'; return 1
         fi
-        sources+=("$real_source"); destinations+=("$destination"); conffiles+=("$conffile"); empty_jsons+=("$empty_json")
+        sources+=("$real_source"); destinations+=("$destination"); conffiles+=("$conffile"); empty_jsons+=("$empty_json"); modes+=("$mode")
     done < <(jq -c '.files[]' "$recipe")
 
     trap 'rm -rf -- "${staging_dir:-}" "${build_dir:-}"' EXIT
@@ -214,6 +216,9 @@ projects_build_deb() (
         destination="$staging_dir${destinations[$index]}"
         mkdir -p -- "$(dirname -- "$destination")" || return 1
         cp -R -- "${sources[$index]}" "$destination" || return 1
+        if [[ -n "${modes[$index]}" ]]; then
+            chmod "${modes[$index]}" -- "$destination" || return 1
+        fi
         if [[ "${empty_jsons[$index]}" == true ]] && ! jq -se 'length == 1 and .[0] == []' "$destination" >/dev/null 2>&1; then
             print_error 'Le modèle JSON copié doit contenir un tableau vide.'
             return 1

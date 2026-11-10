@@ -45,7 +45,7 @@ ces deux valeurs, les règles de tags et de repli calendaire ci-dessous s'appliq
 Les sources sont les fichiers de travail, y compris non committés. Pour une
 copie de fichier, `conffile: true` déclare sa destination comme fichier de
 configuration Debian ; `empty_json: true` exige un tableau JSON vide, contrôlé
-avant et après copie.
+avant et après copie. Le champ facultatif `mode` fixe les permissions d’un fichier régulier copié, sous forme de quatre chiffres octaux entre `0000` et `0777` ; la source reste inchangée. Sans ce champ, le mode suit le comportement habituel de copie.
 
 Les champs inconnus et les caractères de contrôle sont refusés. Sources et
 recette doivent être non symboliques ; les liens et fichiers spéciaux dans les
@@ -140,8 +140,9 @@ et [assets de release](https://docs.github.com/en/rest/releases/assets).
 `diu projects deb [ID PROJECT]`, `diu proj deb <ID PROJECT>` et `cicddiu`
 conservent le constructeur `build_deb_diu`, indépendant de la nouvelle recette.
 Leurs règles spécifiques sont décrites dans les sections suivantes.
-La nouvelle recette DIU produit les mêmes métadonnées, contenu, modes et
-propriétaires à sources et version identiques. Les horodatages peuvent faire
+La nouvelle recette DIU produit les mêmes métadonnées, contenu et propriétaires
+à sources et version identiques. Les modes sont identiques sauf celui du point
+d’entrée DIU, fixé à `0755` quelle que soit sa source. Les horodatages peuvent faire
 varier les octets de l'archive. `tests/test_projects_build_deb.py` compare les
 paquets de fixture et teste un projet sans arborescence DIU.
 

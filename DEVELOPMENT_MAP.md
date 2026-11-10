@@ -1,5 +1,8 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-10 : [debian-recipe-file-mode](openspec/changes/archive/2026-11-10-debian-recipe-file-mode/proposal.md), **code non attribué**, archivé ; mode explicite des fichiers dans les recettes Debian et mode 0755 pour le point d’entrée DIU ; 15 tests ciblés, 1 238 tests globaux dont 2 ignorés et OpenSpec strict réussis ; livraison à vérifier. Attribution ultérieure par ACL.
+
+
 Delta SCM du 2026-11-10 : [fix-replay-provider-credentials](openspec/changes/archive/2026-11-10-fix-replay-provider-credentials/proposal.md), **code non attribué**, archivé ; identifiants GitHub et GitLab préparés dans le projet source avant rejeu ; 1 236 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; état de livraison à constater sur les forges. Attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-10 : [enforce-provider-version-authority](openspec/changes/archive/2026-11-10-enforce-provider-version-authority/proposal.md), **code non attribué**, archivé ; contrôle des tags et alignement protégé des références pour pushes directs et CI/CD ; 1 236 tests exécutés dont 2 ignorés, contrôles ciblés et OpenSpec strict réussis ; état de livraison à constater sur les forges. Attribution ultérieure par ACL.

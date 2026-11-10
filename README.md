@@ -191,7 +191,7 @@ diu projects build debian <ID PROJECT>
 La syntaxe `diu projects build deb <ID PROJECT>` reste un alias compatible.
 
 Le projet fournit `build/debian-package.json`, qui décrit les métadonnées et
-les copies ; cette recette reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
+les copies ; elle peut fixer le mode octal d’un fichier et reste hors du paquet. `PROJECT_DEBIAN_PACKAGE`
 dans `project.env` doit valoir `Yes`, `YES` ou `1`. Sinon, la commande informe
 que le projet ne produit aucun paquet Debian et termine sans construction.
 Pour un projet activé, une recette absente empêche le build avec une erreur.
@@ -199,7 +199,7 @@ Le résultat est déposé dans `dist/` ; les anciens paquets de même nom et
 architecture y sont supprimés après succès. Le format et les contrôles sont
 décrits dans [BUILD.md](BUILD.md). L'aide est disponible avec
 `diu projects build debian help` ou `?`, avant bootstrap.
-La recette DIU reproduit le paquet historique ; `diu projects deb diu` et
+La recette DIU reproduit le paquet historique, avec un point d’entrée toujours exécutable ; `diu projects deb diu` et
 `rcicddiu` conservent leur fonctionnement. Aucun paquet n'est installé par le build.
 
 Pour construire une image avec `diu projects docker build <ID PROJECT>`, le

@@ -4,6 +4,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Paquets Debian : la recette peut fixer le mode des fichiers ; le script DIU est installé en `0755`.
+
 - Push direct et CI/CD : refuser les tags distants supérieurs ou non comparables ; sinon aligner branche et tag sur le commit sélectionné sous lease. Les versions stables priment sur les horodatages.
 
 - Rejeu des pushes GitHub et GitLab : préparer les identifiants dans le projet source pour les conserver après suppression du clone temporaire.
