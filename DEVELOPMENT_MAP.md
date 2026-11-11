@@ -1130,3 +1130,5 @@ Mermaid : syntaxe élémentaire flowchart, identifiants et références contrôl
 Delta SCM du 2026-11-04 : [public-github-diu-update](openspec/changes/archive/2026-11-04-public-github-diu-update/proposal.md), code non attribué, archivé ; contrat et validations réussis ; 1 147 tests dont 2 ignorés. Attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-04 : [force-diu-update-version](openspec/changes/archive/2026-11-04-force-diu-update-version/proposal.md), code non attribué, archivé ; sélection exacte et validation globale réussies (1 152 tests, 2 ignorés). Attribution ultérieure par ACL.
+
+Delta SCM CAB 3.0.0 : [support-debian-maintainer-scripts](openspec/changes/archive/2026-11-11-support-debian-maintainer-scripts/QUALIFICATION.md), code non attribué, archivé ; 37 tests ciblés réussis, contrôles Bash/ShellCheck et OpenSpec strict réussis. Rapports individuels SGS produits ; publications et installation vérifiées séparément.
