@@ -69,6 +69,8 @@ projects_build_deb() (
     local staging_dir="" build_dir="" package_file="" source="" destination="" real_source=""
     local forbidden="" row="" previous="" tool="" conffile="" empty_json="" mode=""
     local -a sources=() destinations=() conffiles=() empty_jsons=() modes=()
+    local -a script_names=() script_sources=() script_hashes=()
+    local script_name="" script_source="" script_hash=""
 
     if [[ $# -ne 1 || ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ||
         "$project_id" == . || "$project_id" == .. || -z "${ENV_DEVOPS_PROJECTS_ROOT:-}" ]]; then
@@ -112,12 +114,14 @@ projects_build_deb() (
     if ! jq -e '
         def text: type == "string" and length > 0 and (explode | all(. >= 32 and . != 127));
         type == "object" and
-        ((keys - ["package","architecture","maintainer","description","depends","version","files"]) | length == 0) and
+        ((keys - ["package","architecture","maintainer","description","depends","version","files","maintainer_scripts"]) | length == 0) and
         (.package | text and test("^[a-z0-9][a-z0-9+.-]+$")) and
         (.architecture | text and test("^[a-z0-9][a-z0-9-]*$")) and
         (.maintainer | text) and (.description | text) and
         ((has("version") | not) or (.version | text)) and
         ((has("depends") | not) or (.depends | type == "array" and all(.[]; text))) and
+        ((has("maintainer_scripts") | not) or (.maintainer_scripts | type == "object" and
+            ((keys - ["preinst","postinst","prerm","postrm"]) | length == 0) and all(.[]; text))) and
         (.files | type == "array" and length > 0 and all(.[];
             type == "object" and ((keys - ["destination","source","conffile","empty_json","mode"]) | length == 0) and
             (.source | text) and (.destination | text) and
@@ -205,6 +209,30 @@ projects_build_deb() (
         sources+=("$real_source"); destinations+=("$destination"); conffiles+=("$conffile"); empty_jsons+=("$empty_json"); modes+=("$mode")
     done < <(jq -c '.files[]' "$recipe")
 
+    # Les scripts appartiennent à l’archive de contrôle, jamais aux copies libres.
+    while IFS= read -r row; do
+        script_name="$(jq -r '.key' <<< "$row")"
+        script_source="$(jq -r '.value' <<< "$row")"
+        if [[ "$script_source" == /* ]] || ! projects_debian_path_valid "$script_source"; then
+            print_error 'Chemin de script Debian invalide.'; return 1
+        fi
+        real_source="$(realpath -e -- "$project_path/$script_source")" || return 1
+        if [[ "$real_source" != "$project_path/$script_source" || ! -f "$real_source" ||
+            -L "$real_source" || ! -s "$real_source" || ! -r "$real_source" ||
+            "$real_source" != "$project_path/"* ]]; then
+            print_error 'Script Debian absent, symbolique ou hors projet.'; return 1
+        fi
+        if [[ "/$script_source/" =~ /(\.git|\.opencode|node_modules|\.venv|venv|dist|logs|tmp)/ ||
+            "$script_source" =~ (\.env($|\.)|\.(key|pem|p12|pfx|crt|cer|der)$|(^|/)(credentials|secrets)\.(json|yaml)$|(^|/)id_(rsa|ed25519)$) ]]; then
+            print_error 'Source privée ou temporaire interdite pour un script Debian.'; return 1
+        fi
+        if [[ "$(stat -c '%h' -- "$real_source")" != 1 ]]; then
+            print_error 'Script Debian avec liens physiques refusé.'; return 1
+        fi
+        script_hash="$(sha256sum -- "$real_source")" || return 1
+        script_names+=("$script_name"); script_sources+=("$real_source"); script_hashes+=("${script_hash%% *}")
+    done < <(jq -c '(.maintainer_scripts // {}) | to_entries[]' "$recipe")
+
     trap 'rm -rf -- "${staging_dir:-}" "${build_dir:-}"' EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
@@ -226,6 +254,19 @@ projects_build_deb() (
         if [[ "${conffiles[$index]}" == true ]]; then
             printf '%s\n' "${destinations[$index]}" >> "$staging_dir/DEBIAN/conffiles" || return 1
         fi
+    done
+    for index in "${!script_names[@]}"; do
+        source="${script_sources[$index]}"
+        if [[ -L "$source" || ! -f "$source" || "$(realpath -e -- "$source")" != "$source" ]]; then
+            print_error 'Script Debian modifié pendant la construction.'; return 1
+        fi
+        destination="$staging_dir/DEBIAN/${script_names[$index]}"
+        cp -- "$source" "$destination" || return 1
+        script_hash="$(sha256sum -- "$destination")" || return 1
+        if [[ "${script_hash%% *}" != "${script_hashes[$index]}" ]]; then
+            print_error 'Empreinte de script Debian divergente.'; return 1
+        fi
+        chmod 0755 -- "$destination" || return 1
     done
     {
         printf 'Package: %s\nVersion: %s\nArchitecture: %s\nMaintainer: %s\nDescription: %s\n' \

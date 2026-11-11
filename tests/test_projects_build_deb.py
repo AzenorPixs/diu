@@ -298,5 +298,33 @@ class ProjectsBuildDebTests(unittest.TestCase):
             self.assertEqual(result.stdout, 'PROJECT:example')
 
 
+    def test_maintainer_scripts_are_packaged_but_never_executed(self):
+        script=self.project/'build/postinst'
+        marker=self.project/'must-not-exist'
+        script.write_text('#!/bin/sh\nset -eu\ntouch '+str(marker)+'\n')
+        script.chmod(0o770)
+        self.recipe['maintainer_scripts']={'postinst':'build/postinst'}
+        self.save_recipe()
+        result=self.run_build()
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertFalse(marker.exists())
+        data=subprocess.check_output(['dpkg-deb','--ctrl-tarfile',str(self.project/'dist/example-package_2.3_amd64.deb')])
+        with tarfile.open(fileobj=io.BytesIO(data)) as archive:
+            item=archive.getmember('./postinst')
+            self.assertEqual(item.mode,0o755)
+            self.assertEqual(archive.extractfile(item).read(),script.read_bytes())
+        self.assertEqual(script.stat().st_mode&0o777,0o770)
+
+    def test_maintainer_scripts_reject_unknown_escape_links_and_secrets(self):
+        (self.project/'build/postinst').write_text('#!/bin/sh\nexit 0\n')
+        for value in [{'control':'build/postinst'},{'postinst':'../outside'}, {'postinst':'/bin/sh'}, {'postinst':'project.env'}, {'postinst':12}]:
+            with self.subTest(value=value):
+                self.recipe['maintainer_scripts']=value;self.save_recipe()
+                self.assertNotEqual(self.run_build().returncode,0)
+        (self.project/'build/alias').symlink_to('postinst')
+        self.recipe['maintainer_scripts']={'postinst':'build/alias'};self.save_recipe()
+        self.assertNotEqual(self.run_build().returncode,0)
+
+
 if __name__ == '__main__':
     unittest.main()

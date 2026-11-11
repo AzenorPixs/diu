@@ -4,6 +4,11 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Construction Debian générique : champ optionnel `maintainer_scripts` pour
+  embarquer les quatre scripts Debian autorisés, après validation des sources
+  et empreintes, sans exécution au build. Qualification du paquet réel et des
+  refus de chemins dangereux pour la livraison CAB 3.0.0.
+
 - APT : recettes des 23 logiciels déplacées vers GLOBAL, opérations communes
   conservées et anciens blocs logiciels retirés du monolithe. Les variables de
   dépôts absentes sont détectées dans les sources actives ; non-free et firmware
