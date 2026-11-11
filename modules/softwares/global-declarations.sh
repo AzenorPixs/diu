@@ -1,22 +1,10 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC1091 source=modules/system/apt-source-state.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/../system/apt-source-state.sh"
+
 software_crowdsec_repository_detect() {
-    local path status
-    if [[ "${SOFTWARE_APT_CROWDSEC_AGENT:-0}" == 1 || "${SOFTWARE_APT_CROWDSEC_BOUNCER:-0}" == 1 ]]; then
-        printf '1\n'
-        return 0
-    fi
-    for path in /etc/apt/sources.list /etc/apt/sources.list.d; do
-        [[ -e "$path" ]] || continue
-        if grep -RqsE 'crowdsec|packagecloud\.io/crowdsec' "$path"; then
-            printf '1\n'
-            return 0
-        else
-            status=$?
-            [[ "$status" == 1 ]] || return 1
-        fi
-    done
-    printf '0\n'
+    system_apt_source_state SOFTWARE_APT_CROWDSEC
 }
 
 software_declare_crowdsec_repository() {

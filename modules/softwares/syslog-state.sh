@@ -37,5 +37,8 @@ software_apt_syslog_role_state() (
     printf '0\n'
 )
 
-software_apt_syslog_client_detect() { software_apt_syslog_role_state client "${1:-/}"; }
-software_apt_syslog_server_detect() { software_apt_syslog_role_state server "${1:-/}"; }
+
+# Les détecteurs et hooks propres aux logiciels appartiennent aux déclarations GLOBAL.
+# shellcheck disable=SC1091 source=modules/softwares/apt-recipes.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/apt-recipes.sh"
+software_apt_load_recipes || return 1

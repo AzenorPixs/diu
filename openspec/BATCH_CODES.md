@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Entrée provisoire SCM du 2026-11-11 : [declare-apt-sources-and-software-recipes](changes/archive/2026-11-11-declare-apt-sources-and-software-recipes/proposal.md), archivé, **code non attribué** ; attribution ultérieure par ACL.
+
 Correctif du 9 novembre 2026 : [preserve-cab-hmac-key-permissions](changes/preserve-cab-hmac-key-permissions/proposal.md), ACTIF, code non attribué ; attribution ultérieure par ACL.
 
 

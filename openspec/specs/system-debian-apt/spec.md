@@ -9,15 +9,13 @@ les versions antérieures, tout en préservant les configurations existantes.
 ## Requirements
 
 ### Requirement: Variables de configuration
-
-Le DIU SHALL déclarer les cinq variables APT Debian statiques, activées dans
-le scope system, avec les valeurs par défaut demandées.
-
+DIU SHALL déclarer les variables Debian contrib, non-free, non-free-firmware, deb-src, updates et backports dans le scope system. Les variables absentes SHALL être initialisées depuis les sources Debian actives, à zéro lorsque leur élément est absent ; les valeurs existantes valides SHALL être conservées.
 #### Scenario: Valeurs initiales
-
-- **WHEN** une variable est absente
-- **THEN** le générateur l'exporte avec sa valeur par défaut et la persiste
-  dans `system.env`.
+- **WHEN** une variable est absente et que son composant ou sa suite est déclaré dans une source Debian active
+- **THEN** sa valeur un est persistée dans system.env
+#### Scenario: Élément absent
+- **WHEN** une variable est absente et que son élément n’est pas déclaré
+- **THEN** sa valeur zéro est persistée
 
 ### Requirement: Configuration Debian par version
 
@@ -90,14 +88,13 @@ antérieures.
 Les dépôts tiers hors CrowdSec SHALL conserver leurs dix variables
 `SYSTEM_APT_*` dans le scope system. Le dépôt CrowdSec SHALL utiliser
 `SOFTWARE_APT_CROWDSEC` dans le scope logiciels. Sa valeur absente SHALL être
-déduite des sources APT existantes et s'activer si l'agent ou le bouncer est
-activé; une valeur déjà configurée SHALL rester prioritaire. Les migrations
+déduite uniquement des sources APT actives ; une valeur déjà configurée SHALL rester prioritaire. Les migrations
 historiques de `SYSTEM_APT_CROWDSEC` et `CROWDSEC_BOUNCER` SHALL préserver leur
 valeur dans `softwares.env`.
 
 #### Scenario: Dépôt CrowdSec activé
 
-- **WHEN** le dépôt CrowdSec existe déjà ou l'agent/le bouncer est activé
+- **WHEN** le dépôt CrowdSec existe dans une source active
 - **AND** `SOFTWARE_APT_CROWDSEC` n'est pas configurée
 - **THEN** le DIU active le dépôt APT CrowdSec
 
@@ -106,7 +103,7 @@ valeur dans `softwares.env`.
 - **WHEN** un dépôt historique non-CrowdSec est activé par ses variables et
   que sa variable `SYSTEM_APT_*` est absente
 - **AND** aucune source APT correspondante n'est détectée
-- **THEN** son activation ou sa branche est initialisée et persistée
+- **THEN** sa variable est initialisée à zéro ; une installation ultérieure peut activer son prérequis
 
 #### Scenario: Valeur persistée prioritaire
 
@@ -115,8 +112,7 @@ valeur dans `softwares.env`.
 
 #### Scenario: MongoDB historique
 
-- **WHEN** une source MongoDB `4.4` est détectée ou la version historique
-  `4.4` est activée
+- **WHEN** une source MongoDB `4.4` active est détectée
 - **THEN** `SYSTEM_APT_MONGODB` est initialisé à `4` si cette variable est absente
 - **AND** le moteur utilise la clé et la suite MongoDB `4.4`
 
@@ -252,59 +248,32 @@ OpenAI, ChatGPT ou Codex, puis persistée.
 - **AND** `SYSTEM_APT_CGPT` vaut `0`
 
 ### Requirement: Repli du dépôt APT LemonLDAP depuis le réglage logiciel
-
-`SYSTEM_APT_LEMONLDAP` SHALL rester le réglage système explicite du dépôt APT.
-Si aucune source LemonLDAP n’est détectée et si `SYSTEM_APT_LEMONLDAP` n’est
-pas déjà configurée, sa valeur initiale SHALL être activée lorsque
-`SOFTWARE_APT_LEMONLDAP=1`.
+SYSTEM_APT_LEMONLDAP SHALL rester prioritaire lorsqu’il est configuré. En absence de valeur, son initialisation SHALL utiliser uniquement les sources APT actives ; le souhait logiciel SHALL NOT activer un dépôt absent. La préparation lors de l’installation reste distincte.
 
 #### Scenario: Installation logicielle active sans dépôt configuré
-
-- **WHEN** aucune source LemonLDAP APT n’est détectée
-- **AND** `SOFTWARE_APT_LEMONLDAP` vaut `1`
-- **THEN** le DIU SHALL persister `SYSTEM_APT_LEMONLDAP=1` dans `system.env`
+- **WHEN** aucune source active correspondante n’est détectée et que le logiciel est demandé
+- **THEN** la valeur absente du dépôt est initialisée à zéro
 
 #### Scenario: Réglage système explicite prioritaire
-
-- **WHEN** `SYSTEM_APT_LEMONLDAP` est déjà configurée
-- **THEN** sa valeur SHALL rester prioritaire sur `SOFTWARE_APT_LEMONLDAP`
+- **WHEN** SYSTEM_APT_LEMONLDAP est déjà configuré
+- **THEN** sa valeur est conservée à l’initialisation
 
 ### Requirement: Repli du dépôt MongoDB depuis le réglage logiciel
-
-`SYSTEM_APT_MONGODB` SHALL rester le réglage système explicite du dépôt APT.
-Si aucune source MongoDB n’est détectée et si `SYSTEM_APT_MONGODB` n’est pas
-déjà configurée, sa valeur initiale SHALL être déterminée par
-`SOFTWARE_APT_MONGODB` et `MONGODB_VERSION`. Lorsque le logiciel est actif, la
-version déclarée SHALL sélectionner la branche du dépôt comme auparavant.
+SYSTEM_APT_MONGODB SHALL rester prioritaire lorsqu’il est configuré. En absence de valeur, son initialisation SHALL utiliser uniquement les sources APT actives ; le souhait logiciel SHALL NOT activer un dépôt absent. La préparation lors de l’installation reste distincte.
 
 #### Scenario: Installation logicielle active sans dépôt configuré
-
-- **WHEN** aucune source MongoDB APT n’est détectée
-- **AND** `SOFTWARE_APT_MONGODB` vaut `1`
-- **AND** `MONGODB_VERSION` contient une version prise en charge
-- **THEN** le DIU SHALL persister la branche correspondante dans
-  `SYSTEM_APT_MONGODB`
+- **WHEN** aucune source active correspondante n’est détectée et que le logiciel est demandé
+- **THEN** la valeur absente du dépôt est initialisée à zéro
 
 #### Scenario: Réglage système explicite prioritaire
-
-- **WHEN** `SYSTEM_APT_MONGODB` est déjà configurée
-- **THEN** sa valeur SHALL rester prioritaire sur les réglages logiciels
+- **WHEN** SYSTEM_APT_MONGODB est déjà configuré
+- **THEN** sa valeur est conservée à l’initialisation
 
 ### Requirement: Repli du dépôt APT Wazuh depuis le réglage logiciel
-
-`SYSTEM_APT_WAZUH` SHALL rester le réglage système explicite du dépôt APT.
-Lorsque sa valeur n’est pas configurée et qu’aucune source n’est détectée, le
-repli historique SHALL activer la branche Wazuh 4 uniquement lorsque
-`SOFTWARE_APT_WAZUH_SERVER=1` et `WAZUH_SERVER_UPGRADE=1`.
-
+SYSTEM_APT_WAZUH SHALL être initialisé uniquement depuis les sources actives lorsqu’il est absent, à quatre pour la branche 4.x, à zéro sinon. Le souhait logiciel et WAZUH_SERVER_UPGRADE SHALL NOT suffire à activer sa valeur initiale.
 #### Scenario: Serveur et mise à niveau activés sans dépôt détecté
-
-- **WHEN** aucune source Wazuh APT n’est détectée
-- **AND** `SOFTWARE_APT_WAZUH_SERVER=1`
-- **AND** `WAZUH_SERVER_UPGRADE=1`
-- **THEN** le DIU SHALL persister `SYSTEM_APT_WAZUH=4`
-
+- **WHEN** le serveur et sa mise à niveau sont demandés mais qu’aucune source Wazuh n’est active
+- **THEN** la variable absente est initialisée à zéro
 #### Scenario: Repli désactivé
-
-- **WHEN** le serveur Wazuh ou `WAZUH_SERVER_UPGRADE` vaut `0`
-- **THEN** le repli SHALL persister `SYSTEM_APT_WAZUH=0`
+- **WHEN** aucune source Wazuh n’est déclarée et qu’aucune valeur n’est configurée
+- **THEN** SYSTEM_APT_WAZUH est persisté à zéro

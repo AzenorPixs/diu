@@ -19,6 +19,8 @@ class AptConvergenceTests(unittest.TestCase):
             'source "$1/modules/softwares/syslog-state.sh"\n'
             'source "$1/modules/softwares/syslog-hooks.sh"\n'
             'source "$1/modules/softwares/apt-convergence.sh"\n'
+            'system_apt_source_state() { printf "%s\\n" "${!1:-0}"; }\n'
+            'apt() { :; }\n'
             'apt-get() { printf "Remv %s [1]\\n" "${@: -1}"; }\n'
             + body
         )
@@ -103,7 +105,7 @@ class AptConvergenceTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.splitlines(), [
-            "-y install --no-upgrade --install-recommends -- webmin", "-y purge -- webmin"
+            "-y update", "-y install --no-upgrade --install-recommends -- webmin", "-y purge -- webmin"
         ])
 
     def test_fastfetch_selects_package_and_runs_configuration_hook(self):
@@ -247,7 +249,7 @@ class AptConvergenceTests(unittest.TestCase):
                 'curl() { printf fixture > "${@: -1}"; }\n'
                 'dpkg-deb() { case "$3" in Package) echo wrong-package;; Architecture) echo amd64;; esac; }\n'
                 'dpkg() { echo amd64; }\n'
-                'apt() { echo unexpected; }\n'
+                'apt() { [[ "$2" != install ]] || echo unexpected; }\n'
                 'software_apt_install omada'
             )
             result = subprocess.run(["bash", "-c", script, "--", str(ROOT), directory],
@@ -346,7 +348,7 @@ class AptConvergenceTests(unittest.TestCase):
                 'curl() { printf fixture > "${@: -1}"; }\n'
                 'dpkg-deb() { case "$3" in Package) echo wazuh-agent;; Architecture) echo amd64;; esac; }\n'
                 'dpkg() { echo amd64; }\n'
-                'apt() { [[ "$WAZUH_MANAGER" == manager.example && "$WAZUH_REGISTRATION_PASSWORD" == fixture-secret-value ]] || return 1; '
+                'apt() { [[ "$2" != update ]] || return 0; [[ "$WAZUH_MANAGER" == manager.example && "$WAZUH_REGISTRATION_PASSWORD" == fixture-secret-value ]] || return 1; '
                 'printf "%s\\n" "$WAZUH_REGISTRATION_PASSWORD"; }\n'
                 'systemctl() { return 0; }\n'
                 'software_apt_install wazuh-agent'

@@ -21,6 +21,7 @@ class UnofficialAptTests(unittest.TestCase):
     def prepare(self, directory):
         directory = Path(directory)
         (directory / 'sources').mkdir(exist_ok=True)
+        (directory / 'sources.list.d').symlink_to(directory / 'sources', target_is_directory=True)
         (directory / 'keyrings').mkdir(exist_ok=True)
         (directory / 'config.txt').touch()
         (directory / 'local-public.asc').write_text('synthetic-local-public-key')
@@ -36,11 +37,13 @@ class UnofficialAptTests(unittest.TestCase):
             'variable_config_file="$TEST_SOFTWARES_CONFIG"')
         declaration += '\n' + crowdsec
         (directory / 'declaration.sh').write_text(declaration)
-        globals_source = (ROOT / 'modules/softwares/global-declarations.sh').read_text()
+        globals_source = (ROOT / 'modules/softwares/global-declarations.sh').read_text().replace(
+            '. "$(dirname -- "${BASH_SOURCE[0]}")/../system/apt-source-state.sh"', '. "$ROOT/modules/system/apt-source-state.sh"')
         globals_source = globals_source.replace('/etc/apt/sources.list.d', '"$TEST_SOURCES"')
         globals_source = globals_source.replace('/etc/apt/sources.list', '"$TMPDIR/sources.list"')
         (directory / 'software-globals.sh').write_text(globals_source)
         module = (ROOT / 'modules/system/apt.sh').read_text().replace(
+            '. "$(dirname -- "${BASH_SOURCE[0]}")/apt-source-state.sh"', '. "$ROOT/modules/system/apt-source-state.sh"').replace(
             'variable_config_file="/root/diu/config/system.env"',
             'variable_config_file="$TEST_CONFIG"').replace(
             'variable_config_file="/root/diu/config/softwares.env"',
@@ -73,7 +76,7 @@ gpg() {
 system_apt_debian_configure() { system_apt_configure_unofficial; }
 '''
         env = dict(PATH=os.defpath, ROOT=str(ROOT), TMPDIR=str(directory),
-                   TEST_CONFIG=str(directory / 'config.txt'),
+                   TEST_CONFIG=str(directory / 'config.txt'), SYSTEM_APT_SOURCE_ROOT=str(directory),
                    TEST_SOFTWARES_CONFIG=str(directory / 'softwares.txt'),
                    TEST_SOURCES=str(directory / 'sources'), TEST_MODERN='1',
                    TEST_FAILURE='', SYSTEM_DEBIAN_RELEASE='trixie')
@@ -101,16 +104,17 @@ source "$TMPDIR/declaration.sh"
 
     def test_each_existing_repository_is_detected(self):
         patterns = dict(
-            CROWDSEC='packagecloud.io/crowdsec', DOCKER='download.docker.com',
-            LEMONLDAP='lemonldap-ng', MONGODB='mongodb-org/4.4',
-            NODEJS='deb.nodesource.com', NVIDIA='developer.download.nvidia.com',
-            PROXMOX='download.proxmox.com', VSCODE='packages.microsoft.com/repos/code',
-            WAZUH='packages.wazuh.com/4.x', WEBMIN='download.webmin.com', CGPT='codex',
+            CROWDSEC='https://packagecloud.io/crowdsec/crowdsec/any', DOCKER='https://download.docker.com/linux/debian',
+            LEMONLDAP='https://lemonldap-ng.org/deb', MONGODB='https://repo.mongodb.org/apt/debian',
+            NODEJS='https://deb.nodesource.com/node_24.x', NVIDIA='https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64',
+            PROXMOX='https://download.proxmox.com/debian/pve', VSCODE='https://packages.microsoft.com/repos/code',
+            WAZUH='https://packages.wazuh.com/4.x/apt', WEBMIN='https://download.webmin.com/download/repository', CGPT='https://persistent.oaistatic.com/codex-app-prod/linux/deb',
         )
         for name, pattern in patterns.items():
             with self.subTest(name=name), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
                 directory = self.prepare(tmp)
-                (directory / 'sources/existing.sources').write_text(pattern)
+                suite = 'bookworm/mongodb-org/4.4' if name == 'MONGODB' else 'stable'
+                (directory / 'sources/existing.sources').write_text(f'Types: deb\nURIs: {pattern}\nSuites: {suite}\nComponents: main\n')
                 result = self.run_shell(directory, 'source "$TMPDIR/declaration.sh"')
                 self.assert_success(result)
                 expected = 4 if name in ('MONGODB', 'WAZUH') else 1
@@ -118,7 +122,7 @@ source "$TMPDIR/declaration.sh"
                 variable = 'SOFTWARE_APT_CROWDSEC' if name == 'CROWDSEC' else f'SYSTEM_APT_{name}'
                 self.assertIn(f'export {variable}={expected}', config.read_text().splitlines())
 
-    def test_legacy_activation_fallback(self):
+    def test_software_request_does_not_initialize_repository_without_source(self):
         cases = [
             ({'SOFTWARE_APT_CROWDSEC_AGENT': 1}, 'CROWDSEC', 1),
             ({'SOFTWARE_APT_CROWDSEC_BOUNCER': 1}, 'CROWDSEC', 1),
@@ -131,7 +135,8 @@ source "$TMPDIR/declaration.sh"
                   for version, branch in [('4.4', 4), ('5', 5), ('6', 6), ('7', 7), ('8', 8)]]
         cases += [({'SOFTWARE_APT_MONGODB': 0, 'MONGODB_VERSION': '8'}, 'MONGODB', 0),
                   ({'SOFTWARE_APT_MONGODB': 1, 'MONGODB_VERSION': 'unknown'}, 'MONGODB', 0)]
-        for values, name, expected in cases:
+        for values, name, _previous_expected in cases:
+            expected = 0
             with self.subTest(values=values), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
                 directory = self.prepare(tmp)
                 result = self.run_shell(directory, 'source "$TMPDIR/declaration.sh"', **values)
@@ -144,7 +149,7 @@ source "$TMPDIR/declaration.sh"
         for value in (0, 1, 4):
             with self.subTest(value=value), tempfile.TemporaryDirectory(dir=ROOT) as tmp:
                 directory = self.prepare(tmp)
-                (directory / 'sources/wazuh.sources').write_text('packages.wazuh.com/4.x')
+                (directory / 'sources/wazuh.sources').write_text('Types: deb\nURIs: https://packages.wazuh.com/4.x/apt\nSuites: stable\nComponents: main\n')
                 result = self.run_shell(directory, r'''
 source "$TMPDIR/declaration.sh"
 printf '%s\n' "$SYSTEM_APT_WAZUH"

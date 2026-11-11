@@ -13,12 +13,12 @@ DIU SHALL refuser explicitement le moteur logiciel `deb` pour les commandes d'in
 
 #### Scenario: Installation ciblée
 
-- **WHEN** `diu install apt chatgpt` est invoqué
+- **WHEN** `diu softwares install apt chatgpt` est invoqué
 - **THEN** DIU délègue l'installation à la recette APT existante
 
 #### Scenario: Désinstallation sans logiciel
 
-- **WHEN** `diu remove apt` est invoqué
+- **WHEN** `diu softwares remove apt` est invoqué
 - **THEN** DIU retourne une erreur de syntaxe
 
 #### Scenario: Moteur inconnu
@@ -41,7 +41,7 @@ La désinstallation et la mise à jour SHALL cibler les paquets du logiciel tier
 
 #### Scenario: Dépôt requis
 
-- **WHEN** `diu install apt <SOFTWARE>` cible un logiciel nécessitant un dépôt
+- **WHEN** `diu softwares install apt <SOFTWARE>` cible un logiciel nécessitant un dépôt
 - **THEN** DIU fait préparer le dépôt par son moteur de dépôts
 - **AND** il installe le paquet uniquement après le succès de cette préparation
 
@@ -53,41 +53,39 @@ La désinstallation et la mise à jour SHALL cibler les paquets du logiciel tier
 
 ### Requirement: Logiciels tiers sans dépôt
 
-Pour un logiciel tiers sans dépôt, le moteur `apt` SHALL appeler une fonction
-propre au logiciel pour chacune des actions installation, désinstallation et
-mise à jour. Il SHALL NOT construire une commande arbitraire à partir de
+Pour un logiciel tiers sans dépôt, le moteur `apt` SHALL appeler les opérations génériques alimentées par sa déclaration GLOBAL, ses résolveurs d’artefact/version et ses hooks spécifiques. Il SHALL NOT construire une commande arbitraire à partir de
 l'identifiant fourni par l'utilisateur.
 
 #### Scenario: Installation sans dépôt
 
-- **WHEN** `diu install apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
-- **THEN** DIU appelle sa fonction spécifique d'installation
-- **AND** il n'appelle pas le moteur de dépôts
+- **WHEN** `diu softwares install apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
+- **THEN** DIU appelle l’opération générique d’installation avec sa recette GLOBAL
+- **AND** il n'active aucun dépôt tiers non déclaré par la recette
 
 #### Scenario: Désinstallation sans dépôt
 
-- **WHEN** `diu remove apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
-- **THEN** DIU appelle sa fonction spécifique de désinstallation
+- **WHEN** `diu softwares remove apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
+- **THEN** DIU appelle l’opération générique de désinstallation
 
 #### Scenario: Mise à jour sans dépôt
 
-- **WHEN** `diu update apt <SOFTWARE>` cible un logiciel déclaré sans dépôt
-- **THEN** DIU appelle sa fonction spécifique de mise à jour
+- **WHEN** `diu system engine apt update` examine un logiciel déclaré sans dépôt, activé et installé
+- **THEN** DIU résout l’artefact par sa déclaration et applique la comparaison de versions générique
 
 #### Scenario: Fonction indisponible
 
-- **WHEN** une action ne dispose pas de fonction spécifique pour le logiciel
+- **WHEN** une action requiert une métadonnée ou un traitement manquant dans la déclaration
 - **THEN** DIU signale l'action non prise en charge et retourne un code non nul
 
 ### Requirement: Mise à jour de tous les logiciels tiers
 
-`diu update apt` SHALL traiter les logiciels tiers installés et reconnus par DIU, selon leur mode avec dépôt ou sans dépôt, sans installer de logiciel absent.
+`diu system engine apt update` SHALL traiter les logiciels tiers installés et reconnus par DIU, selon leur mode avec dépôt ou sans dépôt, sans installer de logiciel absent.
 
 #### Scenario: Mise à jour du moteur apt
 
-- **WHEN** `diu update apt` est invoqué et le moteur est disponible
+- **WHEN** `diu system engine apt update` est invoqué et le moteur est disponible
 - **THEN** DIU exécute les mises à jour des logiciels tiers installés reconnus
-- **AND** il utilise les fonctions propres aux logiciels sans dépôt
+- **AND** il utilise les résolveurs propres aux paquets directs et les opérations communes
 
 ### Requirement: Erreurs et répétition des opérations
 

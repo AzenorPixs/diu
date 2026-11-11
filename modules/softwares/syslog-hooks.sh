@@ -6,10 +6,6 @@ software_apt_syslog_helper() {
     python3 "$helper" "$@"
 }
 
-software_apt_preflight_syslog_client() { software_apt_syslog_helper preflight client keep-package; }
-software_apt_preflight_syslog_server() { software_apt_syslog_helper preflight server keep-package; }
-software_apt_configure_syslog_client() { software_apt_syslog_helper configure client keep-package; }
-software_apt_configure_syslog_server() { software_apt_syslog_helper configure server keep-package; }
 
 software_apt_syslog_service_check() {
     local service="${1:-}" status
@@ -27,8 +23,6 @@ software_apt_syslog_check_configuration() {
     software_apt_syslog_service_check ulogd2
 }
 
-software_apt_check_syslog_client_configuration() { software_apt_syslog_check_configuration client; }
-software_apt_check_syslog_server_configuration() { software_apt_syslog_check_configuration server; }
 
 software_apt_disable_syslog_role() {
     local role="${1:-}" mode=keep-package
@@ -36,8 +30,6 @@ software_apt_disable_syslog_role() {
     software_apt_syslog_helper remove "$role" "$mode"
 }
 
-software_apt_disable_syslog_client() { software_apt_disable_syslog_role client; }
-software_apt_disable_syslog_server() { software_apt_disable_syslog_role server; }
 
 software_apt_syslog_remove_packages() {
     local role="${1:-}" other_variable detector needed
@@ -51,3 +43,8 @@ software_apt_syslog_remove_packages() {
     return 0
 }
 
+
+# Les détecteurs et hooks propres aux logiciels appartiennent aux déclarations GLOBAL.
+# shellcheck disable=SC1091 source=modules/softwares/apt-recipes.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/apt-recipes.sh"
+software_apt_load_recipes || return 1

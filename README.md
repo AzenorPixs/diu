@@ -22,6 +22,15 @@ anciennes syntaxes `diu install/remove/update apt|github` sont supprimées.
 Si une valeur migrée vaut 0 alors que le logiciel est installé, la première
 convergence demande sa désinstallation.
 
+Les recettes des logiciels APT sont portées par leurs déclarations GLOBAL.
+Elles déclarent les composants Debian, dépôts tiers et paquets directs requis ;
+le moteur commun prépare les sources et actualise les index avant installation.
+`SYSTEM_APT_DEBIAN_NONFRFEE` contrôle seulement `non-free`, et
+`SYSTEM_APT_DEBIAN_NONFRFEE_FIRMWARE` seulement `non-free-firmware`.
+Les variables de dépôts absentes sont initialisées depuis les sources actives
+de l'hôte, à 0 si leur dépôt n'est pas déclaré ; les valeurs configurées sont
+conservées.
+
 Le paquet issu du constructeur historique crée le lien `diu` lors de sa
 configuration si son nom est libre. Le constructeur générique ne fournit pas
 ce script de configuration. Après une exécution de DIU, le lien `diut` est

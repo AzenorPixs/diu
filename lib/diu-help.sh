@@ -284,6 +284,9 @@ diu_display_help_context() {
             ;;
         system:install:apt|system:remove:apt)
             diu_help_line "diu system ${subcontext} apt <Dépôt>" 'Opération sur un dépôt APT reconnu.'
+            diu_help_line "diu system ${subcontext} apt contrib" 'Contrôle uniquement le composant contrib.'
+            diu_help_line "diu system ${subcontext} apt non-free" 'Contrôle uniquement le composant non-free.'
+            diu_help_line "diu system ${subcontext} apt non-free-firmware" 'Contrôle uniquement le composant firmware.'
             ;;
         docker::)
             diu_help_line 'diu docker root' 'Actions Docker root.'

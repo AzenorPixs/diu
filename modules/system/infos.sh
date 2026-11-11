@@ -58,6 +58,7 @@ system_info_debian() {
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_BACKPORT' "${SYSTEM_APT_DEBIAN_BACKPORT-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_CONTRIB' "${SYSTEM_APT_DEBIAN_CONTRIB-UNSET}"
     printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_NONFRFEE' "${SYSTEM_APT_DEBIAN_NONFRFEE-UNSET}"
+    printf '%s=%s\n' 'SYSTEM_APT_DEBIAN_NONFRFEE_FIRMWARE' "${SYSTEM_APT_DEBIAN_NONFRFEE_FIRMWARE-UNSET}"
     printf '\n%s\n %s\n%s\n\n' \
         '==============================================' 'SYSTEM APT UNOFFICIAL' '=============================================='
     printf '%s=%s\n' 'SYSTEM_APT_CGPT' "${SYSTEM_APT_CGPT-UNSET}"

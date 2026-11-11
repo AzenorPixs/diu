@@ -15,6 +15,7 @@ class GlobalDeclarationsTests(unittest.TestCase):
                 'source "$1/modules/softwares/desired-state.sh"\n'
                 'source "$1/modules/softwares/migration.sh"\n'
                 'source "$1/modules/softwares/global-declarations.sh"\n'
+                'system_apt_source_state() { printf "0\\n"; }\n'
                 'SOFTWARE_APT_CROWDSEC_AGENT=1\n'
                 'SOFTWARE_APT_CROWDSEC_BOUNCER_API_KEY=fixture-secret\n'
                 'software_declare_crowdsec_repository "$2" || exit $?\n'
@@ -25,7 +26,7 @@ class GlobalDeclarationsTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertNotIn("fixture-secret", result.stdout + result.stderr)
             content = config.read_text(encoding="utf-8")
-            self.assertIn("export SOFTWARE_APT_CROWDSEC=1\n", content)
+            self.assertIn("export SOFTWARE_APT_CROWDSEC=0\n", content)
             self.assertIn("export SOFTWARE_APT_CROWDSEC_BOUNCER_API_KEY=fixture-secret\n", content)
             self.assertEqual(config.stat().st_mode & 0o777, 0o600)
 

@@ -55,7 +55,7 @@ system_apt_update_external_one() (
     [[ -n "$temporary" && -d "$temporary" ]] || return 1
     trap 'rm -rf -- "$temporary"' EXIT
     artifact="$(software_apt_fetch_artifact "$url" "$package" "$temporary")" || return 1
-    available_version="$(dpkg-deb -f "$artifact" Version)" || return 1
+    available_version="$(software_apt_recipe "$software" artifact_version "$artifact")" || return 1
     [[ -n "$available_version" ]] || return 1
     if dpkg --compare-versions "$available_version" gt "$installed_version"; then
         apt -y install -- "$artifact" || return 1
