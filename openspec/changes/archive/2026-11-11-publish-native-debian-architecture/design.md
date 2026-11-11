@@ -1,0 +1,1 @@
+L’architecture vient du contrôle Debian, jamais du nom supposé. Un nom incohérent est refusé avant publication. all reste compatible ; amd64 et les architectures Debian natives valides sont acceptées. Aucun déplacement de tag ni nouvelle version CAB lors de la reprise.

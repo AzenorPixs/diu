@@ -30,6 +30,7 @@ publish_release_debian() {
 
     local package_name=""
     local package_version=""
+    local package_architecture=""
 
     # Ancre locale consommée par _forgejo_read_username via la portée dynamique Bash.
     # shellcheck disable=SC2034
@@ -524,7 +525,9 @@ publish_release_debian() {
 
     deb_version="${package_version}"
 
-    if [[ "${deb_filename}" != "${project_id}_${deb_version}_all.deb" ]]; then
+    package_architecture="$(dpkg-deb -f "${deb_file}" Architecture)" || return 1
+    if [[ ! "${package_architecture}" =~ ^[a-z0-9][a-z0-9-]*$ ||
+        "${deb_filename}" != "${project_id}_${deb_version}_${package_architecture}.deb" ]]; then
         print_error \
             "Incohérence entre le nom du fichier et la version Debian."
         print_error \

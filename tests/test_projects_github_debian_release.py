@@ -332,6 +332,13 @@ class GithubDebianReleaseTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(self.calls(), [])
 
+    def test_native_architecture_with_matching_filename_is_published(self):
+        (self.project/'dist/project_1.0.3_all.deb').unlink()
+        self.build_package(architecture='amd64')
+        result=self.run_release()
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertTrue(any('name=project_1.0.3_amd64.deb' in call['url'] for call in self.calls()))
+
     def parent_harness(self, mocked=True):
         call = 'projects_github_release project\n'
         if mocked:

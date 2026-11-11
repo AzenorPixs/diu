@@ -35,6 +35,7 @@ class ProjectsOrchestratedCopyTests(unittest.TestCase):
         self.template = self.projects / 'template'
         (self.template / 'PROMPTS').mkdir(parents=True)
         (self.template / 'AGENTS.md').write_text('Template template\n', encoding='utf-8')
+        (self.template / 'CODING_RULES.md').write_text('Template template\n', encoding='utf-8')
         (self.template / 'DEVELOPMENT_MAP.md').write_text('Template template\n', encoding='utf-8')
         (self.template / '.gitignore').write_text('ignored\n', encoding='utf-8')
         (self.template / 'README.md').write_text('Template template\n', encoding='utf-8')

@@ -1,0 +1,3 @@
+- [x] 1. Corriger les validations de métadonnées Forgejo/GitHub.
+- [x] 2. Qualifier all, architecture native et refus de discordance.
+- [x] 3. Documenter, archiver, produire SGS et coordonner la livraison DIU.

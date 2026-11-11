@@ -4,6 +4,8 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Synchronisation des projets : inclure et personnaliser `CODING_RULES.md` issu du modèle.
+
 - Construction Debian générique : champ optionnel `maintainer_scripts` pour
   embarquer les quatre scripts Debian autorisés, après validation des sources
   et empreintes, sans exécution au build. Qualification du paquet réel et des

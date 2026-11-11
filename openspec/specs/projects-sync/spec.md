@@ -33,7 +33,7 @@ copie.
 ### Requirement: Source de synchronisation contrôlée
 
 Avant toute copie, DIU MUST vérifier l'existence du répertoire modèle
-`/home/${ENV_DEVOPS_USER}/datas/template`, des fichiers `AGENTS.md` et
+`/home/${ENV_DEVOPS_USER}/datas/template`, des fichiers `AGENTS.md`, `CODING_RULES.md` et
 `.gitignore`. Une source conservée indisponible
 ou de type incorrect MUST faire échouer la commande avec un code non nul
 avant toute copie. Pour la synchronisation unitaire ou groupée, DIU MUST NOT
@@ -47,7 +47,7 @@ exiger `PROMPTS`, `DEVOPS.md`, les répertoires OpenCode du modèle ou la source
 
 #### Scenario: Élément géré manquant du modèle
 
-- **WHEN** AGENTS.md ou .gitignore est absent ou de type incorrect
+- **WHEN** AGENTS.md, CODING_RULES.md ou .gitignore est absent ou de type incorrect
 - **THEN** DIU échoue avec un code non nul avant toute copie
 
 #### Scenario: Modèle sans document d'environnement
@@ -69,7 +69,7 @@ exiger `PROMPTS`, `DEVOPS.md`, les répertoires OpenCode du modèle ou la source
 
 ### Requirement: Copie ciblée et autoritaire du modèle
 
-DIU MUST synchroniser exclusivement AGENTS.md et .gitignore depuis le modèle,
+DIU MUST synchroniser exclusivement AGENTS.md, CODING_RULES.md et .gitignore depuis le modèle,
 en les écrasant. DIU MUST NOT consulter ni copier les autres fichiers du modèle
 et MUST préserver les autres destinations. La création de `.cab-tests` suit les
 règles spécifiques ci-dessous.
