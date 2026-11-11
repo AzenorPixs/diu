@@ -115,7 +115,7 @@ si elle est absente.
 `output/` et `.cab-tests/` sont créés vides ; OpenSpec est initialisé ensuite.
 
 `diu projects sync <ID PROJECT>` (y compris `sync all`) synchronise uniquement
-les fichiers `AGENTS.md` et `.gitignore`. Les autres fichiers, notamment
+les fichiers `AGENTS.md`, `CODING_RULES.md` et `.gitignore`. Les autres fichiers, notamment
 `DEVELOPMENT_MAP.md`, `CHANGELOG.md` et `DEVOPS.md`, restent intacts. Il crée `.cab-tests`
 à la racine du projet lorsque le dossier manque ; son contenu existant est
 conservé et aucun contenu n'est copié depuis le modèle.

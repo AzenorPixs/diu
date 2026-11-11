@@ -92,8 +92,8 @@ projects_github_release_debian() {
     package_name="$(dpkg-deb -f "$deb_file" Package)" || return 1
     package_version="$(dpkg-deb -f "$deb_file" Version)" || return 1
     architecture="$(dpkg-deb -f "$deb_file" Architecture)" || return 1
-    if [[ "$package_name" != "$project_id" || "$architecture" != all ||
-        "$deb_filename" != "${project_id}_${package_version}_all.deb" ]]; then
+    if [[ "$package_name" != "$project_id" || ! "$architecture" =~ ^[a-z0-9][a-z0-9-]*$ ||
+        "$deb_filename" != "${project_id}_${package_version}_${architecture}.deb" ]]; then
         print_error 'Nom, architecture ou métadonnées du paquet Debian incohérents.'
         return 1
     fi

@@ -19,7 +19,7 @@ sync_project_template_is_valid() {
         return 1
     fi
 
-    for template_file in AGENTS.md .gitignore; do
+    for template_file in AGENTS.md CODING_RULES.md .gitignore; do
         if [[ ! -f "${template_path}/${template_file}" ]]; then
             print_error "Le fichier modèle est introuvable : ${template_path}/${template_file}"
             return 1
@@ -39,7 +39,7 @@ sync_project() {
     local template_file=""
     local project_orchestrated_coding=""
     local cab_tests_created=0
-    local -a template_files=(AGENTS.md .gitignore)
+    local -a template_files=(AGENTS.md CODING_RULES.md .gitignore)
     local -a synchronized_files=()
 
     if [[ -z "${project_id}" ]]; then

@@ -390,6 +390,7 @@ clone_project source destination
             (template_path / 'PROMPTS' / 'nested').mkdir(parents=True)
             project_path.mkdir(parents=True)
             (template_path / 'AGENTS.md').write_text('Template template\n', encoding='utf-8')
+            (template_path / 'CODING_RULES.md').write_text('Template template\n', encoding='utf-8')
             (template_path / 'DEVELOPMENT_MAP.md').write_text('Template template\n', encoding='utf-8')
             (template_path / 'DEVOPS.md').write_text('Template\n', encoding='utf-8')
             (template_path / '.gitignore').write_text('template\n', encoding='utf-8')
@@ -401,6 +402,7 @@ clone_project source destination
             )
             (project_path / 'README.md').write_text('Template template\n', encoding='utf-8')
             (project_path / 'AGENTS.md').write_text('ancienne version\n', encoding='utf-8')
+            (project_path / 'CODING_RULES.md').write_text('ancienne version\n', encoding='utf-8')
             (project_path / 'PROMPTS' / 'nested').mkdir(parents=True)
             (project_path / 'PROMPTS' / 'nested' / 'INDEX.md').write_text(
                 'ancienne version\n', encoding='utf-8'
@@ -428,6 +430,7 @@ sync_project projet-test
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stderr, '')
+            self.assertEqual((project_path / 'CODING_RULES.md').read_text(), 'Projet Test projet-test\n')
             self.assertFalse((project_path / 'DEVOPS.md').exists())
             self.assertFalse((project_path / '.opencode').exists())
             self.assertEqual(
@@ -474,7 +477,7 @@ sync_project projet-test
                             projects_root = temporary_path / 'datas'
                             template_path = projects_root / 'template'
                             template_path.mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
+                            for filename in ('AGENTS.md', 'CODING_RULES.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text(
                                     'Template template\n', encoding='utf-8')
                             source = template_path / 'PROMPTS'
@@ -562,6 +565,32 @@ sync_project projet-test
                 'ancienne version\n',
             )
 
+    def test_sync_rejects_missing_coding_rules_before_copy(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            template = root / 'datas' / 'template'
+            project = root / 'projects' / 'projet-test'
+            template.mkdir(parents=True)
+            project.mkdir(parents=True)
+            (template / 'AGENTS.md').write_text('nouveau\n')
+            (template / '.gitignore').write_text('nouveau\n')
+            (project / 'AGENTS.md').write_text('initial\n')
+            (project / 'project.env').write_text('PROJECT_ID=projet-test\nPROJECT_NAME=Projet\n')
+            script = r'''
+source "$1/modules/projects/projects.sh"
+print_error() { :; }
+print_success() { :; }
+ENV_DEVOPS_USER="$2"
+DEVOPS_GROUP=devops
+ENV_DEVOPS_PROJECTS_ROOT="$3"
+sync_project projet-test
+'''
+            result = subprocess.run(['bash', '-c', script, 'bash', str(ROOT),
+                f'../{root.relative_to("/")}', str(project.parent)], capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual((project / 'AGENTS.md').read_text(), 'initial\n')
+            self.assertFalse((project / 'CODING_RULES.md').exists())
+
     def test_sync_project_all_selects_valid_projects_and_excludes_template(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -569,7 +598,7 @@ sync_project projet-test
             template_path = projects_root / 'template'
 
             (template_path / 'PROMPTS').mkdir(parents=True)
-            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
+            for filename in ('AGENTS.md', 'CODING_RULES.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                 (template_path / filename).write_text('source\n', encoding='utf-8')
 
             for project_id in ('first', 'second'):
@@ -618,7 +647,7 @@ sync_project_all
                             template_path = projects_root / 'template'
                             project_path = projects_root / 'projet-test'
                             (template_path / 'PROMPTS').mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
+                            for filename in ('AGENTS.md', 'CODING_RULES.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text('Template template\n',
                                                                       encoding='utf-8')
                             if source_present:
@@ -731,7 +760,7 @@ sync_project_all
                             template_path = projects_root / 'template'
                             project_path = projects_root / 'projet-test'
                             (template_path / 'PROMPTS').mkdir(parents=True)
-                            for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
+                            for filename in ('AGENTS.md', 'CODING_RULES.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                                 (template_path / filename).write_text(
                                     'Template template\n', encoding='utf-8')
                             project_path.mkdir()
@@ -803,7 +832,7 @@ fi
                     temporary_path = Path(temporary_directory)
                     template_path = temporary_path / 'datas' / 'template'
                     (template_path / 'PROMPTS').mkdir(parents=True)
-                    for filename in ('AGENTS.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
+                    for filename in ('AGENTS.md', 'CODING_RULES.md', '.gitignore', 'DEVELOPMENT_MAP.md'):
                         (template_path / filename).write_text('source\n', encoding='utf-8')
                     broker_path = temporary_path / '.opencode' / 'broker'
                     if destination_present:
@@ -878,6 +907,7 @@ create_project projet-test
             (template_path / '.gitignore').write_text(
                 'ignored-file\n', encoding='utf-8'
             )
+            (template_path / 'CODING_RULES.md').write_text('Template template\n', encoding='utf-8')
             (template_path / 'README.md').write_text(
                 '# Template\ntemplate\n', encoding='utf-8'
             )
@@ -926,6 +956,7 @@ create_project projet-test
             project_path = projects_root / 'projet-test'
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, 'openspec:projet-test\ngeneration:projet-test\n')
+            self.assertEqual((project_path / 'CODING_RULES.md').read_text(), 'Projet & modèle projet-test\n')
             self.assertFalse((project_path / '.git').exists())
             self.assertFalse((project_path / '.worktrees').exists())
             for directory in ('config', 'output', '.cab-tests', 'openspec'):

@@ -466,3 +466,11 @@ Les tests tests/test_diu_packaging.py utilisent des sources fictives, un paquet
 Debian réel de fixture, des transports simulés et un dépôt Git local isolé.
 Ils couvrent contenu, versions, aides, refus, rotation et préservation après
 échec. Ils n’installent aucun paquet sur la machine et ne publient rien.
+
+## Architecture des artefacts publiés
+
+Forgejo et GitHub vérifient les métadonnées Package, Version et Architecture
+puis le nom exact `<projet>_<version>_<architecture>.deb`. L’architecture all
+reste compatible ; les paquets natifs tels que CAB amd64 ne sont pas renommés
+en all. Une discordance est refusée avant upload. Les contrôles de tag/commit,
+unicité et reprise idempotente restent inchangés.

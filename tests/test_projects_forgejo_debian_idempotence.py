@@ -57,7 +57,7 @@ publish_release_debian project
 
 
 class ForgejoDebianIdempotenceTests(unittest.TestCase):
-    def run_release(self, mode, tag_sha=HEAD, remote_sha=HEAD, replay=False, ancestor=True, harness=HARNESS):
+    def run_release(self, mode, tag_sha=HEAD, remote_sha=HEAD, replay=False, ancestor=True, harness=HARNESS, architecture='all', filename=None):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.forgejo-release-fixture-') as directory:
             base = Path(directory)
             project = base / 'project'
@@ -70,10 +70,10 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
             staging = base / 'staging/DEBIAN'
             staging.mkdir(parents=True)
             staging.chmod(0o755)
-            (staging / 'control').write_text('Package: project\nVersion: 1.0.3\nArchitecture: all\n'
+            (staging / 'control').write_text(f'Package: project\nVersion: 1.0.3\nArchitecture: {architecture}\n'
                                              'Maintainer: Fixture <fixture@example.test>\nDescription: fixture\n')
             subprocess.run(['dpkg-deb', '--build', '--root-owner-group', str(staging.parent),
-                            str(project / 'dist/project_1.0.3_all.deb')], check=True, capture_output=True)
+                            str(project / 'dist' / (filename or f'project_1.0.3_{architecture}.deb'))], check=True, capture_output=True)
             calls = base / 'calls'
             result = subprocess.run(['bash', '-c', harness, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': str(base),
@@ -98,6 +98,16 @@ class ForgejoDebianIdempotenceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertEqual(calls, '')
+
+    def test_native_architecture_is_uploaded_with_matching_filename(self):
+        result,calls=self.run_release('upload',architecture='amd64')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(calls,'UPLOAD\n')
+
+    def test_native_architecture_with_all_filename_is_refused(self):
+        result,calls=self.run_release('upload',architecture='amd64',filename='project_1.0.3_all.deb')
+        self.assertNotEqual(result.returncode,0)
+        self.assertEqual(calls,'')
         lines = [line for line in result.stdout.splitlines() if ' : ' in line]
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'URL distante', 'Branche locale', 'Branche distante')
         selected = [line for line in lines if line.split(' : ', 1)[0].strip() in labels]

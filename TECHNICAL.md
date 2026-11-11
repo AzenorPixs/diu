@@ -1539,7 +1539,7 @@ initial ; une version existante est proposée par défaut. Une saisie invalide
 est redemandée et une fin d'entrée interrompt la configuration avant écriture.
 Le lecteur du mode continue à valider la configuration avant copie.
 
-`diu projects sync` synchronise `AGENTS.md` et `.gitignore`.
+`diu projects sync` synchronise `AGENTS.md`, `CODING_RULES.md` et `.gitignore`.
 Il ne copie ni ne modifie `DEVELOPMENT_MAP.md`, `CHANGELOG.md` ou `DEVOPS.md`
 et n'exige pas leur présence dans le modèle, en mode unitaire comme groupé.
 La synchronisation crée aussi un dossier `.cab-tests` vide à la racine du
