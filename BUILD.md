@@ -34,6 +34,14 @@ construire. Une recette illisible, symbolique ou invalide est également refusé
 Le moteur utilise `jq`, déjà prévu dans les prérequis DIU, et `dpkg-deb`.
 Il assemble des sources préparées, sans compilation ni exécution de hook.
 
+Une recette peut fournir `maintainer_scripts`, objet optionnel dont les seules
+clés sont `preinst`, `postinst`, `prerm`, `postrm`. Chaque valeur est un chemin
+relatif de fichier régulier non vide du projet, sans lien ni chemin sensible.
+Le moteur vérifie son empreinte et le copie en 0755 dans l’archive de contrôle
+Debian. Il ne l’exécute jamais pendant le build. Le mode source est conservé ;
+les copies ordinaires vers `/DEBIAN` restent interdites. Les recettes sans ce
+champ suivent le comportement existant.
+
 ### Format de la recette
 
 La [recette DIU](build/debian-package.json) fournit les champs obligatoires

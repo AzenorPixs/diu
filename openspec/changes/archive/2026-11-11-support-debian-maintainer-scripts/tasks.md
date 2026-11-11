@@ -1,0 +1,3 @@
+- [x] 1. Spécifier et réaliser maintainer_scripts optionnel.
+- [x] 2. Qualifier paquet réel et refus des entrées dangereuses.
+- [x] 3. Aligner docs et préparer archive, statistiques etCI/CDDIU.
