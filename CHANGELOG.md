@@ -4,6 +4,14 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- APT : recettes des 23 logiciels déplacées vers GLOBAL, opérations communes
+  conservées et anciens blocs logiciels retirés du monolithe. Les variables de
+  dépôts absentes sont détectées dans les sources actives ; non-free et firmware
+  sont indépendants. Les index sont actualisés avant installation. Les recettes
+  DevOps, Docker et IA sont préservées ; le bureau prépare non-free avant son
+  pilote Chromium existant. Les alias Zsh restent disponibles sans
+  recopier les clés API ni écraser les définitions personnelles.
+
 - Logiciels : migration vers les états désirés `SOFTWARE_APT_*`,
   `SOFTWARE_FLATPAK_*` et `SOFTWARE_GITHUB_*`, convergence générique par moteur,
   conservation des logiciels pris en charge et convergence en fin de `diu update`.

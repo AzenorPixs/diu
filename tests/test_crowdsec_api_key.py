@@ -49,28 +49,25 @@ class CrowdsecApiKeyTests(unittest.TestCase):
             self.assertEqual(result.stdout, '')
             self.assertNotIn('synthetic-Key_123', result.stderr)
 
-    def test_bouncer_key_update_does_not_put_secret_in_command_arguments_or_output(self):
-        source = (ROOT / 'root-install-debian.sh').read_text()
-        match = re.search(r'^crowdsec_bouncer_set_api_key\(\) \{.*?^\}', source, re.M | re.S)
-        self.assertIsNotNone(match)
-        function = match.group().replace(
-            'config_file="/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml"',
-            'config_file="$TEST_CONFIG"')
-        synthetic_key = 'synthetic-Key_123'
+    def test_global_bouncer_hook_does_not_put_secret_in_command_arguments_or_output(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as directory:
-            config = Path(directory) / 'bouncer.yaml'
-            config.write_text('api_url: http://localhost\napi_key: old-value\nlog_mode: stdout\n')
-            script = Path(directory) / 'function.sh'
-            script.write_text(function + '\ncrowdsec_bouncer_set_api_key\n')
-            result = subprocess.run(['bash', '-c', 'set -Eeuo pipefail\nsource "$TEST_SCRIPT"'],
-                                    env=dict(os.environ, TEST_SCRIPT=str(script), TEST_CONFIG=str(config),
-                                             SOFTWARES_CROWDSEC_BOUNCER_API_KEY=synthetic_key),
+            args = Path(directory) / 'arguments'
+            script = r'''
+set -Eeuo pipefail
+source "$TEST_ROOT/modules/softwares/crowdsec-hooks.sh"
+software_apt_crowdsec_helper() { printf '%s' "$*" > "$TEST_ARGS"; }
+systemctl() { :; }
+service() { :; }
+software_apt_configure_crowdsec_bouncer remote
+'''
+            result = subprocess.run(['bash', '-c', script],
+                                    env=dict(os.environ, TEST_ROOT=str(ROOT), TEST_ARGS=str(args),
+                                             SOFTWARE_APT_CROWDSEC_BOUNCER_API_KEY='synthetic-Key_123'),
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn(f'api_key: {synthetic_key}\n', config.read_text())
-            self.assertEqual(config.stat().st_mode & 0o777, 0o600)
-            self.assertEqual(result.stdout, '')
-            self.assertNotIn(synthetic_key, result.stderr)
+            self.assertEqual(args.read_text(), 'bouncer remote')
+            self.assertNotIn('synthetic-Key_123', result.stdout + result.stderr)
+            self.assertNotIn('crowdsec_bouncer_set_api_key()', (ROOT / 'root-install-debian.sh').read_text())
 
 
 if __name__ == '__main__':

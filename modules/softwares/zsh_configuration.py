@@ -48,13 +48,19 @@ def configuration_path(prefix):
     return root / ".zshrc"
 
 
-def configure(prefix):
+def managed_block(defaults=""):
+    if BEGIN in defaults or END in defaults:
+        raise ValueError("marqueur réservé dans les réglages Zsh")
+    return BLOCK.replace(END, defaults.rstrip() + "\n" + END) if defaults else BLOCK
+
+
+def configure(prefix, defaults=""):
     path = configuration_path(prefix)
     original, metadata = read_regular(path, missing=True)
     remaining = without_managed_block(original.decode("utf-8"))
     if remaining and not remaining.endswith("\n"):
         remaining += "\n"
-    updated = (remaining + BLOCK).encode("utf-8")
+    updated = (remaining + managed_block(defaults)).encode("utf-8")
     if updated == original:
         return
     candidate = write_candidate(path, updated, metadata)
@@ -71,25 +77,28 @@ def configure(prefix):
             candidate.unlink(missing_ok=True)
 
 
-def check(prefix):
+def check(prefix, defaults=""):
     path = configuration_path(prefix)
     original, metadata = read_regular(path, missing=True)
     if metadata is None:
         return 1
     text = original.decode("utf-8")
     without_managed_block(text)
-    return 0 if text.count(BLOCK) == 1 else 1
+    return 0 if text.count(managed_block(defaults)) == 1 else 1
 
 
 def main():
-    if len(sys.argv) not in (2, 3) or sys.argv[1] not in ("configure", "check"):
+    if len(sys.argv) not in (2, 3) or sys.argv[1] not in ("configure", "check", "configure-defaults", "check-defaults"):
         print("Usage : zsh_configuration.py <configure|check> [racine]", file=sys.stderr)
         return 2
     prefix = Path(sys.argv[2]) if len(sys.argv) == 3 else Path("/")
     try:
-        if sys.argv[1] == "check":
-            return check(prefix)
-        configure(prefix)
+        defaults = sys.stdin.read(1048577) if sys.argv[1].endswith("-defaults") else ""
+        if len(defaults) > 1048576:
+            raise ValueError("réglages Zsh trop volumineux")
+        if sys.argv[1].startswith("check"):
+            return check(prefix, defaults)
+        configure(prefix, defaults)
         return 0
     except (OSError, UnicodeError, ValueError) as error:
         detail = str(error) if isinstance(error, ValueError) else "lecture ou écriture impossible"

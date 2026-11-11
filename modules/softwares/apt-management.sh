@@ -13,6 +13,10 @@ software_apt_manage_one() {
     local software_management_config="$config_file"
     variable="$(software_apt_convergence_variable "$software")" || return $?
     software_manage_one "$config_file" "$action" "$software" "$variable" software_apt_convergence_detect software_apt_converge || return $?
+    # Une demande explicite prépare aussi les sources d'un logiciel déjà présent.
+    if [[ "$action" == install ]]; then
+        software_apt_prepare_sources "$software" || return $?
+    fi
     if [[ "$action" == remove ]]; then
         software_apt_explicit_remove_cleanup "$software" || return $?
     fi

@@ -42,6 +42,25 @@ class ZshConfigurationTests(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(self.config.stat().st_mode), 0o600)
         self.assertNotIn("API_", self.config.read_text(encoding="utf-8"))
 
+    def test_global_defaults_are_literal_and_preserve_existing_content(self):
+        script = 'source "$1/modules/softwares/apt-recipes.sh"; software_apt_load_recipes; software_apt_zsh_defaults'
+        env = dict(os.environ, API_DEEPSEEK_KEY='sensitive-fixture-value',
+                   API_GEMINI_KEY='sensitive-fixture-value', API_OPENROUTER_KEY='sensitive-fixture-value')
+        defaults = subprocess.run(['bash', '-c', script, '--', str(ROOT)], text=True,
+                                  capture_output=True, env=env, check=False)
+        self.assertEqual(defaults.returncode, 0, defaults.stderr)
+        self.assertNotIn('sensitive-fixture-value', defaults.stdout + defaults.stderr)
+        self.assertIn('if ! alias -- diu', defaults.stdout)
+        self.config.write_text("alias diu='custom-command'\n", encoding='utf-8')
+        for _ in range(2):
+            result = subprocess.run([sys.executable, '-B', str(HELPER), 'configure-defaults', str(self.base)],
+                                    input=defaults.stdout, text=True, capture_output=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        content = self.config.read_text(encoding='utf-8')
+        self.assertTrue(content.startswith("alias diu='custom-command'\n"))
+        self.assertEqual(content.count('# BEGIN DIU ZSH CONVERGENCE'), 1)
+        self.assertNotIn('sensitive-fixture-value', content)
+
     def test_symlink_and_duplicate_block_are_rejected(self):
         target = self.base / "foreign"
         target.write_text("unchanged\n", encoding="utf-8")

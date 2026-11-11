@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-10T18:43:16Z
+Début du relevé (UTC) : 2026-11-11T08:52:02Z
 Environnement d'exécution DIU : PROXMOX
 
 ## Configuration locale — project.env

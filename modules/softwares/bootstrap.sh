@@ -4,6 +4,8 @@
 software_load_convergence_modules() {
     local root="${1:-}" module
     [[ -n "$root" ]] || return 2
+    # shellcheck disable=SC1090,SC1091
+    source "$root/modules/system/apt-source-state.sh" || return 1
     for module in convergence desired-state migration global-declarations \
         shared-resource apt-state crowdsec-state syslog-state apt-configuration \
         crowdsec-hooks syslog-hooks apt-convergence apt-management \

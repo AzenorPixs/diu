@@ -793,13 +793,13 @@ vers `softwares.env`.
 Le contrôle d’installation jsvc utilise `SOFTWARE_APT_JSVC`, déclaré dans le
 scope `softwares`; l’ancienne valeur `JSVC` est migrée vers `softwares.env`.
 Le contrôle d’installation LemonLDAP-NG utilise `SOFTWARE_APT_LEMONLDAP` dans
-`softwares.env`; sa valeur initialise `SYSTEM_APT_LEMONLDAP` uniquement si le
-réglage du dépôt système n’existe pas déjà.
+`softwares.env`; sa recette prépare `SYSTEM_APT_LEMONLDAP` lors de
+l’installation, indépendamment de sa première initialisation par détection.
 Le contrôle d’installation MongoDB utilise `SOFTWARE_APT_MONGODB` dans
 `softwares.env`; `MONGODB_VERSION` reste séparé pour sélectionner la branche
 du dépôt `SYSTEM_APT_MONGODB`.
-Le contrôle OpenJDK utilise `SOFTWARE_APT_OPENJDK` dans `softwares.env`; le
-point d’entrée conserve la sélection Java selon la version Debian.
+Le contrôle OpenJDK utilise `SOFTWARE_APT_OPENJDK` dans `softwares.env`; la
+recette conserve la sélection Java selon la version Debian.
 Le contrôle Omada utilise `SOFTWARE_APT_OMADA` dans `softwares.env` pour
 l’installation et le firewall; `OMADA_VERSION` et `SYSLOG_SERVER_SKIL_OMADA`
 restent séparés.
@@ -818,8 +818,8 @@ dépôt APT reste contrôlé séparément par `SYSTEM_APT_WEBMIN`.
 Le contrôle de l’agent Wazuh utilise `SOFTWARE_APT_WAZUH_AGENT` dans
 `softwares.env`; `WAZUH_CLIENT_VERSION` reste le sélecteur de version séparé.
 Le contrôle Wazuh Server utilise `SOFTWARE_APT_WAZUH_SERVER` dans
-`softwares.env`; son repli vers `SYSTEM_APT_WAZUH` respecte
-`WAZUH_SERVER_UPGRADE`.
+`softwares.env`; sa recette prépare la branche du dépôt `SYSTEM_APT_WAZUH`
+lorsque l’installation du serveur le nécessite.
 Le contrôle Zoom utilise `SOFTWARE_APT_ZOOM` dans `softwares.env` pour le
 parcours de téléchargement et d’installation du paquet Debian.
 Le contrôle Zsh utilise `SOFTWARE_APT_ZSH` dans `softwares.env` pour
@@ -1165,18 +1165,36 @@ dépôts tiers gérés par le DIUE.
 
 ### Dépôts Debian officiels
 
-Les cinq variables statiques du dépôt officiel sont dans le scope `system` :
+Les six variables statiques du dépôt officiel sont dans le scope `system` :
 
-| Variable | Valeur par défaut |
-|---|---:|
-| `SYSTEM_APT_DEBIAN_UPDATES` | `1` |
-| `SYSTEM_APT_DEBIAN_BACKPORT` | `1` |
-| `SYSTEM_APT_DEBIAN_CONTRIB` | `1` |
-| `SYSTEM_APT_DEBIAN_NONFRFEE` | `1` |
-| `SYSTEM_APT_DEBIAN_SOURCES` | `0` |
+| Variable | Élément détecté à la première initialisation |
+|---|---|
+| `SYSTEM_APT_DEBIAN_UPDATES` | Suite Debian `*-updates` |
+| `SYSTEM_APT_DEBIAN_BACKPORT` | Suite Debian `*-backports` |
+| `SYSTEM_APT_DEBIAN_CONTRIB` | Composant `contrib` |
+| `SYSTEM_APT_DEBIAN_NONFRFEE` | Composant `non-free` uniquement |
+| `SYSTEM_APT_DEBIAN_NONFRFEE_FIRMWARE` | Composant `non-free-firmware` uniquement |
+| `SYSTEM_APT_DEBIAN_SOURCES` | Type `deb-src` |
 
-Le nom `SYSTEM_APT_DEBIAN_NONFRFEE` est conservé tel qu'il existe dans le
-code et les spécifications.
+Une variable absente vaut 1 uniquement si son élément est déclaré dans les
+sources Debian actives, sinon 0. Une valeur existante valide est préservée.
+Le nouvel interrupteur firmware est détecté indépendamment ; l'ancienne valeur
+non-free n'est pas recopiée aveuglément. Les noms historiques restent inchangés.
+
+`apt_sources.py` lit littéralement `sources.list`, les fichiers `.list` et les
+strophes deb822 `.sources`. Les commentaires, sauvegardes, noms de fichiers
+ignorés par APT et strophes `Enabled: no` ne comptent pas. Une source active
+illisible, invalide ou ambiguë interrompt la détection. Cette lecture constate
+la déclaration, sans attester l'accessibilité réseau ni la validité de la clé.
+Les variables des dix dépôts tiers, CrowdSec et FusionDirectory utilisent le
+même principe. MongoDB et Wazuh gardent leurs sélecteurs de branche ; les
+souhaits logiciels seuls n'activent plus un dépôt à l'initialisation.
+
+`diu system install|remove apt contrib|non-free|non-free-firmware` contrôle ces
+composants séparément. Les suites updates/backports et deb-src sont également
+accessibles par `updates`, `backports` et `sources`. La recette bureau conserve
+ses paquets ; son installation Chromium prépare non-free via le helper SYSTEM
+pour le pilote intel-media-va-driver-non-free.
 
 `SYSTEM_DEBIAN_RELEASE` est déterminée dynamiquement depuis
 `/etc/os-release`. La configuration correspondante utilise :
@@ -1186,9 +1204,9 @@ code et les spécifications.
 - le format historique dans `/etc/apt/sources.list` pour Bookworm et les
   versions antérieures.
 
-Les composants `main`, `contrib`, `non-free-firmware` et `non-free` ainsi que
-les suites `updates`, `backports` et `security` sont activés selon les
-variables du scope `system`. Le trousseau officiel Debian est référencé par
+Le composant `main` et la suite `security` restent présents. Les composants
+`contrib`, `non-free-firmware` et `non-free`, les suites `updates` et `backports`
+et le type `deb-src` suivent leurs variables indépendantes. Le trousseau officiel Debian est référencé par
 les entrées générées.
 
 ### Dépôts tiers
@@ -1209,9 +1227,9 @@ configuration APT existante au premier chargement. Elles couvrent notamment
 CrowdSec, Docker, LemonLDAP, MongoDB, NodeSource, NVIDIA, Proxmox, VS Code,
 Wazuh, Webmin et les dépôts OpenAI/ChatGPT.
 
-Une valeur `SYSTEM_APT_*` déjà initialisée est prioritaire. Si aucune source
-APT n'est détectée lors de l'initialisation, les activations historiques
-CrowdSec, LemonLDAP, MongoDB et Wazuh restent prises en compte. MongoDB 4
+Une valeur `SYSTEM_APT_*` déjà initialisée est prioritaire. En absence de
+source active et de valeur configurée, l’état initial est zéro ; l’installation
+logicielle prépare ensuite son prérequis séparément. MongoDB 4
 utilise la version historique 4.4 ; sa suite reste Bullseye pour Bullseye et
 Bookworm pour les versions suivantes. L'installation sans branche explicite
 conserve une branche configurée de 4 à 8, ou choisit 8 si aucune n'est définie.
@@ -1285,14 +1303,29 @@ ambiguë interrompt la convergence concernée. Les identifiants Flatpak sont
 codés de façon réversible et les applications système existantes sont reprises
 lors du premier inventaire.
 
-Les registres déclaratifs fournissent les détecteurs et traitements propres à
-chaque logiciel ; les moteurs utilisent des opérations génériques. Une coche
-verte signale un état conforme et une croix rouge un écart avant correction.
-Une simulation APT interdit les retraits non déclarés. Les versions sont mises
-à jour par `diu system engine <moteur> update`, sans modifier l'état désiré.
-Le registre APT conserve les logiciels DIU historiques, y compris les rôles
-syslog et CrowdSec. Les deux rôles syslog partagent `rsyslog` ; les fichiers
-historiques non identifiables sont préservés et les conflits signalés.
+Les déclarations `modules/diu/variables/softwares/desired_apt_*.sh` portent les
+métadonnées, détecteurs et hooks propres aux 23 logiciels APT. Le registre
+fermé `apt-recipes.sh` les charge aussi en mode définitions seules, sans
+persistance ni installation. Les opérations génériques restent dans le moteur.
+Les blocs logiciels historiques ont été retirés du monolithe ; les recettes
+DevOps, Docker et IA restent inchangées.
+
+Une recette peut cumuler les besoins Debian main/contrib/non-free/firmware,
+un dépôt tiers et un artefact direct. La préparation vérifie à la fois les
+variables et les sources réelles ; une variable à 1 ne dispense pas de réparer
+une source absente. Une entrée deb-src seule ne prouve pas la disponibilité
+des binaires ; la préparation vérifie les entrées deb. Avant installation effective, les index sont actualisés
+une seule fois. Une demande explicite prépare également les sources d'un
+logiciel déjà présent. Les paquets directs gardent dans GLOBAL leur URL et
+leur résolveur de version ; Zoom utilise latest, Omada et Wazuh agent leurs
+sélecteurs explicites.
+
+Une coche verte signale un état conforme et une croix rouge un écart avant
+correction. La simulation APT interdit les retraits non déclarés. Les versions
+restent mises à jour par SYSTEM, sans réécrire le désir logiciel. Les rôles
+syslog partagent rsyslog et ceux de CrowdSec conservent les règles validées ;
+les fichiers syslog historiques non identifiables sont préservés et les conflits
+signalés.
 
 `SOFTWARE_GITHUB_CODEX_CLI` contrôle Codex CLI. La recette GitHub utilise les
 releases `openai/codex`, vérifie l'empreinte SHA-256 et préserve le profil
@@ -1304,8 +1337,9 @@ paramètres sécurisés `SOFTWARE_APT_WAZUH_AGENT_MANAGER` et
 complètent la configuration.
 
 La configuration SSH préserve les clés existantes et ajoute les clés DIU ; la
-configuration Zsh préserve le contenu existant et ne recopie pas les secrets
-vers d'autres comptes. `SYSTEM_RC_LOCAL` reste le contrôle distinct de
+configuration Zsh préserve le contenu existant, fournit les alias et fonctions
+historiques comme valeurs par défaut sans écraser les définitions personnelles,
+et ne recopie pas les valeurs des clés API vers les fichiers générés. `SYSTEM_RC_LOCAL` reste le contrôle distinct de
 `/etc/rc.local` dans le scope `system`.
 
 ## Projets et configuration Git

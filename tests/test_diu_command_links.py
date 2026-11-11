@@ -12,8 +12,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DiuCommandLinksTests(unittest.TestCase):
     def test_generated_aliases_use_diu_commands(self):
-        source = (ROOT / 'root-install-debian.sh').read_text()
-        definitions = re.findall(r'^\s*echo "(alias [^"\n]+)"\s*$', source, re.MULTILINE)
+        result = subprocess.run(['bash', '-c', 'source "$1/modules/softwares/apt-recipes.sh"; '
+                                 'software_apt_load_recipes; software_apt_zsh_defaults', '--', str(ROOT)],
+                                text=True, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        definitions = re.findall(r'^(alias [^\n]+)$', result.stdout, re.MULTILINE)
         aliases = {}
         for definition in definitions:
             name, target = definition.removeprefix('alias ').split('=', 1)

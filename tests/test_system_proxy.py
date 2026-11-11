@@ -74,7 +74,10 @@ source "$TEST_SCRIPT"
 
     def test_consumers_use_new_name_and_disabled_fallback(self):
         source = (ROOT / 'root-install-debian.sh').read_text()
-        self.assertEqual(source.count('if [[ "${SYSTEM_PROXY:-0}" == "1" ]]'), 2)
+        self.assertEqual(source.count('if [[ "${SYSTEM_PROXY:-0}" == "1" ]]'), 1)
+        recipe = (ROOT / 'modules/diu/variables/softwares/desired_apt_openjdk.sh').read_text()
+        self.assertIn('${SYSTEM_PROXY:-0}', recipe)
+        self.assertIn('PROXY_HTTP_HOST', recipe)
         self.assertNotRegex(source, r'\$(?:\{)?PROXY(?:\})?(?![A-Z0-9_])')
         self.assertIn('PROXY_HTTP_HOST', source)
 

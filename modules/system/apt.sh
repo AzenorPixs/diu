@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC1091 source=modules/system/apt-source-state.sh
+. "$(dirname -- "${BASH_SOURCE[0]}")/apt-source-state.sh"
+
 SYSTEM_APT_DEBIAN_SOURCES_FILE="/etc/apt/sources.list.d/debian.sources"
 SYSTEM_APT_THIRD_PARTY_DIRECTORY="/etc/apt/sources.list.d"
 SYSTEM_APT_THIRD_PARTY_KEYRING_DIRECTORY="/usr/share/keyrings"
@@ -144,10 +147,9 @@ system_apt_debian_is_deb822() {
 
 system_apt_debian_components() {
     local components=(main)
-    [[ "${SYSTEM_APT_DEBIAN_CONTRIB:-1}" == 1 ]] && components+=(contrib)
-    if [[ "${SYSTEM_APT_DEBIAN_NONFRFEE:-1}" == 1 ]]; then
-        components+=(non-free-firmware non-free)
-    fi
+    [[ "${SYSTEM_APT_DEBIAN_CONTRIB:-0}" == 1 ]] && components+=(contrib)
+    [[ "${SYSTEM_APT_DEBIAN_NONFRFEE:-0}" == 1 ]] && components+=(non-free)
+    [[ "${SYSTEM_APT_DEBIAN_NONFRFEE_FIRMWARE:-0}" == 1 ]] && components+=(non-free-firmware)
     printf '%s' "${components[*]}"
 }
 
@@ -159,8 +161,9 @@ system_apt_debian_configure_deb822() {
         printf 'URIs: http://security.debian.org/debian-security\nSuites: %s-security\nComponents: %s\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\n' "$release" "$components"
         printf 'Types: deb%s\n' "$( [[ "${SYSTEM_APT_DEBIAN_SOURCES:-0}" == 1 ]] && printf ' deb-src' )"
         printf 'URIs: http://deb.debian.org/debian\nSuites: %s\nComponents: %s\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' "$release" "$components"
-        [[ "${SYSTEM_APT_DEBIAN_UPDATES:-1}" == 1 ]] && printf '\nTypes: deb%s\nURIs: http://deb.debian.org/debian\nSuites: %s-updates\nComponents: %s\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' "$( [[ "${SYSTEM_APT_DEBIAN_SOURCES:-0}" == 1 ]] && printf ' deb-src' )" "$release" "$components"
-        [[ "${SYSTEM_APT_DEBIAN_BACKPORT:-1}" == 1 ]] && printf '\nTypes: deb%s\nURIs: http://deb.debian.org/debian\nSuites: %s-backports\nComponents: %s\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' "$( [[ "${SYSTEM_APT_DEBIAN_SOURCES:-0}" == 1 ]] && printf ' deb-src' )" "$release" "$components"
+        [[ "${SYSTEM_APT_DEBIAN_UPDATES:-0}" == 1 ]] && printf '\nTypes: deb%s\nURIs: http://deb.debian.org/debian\nSuites: %s-updates\nComponents: %s\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' "$( [[ "${SYSTEM_APT_DEBIAN_SOURCES:-0}" == 1 ]] && printf ' deb-src' )" "$release" "$components"
+        [[ "${SYSTEM_APT_DEBIAN_BACKPORT:-0}" == 1 ]] && printf '\nTypes: deb%s\nURIs: http://deb.debian.org/debian\nSuites: %s-backports\nComponents: %s\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' "$( [[ "${SYSTEM_APT_DEBIAN_SOURCES:-0}" == 1 ]] && printf ' deb-src' )" "$release" "$components"
+        :
     } > "${SYSTEM_APT_DEBIAN_SOURCES_FILE}"
 }
 
@@ -170,9 +173,9 @@ system_apt_debian_configure_legacy() {
     : > /etc/apt/sources.list
     line="deb http://deb.debian.org/debian ${release} ${components}"
     printf '%s\n' "$line" >> /etc/apt/sources.list
-    [[ "${SYSTEM_APT_DEBIAN_UPDATES:-1}" == 1 ]] && printf 'deb http://deb.debian.org/debian %s-updates %s\n' "$release" "$components" >> /etc/apt/sources.list
+    [[ "${SYSTEM_APT_DEBIAN_UPDATES:-0}" == 1 ]] && printf 'deb http://deb.debian.org/debian %s-updates %s\n' "$release" "$components" >> /etc/apt/sources.list
     printf 'deb http://security.debian.org/debian-security %s-security %s\n' "$release" "$components" >> /etc/apt/sources.list
-    [[ "${SYSTEM_APT_DEBIAN_BACKPORT:-1}" == 1 ]] && printf 'deb http://deb.debian.org/debian %s-backports %s\n' "$release" "$components" >> /etc/apt/sources.list
+    [[ "${SYSTEM_APT_DEBIAN_BACKPORT:-0}" == 1 ]] && printf 'deb http://deb.debian.org/debian %s-backports %s\n' "$release" "$components" >> /etc/apt/sources.list
     if [[ "${SYSTEM_APT_DEBIAN_SOURCES:-0}" == 1 ]]; then
         temporary="$(mktemp)"
         sed 's/^deb /deb-src /' /etc/apt/sources.list > "$temporary"
@@ -181,17 +184,21 @@ system_apt_debian_configure_legacy() {
     fi
 }
 
-system_apt_debian_configure() {
+system_apt_configure_debian_sources() {
     local release="${SYSTEM_DEBIAN_RELEASE:-}" 
     [[ "$release" =~ ^[a-z][a-z0-9.-]*$ ]] || { print_error "Release Debian invalide."; return 1; }
-    install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d
-    rm -f /etc/apt/sources.list
+    install -d -m 0755 /usr/share/keyrings /etc/apt/sources.list.d || return 1
+    rm -f /etc/apt/sources.list || return 1
     if system_apt_debian_is_deb822; then
         system_apt_debian_configure_deb822 "$release"
     else
         rm -f "$SYSTEM_APT_DEBIAN_SOURCES_FILE"
         system_apt_debian_configure_legacy "$release"
     fi
+}
+
+system_apt_debian_configure() {
+    system_apt_configure_debian_sources || return 1
     system_apt_configure_unofficial
 }
 
@@ -523,6 +530,12 @@ system_flatpak_remove() {
 
 system_apt_repository_variable() {
     case "${1,,}" in
+        contrib) printf '%s' SYSTEM_APT_DEBIAN_CONTRIB ;;
+        non-free) printf '%s' SYSTEM_APT_DEBIAN_NONFRFEE ;;
+        non-free-firmware) printf '%s' SYSTEM_APT_DEBIAN_NONFRFEE_FIRMWARE ;;
+        updates) printf '%s' SYSTEM_APT_DEBIAN_UPDATES ;;
+        backports) printf '%s' SYSTEM_APT_DEBIAN_BACKPORT ;;
+        sources) printf '%s' SYSTEM_APT_DEBIAN_SOURCES ;;
         crowdsec|crodwsec) printf '%s' SOFTWARE_APT_CROWDSEC ;;
         docker) printf '%s' SYSTEM_APT_DOCKER ;;
         lemonldap|lemonldap-ng) printf '%s' SYSTEM_APT_LEMONLDAP ;;
@@ -555,6 +568,10 @@ system_apt_set_repository_variable() {
 
 system_apt_install_repository() {
     local requested="$1" variable value=1
+    if [[ "$requested" == non-free-firmware && "${SYSTEM_DEBIAN_RELEASE:-}" == bullseye ]]; then
+        print_error 'Le composant non-free-firmware séparé est indisponible sur Bullseye.'
+        return 1
+    fi
     variable="$(system_apt_repository_variable "$requested")" || {
         print_error "Dépôt APT non supporté : $requested"
         return 2
@@ -570,7 +587,26 @@ system_apt_install_repository() {
         value=4
     fi
     system_apt_set_repository_variable "$variable" "$value" || return 1
+    if [[ "$variable" == SYSTEM_APT_DEBIAN_* ]]; then
+        system_apt_configure_debian_sources
+        return $?
+    fi
     system_apt_debian_configure
+}
+
+# Précondition commune pour les recettes hors catalogue qui exigent un composant.
+system_apt_require_component() {
+    local component="${1:-}" variable actual desired
+    case "$component" in contrib|non-free|non-free-firmware) ;; *) return 2 ;; esac
+    variable="$(system_apt_repository_variable "$component")" || return 1
+    desired="${!variable:-0}"
+    [[ "$desired" == 0 || "$desired" == 1 ]] || return 1
+    actual="$(system_apt_source_state "$variable" binary)" || return 1
+    if [[ "$desired" == 1 && "$actual" == 1 ]]; then return 0; fi
+    system_apt_install_repository "$component" || return 1
+    actual="$(system_apt_source_state "$variable" binary)" || return 1
+    [[ "$actual" == 1 ]] || { print_error 'Composant APT requis toujours absent.'; return 1; }
+    apt -y update
 }
 
 system_apt_remove_repository() {
@@ -580,6 +616,10 @@ system_apt_remove_repository() {
         return 2
     }
     system_apt_set_repository_variable "$variable" 0 || return 1
+    if [[ "$variable" == SYSTEM_APT_DEBIAN_* ]]; then
+        system_apt_configure_debian_sources
+        return $?
+    fi
     if [[ "$variable" == SYSTEM_APT_CGPT ]]; then
         rm -f -- "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.sources" \
             "$SYSTEM_APT_THIRD_PARTY_DIRECTORY/chatgpt.list" \

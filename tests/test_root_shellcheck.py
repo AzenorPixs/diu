@@ -137,7 +137,10 @@ class RootShellCheckTests(unittest.TestCase):
                 self.assertEqual(path.read_text(), content + ('\n' if content else '') + 'marker\nentry\n')
 
     def test_generated_contents(self):
-        expected = GENERATED_HASHES
+        # Les configurations logiciels sont désormais produites par les recettes
+        # GLOBAL et qualifiées par leurs suites fonctionnelles dédiées.
+        expected = {target: digest for target, digest in GENERATED_HASHES.items()
+                    if not target.startswith('/etc/rsyslog') and target != '/root/.zshrc'}
         for target, digest in expected.items():
             with self.subTest(target=target):
                 result = render_commands(generated_commands(self.source, target))
@@ -145,7 +148,8 @@ class RootShellCheckTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(result.stdout.encode()).hexdigest(), digest)
 
     def test_literal_zsh_functions(self):
-        blocks = re.findall(r"^\s*cat <<'EOF'\n(.*?)^EOF\n", self.source, re.M | re.S)
+        recipe = (ROOT / 'modules/diu/variables/softwares/desired_apt_zsh.sh').read_text()
+        blocks = re.findall(r"^\s*cat <<'EOF'\n(.*?)^EOF\n", recipe, re.M | re.S)
         # Z1 : 14 fonctions et un bloc de données adoptés ; leurs corps restent littéraux.
         self.assertEqual(len(blocks), 15)
         names = [name for block in blocks for name in re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(\)\s*\{", block, re.M)]
