@@ -65,9 +65,9 @@ class ZshConfigurationTests(unittest.TestCase):
         script = 'source "$1/modules/softwares/apt-recipes.sh"; software_apt_load_recipes; software_apt_zsh_defaults'
         result = subprocess.run(['bash', '-c', script, '--', str(ROOT)], text=True, capture_output=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
-        for expected in ('if ! alias -- sshhvp1', "alias sshhvp1='diu_sshhvp1'", 'ssh -X -S none root@hvp1',
+        for expected in ('if ! alias -- sshhvp1', "alias sshhvp1='diu_sshhvp1'", 'ssh -f -X -S none -o ExitOnForwardFailure=yes root@hvp1',
                          'runuser -u ade -- xauth -f /tmp/.hvp1-chatgpt-xauth nmerge -',
-                         '/usr/bin/chatgpt --ozone-platform=x11'):
+                         '/usr/bin/chatgpt --ozone-platform=x11', "' >/dev/null 2>&1"):
             self.assertIn(expected, result.stdout)
 
     def test_symlink_and_duplicate_block_are_rejected(self):

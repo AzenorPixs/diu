@@ -31,7 +31,7 @@ Les variables de dépôts absentes sont initialisées depuis les sources actives
 de l'hôte, à 0 si leur dépôt n'est pas déclaré ; les valeurs configurées sont
 conservées.
 
-L’alias Zsh `sshhvp1` lance ChatGPT sur `hvp1` via SSH X11 ; il conserve un éventuel alias personnel de même nom. Sur une installation Zsh existante, `diu softwares install apt zsh` réapplique la configuration gérée pour rendre le nouvel alias disponible.
+L’alias Zsh `sshhvp1` lance ChatGPT sur `hvp1` via SSH X11 en arrière-plan ; il conserve un éventuel alias personnel de même nom. Sur une installation Zsh existante, `diu softwares install apt zsh` réapplique la configuration gérée pour rendre le nouvel alias disponible.
 
 Le paquet issu du constructeur historique crée le lien `diu` lors de sa
 configuration si son nom est libre. Le constructeur générique ne fournit pas
