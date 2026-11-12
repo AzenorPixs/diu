@@ -1,5 +1,7 @@
 # Codes de lot — Debian Installeur Unifié
 
+Entrée provisoire SCM : [add-zsh-sshhvp1](changes/archive/2026-11-12-add-zsh-sshhvp1/proposal.md), archivé, code non attribué ; attribution ultérieure par ACL.
+
 - [add-projects-coding-rules](changes/archive/2026-11-11-add-projects-coding-rules/proposal.md) : code non attribué ; archivé le 2026-11-11, 54 tests ciblés et 1 353 tests globaux dont 2 ignorés ; livraison en attente ; attribution ultérieure par ACL.
 
 Entrée provisoire SCM du 2026-11-11 : [declare-apt-sources-and-software-recipes](changes/archive/2026-11-11-declare-apt-sources-and-software-recipes/proposal.md), archivé, **code non attribué** ; attribution ultérieure par ACL.

@@ -61,6 +61,15 @@ class ZshConfigurationTests(unittest.TestCase):
         self.assertEqual(content.count('# BEGIN DIU ZSH CONVERGENCE'), 1)
         self.assertNotIn('sensitive-fixture-value', content)
 
+    def test_sshhvp1_is_guarded_and_contains_the_requested_ssh_route(self):
+        script = 'source "$1/modules/softwares/apt-recipes.sh"; software_apt_load_recipes; software_apt_zsh_defaults'
+        result = subprocess.run(['bash', '-c', script, '--', str(ROOT)], text=True, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for expected in ('if ! alias -- sshhvp1', "alias sshhvp1='diu_sshhvp1'", 'ssh -X -S none root@hvp1',
+                         'runuser -u ade -- xauth -f /tmp/.hvp1-chatgpt-xauth nmerge -',
+                         '/usr/bin/chatgpt --ozone-platform=x11'):
+            self.assertIn(expected, result.stdout)
+
     def test_symlink_and_duplicate_block_are_rejected(self):
         target = self.base / "foreign"
         target.write_text("unchanged\n", encoding="utf-8")
