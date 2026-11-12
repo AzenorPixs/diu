@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-11T13:32:05Z
+Début du relevé (UTC) : 2026-11-12T07:49:28Z
 Environnement d'exécution DIU : PROXMOX
 
 ## Configuration locale — project.env
@@ -124,7 +124,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # OpenSpec
 
-  * 1.17.0
+  * 2.0.0
   * /home/devops/.local/npm/bin/openspec
 
 

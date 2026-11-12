@@ -1342,6 +1342,8 @@ historiques comme valeurs par défaut sans écraser les définitions personnelle
 et ne recopie pas les valeurs des clés API vers les fichiers générés. `SYSTEM_RC_LOCAL` reste le contrôle distinct de
 `/etc/rc.local` dans le scope `system`.
 
+L’alias Zsh `sshhvp1` appelle une fonction à paramètres locaux : elle sélectionne le fichier Xauthority Mutter, ouvre SSH X11 sans multiplexage vers root@hvp1 et lance ChatGPT sous ade avec le contexte graphique demandé. Une définition personnelle préexistante reste prioritaire.
+
 ## Projets et configuration Git
 
 ### Version prioritaire du projet

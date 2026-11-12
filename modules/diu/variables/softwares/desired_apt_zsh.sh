@@ -1,8 +1,28 @@
 #!/usr/bin/env bash
 # Métadonnées et traitements propres au logiciel ; opérations communes dans le moteur.
-# shellcheck disable=SC2034
+# shellcheck disable=SC1003,SC2016,SC2034
 
 software_apt_zsh_defaults() {
+    printf '%s\n' 'if ! typeset -f diu_sshhvp1 >/dev/null 2>&1; then'
+    printf '%s\n' 'diu_sshhvp1() {'
+    printf '%s\n' '  set -- /run/user/1000/.mutter-Xwaylandauth.*'
+    printf '%s\n' '  DISPLAY=:0 XAUTHORITY="$1" ssh -X -S none root@hvp1 '"'"''
+    printf '%s\n' '    xauth nlist "$DISPLAY" |'
+    printf '%s\n' '      runuser -u ade -- xauth -f /tmp/.hvp1-chatgpt-xauth nmerge - &&'
+    printf '%s\n' '      chown ade:ade /tmp/.hvp1-chatgpt-xauth &&'
+    printf '%s\n' '      chmod 600 /tmp/.hvp1-chatgpt-xauth &&'
+    printf '%s\n' '      runuser -u ade -- env -u WAYLAND_DISPLAY \'
+    printf '%s\n' '        DISPLAY="$DISPLAY" \'
+    printf '%s\n' '        XAUTHORITY=/tmp/.hvp1-chatgpt-xauth \'
+    printf '%s\n' '        XDG_RUNTIME_DIR=/run/user/1000 \'
+    printf '%s\n' '        DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \'
+    printf '%s\n' '        /usr/bin/chatgpt --ozone-platform=x11'
+    printf '%s\n' '  '"'"''
+    printf '%s\n' '}'
+    printf '%s\n' 'fi'
+    printf '%s\n' 'if ! alias -- sshhvp1 >/dev/null 2>&1; then'
+    printf '%s\n' 'alias sshhvp1='"'"'diu_sshhvp1'"'"''
+    printf '%s\n' 'fi'
     printf '%s\n' 'if ! alias -- G >/dev/null 2>&1; then'
     printf '%s\n' 'alias -g G='"'"'| grep --color'"'"''
     printf '%s\n' 'fi'
