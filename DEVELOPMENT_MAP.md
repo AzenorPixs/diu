@@ -1,5 +1,7 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-12 : [background-zsh-sshhvp1](openspec/changes/archive/2026-11-12-background-zsh-sshhvp1/proposal.md), archivé, code non attribué ; SSH en arrière-plan avec contrôle X11 et sorties masquées ; 1 354 tests dont 2 ignorés, tests Zsh isolés et statistiques individuelles vérifiés ; delta SGS global incompatible, livraison CICD prévue. Attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-12 : [add-zsh-sshhvp1](openspec/changes/archive/2026-11-12-add-zsh-sshhvp1/proposal.md), archivé, code non attribué ; alias Zsh pour le lancement distant X11, 1 353 tests dont 2 ignorés et tests Zsh isolés réussis ; statistiques individuelles vérifiées, delta global incompatible, livraison CICD en fin de session. Attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-11 : [add-projects-coding-rules](openspec/changes/archive/2026-11-11-add-projects-coding-rules/proposal.md), **code non attribué**, archivé ; synchronisation des règles, création vérifiée ; 54 tests ciblés et 1 353 tests globaux dont 2 ignorés ; OpenSpec strict réussi. [Statistiques](openspec/changes/archive/2026-11-11-add-projects-coding-rules/STATISTICS.md) produites, delta global refusé pour registre incompatible ; livraison en attente. Attribution ultérieure par ACL.
