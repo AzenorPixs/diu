@@ -151,6 +151,17 @@ class GithubConvergenceTests(unittest.TestCase):
         self.assertFalse(self.binary.exists())
         self.assertEqual(profile.read_text(encoding="utf-8"), "preserved")
 
+    def test_codex_cleanup_removes_only_temporary_installation_files(self):
+        temporary = self.install_root / "packages/tmp"
+        temporary.mkdir(parents=True)
+        (temporary / "partial").write_text("temporary", encoding="utf-8")
+        preserved = self.install_root / "profile"
+        preserved.write_text("preserved", encoding="utf-8")
+        result = self.run_shell('software_github_cleanup_codex_cli')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(temporary.exists())
+        self.assertEqual(preserved.read_text(encoding="utf-8"), "preserved")
+
     def test_failed_link_restores_previous_installation(self):
         target = self.install_root / "packages/standalone/current/bin/codex"
         target.parent.mkdir(parents=True)

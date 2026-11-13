@@ -1457,6 +1457,9 @@ software_apt_recipe_zsh() {
         configuration_hook)
             printf '%s\n' software_apt_configure_zsh
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_zsh
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_zsh_configuration
             ;;
@@ -1572,6 +1575,8 @@ software_apt_prepare_zsh_removal() {
         [[ "$root_shell" == "$bash_binary" ]] || return 1
     fi
 }
+
+software_apt_cleanup_zsh() { software_apt_cleanup_repository zsh; }
 
 config="DYNAMIC"
 state="ENABLE"

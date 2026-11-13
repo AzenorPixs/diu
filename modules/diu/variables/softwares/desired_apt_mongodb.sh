@@ -56,6 +56,9 @@ software_apt_recipe_mongodb() {
         configuration_hook)
             printf '%s\n' software_apt_configure_mongodb
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_mongodb
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_mongodb_configuration
             ;;
@@ -156,6 +159,8 @@ software_apt_mongodb_repository_version() {
     esac
     printf '%s\n' "$version"
 }
+
+software_apt_cleanup_mongodb() { software_apt_cleanup_repository mongodb; }
 
 config="DYNAMIC"
 state="ENABLE"

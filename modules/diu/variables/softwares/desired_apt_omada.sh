@@ -56,7 +56,10 @@ software_apt_recipe_omada() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_omada
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_omada
             ;;
         configuration_check)
             printf '\n'
@@ -78,6 +81,10 @@ software_apt_recipe_omada() {
 }
 
 software_apt_omada_detect() { software_apt_package_state omadac; }
+
+software_apt_configure_omada() { return 0; }
+
+software_apt_cleanup_omada() { software_apt_cleanup_repository omada; }
 
 config="DYNAMIC"
 state="ENABLE"

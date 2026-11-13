@@ -56,6 +56,9 @@ software_apt_recipe_crowdsec_agent() {
         configuration_hook)
             printf '%s\n' software_apt_configure_crowdsec_agent
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_crowdsec_agent
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_crowdsec_agent_configuration
             ;;
@@ -77,6 +80,7 @@ software_apt_recipe_crowdsec_agent() {
 software_apt_crowdsec_agent_detect() { software_apt_package_state crowdsec; }
 
 software_apt_configure_crowdsec_agent() {
+    if software_apt_check_crowdsec_agent_configuration; then return 0; fi
     software_apt_crowdsec_helper agent local || return 1
     systemctl daemon-reload || return 1
     systemctl enable crowdsec.service || return 1
@@ -105,6 +109,8 @@ software_apt_preflight_crowdsec_agent_remove() {
         software_apt_configure_crowdsec_bouncer remote || return 1
     fi
 }
+
+software_apt_cleanup_crowdsec_agent() { software_apt_cleanup_repository crowdsec-agent; }
 
 config="DYNAMIC"
 state="ENABLE"

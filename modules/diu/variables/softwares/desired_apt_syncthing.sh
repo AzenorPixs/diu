@@ -54,7 +54,10 @@ software_apt_recipe_syncthing() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_syncthing
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_syncthing
             ;;
         configuration_check)
             printf '\n'
@@ -75,6 +78,10 @@ software_apt_recipe_syncthing() {
 }
 
 software_apt_syncthing_detect() { software_apt_package_state syncthing; }
+
+software_apt_configure_syncthing() { return 0; }
+
+software_apt_cleanup_syncthing() { software_apt_cleanup_repository syncthing; }
 
 config="DYNAMIC"
 state="ENABLE"

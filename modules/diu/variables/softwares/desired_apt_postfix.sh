@@ -56,6 +56,9 @@ software_apt_recipe_postfix() {
         configuration_hook)
             printf '%s\n' software_apt_configure_postfix
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_postfix
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_postfix_configuration
             ;;
@@ -78,6 +81,7 @@ software_apt_postfix_detect() { software_apt_package_state postfix; }
 
 software_apt_configure_postfix() {
     local prefix="${1:-}" configuration relay
+    if software_apt_check_postfix_configuration "$prefix"; then return 0; fi
     configuration="${prefix%/}/etc/postfix/main.cf"
     [[ -v POSTFIX_RELAY_HOST ]] || return 1
     [[ -f "$configuration" && -r "$configuration" && ! -L "$configuration" ]] || return 1
@@ -109,6 +113,8 @@ software_apt_check_postfix_configuration() {
         return 2
     fi
 }
+
+software_apt_cleanup_postfix() { software_apt_cleanup_repository postfix; }
 
 config="DYNAMIC"
 state="ENABLE"

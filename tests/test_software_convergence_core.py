@@ -27,8 +27,36 @@ class ConvergenceCoreTests(unittest.TestCase):
                     f'software_converge demo {state} detect install remove'
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn(f"état réel {state}, conforme", result.stdout)
+                if state == "0":
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(result.stderr, "")
+                else:
+                    self.assertIn(f"état réel {state}, conforme", result.stdout)
                 self.assertNotIn("unexpected", result.stdout)
+
+    def test_configuration_and_cleanup_follow_actual_transitions(self):
+        for desired, actual, expected in (("1", "1", "CONFIG"),
+                                          ("1", "0", "INSTALL\nCONFIG"),
+                                          ("0", "1", "REMOVE\nCLEANUP"),
+                                          ("0", "0", "")):
+            with self.subTest(desired=desired, actual=actual):
+                result = self.run_shell(
+                    f'detect() {{ if [[ $phase == before ]]; then printf {actual}; '
+                    f'else printf {desired}; fi; }}\n'
+                    'install() { echo INSTALL; phase=after; }\n'
+                    'remove() { echo REMOVE; phase=after; }\n'
+                    'configure() { echo CONFIG; }\n'
+                    'cleanup() { echo CLEANUP; }\n'
+                    'phase=before\n'
+                    f'software_converge demo {desired} detect install remove "" configure cleanup'
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                events = "\n".join(line for line in result.stdout.splitlines()
+                                   if line in {"INSTALL", "REMOVE", "CONFIG", "CLEANUP"})
+                self.assertEqual(events, expected)
+                if desired == actual == "0":
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(result.stderr, "")
 
     def test_mismatch_calls_correct_action_and_verifies(self):
         for desired, actual, expected in (("1", "0", "INSTALL"), ("0", "1", "REMOVE")):
@@ -76,6 +104,18 @@ class ConvergenceCoreTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("non confirmé", result.stderr)
+
+    def test_cleanup_is_not_run_if_removal_did_not_remove_the_software(self):
+        result = self.run_shell(
+            'detect() { printf 1; }\n'
+            'install() { return 0; }\n'
+            'remove() { return 0; }\n'
+            'cleanup() { echo unexpected; }\n'
+            'software_converge demo 0 detect install remove "" "" cleanup'
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("non confirmé", result.stderr)
+        self.assertNotIn("unexpected", result.stdout)
 
     def test_unknown_configuration_stops_without_mutation(self):
         result = self.run_shell(

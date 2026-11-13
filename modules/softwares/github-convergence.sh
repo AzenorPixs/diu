@@ -97,10 +97,19 @@ software_github_remove() {
         fi
         rm -f -- "$binary" || return 1
     fi
-    rm -rf -- "$root/packages/standalone" "$root/packages/tmp" || return 1
+    rm -rf -- "$root/packages/standalone" || return 1
     printf 'Logiciel GitHub désinstallé : %s.\n' "$software"
 }
 
 software_github_converge() {
-    software_converge "${1:-}" "${2:-}" software_github_convergence_detect software_github_install software_github_remove
+    software_converge "${1:-}" "${2:-}" software_github_convergence_detect software_github_install software_github_remove '' software_github_configure software_github_cleanup
 }
+
+software_github_lifecycle_hook() {
+    local software="${1:-}" field="${2:-}" hook
+    hook="$(software_github_convergence_metadata "$software" "$field")" || return 1
+    [[ "$hook" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -F "$hook" >/dev/null || return 1
+    "$hook"
+}
+software_github_configure() { software_github_lifecycle_hook "${1:-}" configuration-hook; }
+software_github_cleanup() { software_github_lifecycle_hook "${1:-}" cleanup-hook; }

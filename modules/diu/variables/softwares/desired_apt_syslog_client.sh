@@ -56,6 +56,9 @@ software_apt_recipe_syslog_client() {
         configuration_hook)
             printf '%s\n' software_apt_configure_syslog_client
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_syslog_client
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_syslog_client_configuration
             ;;
@@ -83,6 +86,8 @@ software_apt_check_syslog_client_configuration() { software_apt_syslog_check_con
 software_apt_disable_syslog_client() { software_apt_disable_syslog_role client; }
 
 software_apt_syslog_client_detect() { software_apt_syslog_role_state client "${1:-/}"; }
+
+software_apt_cleanup_syslog_client() { software_apt_cleanup_repository syslog-client; }
 
 config="DYNAMIC"
 state="ENABLE"

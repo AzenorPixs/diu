@@ -54,7 +54,10 @@ software_apt_recipe_qemu_guest_agent() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_qemu_guest_agent
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_qemu_guest_agent
             ;;
         configuration_check)
             printf '\n'
@@ -75,6 +78,10 @@ software_apt_recipe_qemu_guest_agent() {
 }
 
 software_apt_qemu_guest_agent_detect() { software_apt_package_state qemu-guest-agent; }
+
+software_apt_configure_qemu_guest_agent() { return 0; }
+
+software_apt_cleanup_qemu_guest_agent() { software_apt_cleanup_repository qemu-guest-agent; }
 
 config="DYNAMIC"
 state="ENABLE"

@@ -61,6 +61,9 @@ software_apt_recipe_openjdk() {
         configuration_hook)
             printf '%s\n' software_apt_configure_openjdk
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_openjdk
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_openjdk_configuration
             ;;
@@ -200,6 +203,8 @@ software_apt_check_openjdk_configuration() {
         software_apt_file_has_line "$properties" "$expected" || return 1
     done
 }
+
+software_apt_cleanup_openjdk() { software_apt_cleanup_repository openjdk; }
 
 config="DYNAMIC"
 state="ENABLE"

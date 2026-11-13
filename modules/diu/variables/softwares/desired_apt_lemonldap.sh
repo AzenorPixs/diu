@@ -54,7 +54,10 @@ software_apt_recipe_lemonldap() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_lemonldap
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_lemonldap
             ;;
         configuration_check)
             printf '\n'
@@ -75,6 +78,10 @@ software_apt_recipe_lemonldap() {
 }
 
 software_apt_lemonldap_detect() { software_apt_package_state lemonldap-ng; }
+
+software_apt_configure_lemonldap() { return 0; }
+
+software_apt_cleanup_lemonldap() { software_apt_cleanup_repository lemonldap; }
 
 config="DYNAMIC"
 state="ENABLE"
