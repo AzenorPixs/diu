@@ -54,7 +54,10 @@ software_apt_recipe_webmin() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_webmin
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_webmin
             ;;
         configuration_check)
             printf '\n'
@@ -75,6 +78,10 @@ software_apt_recipe_webmin() {
 }
 
 software_apt_webmin_detect() { software_apt_package_state webmin; }
+
+software_apt_configure_webmin() { return 0; }
+
+software_apt_cleanup_webmin() { software_apt_cleanup_repository webmin; }
 
 config="DYNAMIC"
 state="ENABLE"

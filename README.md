@@ -15,6 +15,10 @@ sans moteur, il converge APT, Flatpak puis GitHub. `diu update` exécute cette
 convergence en dernière étape. Les mises à jour de versions restent dans
 `diu system engine <moteur> update`.
 
+La configuration d'un logiciel désiré est rejouée à chaque convergence ; son
+nettoyage suit une désinstallation effective. Un logiciel déjà absent et non
+désiré ne produit aucune sortie et son nettoyage n'est pas rejoué.
+
 Les variables `SOFTWARE_APT_*`, `SOFTWARE_FLATPAK_*` et `SOFTWARE_GITHUB_*`
 sont initialisées une fois depuis l'état réel et conservent ensuite l'état
 demandé. Les anciennes valeurs sont reprises lors de la migration ; les
@@ -31,7 +35,7 @@ Les variables de dépôts absentes sont initialisées depuis les sources actives
 de l'hôte, à 0 si leur dépôt n'est pas déclaré ; les valeurs configurées sont
 conservées.
 
-L’alias Zsh `sshhvp1` lance ChatGPT sur `hvp1` via SSH X11 en arrière-plan ; il conserve un éventuel alias personnel de même nom. Sur une installation Zsh existante, `diu softwares install apt zsh` réapplique la configuration gérée pour rendre le nouvel alias disponible.
+L’alias Zsh `sshhvp1` lance ChatGPT sur `hvp1` via SSH X11 en arrière-plan ; il conserve un éventuel alias personnel de même nom. Sur une installation Zsh existante, `diu softwares install apt zsh` ou `diu softwares update apt zsh` réapplique la configuration gérée pour rendre le nouvel alias disponible.
 
 Le paquet issu du constructeur historique crée le lien `diu` lors de sa
 configuration si son nom est libre. Le constructeur générique ne fournit pas

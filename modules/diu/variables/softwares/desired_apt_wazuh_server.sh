@@ -54,7 +54,10 @@ software_apt_recipe_wazuh_server() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_wazuh_server
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_wazuh_server
             ;;
         configuration_check)
             printf '%s\n' software_apt_check_wazuh_server_configuration
@@ -109,6 +112,10 @@ software_apt_check_wazuh_server_configuration() {
         [[ "$actual" == 1 ]] || return 1
     done
 }
+
+software_apt_configure_wazuh_server() { return 0; }
+
+software_apt_cleanup_wazuh_server() { software_apt_cleanup_repository wazuh-server; }
 
 config="DYNAMIC"
 state="ENABLE"

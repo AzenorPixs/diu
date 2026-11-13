@@ -56,6 +56,9 @@ software_apt_recipe_crowdsec_bouncer() {
         configuration_hook)
             printf '%s\n' software_apt_configure_crowdsec_bouncer
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_crowdsec_bouncer
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_crowdsec_bouncer_configuration
             ;;
@@ -151,6 +154,8 @@ software_apt_crowdsec_bouncer_role_detect() {
         printf '1\n'
     fi
 }
+
+software_apt_cleanup_crowdsec_bouncer() { software_apt_cleanup_repository crowdsec-bouncer; }
 
 config="DYNAMIC"
 state="ENABLE"

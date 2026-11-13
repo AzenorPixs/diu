@@ -17,24 +17,6 @@ software_apt_manage_one() {
     if [[ "$action" == install ]]; then
         software_apt_prepare_sources "$software" || return $?
     fi
-    if [[ "$action" == remove ]]; then
-        software_apt_explicit_remove_cleanup "$software" || return $?
-    fi
-}
-
-software_apt_explicit_remove_cleanup() {
-    local software="${1:-}" cleanup repository variable state
-    cleanup="$(software_apt_convergence_remove_repository "$software")" || return 1
-    [[ "$cleanup" == 1 ]] || return 0
-    repository="$(software_apt_convergence_repository "$software")" || return 1
-    variable="$(software_apt_convergence_repository_variable "$software")" || return 1
-    [[ -n "$repository" && -n "$variable" ]] || return 1
-    if [[ -v "$variable" ]]; then state="${!variable}"; else state=0; fi
-    software_apt_convergence_repository_state_valid "$software" "$state" || return 1
-    [[ "$state" == 1 ]] || return 0
-    declare -F system_apt_remove_repository >/dev/null || return 1
-    system_apt_remove_repository "$repository" || return 1
-    apt -y update
 }
 
 software_apt_manage_all() {

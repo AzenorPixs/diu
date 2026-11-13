@@ -4,6 +4,8 @@
 software_github_convergence_metadata() {
     case "${1:-}:${2:-}" in
         codex-cli:variable) printf '%s\n' SOFTWARE_GITHUB_CODEX_CLI ;;
+        codex-cli:configuration-hook) printf '%s\n' software_github_configure_codex_cli ;;
+        codex-cli:cleanup-hook) printf '%s\n' software_github_cleanup_codex_cli ;;
         codex-cli:owner) printf '%s\n' openai ;;
         codex-cli:repository) printf '%s\n' codex ;;
         codex-cli:tag-prefix) printf '%s\n' rust-v ;;
@@ -18,6 +20,14 @@ software_github_convergence_metadata() {
         codex-cli:companion) printf '%s\n' codex-path/rg ;;
         *) printf 'Métadonnée GitHub non déclarée : %s\n' "${1:-}" >&2; return 1 ;;
     esac
+}
+
+software_github_configure_codex_cli() { return 0; }
+software_github_cleanup_codex_cli() {
+    local root
+    root="$(software_github_convergence_metadata codex-cli root)" || return 1
+    [[ ! -L "$root" ]] || return 1
+    rm -rf -- "$root/packages/tmp"
 }
 
 software_github_convergence_names() {

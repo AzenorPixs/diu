@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-12T11:13:21Z
+Début du relevé (UTC) : 2026-11-13T08:21:25Z
 Environnement d'exécution DIU : PROXMOX
 
 ## Configuration locale — project.env
@@ -189,6 +189,6 @@ La détection ne vérifie pas le fonctionnement du mode headless.
 
 ## Firefox
 
-  * 153.6.0esr
+  * 153.7.0esr
   * /usr/bin/firefox
   * Mode headless : --headless

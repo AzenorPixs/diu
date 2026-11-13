@@ -138,8 +138,9 @@ software_apt_install() {
     if [[ "${software_convergence_actual:-0}" == 1 ]]; then
         missing="$(software_apt_missing_install_packages "${1:-}")" || return 1
         if [[ -z "$missing" ]]; then
-            software_apt_apply_configuration "${1:-}"
-            return $?
+            software_apt_apply_configuration "${1:-}" || return 1
+            if [[ -v software_configuration_done ]]; then software_configuration_done=1; fi
+            return 0
         fi
     fi
     option_list="$(software_apt_convergence_install_options "${1:-}")" || return 1
@@ -168,7 +169,9 @@ software_apt_install() {
     else
         apt -y install --no-upgrade "${options[@]}" -- "${packages[@]}" || return 1
     fi
-    software_apt_apply_configuration "${1:-}"
+    software_apt_apply_configuration "${1:-}" || return 1
+    if [[ -v software_configuration_done ]]; then software_configuration_done=1; fi
+    return 0
 }
 
 software_apt_prepare_sources() {
@@ -226,6 +229,7 @@ software_apt_apply_configuration() {
 }
 
 software_apt_convergence_configuration_hook() { software_apt_recipe "${1:-}" configuration_hook "${@:2}"; }
+software_apt_convergence_cleanup_hook() { software_apt_recipe "${1:-}" cleanup_hook "${@:2}"; }
 
 software_apt_convergence_configuration_check() { software_apt_recipe "${1:-}" configuration_check "${@:2}"; }
 
@@ -233,11 +237,11 @@ software_apt_configuration_conforms() {
     local software="${1:-}" desired="${2:-}" check missing policy
     [[ "$desired" == 1 ]] || return 0
     policy="$(software_apt_convergence_update_configuration_policy "$software")" || return 2
+    missing="$(software_apt_missing_install_packages "$software")" || return 2
+    [[ -z "$missing" ]] || return 1
     if [[ "${software_management_action:-update}" == update && ! -v software_convergence_actual && "$policy" == explicit ]]; then
         return 0
     fi
-    missing="$(software_apt_missing_install_packages "$software")" || return 2
-    [[ -z "$missing" ]] || return 1
     check="$(software_apt_convergence_configuration_check "$software")" || return 2
     [[ -n "$check" ]] || return 0
     if [[ ! "$check" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || ! declare -F "$check" >/dev/null; then
@@ -253,7 +257,7 @@ software_apt_convergence_remove_packages() { software_apt_recipe "${1:-}" remove
 software_apt_convergence_pre_remove_hook() { software_apt_recipe "${1:-}" pre_remove_hook "${@:2}"; }
 
 software_apt_remove() {
-    local package package_list repository remove_action remove_repository simulation line removed candidate matched hook
+    local package package_list remove_action simulation line removed candidate matched hook
     # Le callback de rôle sait si le paquet partagé sera retiré.
     # shellcheck disable=SC2034
     local software_remove_packages_present=0
@@ -275,9 +279,7 @@ software_apt_remove() {
         confirmed["$package"]=0
     done <<< "$package_list"
     (( ${#packages[@]} > 0 )) || return 1
-    repository="$(software_apt_convergence_repository "${1:-}")" || return 1
     remove_action="$(software_apt_convergence_remove_action "${1:-}")" || return 1
-    remove_repository="$(software_apt_convergence_remove_repository "${1:-}")" || return 1
     [[ "$remove_action" == remove || "$remove_action" == purge ]] || return 1
     if ! simulation="$(LC_ALL=C apt-get --simulate "$remove_action" -- "${packages[@]}")"; then
         printf '%s\n' 'Simulation de désinstallation APT impossible.' >&2
@@ -315,16 +317,33 @@ software_apt_remove() {
         "$hook" || return 1
     fi
     apt -y "$remove_action" -- "${packages[@]}" || return 1
-    if [[ -n "$repository" && "$remove_repository" == 1 ]]; then
-        if ! declare -F system_apt_remove_repository >/dev/null; then
-            printf '%s\n' 'Moteur de dépôts APT indisponible.' >&2
-            return 1
-        fi
-        system_apt_remove_repository "$repository" || return 1
-        apt -y update || return 1
-    fi
 }
 
 software_apt_converge() {
-    software_converge "${1:-}" "${2:-}" software_apt_convergence_detect software_apt_install software_apt_remove software_apt_configuration_conforms
+    software_converge "${1:-}" "${2:-}" software_apt_convergence_detect software_apt_install software_apt_remove software_apt_configuration_conforms software_apt_apply_configuration software_apt_cleanup
+}
+
+software_apt_cleanup() {
+    local hook
+    hook="$(software_apt_convergence_cleanup_hook "${1:-}")" || return 1
+    if [[ ! "$hook" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || ! declare -F "$hook" >/dev/null; then
+        printf '%s\n' 'Nettoyage logiciel APT indisponible.' >&2
+        return 1
+    fi
+    "$hook"
+}
+
+software_apt_cleanup_repository() {
+    local software="${1:-}" cleanup repository variable state
+    cleanup="$(software_apt_convergence_remove_repository "$software")" || return 1
+    [[ "$cleanup" == 1 ]] || return 0
+    repository="$(software_apt_convergence_repository "$software")" || return 1
+    variable="$(software_apt_convergence_repository_variable "$software")" || return 1
+    [[ -n "$repository" && -n "$variable" ]] || return 1
+    if [[ -v "$variable" ]]; then state="${!variable}"; else state=0; fi
+    software_apt_convergence_repository_state_valid "$software" "$state" || return 1
+    [[ "$state" == 1 ]] || return 0
+    declare -F system_apt_remove_repository >/dev/null || return 1
+    system_apt_remove_repository "$repository" || return 1
+    apt -y update
 }

@@ -56,6 +56,9 @@ software_apt_recipe_syslog_server() {
         configuration_hook)
             printf '%s\n' software_apt_configure_syslog_server
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_syslog_server
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_syslog_server_configuration
             ;;
@@ -83,6 +86,8 @@ software_apt_check_syslog_server_configuration() { software_apt_syslog_check_con
 software_apt_disable_syslog_server() { software_apt_disable_syslog_role server; }
 
 software_apt_syslog_server_detect() { software_apt_syslog_role_state server "${1:-/}"; }
+
+software_apt_cleanup_syslog_server() { software_apt_cleanup_repository syslog-server; }
 
 config="DYNAMIC"
 state="ENABLE"

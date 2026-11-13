@@ -56,6 +56,9 @@ software_apt_recipe_ssh_server() {
         configuration_hook)
             printf '%s\n' software_apt_configure_ssh_server
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_ssh_server
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_ssh_server_configuration
             ;;
@@ -78,6 +81,8 @@ software_apt_ssh_server_detect() { software_apt_package_state openssh-server; }
 
 software_apt_configure_ssh_server() {
     local helper
+    if software_apt_check_ssh_server_configuration; then return 0; fi
+    software_apt_preflight_ssh_server / || return 1
     helper="$(software_apt_support_directory)/ssh_configuration.py" || return 1
     python3 "$helper" configure || return 1
     systemctl restart ssh.service
@@ -125,6 +130,8 @@ software_apt_check_ssh_server_configuration() {
         status=$?; [[ "$status" == 3 ]] && return 1; return 2
     fi
 }
+
+software_apt_cleanup_ssh_server() { software_apt_cleanup_repository ssh-server; }
 
 config="DYNAMIC"
 state="ENABLE"

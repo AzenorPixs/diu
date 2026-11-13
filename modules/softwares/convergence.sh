@@ -4,7 +4,9 @@
 software_converge() {
     local software="${1:-}" desired="${2:-}" detect="${3:-}"
     local install="${4:-}" remove="${5:-}" conform="${6:-}"
+    local configure="${7:-}" cleanup="${8:-}"
     local actual final operation status discrepancy=0 software_convergence_actual
+    local software_configuration_done=0
 
     if [[ -z "$software" || ( "$desired" != 0 && "$desired" != 1 ) ]]; then
         printf '❌ État désiré invalide pour %s.\n' "$software" >&2
@@ -20,6 +22,13 @@ software_converge() {
         printf '❌ Vérification indisponible pour %s.\n' "$software" >&2
         return 1
     fi
+    for operation in "$configure" "$cleanup"; do
+        [[ -n "$operation" ]] || continue
+        if [[ ! "$operation" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || ! declare -F "$operation" >/dev/null; then
+            printf '❌ Opération de cycle de vie indisponible pour %s.\n' "$software" >&2
+            return 1
+        fi
+    done
     if ! actual="$("$detect" "$software")"; then
         printf '❌ %s : état réel indéterminé.\n' "$software" >&2
         return 1
@@ -27,6 +36,9 @@ software_converge() {
     if [[ "$actual" != 0 && "$actual" != 1 ]]; then
         printf '❌ %s : état réel invalide.\n' "$software" >&2
         return 1
+    fi
+    if [[ "$actual" == 0 && "$desired" == 0 ]]; then
+        return 0
     fi
     if [[ "$actual" == "$desired" && -n "$conform" ]]; then
         if "$conform" "$software" "$desired" "$actual"; then
@@ -41,6 +53,10 @@ software_converge() {
         fi
     fi
     if [[ "$actual" == "$desired" && "$discrepancy" == 0 ]]; then
+        if [[ "$desired" == 1 && -n "$configure" ]] && ! "$configure" "$software"; then
+            printf '❌ %s : configuration échouée.\n' "$software" >&2
+            return 1
+        fi
         printf '\033[32m✓\033[0m %s : état réel %s, conforme.\n' "$software" "$actual"
         return 0
     fi
@@ -60,6 +76,14 @@ software_converge() {
     fi
     if ! final="$("$detect" "$software")" || [[ "$final" != "$desired" ]]; then
         printf '❌ %s : état réel non confirmé après convergence.\n' "$software" >&2
+        return 1
+    fi
+    if [[ "$actual" != "$desired" && "$desired" == 0 && -n "$cleanup" ]] && ! "$cleanup" "$software"; then
+        printf '❌ %s : nettoyage échoué.\n' "$software" >&2
+        return 1
+    fi
+    if [[ "$desired" == 1 && -n "$configure" && "$software_configuration_done" == 0 ]] && ! "$configure" "$software"; then
+        printf '❌ %s : configuration échouée.\n' "$software" >&2
         return 1
     fi
     if [[ -n "$conform" ]] && ! "$conform" "$software" "$desired" "$final"; then

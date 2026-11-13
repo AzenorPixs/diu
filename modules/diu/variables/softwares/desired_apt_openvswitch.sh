@@ -54,7 +54,10 @@ software_apt_recipe_openvswitch() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_openvswitch
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_openvswitch
             ;;
         configuration_check)
             printf '\n'
@@ -75,6 +78,10 @@ software_apt_recipe_openvswitch() {
 }
 
 software_apt_openvswitch_detect() { software_apt_package_state openvswitch-switch; }
+
+software_apt_configure_openvswitch() { return 0; }
+
+software_apt_cleanup_openvswitch() { software_apt_cleanup_repository openvswitch; }
 
 config="DYNAMIC"
 state="ENABLE"

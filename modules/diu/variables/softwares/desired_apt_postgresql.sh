@@ -54,7 +54,10 @@ software_apt_recipe_postgresql() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_postgresql
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_postgresql
             ;;
         configuration_check)
             printf '\n'
@@ -110,6 +113,10 @@ software_apt_postgresql_detect() {
         fi
     fi
 }
+
+software_apt_configure_postgresql() { return 0; }
+
+software_apt_cleanup_postgresql() { software_apt_cleanup_repository postgresql; }
 
 config="DYNAMIC"
 state="ENABLE"

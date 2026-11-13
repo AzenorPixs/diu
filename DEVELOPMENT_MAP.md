@@ -1,5 +1,7 @@
 # DEVELOPMENT_MAP.md - Debian Installeur Unifié
 
+Delta SCM du 2026-11-13 : [software-configuration-lifecycle](openspec/changes/archive/2026-11-13-software-configuration-lifecycle/proposal.md), **code non attribué**, archivé ; configuration et nettoyage des moteurs logiciels, silence pour l'absence conforme ; 1 361 tests dont 2 ignorés, OpenSpec strict réussi ; [statistiques individuelles](openspec/changes/archive/2026-11-13-software-configuration-lifecycle/STATISTICS.md) produites, livraison en attente. Attribution ultérieure par ACL.
+
 Delta SCM du 2026-11-12 : [background-zsh-sshhvp1](openspec/changes/archive/2026-11-12-background-zsh-sshhvp1/proposal.md), archivé, code non attribué ; SSH en arrière-plan avec contrôle X11 et sorties masquées ; 1 354 tests dont 2 ignorés, tests Zsh isolés et statistiques individuelles vérifiés ; delta SGS global incompatible, livraison CICD prévue. Attribution ultérieure par ACL.
 
 Delta SCM du 2026-11-12 : [add-zsh-sshhvp1](openspec/changes/archive/2026-11-12-add-zsh-sshhvp1/proposal.md), archivé, code non attribué ; alias Zsh pour le lancement distant X11, 1 353 tests dont 2 ignorés et tests Zsh isolés réussis ; statistiques individuelles vérifiées, delta global incompatible, livraison CICD en fin de session. Attribution ultérieure par ACL.

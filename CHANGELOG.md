@@ -4,6 +4,9 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Logiciels : configuration rejouée à chaque convergence d'un logiciel désiré,
+  nettoyage après désinstallation et silence pour un logiciel absent non désiré.
+
 - Zsh : `sshhvp1` lance SSH en arrière-plan avec contrôle du transfert X11 et sorties masquées.
 
 - Zsh : ajouter `sshhvp1` pour lancer ChatGPT sur hvp1 via SSH X11 en préservant les définitions personnelles.

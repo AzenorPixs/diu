@@ -58,6 +58,9 @@ software_apt_recipe_wazuh_agent() {
         configuration_hook)
             printf '%s\n' software_apt_configure_wazuh_agent
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_wazuh_agent
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_wazuh_agent_configuration
             ;;
@@ -108,6 +111,8 @@ software_apt_check_wazuh_agent_configuration() {
         status=$?; [[ "$status" == 3 ]] && return 1; return 2
     fi
 }
+
+software_apt_cleanup_wazuh_agent() { software_apt_cleanup_repository wazuh-agent; }
 
 config="DYNAMIC"
 state="ENABLE"

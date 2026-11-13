@@ -1320,7 +1320,12 @@ logiciel déjà présent. Les paquets directs gardent dans GLOBAL leur URL et
 leur résolveur de version ; Zoom utilise latest, Omada et Wazuh agent leurs
 sélecteurs explicites.
 
-Une coche verte signale un état conforme et une croix rouge un écart avant
+Chaque recette dispose d'une configuration et d'un nettoyage, éventuellement
+sans effet. La configuration est appliquée après installation et à chaque
+convergence d'un logiciel désiré et présent. Le nettoyage intervient après une
+désinstallation effective ; il n'est pas rejoué lorsque le logiciel est déjà
+absent et non désiré. Ce dernier état ne produit aucune sortie pour le logiciel.
+Une coche verte signale un logiciel présent et conforme et une croix rouge un écart avant
 correction. La simulation APT interdit les retraits non déclarés. Les versions
 restent mises à jour par SYSTEM, sans réécrire le désir logiciel. Les rôles
 syslog partagent rsyslog et ceux de CrowdSec conservent les règles validées ;

@@ -61,6 +61,9 @@ software_apt_recipe_fastfetch() {
         configuration_hook)
             printf '%s\n' software_apt_configure_fastfetch
             ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_fastfetch
+            ;;
         configuration_check)
             printf '%s\n' software_apt_check_fastfetch_configuration
             ;;
@@ -141,6 +144,8 @@ software_apt_check_fastfetch_configuration() {
         fi
     done
 }
+
+software_apt_cleanup_fastfetch() { software_apt_cleanup_repository fastfetch; }
 
 config="DYNAMIC"
 state="ENABLE"

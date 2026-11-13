@@ -73,7 +73,7 @@ class AptManagementTests(unittest.TestCase):
         self.assertEqual(self.config.read_text(encoding="utf-8"), data)
         self.assertNotIn("unexpected", result.stdout)
 
-    def test_explicit_remove_cleans_repository_even_when_package_is_absent(self):
+    def test_explicit_remove_does_not_clean_when_package_is_absent(self):
         result = self.run_shell(
             'SYSTEM_APT_CGPT=1\n'
             'dpkg-query() { return 0; }\n'
@@ -82,24 +82,24 @@ class AptManagementTests(unittest.TestCase):
             'software_apt_manage_one "$2" remove chatgpt'
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("repository cgpt", result.stdout)
-        self.assertIn("apt -y update", result.stdout)
+        self.assertEqual(result.stdout, "")
         self.assertEqual(self.config.read_text(encoding="utf-8"), "export SOFTWARE_APT_CHATGPT=0\n")
 
-    def test_update_does_not_change_ssh_configuration_when_package_is_present(self):
+    def test_update_replays_ssh_configuration_when_package_is_present(self):
         self.config.write_text("export SOFTWARE_APT_SSH_SERVER=1\n", encoding="utf-8")
         result = self.run_shell(
             'SOFTWARE_APT_SSH_SERVER=1\n'
             'dpkg-query() { printf "openssh-server\\tinstalled\\n"; }\n'
             'software_apt_check_ssh_server_configuration() { echo unexpected; return 1; }\n'
-            'software_apt_configure_ssh_server() { echo unexpected; }\n'
+            'software_apt_configure_ssh_server() { echo configured; }\n'
             'software_apt_manage_one "$2" update ssh-server'
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("unexpected", result.stdout)
+        self.assertIn("configured", result.stdout)
         self.assertIn("état réel 1, conforme", result.stdout)
 
-    def test_update_does_not_reconfigure_present_zsh_or_crowdsec_agent(self):
+    def test_update_reconfigures_present_zsh_or_crowdsec_agent(self):
         for software, variable, package in (("zsh", "SOFTWARE_APT_ZSH", "zsh"),
                                              ("crowdsec-agent", "SOFTWARE_APT_CROWDSEC_AGENT", "crowdsec")):
             with self.subTest(software=software):
@@ -107,11 +107,26 @@ class AptManagementTests(unittest.TestCase):
                 result = self.run_shell(
                     f'{variable}=1\n'
                     f'dpkg-query() {{ printf "{package}\\tinstalled\\n"; }}\n'
-                    'software_apt_apply_configuration() { echo unexpected; }\n'
+                    'software_apt_missing_install_packages() { return 0; }\n'
+                    'software_apt_apply_configuration() { echo configured; }\n'
                     f'software_apt_manage_one "$2" update {software}'
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertNotIn("unexpected", result.stdout)
+                self.assertIn("configured", result.stdout)
+
+    def test_update_repairs_missing_dependency_before_configuration(self):
+        self.config.write_text("export SOFTWARE_APT_ZSH=1\n", encoding="utf-8")
+        result = self.run_shell(
+            'SOFTWARE_APT_ZSH=1; repaired=0\n'
+            'dpkg-query() { printf "zsh\\tinstalled\\n"; }\n'
+            'software_apt_missing_install_packages() { [[ "$repaired" == 1 ]] || echo zsh-common; }\n'
+            'software_apt_install() { echo installed; repaired=1; }\n'
+            'software_apt_check_zsh_configuration() { return 0; }\n'
+            'software_apt_apply_configuration() { echo configured; }\n'
+            'software_apt_manage_one "$2" update zsh'
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(result.stdout.index("installed"), result.stdout.index("configured"))
 
 
 if __name__ == "__main__":

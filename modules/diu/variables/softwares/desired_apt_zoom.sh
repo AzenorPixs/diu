@@ -54,7 +54,10 @@ software_apt_recipe_zoom() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_zoom
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_zoom
             ;;
         configuration_check)
             printf '\n'
@@ -76,6 +79,10 @@ software_apt_recipe_zoom() {
 }
 
 software_apt_zoom_detect() { software_apt_package_state zoom; }
+
+software_apt_configure_zoom() { return 0; }
+
+software_apt_cleanup_zoom() { software_apt_cleanup_repository zoom; }
 
 config="DYNAMIC"
 state="ENABLE"

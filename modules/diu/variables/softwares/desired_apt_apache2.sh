@@ -68,7 +68,10 @@ software_apt_recipe_apache2() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_apache2
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_apache2
             ;;
         configuration_check)
             printf '\n'
@@ -89,6 +92,10 @@ software_apt_recipe_apache2() {
 }
 
 software_apt_apache2_detect() { software_apt_package_state apache2; }
+
+software_apt_configure_apache2() { return 0; }
+
+software_apt_cleanup_apache2() { software_apt_cleanup_repository apache2; }
 
 config="DYNAMIC"
 state="ENABLE"

@@ -54,7 +54,10 @@ software_apt_recipe_jsvc() {
             software_apt_convergence_variable "${1:-}" >/dev/null || return 1; printf '\n'
             ;;
         configuration_hook)
-            printf '\n'
+            printf '%s\n' software_apt_configure_jsvc
+            ;;
+        cleanup_hook)
+            printf '%s\n' software_apt_cleanup_jsvc
             ;;
         configuration_check)
             printf '\n'
@@ -75,6 +78,10 @@ software_apt_recipe_jsvc() {
 }
 
 software_apt_jsvc_detect() { software_apt_package_state jsvc; }
+
+software_apt_configure_jsvc() { return 0; }
+
+software_apt_cleanup_jsvc() { software_apt_cleanup_repository jsvc; }
 
 config="DYNAMIC"
 state="ENABLE"
