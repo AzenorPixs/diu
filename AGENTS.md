@@ -1,6 +1,6 @@
 # AGENTS.md — Debian Installeur Unifié
 
-Version : 1.2
+Version : 1.4
 
 ## 1. Contexte
 
@@ -136,15 +136,12 @@ définir la modification minimale et obtenir les validations requises.
 Une validation explicite est une demande ou confirmation claire du développeur
 autorisant l'action concernée. Elle reste valable dans son périmètre tant que
 ses conditions demeurent réunies et qu'elle n'est pas révoquée.
-Si elle est requise mais absente, l'agent DOIT se limiter à l'analyse
+Si une validation requise manque, l'agent DOIT se limiter à l'analyse
 et aux propositions.
 
-Il DOIT modifier uniquement les fichiers nécessaires à l'objectif validé.
-
-Après modification, il DOIT examiner les fichiers modifiés, vérifier leur
-syntaxe, exécuter les tests et contrôles applicables, vérifier la conformité
-OpenSpec et l'absence de modification hors périmètre, puis rapporter fichiers
-modifiés, validations, impacts, échecs et incertitudes.
+Il DOIT modifier uniquement les fichiers nécessaires à l'objectif validé,
+appliquer les vérifications de la section 21 après modification, puis rapporter
+fichiers modifiés, validations, impacts, échecs et incertitudes.
 
 ## 6. Modifications fonctionnelles et OpenSpec
 
@@ -290,31 +287,32 @@ Les exclusions et inclusions propres aux intégrations d'agents DOIVENT
 
 ### Extraction filtrée de `project.env`
 
-Sauf interdiction explicite du développeur, une extraction locale filtrée
+Sauf interdiction explicite du développeur, l'extraction locale filtrée
 des variables utiles au travail autorisé est permise sans validation
-supplémentaire ni invocation d'un prompt. Elle concerne uniquement
-`project.env` à la racine et déroge à l'exclusion des `.env` pour ce traitement.
+supplémentaire ni prompt. Cette exception à l'exclusion des `.env`
+concerne uniquement `project.env` à la racine et ce seul traitement.
 
-Seul le processus local parcourt le fichier. L'agent reçoit uniquement
-les noms et valeurs établis comme non secrets et utiles. Cela peut inclure
-`PROJECT_*`, `LOCAL_DEFAULT_BRANCH`, `GIT_*`, `REMOTE_*` ou d'autres variables :
-aucun nom ni préfixe ne garantit l'absence de secret, notamment dans les URL.
+Seul le processus local parcourt le fichier ; l'agent reçoit uniquement
+les noms et valeurs établis comme utiles et non secrets, sans restriction
+de famille : notamment `PROJECT_*`, `LOCAL_DEFAULT_BRANCH`, `GIT_*`
+et `REMOTE_*`. Aucun nom ni préfixe ne garantit l'absence de secret,
+y compris dans les URL.
 
-Seules les affectations littérales sur une ligne sont acceptées.
-Les clés dupliquées et syntaxes nécessitant une interprétation sont ambiguës.
+Accepter uniquement les affectations littérales sur une ligne ; rejeter
+les clés dupliquées et syntaxes nécessitant une interprétation.
 Toute exécution ou tout chargement dans l'environnement est interdit :
 `source`, `eval`, substitutions de commandes et interpolations compris.
 
-Les valeurs secrètes ou incertaines sont exclues de toute restitution,
-journalisation, copie, indexation ou transmission au modèle.
+Les valeurs secrètes ou incertaines NE DOIVENT être ni restituées,
+journalisées, copiées, indexées ni transmises au modèle.
 Aucune ligne rejetée ni sortie brute ne DOIT être restituée.
 
 Si le fichier est absent ou inaccessible, ou une variable nécessaire
-absente, vide ou ambiguë, demander uniquement la valeur manquante
-ou non vérifiable au développeur.
+absente, vide ou ambiguë, demander uniquement la valeur non secrète
+manquante ou non vérifiable au développeur.
 
-L'agent NE DOIT PAS créer, modifier ou régénérer `project.env`.
-Les autres accès sensibles relèvent de la section « Secrets ».
+Créer, modifier ou régénérer `project.env` reste interdit.
+Les autres accès sensibles relèvent de la section 10.
 
 ### Inclusions explicites
 
@@ -355,19 +353,14 @@ une demande explicite.
 
 L'ouverture locale des fichiers sensibles est autorisée uniquement pour
 les besoins du projet et du travail autorisé. Seuls leur nom ou chemin
-PEUVENT être signalés ; aucun contenu contenant des secrets ne DOIT être
-restitué.
+PEUVENT être signalés, sauf extraction filtrée de `project.env` selon
+la section 9. Aucun contenu contenant des secrets ne DOIT être restitué.
 
 Les secrets, notamment mots de passe, clés privées ou SSH, jetons d'API,
 certificats et identifiants de connexion, NE DOIVENT PAS être transmis
 au modèle, indexés, versionnés ni affichés dans les journaux ou sorties.
 
 Tout stockage local de secrets DOIT être exclu de Git et de l'indexation.
-
-Pour `project.env`, appliquer exclusivement les règles de la section
-« Sources du projet » : extraction locale filtrée des variables utiles
-établies comme non secrètes ; aucune restitution brute ni ligne rejetée ;
-création, modification et régénération interdites.
 
 ## 11. Sécurité
 
@@ -406,30 +399,27 @@ Sous réserve des priorités supérieures, les outils et configurations
 de développement, construction, test et validation DOIVENT respecter
 `DEVOPS.md`.
 
-Tout outil nécessaire absent de ce référentiel nécessite l'accord explicite
-du développeur avant installation ou utilisation, avec rôle et justification.
-Sa disponibilité ne vaut pas autorisation. Tout outil prescrit indisponible
-DOIT être signalé ; sa substitution nécessite le même accord.
-Seules les opérations dépendantes restent en attente.
-Cela n'autorise ni modification ni régénération de `DEVOPS.md`.
+Tout outil nécessaire absent ou toute substitution à un outil prescrit
+indisponible nécessite l'accord explicite du développeur avant installation
+ou utilisation, avec rôle et justification. Signaler l'indisponibilité ;
+la présence locale ne vaut pas autorisation. Seules les opérations dépendantes
+attendent. Cela n'autorise ni modification ni régénération de `DEVOPS.md`.
 
-Le code DOIT respecter les versions supportées des langages, runtimes
-et dépendances, déterminées par les spécifications et configurations
-du projet, notamment `pyproject.toml`, `package.json` et `DEVOPS.md`.
+Le code DOIT respecter les versions supportées des langages, runtimes et
+dépendances, établies par les spécifications et configurations du projet,
+notamment `pyproject.toml`, `package.json` et `DEVOPS.md`.
 Une version locale plus récente ne relève pas implicitement le minimum
-supporté. Toute exigence de version supérieure DOIT être justifiée
-et soumise aux validations applicables.
+supporté ; toute exigence supérieure DOIT être justifiée et validée
+selon les règles applicables.
 
-Le code DOIT respecter conventions et architecture, préserver les
-comportements non concernés, valider les entrées aux frontières du système,
-gérer les échecs attendus, détecter, traiter ou propager les erreurs sans
-les masquer, fournir des diagnostics compréhensibles sans secret et libérer
-les ressources, même en cas d'échec.
+Le code DOIT respecter conventions et architecture, préserver les comportements
+non concernés, valider les entrées aux frontières du système, gérer les échecs
+attendus, détecter, traiter ou propager les erreurs sans les masquer et libérer
+les ressources, même en cas d'échec. Il DEVRAIT privilégier les codes de retour
+explicites et l'idempotence lorsque pertinente.
 
 Tout ajout d'outil, dépendance ou langage reste soumis aux autorisations
-applicables. La syntaxe seule ne prouve pas la validité fonctionnelle :
-les tests applicables sont obligatoires. Toute vérification indisponible,
-non exécutée ou échouée DOIT être signalée.
+applicables. Les diagnostics et vérifications relèvent des sections 20 et 21.
 
 ## 14. Variables
 
@@ -497,20 +487,20 @@ Toute modification de licence nécessite une validation explicite.
 
 ## 20. Messages et robustesse
 
-Les messages des scripts DOIVENT être explicites, cohérents et utiles
-au suivi et au diagnostic, sans masquer d'échec, ignorer silencieusement
-d'erreur, exposer de données sensibles ni modifier le comportement attendu.
-
-Le code DEVRAIT privilégier la gestion explicite des erreurs, des messages
-compréhensibles, des codes de retour explicites, la validation des entrées
-et l'idempotence lorsque pertinente.
+Le code DOIT fournir des diagnostics compréhensibles sans données sensibles.
+Les messages des scripts DOIVENT aussi être explicites, cohérents et utiles
+au suivi et au diagnostic, sans modifier le comportement fonctionnel attendu.
 
 ## 21. Tests et validation finale
 
-Avant de déclarer le travail valide, l'agent DOIT exécuter les tests
-applicables lorsqu'un mécanisme existe, vérifier la syntaxe, l'absence
-d'erreur évidente, la cohérence des fichiers modifiés, la conformité
-OpenSpec et l'absence de modification hors périmètre.
+Après modification et avant de déclarer le travail valide, l'agent DOIT
+examiner les fichiers modifiés et vérifier syntaxe, absence d'erreur évidente,
+cohérence, conformité OpenSpec et absence de modification hors périmètre.
+
+Il DOIT exécuter les contrôles applicables et, lorsqu'un mécanisme de test
+existe, les tests applicables. Une syntaxe valide ne prouve pas la validité
+fonctionnelle. Toute vérification indisponible, non exécutée ou échouée
+DOIT être signalée.
 
 Aucun test ni contrôle ne DOIT être déclaré réussi sans exécution
 effective avec succès.

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SystemUpdateReportTests(unittest.TestCase):
     def run_update(self, extra='', command='system_update'):
-        with tempfile.TemporaryDirectory(dir=ROOT) as fixture:
+        with tempfile.TemporaryDirectory() as fixture:
             env = dict(os.environ, ROOT=str(ROOT), FIXTURE=fixture)
             script = r'''
 source "$ROOT/modules/system/apt.sh"
@@ -113,6 +113,25 @@ system_github_update_applications() { touch "$FIXTURE/codex"; }
         self.assertIn('Codex CLI : 1 → 2', result.stdout)
         self.assertEqual(result.stdout.count('Codex CLI'), 1)
 
+    def test_enabled_opencode_is_updated_and_reported(self):
+        result = self.run_update(r'''
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_OPENCODE=1
+software_github_opencode_version() { if [[ -f "$FIXTURE/opencode" ]]; then echo 2.4.0; else echo 2.3.0; fi; }
+system_github_update_applications() { touch "$FIXTURE/opencode"; }
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('OpenCode : 2.3.0 → 2.4.0', result.stdout)
+        self.assertEqual(result.stdout.count('OpenCode'), 1)
+
+    def test_opencode_is_not_updated_when_not_desired(self):
+        result = self.run_update(r'''
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_OPENCODE=0
+system_github_update_applications() { echo unexpected; return 1; }
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('unexpected', result.stdout)
+        self.assertNotIn('OpenCode :', result.stdout)
+
     def test_universal_update_runs_system_codex_once_then_convergence(self):
         result = self.run_update(r'''
 source "$ROOT/modules/diu/update-all.sh"
@@ -188,3 +207,13 @@ system_engine_ensure_dependencies() { [[ "$1" != github ]]; }
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('GitHub : dépendances indisponibles', result.stdout)
         self.assertIn('Codex CLI : 1.2', result.stdout)
+
+    def test_opencode_version_is_visible_when_dependencies_fail(self):
+        result = self.run_update(r'''
+SYSTEM_GITHUB_ENGINE=1 SOFTWARE_GITHUB_OPENCODE=1
+software_github_opencode_version() { echo 2.3.0; }
+system_engine_ensure_dependencies() { [[ "$1" != github ]]; }
+''')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('GitHub : dépendances indisponibles', result.stdout)
+        self.assertIn('OpenCode : 2.3.0', result.stdout)

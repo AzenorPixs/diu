@@ -13,7 +13,7 @@ ASSET = "codex-package-x86_64-unknown-linux-musl.tar.gz"
 
 class GithubConvergenceTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix=".github-convergence-test-", dir=ROOT)
+        self.directory = tempfile.TemporaryDirectory(prefix="github-convergence-test-")
         self.addCleanup(self.directory.cleanup)
         self.base = Path(self.directory.name)
         self.install_root = self.base / "install"

@@ -19,14 +19,26 @@ software_github_update_version() {
     binary="$(software_github_convergence_metadata "$software" binary)" || return 1
     command_name="$(software_github_convergence_metadata "$software" command)" || return 1
     if [[ ! -x "$binary" ]]; then
+        if [[ "$software" == opencode ]]; then
+            printf '%s\n' 'Binaire OpenCode système indisponible à /usr/local/bin/opencode.' >&2
+            return 1
+        fi
         binary="$(command -v "$command_name")" || return 1
     fi
-    local_version="$("$binary" --version 2>/dev/null | sed -n 's/.* \([0-9][0-9A-Za-z.+-]*\)$/\1/p' | head -n 1)"
+    if [[ "$software" == opencode ]]; then
+        local_version="$(software_github_opencode_version)" || local_version=''
+    else
+        local_version="$("$binary" --version 2>/dev/null | sed -n 's/.* \([0-9][0-9A-Za-z.+-]*\)$/\1/p' | head -n 1)"
+    fi
     owner="$(software_github_convergence_metadata "$software" owner)" || return 1
     repository="$(software_github_convergence_metadata "$software" repository)" || return 1
     prefix="$(software_github_convergence_metadata "$software" tag-prefix)" || return 1
-    metadata="$(curl --fail --silent --show-error --location --header 'Accept: application/vnd.github+json' "https://api.github.com/repos/$owner/$repository/releases/latest")" || return 1
-    tag="$(printf '%s\n' "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+    if [[ "$software" == opencode ]]; then
+        tag="$(software_github_opencode_latest_stable_tag)" || return 1
+    else
+        metadata="$(curl --fail --silent --show-error --location --header 'Accept: application/vnd.github+json' "https://api.github.com/repos/$owner/$repository/releases/latest")" || return 1
+        tag="$(printf '%s\n' "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+    fi
     if [[ "$tag" != "$prefix"[0-9]* || ! "$tag" =~ ^[A-Za-z0-9.+_-]+$ || -z "$local_version" ]]; then
         printf '%s\n' 'Versions GitHub non vérifiables.' >&2
         return 1

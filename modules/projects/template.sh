@@ -86,7 +86,7 @@ projects_template_devops_prepare_executables() {
         return 1
     fi
     for relative in go/current/bin/go node/current/bin/node node/current/bin/npm \
-        .opencode/bin/opencode .local/npm/bin/openspec \
+        .local/npm/bin/openspec \
         python/current/bin/python3 python/current/bin/pip3; do
         if [[ ! -e "${devops_home}/${relative}" && ! -L "${devops_home}/${relative}" ]]; then
             continue
@@ -224,9 +224,6 @@ projects_template_devops_section() {
         printf '# Conteneur %s, pour tests nécessitant des droits root\n\n  * %s\n  * %s\n  * /var/run/docker.sock\n  * debian:stable-slim\n  * Accès TPM OK\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}" || return 1
         projects_template_devops_test_authorization || return 1
-    elif [[ "${title}" == OpenCode ]]; then
-        printf "# %s\n\n  * %s\n  * %s\n  * La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env\n\n\n" \
-            "${title}" "${version}" "${binary:-binaire introuvable}"
     else
         printf '# %s\n\n  * %s\n  * %s\n\n\n' \
             "${title}" "${version}" "${binary:-binaire introuvable}"
@@ -1361,8 +1358,8 @@ def collect():
                 and not any(item["groups"].values())):
             skipped += 1
             continue
-        target = opencode if item["path"] == Path(".opencode/package.json") else general
         try:
+            target = opencode if item["path"] == Path(".opencode/package.json") else general
             target.append(render_manifest(item, owners))
         except InventoryError:
             diagnostics.add("collecte interrompue avant restitution complète")
@@ -1461,7 +1458,7 @@ affiché, journalisé ou transmis au modèle.
 Les mentions de chargement de variables dans cet inventaire décrivent
 leur utilisation par les outils locaux. Elles n’accordent aucun droit
 supplémentaire de consultation à l’agent, notamment pour les variables
-d’authentification SSH, OpenCode ou PostgreSQL.
+d’authentification SSH ou PostgreSQL.
 
 DEVOPS_PROJECT_ENV
     printf '%s\n' \
@@ -1471,9 +1468,8 @@ DEVOPS_PROJECT_ENV
         "Dans l’inventaire Python, la flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées." \
         'Les dépendances Python attendues proviennent de [project].dependencies dans pyproject.toml.' \
         'Les outils de compilation Python éventuellement affichés proviennent de [build-system].requires et sont recherchés uniquement dans les venv du projet.' \
-        'Les dépendances JavaScript sont regroupées par manifeste et catégorie sous NPM et OpenCode.' \
+        'Les dépendances JavaScript sont regroupées par manifeste et catégorie.' \
         'Leurs déclarations, versions verrouillées npm et métadonnées locales sont distinctes ; un verrou ne prouve pas une installation.' \
-        'Les contraintes JavaScript ne sont pas résolues et cet inventaire ne prouve pas le chargement de plugins OpenCode.' \
         'Un inventaire multi-environnements ne valide pas un environnement Python unique.' \
         'Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.' \
         '' || return 1
@@ -1487,8 +1483,7 @@ DEVOPS_PROJECT_ENV
     fi
     javascript_dependencies="${javascript_report%%$'\034'*}"
     opencode_dependencies="${javascript_report#*$'\034'}"
-
-    for name in Docker LXC 'OpenSSH & SSHPASS' Docker-Compose Git Go Node NPM OpenCode OpenSpec OpenSSL 'PostgreSQL Client'; do
+    for name in Docker LXC 'OpenSSH & SSHPASS' Docker-Compose Git Go Node NPM OpenSpec OpenSSL 'PostgreSQL Client'; do
         case "${name}" in
             Docker) [[ "${ENV_DEVOPS_TESTS_DOCKER:-0}" == 1 ]] || continue ;;
             LXC)
@@ -1533,7 +1528,6 @@ DEVOPS_PROJECT_ENV
             Go) context=user; binary="${devops_home}/go/current/bin/go"; version_arguments=(version) ;;
             Node) context=user; binary="${devops_home}/node/current/bin/node" ;;
             NPM) context=node; binary="${devops_home}/node/current/bin/npm" ;;
-            OpenCode) context=user; binary="${devops_home}/.opencode/bin/opencode" ;;
             OpenSpec) context=node; binary="${devops_home}/.local/npm/bin/openspec" ;;
             OpenSSL) binary="$(projects_template_devops_host_binary openssl)" || binary=''; version_arguments=(version) ;;
             'PostgreSQL Client') binary="$(projects_template_devops_host_binary psql)" || binary=''; psql_binary="${binary}" ;;
@@ -1541,11 +1535,9 @@ DEVOPS_PROJECT_ENV
         version="$(projects_template_devops_version "${context}" "${devops_home}" "${binary}" "${version_arguments[@]}")" || return 1
         projects_template_devops_section "${name}" "${version}" "${binary}" || return 1
         case "${name}" in
-            NPM) printf '%s' "${javascript_dependencies}" || return 1 ;;
-            OpenCode)
-                if [[ -n "${opencode_dependencies}" ]]; then
-                    printf '%s\n\n' "${opencode_dependencies}" || return 1
-                fi
+            NPM)
+                printf '%s' "${javascript_dependencies}" || return 1
+                printf '%s' "${opencode_dependencies}" || return 1
                 ;;
         esac
     done

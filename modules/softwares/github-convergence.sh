@@ -2,7 +2,7 @@
 
 software_github_install() (
     local software="${1:-}" mode="${2:-install}" owner repository prefix system architecture asset manifest root binary executable companion
-    local metadata tag checksum actual work='' target previous='' linked_target helper actual_state
+    local metadata tag checksum actual work='' target previous='' linked_target helper actual_state installed_version remote_version
     [[ "$mode" == install || "$mode" == upgrade ]] || return 2
     owner="$(software_github_convergence_metadata "$software" owner)" || return 1
     repository="$(software_github_convergence_metadata "$software" repository)" || return 1
@@ -27,9 +27,14 @@ software_github_install() (
             return 1
         fi
     fi
-    metadata="$(curl --fail --silent --show-error --location --header 'Accept: application/vnd.github+json' "https://api.github.com/repos/$owner/$repository/releases/latest")" || return 1
-    tag="$(printf '%s\n' "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
-    if [[ "$tag" != "$prefix"[0-9]* || ! "$tag" =~ ^[A-Za-z0-9.+_-]+$ ]] || ! printf '%s\n' "$metadata" | grep -Fq -- "$asset"; then
+    if [[ "$software" == opencode ]]; then
+        tag="$(software_github_opencode_latest_stable_tag)" || return 1
+    else
+        metadata="$(curl --fail --silent --show-error --location --header 'Accept: application/vnd.github+json' "https://api.github.com/repos/$owner/$repository/releases/latest")" || return 1
+        tag="$(printf '%s\n' "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+    fi
+    if [[ "$tag" != "$prefix"[0-9]* || ! "$tag" =~ ^[A-Za-z0-9.+_-]+$ ]] ||
+        { [[ "$software" != opencode ]] && ! printf '%s\n' "$metadata" | grep -Fq -- "$asset"; }; then
         printf '%s\n' 'Release GitHub ou artefact invalide.' >&2
         return 1
     fi
@@ -55,8 +60,21 @@ software_github_install() (
     if [[ "$mode" == install ]]; then
         actual_state="$(software_github_convergence_detect "$software")" || return 1
         if [[ "$actual_state" == 1 ]]; then
-            printf '%s : logiciel déjà présent.\n' "$software"
-            return 0
+            if [[ "$software" == opencode ]]; then
+                installed_version="$(software_github_opencode_version)" || {
+                    printf '%s\n' 'Version OpenCode système non vérifiable.' >&2
+                    return 1
+                }
+                remote_version="${tag#"$prefix"}"
+                if ! software_github_version_is_newer "$installed_version" "$remote_version"; then
+                    printf '%s : logiciel déjà présent (%s).\n' "$software" "$installed_version"
+                    return 0
+                fi
+                mode=upgrade
+            else
+                printf '%s : logiciel déjà présent.\n' "$software"
+                return 0
+            fi
         fi
         [[ "$actual_state" == 0 ]] || return 1
     fi

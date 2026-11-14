@@ -15,6 +15,9 @@ sans moteur, il converge APT, Flatpak puis GitHub. `diu update` exécute cette
 convergence en dernière étape. Les mises à jour de versions restent dans
 `diu system engine <moteur> update`.
 
+OpenCode V2 se gère avec `diu softwares install|remove github opencode` ;
+le binaire système DIU est `/usr/local/bin/opencode`.
+
 La configuration d'un logiciel désiré est rejouée à chaque convergence ; son
 nettoyage suit une désinstallation effective. Un logiciel déjà absent et non
 désiré ne produit aucune sortie et son nettoyage n'est pas rejoué.
@@ -54,8 +57,7 @@ Bash. Le module `projects` gère également les projets de développement et
 leurs publications Forgejo.
 
 `diu system update` lance `diu system engine update` puis `diu system network update`. La mise à jour des moteurs enchaîne les parcours `diu system engine apt update`,
-`diu system engine github update` et `diu system engine flatpak update`. Le parcours APT produit son bilan Debian ; GitHub vérifie le moteur et
-met à jour Codex CLI lorsqu’il est configuré ; Flatpak vérifie ses dépendances
+`diu system engine github update` et `diu system engine flatpak update`. Le parcours APT produit son bilan Debian ; GitHub met à jour les logiciels GitHub désirés, dont Codex CLI et OpenCode ; Flatpak vérifie ses dépendances
 et Flathub. Chaque parcours ciblé est indépendant. Les anciennes commandes
 `diu system apt update`, `diu system github update` et `diu system flatpak update`
 ne sont plus acceptées. Les anciennes syntaxes
@@ -333,7 +335,7 @@ Pour générer l'inventaire DevOps d'un projet :
 diu projects template devops <ID PROJECT>
 ```
 
-`DEVOPS.md` est généré au format documentaire `0.7`, avec provenance DIU,
+`DEVOPS.md` est généré au format documentaire `0.8`, avec provenance DIU,
 début du relevé UTC et classification de l'environnement d'exécution fournie
 par DIU. Les dépendances Python sont recherchées en priorité dans les venv du projet
 (`.venv`, `venv`, `env`, puis autres chemins triés), avec repli DevOps explicite.
@@ -353,7 +355,7 @@ si l’absence est établie, ou « installation non vérifiable » sinon, notamm
 sans venv. Un outil non déclaré n’est ni sondé ni affiché ; sans les deux, la
 rubrique et sa découverte sont omises. Aucun paquet global ne sert de repli,
 aucun paquet n’est installé, aucun manifeste n’est modifié et aucune compilation
-n’est lancée. Le format reste `0.7` ; les documents existants adoptent ce rendu
+n’est lancée. Le format reste `0.8` ; les documents existants adoptent ce rendu
 à leur prochaine génération normale.
 
 La rubrique « Système d'exploitation » affiche le nom de l'OS puis le résultat
@@ -363,14 +365,14 @@ d'hôte. La sonde est limitée à 15 secondes ; une indisponibilité ou une sort
 invalide est indiquée explicitement sans bloquer la génération.
 
 Avant les inventaires et les sondes, DIU ajoute les droits d'exécution
-manquants aux sept outils DevOps présents : Go, Node, npm, OpenCode, OpenSpec,
-Python et pip. Cette préparation vise uniquement leurs chemins connus dans
+manquants aux six outils DevOps présents : Go, Node, npm, OpenSpec, Python et
+pip. Cette préparation vise uniquement leurs chemins connus dans
 le domicile DevOps et les cibles de liens qui y restent confinées. Les
 propriétaires, droits de lecture et d'écriture, outils hôte et autres fichiers
 restent inchangés. Aucun outil absent n'est installé. Une cible externe ou
 non ordinaire, ou un échec de préparation, bloque la génération et conserve
 le document précédent ; les droits déjà ajoutés ne sont pas annulés. Le format
-documentaire reste `0.7`, appliqué à la prochaine génération normale.
+documentaire reste `0.8`, appliqué à la prochaine génération normale.
 
 Après l'OS, la section « Matériel » contient « TPM », avec chemin en premier
 (`/dev/tpmrm0` prioritaire), version, fabricant, identifiant fournisseur,
@@ -379,7 +381,7 @@ le code ASCII observé et l'identifiant son code hexadécimal. La collecte est
 locale, bornée et en lecture seule ; les propriétés impossibles à relever
 restent explicites sans bloquer le document. Aucun outil ni droit n'est
 modifié et les valeurs des PCR ne sont pas lues. Les documents existants
-adoptent ce rendu à leur prochaine génération normale, au format `0.7`.
+adoptent ce rendu à leur prochaine génération normale, au format `0.8`.
 
 La rubrique « Conteneur Docker, pour tests nécessitant des droits root » apparaît
 uniquement si `ENV_DEVOPS_TESTS_DOCKER` vaut exactement `1`. Elle indique la
@@ -398,7 +400,7 @@ puces sont :
 « Variables d'accès disponible dans project.env pour l'accès SSH », « Debian 13 », « Accès TPM OK ».
 Ces mentions sont déclaratives, sans connexion LXC, lecture d'identifiants ni
 qualification TPM distante. Pour chaque indicateur, une valeur absente, vide ou
-différente de `1` omet sa rubrique. Le format reste `0.7` et les documents existants
+différente de `1` omet sa rubrique. Le format reste `0.8` et les documents existants
 adoptent ce comportement à leur prochaine génération normale.
 
 Les deux rubriques activées contiennent l'autorisation commune :
@@ -420,22 +422,22 @@ Seul le numéro de version est publié ; absences, échecs, expirations et sorti
 non reconnues sont signalés explicitement. Aucune connexion, lecture
 d’identifiants, installation ou modification des droits de ces outils n’est
 réalisée. Cette rubrique est indépendante des indicateurs Docker/LXC et
-commune aux trois parcours, au format documentaire `0.7`. Les documents existants
+commune aux trois parcours, au format documentaire `0.8`. Les documents existants
 l’adoptent à leur prochaine génération normale.
 
 La rubrique « Prompts » indique `/home/${ENV_DEVOPS_USER}/datas/prompts` et
 `/home/${ENV_DEVOPS_USER}/datas/prompts/INDEX.md`, avec le compte DevOps
 configuré, indépendamment de la racine des projets. Ces ressources ne sont
-ni lues ni créées ; les documents existants adoptent le format `0.7` à leur
+ni lues ni créées ; les documents existants adoptent le format `0.8` à leur
 prochaine génération.
 
-Les manifestes `package.json` des composants et workspaces sont regroupés sous
-NPM ; `.opencode/package.json` figure sous OpenCode. Les dépendances directes
-sont séparées par catégorie, avec contrainte déclarée, version verrouillée
-npm (formats 2/3) et version observée localement, puis chemin réel
-d'installation. Un verrou ne prouve pas une installation ; les formats non
-analysés et recherches incomplètes restent explicites. La collecte ne lance
-aucun gestionnaire, script ou paquet et n'utilise aucun repli npm global.
+Les manifestes `package.json` des composants et workspaces retenus sont
+regroupés sous NPM. Les dépendances directes sont séparées par catégorie, avec
+contrainte déclarée, version verrouillée npm (formats 2/3) et version observée
+localement, puis chemin réel d'installation. Un verrou ne prouve pas une
+installation ; les formats non analysés et recherches incomplètes restent
+explicites. La collecte ne lance aucun gestionnaire, script ou paquet et
+n'utilise aucun repli npm global.
 Les détails sont décrits dans
 [le cadrage technique](TECHNICAL.md#traçabilité-du-document-devops).
 

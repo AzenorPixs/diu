@@ -328,7 +328,7 @@ system_update_report_apt_softwares() {
 system_update_engine() {
     local selected="$1"
     local workdir status=0 apt_status=0 warning=0 version
-    local before_codex='' after_codex='' engine label changed
+    local before_codex='' after_codex='' before_opencode='' after_opencode='' engine label changed
     workdir="$(mktemp -d)" || { print_error 'Impossible de préparer le bilan de mise à jour.'; return 1; }
     version="$(cat /etc/debian_version 2>/dev/null)" || version='inconnue'
     if [[ "$selected" == apt ]] && ! system_update_package_versions > "$workdir/before"; then
@@ -338,6 +338,9 @@ system_update_engine() {
     fi
     if [[ "$selected" == github && "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]] && declare -F software_github_codex_cli_version >/dev/null; then
         before_codex="$(software_github_codex_cli_version 2>/dev/null)" || before_codex=''
+    fi
+    if [[ "$selected" == github && "${SOFTWARE_GITHUB_OPENCODE:-0}" == 1 ]] && declare -F software_github_opencode_version >/dev/null; then
+        before_opencode="$(software_github_opencode_version 2>/dev/null)" || before_opencode=''
     fi
     if [[ "$selected" == apt ]]; then
     local spinner_pid=''
@@ -406,6 +409,9 @@ system_update_engine() {
             if [[ "$engine" == github && "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]]; then
                 printf '   • Codex CLI : %s\n' "${before_codex:-version indisponible}"
             fi
+            if [[ "$engine" == github && "${SOFTWARE_GITHUB_OPENCODE:-0}" == 1 ]]; then
+                printf '   • OpenCode : %s\n' "${before_opencode:-version indisponible}"
+            fi
             status=1
             continue
         fi
@@ -423,16 +429,25 @@ system_update_engine() {
             apt)
                 system_update_report_apt_softwares "$workdir/before" "$workdir/after" || status=1 ;;
             github)
-                if [[ "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]]; then
+                if [[ "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 || "${SOFTWARE_GITHUB_OPENCODE:-0}" == 1 ]]; then
                     if ! system_github_update_applications /root/diu/config/softwares.env > "$workdir/codex.log"; then
                         cat "$workdir/codex.log"
-                        printf '%s\n' '   ❌ Codex CLI : mise à jour échouée.'
+                        [[ "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]] && printf '%s\n' '   ❌ Codex CLI : mise à jour échouée.'
+                        [[ "${SOFTWARE_GITHUB_OPENCODE:-0}" == 1 ]] && printf '%s\n' '   ❌ OpenCode : mise à jour échouée.'
                         status=1
                     fi
+                fi
+                if [[ "${SOFTWARE_GITHUB_CODEX_CLI:-0}" == 1 ]]; then
                     after_codex="$(software_github_codex_cli_version 2>/dev/null)" || after_codex=''
                     if [[ -z "$after_codex" ]]; then printf '%s\n' '   ❌ Codex CLI : version indisponible.'; status=1
                     elif [[ -n "$before_codex" && "$before_codex" != "$after_codex" ]]; then printf '   • Codex CLI : %s → %s\n' "$before_codex" "$after_codex"
                     else printf '   • Codex CLI : %s\n' "$after_codex"; fi
+                fi
+                if [[ "${SOFTWARE_GITHUB_OPENCODE:-0}" == 1 ]]; then
+                    after_opencode="$(software_github_opencode_version 2>/dev/null)" || after_opencode=''
+                    if [[ -z "$after_opencode" ]]; then printf '%s\n' '   ❌ OpenCode : version indisponible.'; status=1
+                    elif [[ -n "$before_opencode" && "$before_opencode" != "$after_opencode" ]]; then printf '   • OpenCode : %s → %s\n' "$before_opencode" "$after_opencode"
+                    else printf '   • OpenCode : %s\n' "$after_opencode"; fi
                 fi ;;
             flatpak)
                 system_flatpak_update_applications || status=1 ;;

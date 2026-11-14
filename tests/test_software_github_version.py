@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class GithubVersionTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory(prefix=".github-version-test-", dir=ROOT)
+        self.directory = tempfile.TemporaryDirectory(prefix="github-version-test-")
         self.addCleanup(self.directory.cleanup)
         self.binary = Path(self.directory.name) / "codex"
         self.config = Path(self.directory.name) / "config"

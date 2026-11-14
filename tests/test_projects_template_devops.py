@@ -27,7 +27,7 @@ CONTAINER_TEST_AUTHORIZATION = (
 
 class ProjectsTemplateDevopsTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-test-devops-')
+        self.temporary = tempfile.TemporaryDirectory(prefix='diu-test-devops-')
         self.addCleanup(self.temporary.cleanup)
         self.fixture = Path(self.temporary.name)
         self.home = self.fixture / 'home'
@@ -96,7 +96,6 @@ printf '%s\n' "$TEST_HOSTNAME_OUTPUT"
                         '[ "$#" -eq 1 ] && [ "$1" = --version ] || exit 9\n'
                         "printf 'Mozilla Firefox 140.0.4esr\\n'")
         self.executable(self.home / 'go/current/bin/go', "printf 'go version go1.25.3 linux/amd64\\n'")
-        self.executable(self.home / '.opencode/bin/opencode', "printf '1.2.8\\n'")
         self.executable(self.home / 'node/current/bin/node', r'''
 case "$1" in
     --version) printf 'v24.3.1\n' ;;
@@ -210,7 +209,7 @@ ENV_DEVOPS_USER="$1"
 
     def test_configuration_locale_precedes_probe_legend(self):
         content = self.successful_document(self.run_generation())
-        expected = '## Configuration locale — project.env\n\nLe fichier `project.env`, situé à la racine du projet, est une configuration\nlocale protégée. Sa consultation par les agents relève des sections 9 et 10\nd’AGENTS.md.\n\nPour le travail autorisé, l’agent peut extraire localement les variables\nnon secrètes nécessaires, notamment `PROJECT_*`, `LOCAL_DEFAULT_BRANCH`,\n`GIT_*` et `REMOTE_*`, sans limitation à ces familles. Seul un processus\nlocal parcourt le fichier et restitue les noms et valeurs validés comme\nnon secrets.\n\nLa lecture brute, l’exécution du fichier et son chargement dans\nl’environnement par l’agent sont interdits. L’agent ne doit ni créer,\nni modifier, ni régénérer ce fichier. Aucun secret ne doit être restitué,\naffiché, journalisé ou transmis au modèle.\n\nLes mentions de chargement de variables dans cet inventaire décrivent\nleur utilisation par les outils locaux. Elles n’accordent aucun droit\nsupplémentaire de consultation à l’agent, notamment pour les variables\nd’authentification SSH, OpenCode ou PostgreSQL.\n'
+        expected = '## Configuration locale — project.env\n\nLe fichier `project.env`, situé à la racine du projet, est une configuration\nlocale protégée. Sa consultation par les agents relève des sections 9 et 10\nd’AGENTS.md.\n\nPour le travail autorisé, l’agent peut extraire localement les variables\nnon secrètes nécessaires, notamment `PROJECT_*`, `LOCAL_DEFAULT_BRANCH`,\n`GIT_*` et `REMOTE_*`, sans limitation à ces familles. Seul un processus\nlocal parcourt le fichier et restitue les noms et valeurs validés comme\nnon secrets.\n\nLa lecture brute, l’exécution du fichier et son chargement dans\nl’environnement par l’agent sont interdits. L’agent ne doit ni créer,\nni modifier, ni régénérer ce fichier. Aucun secret ne doit être restitué,\naffiché, journalisé ou transmis au modèle.\n\nLes mentions de chargement de variables dans cet inventaire décrivent\nleur utilisation par les outils locaux. Elles n’accordent aucun droit\nsupplémentaire de consultation à l’agent, notamment pour les variables\nd’authentification SSH ou PostgreSQL.\n'
         self.assertEqual(content.count(expected), 1)
         self.assertIn(expected + "\nLes sondes système concernent le contexte d'exécution DIU.", content)
 
@@ -455,7 +454,7 @@ ssh() { container_forbidden; }
         self.assertEqual(re.findall(r'^# (.+)$', content, re.M), [
             'DEVOPS.md — Template', "Système d'exploitation", 'Matériel',
             'Conteneur Docker, pour tests nécessitant des droits root',
-            'OpenSSH & SSHPASS', 'Docker-Compose', 'Git', 'Go', 'Node', 'NPM', 'OpenCode',
+            'OpenSSH & SSHPASS', 'Docker-Compose', 'Git', 'Go', 'Node', 'NPM',
             'OpenSpec', 'OpenSSL', 'PostgreSQL Client', 'PostgreSQL Serveur',
             'Python', 'Python - Dépendances du projet - Source de vérité `pyproject.toml`',
             'Python - Gestionnaire de paquets', 'Prompts',
@@ -471,11 +470,9 @@ ssh() { container_forbidden; }
         self.assertTrue(content.endswith('  * Mode headless : --headless\n'))
         self.assertIn('Version : 0.8', content)
         self.assert_prompts_section(content)
-        opencode_source = "La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env"
-        self.assertIn('# OpenCode\n\n  * 1.2.8\n'
-                      f'  * {self.home / ".opencode/bin/opencode"}\n'
-                      f'  * {opencode_source}\n\n\n# OpenSpec\n', content)
-        self.assertEqual(content.count(opencode_source), 1)
+        self.assertNotIn('# OpenCode\n', content)
+        self.assertNotIn('.opencode/bin/opencode', content)
+        self.assertNotIn('OPENCODE_PASSWORD', content)
         for title, version, path in (
             ('Conteneur Docker, pour tests nécessitant des droits root', '29.1.2', self.host_bin / 'docker'),
             ('Docker-Compose', '5.2.3', self.host_bin / 'docker-compose'),
@@ -483,7 +480,6 @@ ssh() { container_forbidden; }
             ('Go', '1.25.3', self.home / 'go/current/bin/go'),
             ('Node', '24.3.1', self.home / 'node/current/bin/node'),
             ('NPM', '11.5.2', self.home / 'node/current/bin/npm'),
-            ('OpenCode', '1.2.8', self.home / '.opencode/bin/opencode'),
             ('OpenSpec', '1.3.9', self.home / '.local/npm/bin/openspec'),
             ('OpenSSL', '3.5.3', self.host_bin / 'openssl'),
             ('PostgreSQL Client', '17.6', self.host_bin / 'psql'),
@@ -895,10 +891,10 @@ esac
 
     def test_missing_user_tools_never_use_host_versions(self):
         for relative in ('go/current/bin/go', 'node/current/bin/node',
-                         '.opencode/bin/opencode', '.local/npm/bin/openspec',
+                         '.local/npm/bin/openspec',
                          'python/current/bin/python3', 'python/current/bin/pip3'):
             (self.home / relative).unlink()
-        for name in ('go', 'node', 'npm', 'python3', 'pip3', 'openspec', 'opencode'):
+        for name in ('go', 'node', 'npm', 'python3', 'pip3', 'openspec'):
             self.executable(self.host_bin / name, "printf '99.0.0\\n'")
         self.environment['PATH'] = str(self.host_bin) + ':' + os.environ['PATH']
         content = self.successful_document(self.run_generation())
@@ -909,7 +905,7 @@ esac
 
     def test_prepare_all_devops_tools_before_inventory_and_versions(self):
         tools = ('go/current/bin/go', 'node/current/bin/node', 'node/current/bin/npm',
-                 '.opencode/bin/opencode', '.local/npm/bin/openspec',
+                 '.local/npm/bin/openspec',
                  'python/current/bin/python3', 'python/current/bin/pip3')
         owners = {}
         for relative in tools:
@@ -920,7 +916,7 @@ esac
         extra = r'''
 projects_template_devops_javascript() {
     for relative in go/current/bin/go node/current/bin/node node/current/bin/npm \
-        .opencode/bin/opencode .local/npm/bin/openspec \
+        .local/npm/bin/openspec \
         python/current/bin/python3 python/current/bin/pip3; do
         [[ -x "${TEST_DEVOPS_HOME}/${relative}" ]] || return 1
     done
@@ -929,7 +925,7 @@ projects_template_devops_javascript() {
 '''
         content = self.successful_document(self.run_generation(extra))
         self.assertIn('préparation vérifiée', content)
-        self.assertIn('# OpenCode\n\n  * 1.2.8', content)
+        self.assertNotIn('# OpenCode\n', content)
         self.assertIn('# Node\n\n  * 24.3.1', content)
         self.assertIn('# NPM\n\n  * 11.5.2', content)
         self.assertIn('# OpenSpec\n\n  * 1.3.9', content)
@@ -956,7 +952,7 @@ projects_template_devops_javascript() {
                 self.assertEqual(path.stat().st_ctime_ns, observed.st_ctime_ns)
 
     def test_preparation_is_idempotent_without_reapplying_chmod(self):
-        tool = self.home / '.opencode/bin/opencode'
+        tool = self.home / '.local/npm/bin/openspec'
         tool.chmod(0o664)
         first = self.successful_document(self.run_generation())
         prepared = tool.stat()
@@ -965,37 +961,29 @@ projects_template_devops_javascript() {
         self.assertEqual(tool.stat().st_ctime_ns, prepared.st_ctime_ns)
         self.assertEqual(tool.stat().st_mode & 0o777, 0o775)
 
-    def test_internal_binary_and_current_directory_symlinks_are_preserved(self):
-        tool = self.home / '.opencode/bin/opencode'
-        target = self.home / '.opencode/releases/opencode'
-        target.parent.mkdir()
-        tool.rename(target)
-        target.chmod(0o644)
-        tool.symlink_to('../releases/opencode')
+    def test_internal_current_directory_symlink_is_preserved(self):
         current = self.home / 'node/current'
         installed = self.home / 'node/version-fixture'
         current.rename(installed)
         current.symlink_to('version-fixture')
         (installed / 'bin/node').chmod(0o644)
         content = self.successful_document(self.run_generation())
-        self.assertIn('# OpenCode\n\n  * 1.2.8', content)
+        self.assertNotIn('# OpenCode\n', content)
         self.assertIn('# Node\n\n  * 24.3.1', content)
-        self.assertTrue(tool.is_symlink())
         self.assertTrue(current.is_symlink())
-        self.assertEqual(target.stat().st_mode & 0o777, 0o755)
         self.assertEqual((installed / 'bin/node').stat().st_mode & 0o777, 0o755)
 
     def test_external_symlink_fails_without_changing_target_or_document(self):
         target = self.host_bin / 'git'
         target.chmod(0o640)
-        tool = self.home / '.opencode/bin/opencode'
+        tool = self.home / '.local/npm/bin/openspec'
         tool.unlink()
         tool.symlink_to(target)
         self.document.write_text('document précédent\n', encoding='utf-8')
         before = target.stat()
         result = self.run_generation()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('hors du domicile : .opencode/bin/opencode', result.stderr)
+        self.assertIn('hors du domicile : .local/npm/bin/openspec', result.stderr)
         self.assertEqual(target.stat().st_mode, before.st_mode)
         self.assertEqual(target.stat().st_ctime_ns, before.st_ctime_ns)
         self.assertEqual(self.document.read_text(), 'document précédent\n')
@@ -1003,34 +991,34 @@ projects_template_devops_javascript() {
         self.assertFalse(self.tpm_log.exists())
 
     def test_nonregular_tool_fails_without_changing_its_mode(self):
-        tool = self.home / '.opencode/bin/opencode'
+        tool = self.home / '.local/npm/bin/openspec'
         tool.unlink()
         tool.mkdir(mode=0o700)
         before = tool.stat().st_mode
         result = self.run_generation()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('fichier ordinaire : .opencode/bin/opencode', result.stderr)
+        self.assertIn('fichier ordinaire : .local/npm/bin/openspec', result.stderr)
         self.assertEqual(tool.stat().st_mode, before)
         self.assertFalse(self.document.exists())
 
     def test_missing_and_dangling_internal_tools_are_not_created(self):
-        tool = self.home / '.opencode/bin/opencode'
+        tool = self.home / '.local/npm/bin/openspec'
         tool.unlink()
-        tool.symlink_to('missing-opencode')
+        tool.symlink_to('missing-openspec')
         content = self.successful_document(self.run_generation())
-        self.assertIn('# OpenCode\n\n  * indisponible (binaire absent)', content)
+        self.assertNotIn('# OpenCode\n', content)
         self.assertTrue(tool.is_symlink())
         self.assertFalse(tool.exists())
 
     def test_chmod_failure_preserves_document_and_previously_prepared_modes(self):
         go = self.home / 'go/current/bin/go'
-        opencode = self.home / '.opencode/bin/opencode'
+        openspec = self.home / '.local/npm/bin/openspec'
         go.chmod(0o640)
-        opencode.chmod(0o640)
+        openspec.chmod(0o640)
         self.document.write_text('document précédent\n', encoding='utf-8')
         result = self.run_generation(r'''
 chmod() {
-    if [[ "$*" == *'/.opencode/bin/opencode' ]]; then
+    if [[ "$*" == *'/.local/npm/bin/openspec' ]]; then
         return 1
     fi
     command chmod "$@"
@@ -1040,7 +1028,7 @@ chmod() {
         self.assertIn('Impossible de rendre le binaire DevOps exécutable', result.stderr)
         self.assertEqual(self.document.read_text(), 'document précédent\n')
         self.assertEqual(go.stat().st_mode & 0o777, 0o751)
-        self.assertEqual(opencode.stat().st_mode & 0o777, 0o640)
+        self.assertEqual(openspec.stat().st_mode & 0o777, 0o640)
         self.assertFalse(self.query_log.exists())
         self.assertFalse(self.tpm_log.exists())
 
@@ -1057,12 +1045,12 @@ chmod() {
                 self.assertFalse(self.tpm_log.exists())
 
     def test_direct_version_distinguishes_nonexecutable_from_missing(self):
-        tool = self.home / '.opencode/bin/opencode'
+        tool = self.home / '.local/npm/bin/openspec'
         tool.chmod(0o640)
         before = tool.stat()
         result = self.run_generation(r'''
 projects_template_devops_version user "$TEST_DEVOPS_HOME" \
-    "$TEST_DEVOPS_HOME/.opencode/bin/opencode" --version
+    "$TEST_DEVOPS_HOME/.local/npm/bin/openspec" --version
 projects_template_devops_version user "$TEST_DEVOPS_HOME" \
     "$TEST_DEVOPS_HOME/missing" --version
 exit
@@ -1074,11 +1062,11 @@ exit
         self.assertEqual(tool.stat().st_ctime_ns, before.st_ctime_ns)
 
     def test_failed_probe_and_venv_are_explicit(self):
-        self.executable(self.home / '.opencode/bin/opencode', 'exit 7')
+        self.executable(self.home / '.local/npm/bin/openspec', 'exit 7')
         self.executable(self.host_bin / 'docker', 'exit 7')
         self.environment['TEST_VENV_STATUS'] = '1'
         content = self.successful_document(self.run_generation())
-        self.assertIn('# OpenCode\n\n  * indisponible (sonde échouée)', content)
+        self.assertNotIn('# OpenCode\n', content)
         self.assertIn('venv: indisponible', content)
         self.assertIn('# Conteneur Docker, pour tests nécessitant des droits root\n\n'
                       f'  * indisponible (sonde échouée)\n  * {self.host_bin / "docker"}\n'
@@ -1785,7 +1773,7 @@ projects_template_devops_dependencies() {
                         encoding="utf-8")
         return path
 
-    def test_javascript_pixs_frontend_and_opencode_are_separate_with_effective_paths(self):
+    def test_javascript_opencode_project_manifest_remains_a_project_dependency(self):
         frontend = {"dependencies": {"@tanstack/react-router": "1.170.41",
                                      "react": "19.3.0", "react-dom": "19.3.0"},
                     "devDependencies": {"vite": "8.3.1"}}
@@ -1802,14 +1790,14 @@ projects_template_devops_dependencies() {
         content = self.javascript_document(self.run_generation())
         self.assertFalse((self.template / "package.json").exists())
         self.assertEqual(content.count("## Dépendances JavaScript du projet\n"), 1)
-        self.assertEqual(content.count("## Dépendances OpenCode du projet\n"), 1)
+        self.assertIn("## Dépendances OpenCode du projet\n", content)
+        self.assertNotIn("# OpenCode\n", content)
         self.assertLess(content.index("# NPM\n"), content.index("### frontend/package.json\n"))
-        self.assertLess(content.index("### frontend/package.json\n"), content.index("# OpenCode\n"))
-        self.assertLess(content.index("# OpenCode\n"), content.index("### .opencode/package.json\n"))
-        self.assertLess(content.index("### .opencode/package.json\n"), content.index("# OpenSpec\n"))
-        for name, version in {**frontend["dependencies"], **frontend["devDependencies"],
-                              **tooling["dependencies"]}.items():
+        self.assertLess(content.index("### frontend/package.json\n"), content.index("# OpenSpec\n"))
+        for name, version in {**frontend["dependencies"], **frontend["devDependencies"]}.items():
             self.assertIn(f"{name} : déclarée {version} ; verrouillée (npm) {version} ; observée {version}", content)
+        self.assertIn("@opencode-ai/plugin : déclarée 1.18.34 ; verrouillée (npm) 1.18.34 ; observée 1.18.34", content)
+        self.assertNotIn("OPENCODE_PASSWORD", content)
         self.assertIn("#### dependencies\n", content)
         self.assertIn("#### devDependencies\n", content)
         self.assertIn(f"Installation : {self.template / 'frontend/node_modules/react'}\n", content)
@@ -2128,7 +2116,7 @@ projects_template_devops_dependencies() {
                     "projects_template_devops_javascript() { " + body + "; }\n"))
                 self.assertIn("Inventaire non vérifiable : analyse échouée", content)
                 self.assertNotIn("private-canary", content)
-                self.assertIn("# OpenCode\n", content)
+                self.assertNotIn("# OpenCode\n", content)
                 self.assertIn("# PostgreSQL Serveur\n", content)
 
     def test_javascript_collector_runs_once_and_repeated_inventory_is_stable(self):
@@ -2738,7 +2726,7 @@ class ProjectsTemplateDevopsRuntimeTests(unittest.TestCase):
     """Sondes réelles ; aucun remplacement du code du module testé."""
 
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(dir=ROOT, prefix='.diu-test-runtime-')
+        self.temporary = tempfile.TemporaryDirectory(prefix='diu-test-runtime-')
         self.addCleanup(self.temporary.cleanup)
         self.fixture = Path(self.temporary.name)
         self.home = self.fixture / 'home with spaces'

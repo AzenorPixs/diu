@@ -95,18 +95,6 @@ antérieures. La sélection de la dernière version de `NODEJS_SERIES` et le
 diagnostic de série absente sont conservés. La spécification de référence est
 `openspec/specs/devops-nodejs-download/spec.md`.
 
-Lorsque `OPENCODE=1`, le bloc DevOps recherche sur les pages des releases
-GitHub la dernière version stable OpenCode V2. Les tags préliminaires et les
-autres versions majeures sont exclus. Curl conserve TLS et est borné à 10
-secondes de connexion et 60 secondes de transfert. Une version installée
-valide est comparée numériquement ; l'installateur officiel
-`https://opencode.ai/v2/install` reçoit la version exacte avec `--version` et
-`--no-modify-path` uniquement si le binaire est absent ou plus ancien. Une
-version égale ou supérieure est conservée. Une erreur réseau, une release V2
-absente ou une version locale illisible bloque l'installation avec un
-diagnostic explicite. La référence est
-`openspec/specs/devops-opencode/spec.md`.
-
 ## Contextes, utilisateurs et chemins
 
 | Élément | Valeur ou convention | Rôle |
@@ -321,8 +309,8 @@ conservant le projet préparé. La capacité de référence est
 ### Traçabilité du document DevOps
 
 Avant les inventaires de dépendances et les sondes, le rendu commun prépare
-les sept exécutables du domicile `/home/${ENV_DEVOPS_USER}` : Go, Node, npm,
-OpenCode, OpenSpec, Python et pip. Seuls les chemins connus de ces outils sont
+les six exécutables du domicile `/home/${ENV_DEVOPS_USER}` : Go, Node, npm,
+OpenSpec, Python et pip. Seuls les chemins connus de ces outils sont
 traités, sans parcours récursif. Les cibles ordinaires, y compris celles
 atteintes par les liens internes `current`, npm ou OpenSpec, sont résolues
 et confinées au domicile canonique. Les seuls bits `ugo+x` manquants sont
@@ -340,14 +328,9 @@ droits. Les sondes restent exécutées sous le compte et avec les interpréteurs
 déjà prévus, avec leur borne de 15 secondes. Cette préparation s'applique aux
 parcours individuel, groupé et final de création.
 
-`projects_template_devops_render` produit la version documentaire `0.7`.
-La rubrique OpenCode ajoute immédiatement après le chemin du binaire la puce
-« La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env »,
-avant les dépendances OpenCode éventuelles. Cette indication est statique :
-elle ne lit pas la variable ni le fichier pour cet ajout et ne prouve pas
-que le mot de passe est défini ou que l'API est accessible. Les parcours
-individuel, groupé et de création partagent ce rendu ; les documents existants
-l'adoptent à leur prochaine génération normale.
+`projects_template_devops_render` produit la version documentaire `0.8`.
+Les parcours individuel, groupé et de création partagent ce rendu ; les
+documents existants l'adoptent à leur prochaine génération normale.
 
 Après le titre et la version, le document identifie DIU comme générateur,
 indique le début du relevé en UTC au format `YYYY-MM-DDTHH:MM:SSZ` et publie
@@ -388,7 +371,7 @@ Les parcours individuel, groupé et final de création produisent cet en-tête
 une seule fois. Le titre, l'ordre relatif des rubriques existantes, les sondes,
 les droits et le propriétaire sont conservés. À observations identiques, le contenu technique
 reste identique hors horodatage. Les anciens documents prennent le format
-`0.7` lors de leur prochaine génération normale ; aucune migration ni retouche
+`0.8` lors de leur prochaine génération normale ; aucune migration ni retouche
 manuelle n'est nécessaire. La référence est
 `openspec/specs/projects-template-devops/spec.md`.
 
@@ -414,7 +397,7 @@ Ses trois premières puces sont fixes : « Variables d'accès disponible dans pr
 « Debian 13 », « Accès TPM OK ». Ces mentions sont déclaratives : le générateur
 ne lit pas d'identifiants LXC, ne se connecte pas au conteneur et ne qualifie pas
 son TPM. Une valeur absente, vide ou différente de `1` omet cette rubrique.
-Les trois parcours de génération partagent ce rendu au format `0.7`.
+Les trois parcours de génération partagent ce rendu au format `0.8`.
 
 Chaque rubrique de conteneur activée contient la même puce d'autorisation :
 « Les agents de codage et les agents orchestrateurs sont autorisés à préparer, exécuter, répéter et nettoyer les tests du projet dans ce conteneur, y compris avec les droits root, sans demander d’approbation supplémentaire. Cette autorisation couvre le conteneur et les ressources dédiées aux tests. »
@@ -437,7 +420,7 @@ Seul le numéro de version est publié ; absences, échecs, expirations et sorti
 non reconnues sont signalés explicitement. Aucune connexion, lecture
 d’identifiants, installation ou modification des droits de ces outils n’est
 réalisée. Cette rubrique est indépendante des indicateurs Docker/LXC et
-commune aux trois parcours, au format documentaire `0.7`. Les documents existants
+commune aux trois parcours, au format documentaire `0.8`. Les documents existants
 l’adoptent à leur prochaine génération normale.
 
 La rubrique « Prompts », après le gestionnaire de paquets Python et l’éventuelle
@@ -453,7 +436,7 @@ leur absence n'empêche pas la génération.
 Après « Système d'exploitation », chaque rendu ajoute « Matériel », puis
 « TPM ». Ses six puces sont Chemin, Version, Fabricant, Identifiant
 fournisseur, Révision de spécification et Registres PCR, dans cet ordre.
-La version documentaire reste `0.7`. Le relevé concerne uniquement le
+La version documentaire reste `0.8`. Le relevé concerne uniquement le
 matériel visible dans le contexte d'exécution DIU.
 
 Le premier périphérique caractère `/dev/tpmrmN` est préféré aux `/dev/tpmN`,
@@ -542,63 +525,39 @@ l’observation valide de l’autre. Les références directes sont masquées, l
 contraintes ne sont pas résolues et aucune conformité de version ni utilisation
 effective pour compiler n’est déduite de cet inventaire.
 
-Les trois parcours partagent ce rendu au format `0.7`, sans activation shell,
+Les trois parcours partagent ce rendu au format `0.8`, sans activation shell,
 import de Cython ou Nuitka, chargement de `.pth`, installation, compilation ni modification
 du manifeste. Les documents existants l’adoptent à leur prochaine génération
 normale. La référence reste `openspec/specs/projects-template-devops/spec.md`.
 
-### Dépendances JavaScript et OpenCode du projet
+### Dépendances JavaScript du projet
 
 `projects_template_devops_javascript` collecte une seule fois les métadonnées
 JavaScript par rendu. La sous-section « Dépendances JavaScript du projet »
-figure sous NPM ; « Dépendances OpenCode du projet » figure sous OpenCode pour
-`.opencode/package.json`. Elles sont omises lorsqu'aucun manifeste ni diagnostic
-ne les concerne. Les versions des binaires restent distinctes des paquets.
+figure sous NPM et n'est omise qu'en l'absence de manifeste ou de diagnostic.
+Les dépendances directes distinguent déclaration, verrou npm et observation
+locale, avec chemin d'installation vérifié ; un verrou seul ne prouve pas une
+installation.
 
 La découverte parcourt les dossiers ordinaires du projet sans suivre les liens,
-en excluant les paquets tiers `node_modules`, venv, caches, Git, sorties,
-journaux, `PROMPTS`, `openspec` et ressources d'outillage. L'exception OpenCode
-se limite à son manifeste et ses verrous racine ; ses configurations et états
-ne sont pas parcourus. Les manifestes racine, OpenCode, déclarant des dépendances
-ou organisant/appartenant à des workspaces sont retenus et triés par chemin.
-Les autres manifestes vides sont comptés comme non retenus. Les motifs de
-workspaces restent relatifs au projet ; les formes impossibles sont signalées.
+en excluant les paquets tiers, venv, caches, Git, sorties, journaux, `PROMPTS`,
+`openspec` et ressources d'outillage. Les manifestes racine et ceux déclarant
+des dépendances ou organisant/appartenant à des workspaces sont retenus et
+triés par chemin. Les autres manifestes vides sont comptés comme non retenus ;
+les motifs de workspaces restent relatifs au projet.
 
 Chaque manifeste conserve séparément `dependencies`, `devDependencies`,
 `peerDependencies` et `optionalDependencies`, ainsi que les déclarations
-`engines` et `packageManager` renseignées. Une référence privée URL/Git/locale
-est catégorisée sans publication de sa valeur. Les alias npm sûrs et références
-workspace sont identifiés sans résolution de contraintes ni exécution.
-
-Le verrou npm local prime ; `npm-shrinkwrap.json` prime sur `package-lock.json`.
-Seuls les formats 2 et 3 sont analysés. Un workspace déclaré sans verrou local
-peut utiliser celui de son organisateur, avec les entrées `packages` pertinentes
-et les liens internes au verrou. Les autres formats et sources concurrentes
-sont explicites sans déduction du gestionnaire réellement utilisé. Un verrou
-absent, invalide, incomplet ou désynchronisé ne fournit aucune preuve d'installation.
-
-Pour chaque dépendance directe, les métadonnées sont recherchées dans
-`node_modules` au plus près du manifeste puis dans ses parents jusqu'à la
-racine. La première installation présente prime ; une métadonnée invalide
-reste non vérifiable sans être masquée par une installation supérieure. Les
-liens d'installation internes au projet, notamment workspaces et pnpm, sont
-admis avec chemin réel ; les fichiers symboliques et cibles extérieures ou
-protégées sont refusés. Les JSON sont ouverts depuis un descripteur racine,
-sans suivre les liens intermédiaires. Aucun paquet global ou cache extérieur
-OpenCode ne devient un repli. L'absence locale est libellée « non observée
-localement » ; les échecs restent « non vérifiable ». Un écart entre verrou et
-version observée est signalé sans conclusion SemVer ni preuve de plugin chargé.
+`engines` et `packageManager`. Les références privées sont catégorisées sans
+publier leur valeur. Les verrous npm locaux distinguent déclaration, version
+verrouillée et métadonnées observées ; les formats non analysés et sources
+concurrentes restent explicitement non vérifiables.
 
 L'analyseur est le Python DevOps existant, sinon `/usr/bin/python3`, avec
-`-I -B -S` et uniquement la bibliothèque standard. Il ne lance ni npm, Bun,
-OpenCode, script ou import applicatif, ni installation ou requête réseau, et
-ne lit aucun `.npmrc`, fichier env ou secret. La collecte est bornée à
-12 secondes sous la borne utilisateur de 15 secondes, 10 000 entrées de
-découverte, 128 manifestes et 1 024 dépendances restituées. Les lectures sont
-limitées à 1 Mio par manifeste/métadonnée, 8 Mio par verrou et 32 Mio au total.
-Les limites et les diagnostics fixes rendent les données inconnues explicites ;
-les sorties brutes ne sont pas publiées. La référence reste
-`openspec/specs/projects-template-devops/spec.md`.
+`-I -B -S` et la bibliothèque standard. Il ne lance aucun gestionnaire, script
+ou import applicatif, n'installe aucun paquet, ne requiert aucun réseau et ne lit
+aucun fichier env, `.npmrc` ou secret. Les bornes de temps, de découverte, de
+manifestes, de verrous et de lectures cumulées restent appliquées.
 
 ### Navigateurs hôte dans le document DevOps
 
@@ -1253,7 +1212,7 @@ paquets Debian officiels.
 exécute la transaction globale de mise à niveau, puis effectue le nettoyage
 APT prévu et installe les prérequis manquants.
 
-`diu system update` capture cette sortie sans entrée interactive, restitue les diagnostics en cas de problème et compare les versions dpkg installées avant et après. Les trois moteurs sont présentés ; les logiciels DIU activés sont affichés avec leur version. ChatGPT est comparé autour du passage APT et Codex CLI est mis à jour par GitHub. En cas de succès, une seule ligne affiche sa version ; en cas d’échec, les diagnostics de la recette sont conservés. Aucun logiciel Flatpak ne dispose actuellement de variable individuelle ; la commande ne sélectionne donc aucune application Flatpak. Les commandes logicielles existantes conservent leur comportement. Le message exact de compatibilité de l’interface APT ne constitue pas un avertissement de mise à jour ; les autres diagnostics restent signalés.
+`diu system update` capture cette sortie sans entrée interactive, restitue les diagnostics en cas de problème et compare les versions dpkg installées avant et après. Les trois moteurs sont présentés ; les logiciels DIU activés sont affichés avec leur version. ChatGPT est comparé autour du passage APT ; GitHub met à jour Codex CLI et OpenCode lorsqu'ils sont désirés. En cas de succès, leurs versions sont affichées ; en cas d’échec, les diagnostics de chaque recette sont conservés. Aucun logiciel Flatpak ne dispose actuellement de variable individuelle ; la commande ne sélectionne donc aucune application Flatpak. Les commandes logicielles existantes conservent leur comportement. Le message exact de compatibilité de l’interface APT ne constitue pas un avertissement de mise à jour ; les autres diagnostics restent signalés.
 
 `system_install_prerequisites` vérifie chaque paquet individuellement, sans
 sortie s'il est déjà installé. Les paquets manquants sont annoncés et installés
@@ -1334,7 +1293,10 @@ signalés.
 
 `SOFTWARE_GITHUB_CODEX_CLI` contrôle Codex CLI. La recette GitHub utilise les
 releases `openai/codex`, vérifie l'empreinte SHA-256 et préserve le profil
-utilisateur. Les paquets Debian externes Omada, Wazuh et Zoom sont mis à jour
+utilisateur. `SOFTWARE_GITHUB_OPENCODE` contrôle le CLI OpenCode V2. La recette
+sélectionne une release stable V2 de `anomalyco/opencode`, vérifie `SHA256SUMS`
+et installe le binaire système `/usr/local/bin/opencode`. Son état réel dépend
+uniquement de ce chemin. Les paquets Debian externes Omada, Wazuh et Zoom sont mis à jour
 par le moteur système APT. L'enregistrement de l'agent Wazuh exige les
 paramètres sécurisés `SOFTWARE_APT_WAZUH_AGENT_MANAGER` et
 `SOFTWARE_APT_WAZUH_AGENT_REGISTRATION_PASSWORD` ; les paramètres optionnels
@@ -1861,12 +1823,13 @@ Les tests de tests/test_projects.py utilisent uniquement des transports simulés
 agrège leurs erreurs. Les commandes `diu system engine apt update`, `diu system
 engine github update` et `diu system engine flatpak update` exécutent chacune leur seule
 phase. APT comprend le bilan Debian et les paquets externes gérés ; GitHub met
-à jour Codex CLI configuré ; Flatpak vérifie ses dépendances et met à jour les
+à jour les logiciels GitHub désirés, dont Codex CLI et OpenCode ; Flatpak vérifie
+ses dépendances et met à jour les
 applications système.
 Les anciennes commandes ciblées `system apt update`, `system github update` et
 `system flatpak update` sont supprimées. Les anciennes syntaxes `system update apt [debian]`, `system update debian`
 et `system update flatpak` sont supprimées. Dans `diu update`, la phase GitHub
-exécute Codex CLI selon les conditions habituelles du moteur système.
+exécute les logiciels GitHub désirés selon les conditions habituelles du moteur système.
 
 ## Orchestration des mises à jour
 

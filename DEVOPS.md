@@ -3,7 +3,7 @@
 Version : 0.8
 
 Généré automatiquement par Debian Installeur Unifié (DIU).
-Début du relevé (UTC) : 2026-11-13T08:21:25Z
+Début du relevé (UTC) : 2026-11-14T13:47:49Z
 Environnement d'exécution DIU : PROXMOX
 
 ## Configuration locale — project.env
@@ -26,7 +26,7 @@ affiché, journalisé ou transmis au modèle.
 Les mentions de chargement de variables dans cet inventaire décrivent
 leur utilisation par les outils locaux. Elles n’accordent aucun droit
 supplémentaire de consultation à l’agent, notamment pour les variables
-d’authentification SSH, OpenCode ou PostgreSQL.
+d’authentification SSH ou PostgreSQL.
 
 Les sondes système concernent le contexte d'exécution DIU.
 Les outils DevOps sont interrogés avec les binaires indiqués dans leurs rubriques.
@@ -34,9 +34,8 @@ Les dépendances Python sont recherchées en priorité dans les venv du projet, 
 Dans l’inventaire Python, la flèche indique le Python sondé ; Installation indique le chemin observé dans les métadonnées.
 Les dépendances Python attendues proviennent de [project].dependencies dans pyproject.toml.
 Les outils de compilation Python éventuellement affichés proviennent de [build-system].requires et sont recherchés uniquement dans les venv du projet.
-Les dépendances JavaScript sont regroupées par manifeste et catégorie sous NPM et OpenCode.
+Les dépendances JavaScript sont regroupées par manifeste et catégorie.
 Leurs déclarations, versions verrouillées npm et métadonnées locales sont distinctes ; un verrou ne prouve pas une installation.
-Les contraintes JavaScript ne sont pas résolues et cet inventaire ne prouve pas le chargement de plugins OpenCode.
 Un inventaire multi-environnements ne valide pas un environnement Python unique.
 Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de réussite des tests du projet.
 
@@ -119,13 +118,6 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
   * Inventaire incomplet : sous-dossier inaccessible ou modifié pendant la découverte
 
-# OpenCode
-
-  * 2.2.7
-  * /home/devops/.opencode/bin/opencode
-  * La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env
-
-
 # OpenSpec
 
   * 2.0.0
@@ -140,7 +132,7 @@ Cet inventaire ne constitue pas une qualification fonctionnelle ni une preuve de
 
 # PostgreSQL Client
 
-  * 17.11
+  * 17.12
   * /usr/bin/psql
 
 

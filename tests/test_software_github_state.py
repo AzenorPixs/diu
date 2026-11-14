@@ -18,7 +18,7 @@ class GithubStateTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "SOFTWARE_GITHUB_CODEX_CLI")
 
     def test_detector_checks_real_executable_without_using_desired_variable(self):
-        with tempfile.TemporaryDirectory(prefix=".github-state-test-", dir=ROOT) as directory:
+        with tempfile.TemporaryDirectory(prefix="github-state-test-") as directory:
             binary = Path(directory) / "codex"
             script = (
                 'source "$1"\n'

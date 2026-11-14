@@ -84,7 +84,7 @@ Delta SCM du 2026-11-03 : [cicd-version-idempotence-cleanup](changes/archive/202
 
 ## Périmètre et convention
 
-125 correspondances vérifiées : 8 changes actifs codés et 117 archivés codés. Trois changes actifs et deux changes archivés supplémentaires restent sans code ; la navigation couvre 130 changes, dont 11 actifs et 119 archivés. Aucun code préexistant n’a été renuméroté et aucun nouveau code n’est attribué ici.
+125 correspondances vérifiées : 8 changes actifs codés et 117 archivés codés. Trois changes actifs et trois changes archivés supplémentaires restent sans code ; la navigation couvre 131 changes, dont 11 actifs et 120 archivés. Aucun code préexistant n’a été renuméroté et aucun nouveau code n’est attribué ici.
 
 Un code désigne un change et reste stable indépendamment de son état. Préfixe significatif suivi d’un numéro séquentiel de deux chiffres, extensible sans renumérotation. Allocation initiale : noms exacts des dossiers archivés triés, puis identifiants des actifs triés, avec compteur indépendant par famille. Ce tri ne définit ni priorité métier ni date de création.
 
@@ -284,8 +284,9 @@ Ces entrées ne sont ni des codes ni des réservations. Une attribution nécessi
 | add-system-fstab-configuration | Configuration modulaire de FSTAB et de ses entrées | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-configuration/) | [proposition](changes/archive/2026-11-01-add-system-fstab-configuration/proposal.md) |
 | add-system-fstab-config-six | Ajout de SYSTEM_FSTAB_CONFIG6 | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-fstab-config-six/) | [proposition](changes/archive/2026-11-01-add-system-fstab-config-six/proposal.md) |
 | add-system-files2ram-variable | Déclaration modulaire de SYSTEM_FILES2RAM | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-01-add-system-files2ram-variable/) | [proposition](changes/archive/2026-11-01-add-system-files2ram-variable/proposal.md) |
+| manage-opencode-v2-github-engine | Gérer OpenCode V2 par le moteur GitHub et retirer son inventaire DevOps | ARCHIVÉ | code non attribué | [dossier](changes/archive/2026-11-14-manage-opencode-v2-github-engine/) | [proposition](changes/archive/2026-11-14-manage-opencode-v2-github-engine/proposal.md) |
 
-Quatorze entrées « code non attribué » : trois actives et onze archivées. Couverture des codes : 125/139 changes, 125 codes uniques ; couverture de navigation : 139/139. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
+Quinze entrées « code non attribué » : trois actives et douze archivées. Couverture des codes : 125/140 changes, 125 codes uniques ; couverture de navigation : 140/140. Les titres génériques historiques Why et Proposal sont conservés ; les identifiants et liens permettent de les distinguer.
 
 Annotations limitées à 58 préfixages et 67 ajouts de titre principal. Contenus préexistants hors titre conservés octet pour octet. Les liens et correspondances avec la cartographie sont contrôlés ; aucune tâche ni exigence n’est modifiée.
 

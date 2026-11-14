@@ -58,13 +58,7 @@ sans identifiant SHALL être rejetée avec la nouvelle utilisation.
 
 ### Requirement: Structure et version documentaire
 
-Le document SHALL conserver le titre `DEVOPS.md — <ID PROJECT>`, la version
-`0.8` et l'ordre du scénario « Rubriques documentaires conservées ».
-Pour template, le titre SHALL être `DEVOPS.md — Template`.
-Matériel SHALL suivre immédiatement Système d'exploitation.
-Chaque rubrique logicielle SHALL placer le chemin après la version ;
-PostgreSQL Serveur SHALL placer l'adresse après la version.
-Tests navigateurs extérieurs en mode headless SHALL terminer le document.
+Le document SHALL conserver le titre `DEVOPS.md — <ID PROJECT>`, la version `0.8` et l'ordre documentaire défini ici. Pour template, le titre SHALL être `DEVOPS.md — Template`. Matériel SHALL suivre immédiatement Système d'exploitation. Chaque rubrique logicielle SHALL placer le chemin après la version ; PostgreSQL Serveur SHALL placer l'adresse après la version. Tests navigateurs extérieurs en mode headless SHALL terminer le document.
 
 #### Scenario: Actualisation d'un document ancien
 
@@ -76,48 +70,20 @@ Tests navigateurs extérieurs en mode headless SHALL terminer le document.
 #### Scenario: Rubriques documentaires conservées
 
 - **WHEN** un document DevOps est généré
-- **THEN** les rubriques restent dans l'ordre : Système d'exploitation, Matériel, `Conteneur Docker, pour tests nécessitant des droits root` si activé, `Conteneur LXC, pour tests nécessitant des droits root accessible en SSH` si activé, OpenSSH & SSHPASS, Docker-Compose, Git, Go, Node, NPM, OpenCode, OpenSpec, OpenSSL, PostgreSQL Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source de vérité `pyproject.toml`, Python - Gestionnaire de paquets, Python - Outils de compilation si Cython ou Nuitka est déclaré dans [build-system].requires, Prompts, Tests navigateurs extérieurs en mode headless
+- **THEN** les rubriques restent dans l'ordre : Système d'exploitation, Matériel, `Conteneur Docker, pour tests nécessitant des droits root` si activé, `Conteneur LXC, pour tests nécessitant des droits root accessible en SSH` si activé, OpenSSH & SSHPASS, Docker-Compose, Git, Go, Node, NPM, OpenSpec, OpenSSL, PostgreSQL Client, PostgreSQL Serveur, Python, Python - Dépendances du projet - Source de vérité `pyproject.toml`, Python - Gestionnaire de paquets, Python - Outils de compilation si Cython ou Nuitka est déclaré dans [build-system].requires, Prompts, Tests navigateurs extérieurs en mode headless
 - **AND THEN** les métadonnées de traçabilité, la section de configuration locale et la légende précèdent la première rubrique, après la version documentaire
 - **AND THEN** la section finale contient Chromium puis Firefox
+- **AND THEN** le document ne contient ni rubrique OpenCode, ni chemin `/home/${ENV_DEVOPS_USER}/.opencode`, ni puce `OPENCODE_PASSWORD`
 
 #### Scenario: Configuration locale et sécurité
 
 - **WHEN** un document DevOps est généré
 - **THEN** le texte de configuration locale validé apparaît une seule fois avant la légende des sondes et rappelle les restrictions de consultation de project.env par les agents
-
-Texte attendu :
-
-```markdown
-## Configuration locale — project.env
-Le fichier `project.env`, situé à la racine du projet, est une configuration
-locale protégée. Sa consultation par les agents relève des sections 9 et 10
-d’AGENTS.md.
-
-Pour le travail autorisé, l’agent peut extraire localement les variables
-non secrètes nécessaires, notamment `PROJECT_*`, `LOCAL_DEFAULT_BRANCH`,
-`GIT_*` et `REMOTE_*`, sans limitation à ces familles. Seul un processus
-local parcourt le fichier et restitue les noms et valeurs validés comme
-non secrets.
-
-La lecture brute, l’exécution du fichier et son chargement dans
-l’environnement par l’agent sont interdits. L’agent ne doit ni créer,
-ni modifier, ni régénérer ce fichier. Aucun secret ne doit être restitué,
-affiché, journalisé ou transmis au modèle.
-
-Les mentions de chargement de variables dans cet inventaire décrivent
-leur utilisation par les outils locaux. Elles n’accordent aucun droit
-supplémentaire de consultation à l’agent, notamment pour les variables
-d’authentification SSH, OpenCode ou PostgreSQL.
-```
+- **AND THEN** les mentions d'authentification dans ce texte ne citent que SSH et PostgreSQL
 
 ### Requirement: Distinction entre hôte et environnement DevOps
 
-DIU SHALL relever le système d'exploitation hôte et les versions des outils
-hôte Docker-Compose, Git, OpenSSL et PostgreSQL Client. Docker SHALL être
-relevé uniquement si ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`. DIU SHALL
-relever Go, Node, NPM, OpenCode, OpenSpec, Python et pip depuis les binaires
-situés dans `/home/${ENV_DEVOPS_USER}`, sous cet utilisateur. DIU SHALL NOT
-remplacer un outil DevOps manquant par un outil hôte.
+DIU SHALL relever le système d'exploitation hôte et les versions des outils hôte Docker-Compose, Git, OpenSSL et PostgreSQL Client. Docker SHALL être relevé uniquement si ENV_DEVOPS_TESTS_DOCKER vaut exactement `1`. DIU SHALL relever Go, Node, NPM, OpenSpec, Python et pip depuis les binaires situés dans `/home/${ENV_DEVOPS_USER}`, sous cet utilisateur. OpenCode SHALL NOT être sondé comme outil DevOps. DIU SHALL NOT remplacer un outil DevOps manquant par un outil hôte.
 
 #### Scenario: Versions hôte différentes
 
@@ -126,7 +92,7 @@ remplacer un outil DevOps manquant par un outil hôte.
 
 #### Scenario: Outil manquant ou défaillant
 
-- **WHEN** un outil est absent ou sa sonde échoue
+- **WHEN** un outil DevOps restant est absent ou sa sonde échoue
 - **THEN** sa rubrique indique que sa version est indisponible et le chemin attendu ou l'absence de binaire
 - **AND THEN** aucune installation n'est réalisée
 
@@ -578,18 +544,9 @@ La recherche SHALL exclure node_modules, les venv détectés par pyvenv.cfg, les
 - **WHEN** node_modules, un venv ou une sortie contient package.json
 - **THEN** ces manifestes ne sont pas découverts
 
-### Requirement: Exception ciblée du manifeste OpenCode
-
-La découverte SHALL traiter .opencode/package.json explicitement avec ses verrous racine associés. Elle SHALL NOT parcourir les configurations, états, commandes ou skills OpenCode.
-
-#### Scenario: Outillage OpenCode du projet
-
-- **WHEN** le dossier .opencode contient un manifeste et des ressources internes
-- **THEN** seuls le manifeste racine et ses verrous associés servent à la déclaration
-
 ### Requirement: Sélection des manifestes JavaScript utiles
 
-DIU SHALL retenir les manifestes racine et OpenCode présents, ceux déclarant des dépendances, ainsi que les organisateurs et membres de workspaces déclarés. Les motifs de workspaces SHALL rester relatifs et confinés au projet. Les autres manifestes vides SHALL être comptés comme non retenus.
+DIU SHALL retenir les manifestes `package.json` racine présents, ceux déclarant des dépendances, ainsi que les organisateurs et membres de workspaces déclarés. Les motifs de workspaces SHALL rester relatifs et confinés au projet. Les autres manifestes vides SHALL être comptés comme non retenus. `.opencode/package.json` SHALL NOT être découvert explicitement ni recevoir une rubrique particulière dans DEVOPS.md.
 
 #### Scenario: Workspace sans dépendance
 
@@ -688,7 +645,7 @@ Lorsque les versions verrouillée et observée sont connues et différentes, DIU
 
 ### Requirement: Collecte JavaScript passive
 
-La collecte SHALL utiliser sous le compte DevOps un Python existant, isolé et sans site automatique, avec la bibliothèque standard. Elle SHALL NOT lancer npm, Bun, OpenCode, un script, un import applicatif, une installation ou une requête réseau. Elle SHALL NOT lire .npmrc, les configurations OpenCode, les fichiers env ni les secrets. L'absence de Node SHALL NOT bloquer une analyse passive disponible.
+La collecte SHALL utiliser sous le compte DevOps un Python existant, isolé et sans site automatique, avec la bibliothèque standard. Elle SHALL NOT lancer npm, Bun, un script, un import applicatif, une installation ou une requête réseau. Elle SHALL NOT lire `.npmrc`, les fichiers env ni les secrets. L'absence de Node SHALL NOT bloquer une analyse passive disponible.
 
 #### Scenario: Code à effet de bord
 
@@ -715,16 +672,17 @@ Une limite atteinte SHALL être explicite. Un analyseur absent ou échoué SHALL
 
 ### Requirement: Restitution JavaScript dans les rubriques existantes
 
-NPM SHALL recevoir la sous-section Dépendances JavaScript du projet pour les composants applicatifs retenus. OpenCode SHALL recevoir Dépendances OpenCode du projet pour .opencode/package.json. Chaque dépendance SHALL distinguer déclaration, version verrouillée npm et observation locale, avec chemin d'installation vérifié.
+NPM SHALL recevoir la sous-section Dépendances JavaScript du projet pour les composants applicatifs retenus. Chaque dépendance SHALL distinguer déclaration, version verrouillée npm et observation locale, avec chemin d'installation vérifié. DEVOPS.md SHALL NOT produire de sous-section Dépendances OpenCode du projet.
 
 #### Scenario: Deux usages Pixs
 
 - **WHEN** frontend/package.json et .opencode/package.json déclarent des paquets
-- **THEN** chaque manifeste apparaît une seule fois dans sa rubrique respective
+- **THEN** le manifeste frontend apparaît une seule fois dans la rubrique NPM
+- **AND** le manifeste `.opencode/package.json` n'est pas publié dans DEVOPS.md
 
 ### Requirement: Cohérence des rendus JavaScript
 
-Les sous-sections sans manifeste ni diagnostic SHALL être omises. Les versions des binaires Node, NPM et OpenCode SHALL rester distinctes des paquets. Les parcours individuel, groupé et de création SHALL utiliser le même rendu, avec ordre principal et section finale des navigateurs conservés.
+Les sous-sections sans manifeste ni diagnostic SHALL être omises. Les versions des binaires Node et NPM SHALL rester distinctes des paquets. Les parcours individuel, groupé et de création SHALL utiliser le même rendu, avec ordre principal et section finale des navigateurs conservés.
 
 #### Scenario: Parcours existants
 
@@ -898,20 +856,20 @@ SHALL produire un diagnostic fixe par champ sans bloquer le document.
 
 ### Requirement: Préparation des exécutables DevOps connus
 
-Avant les inventaires et sondes du rendu commun, DIU SHALL préparer uniquement
-ces chemins sous `/home/${ENV_DEVOPS_USER}` : `go/current/bin/go`,
-`node/current/bin/node`, `node/current/bin/npm`, `.opencode/bin/opencode`,
-`.local/npm/bin/openspec`, `python/current/bin/python3` et
-`python/current/bin/pip3`. Les outils absents SHALL rester indisponibles sans
-création ni installation. La version documentaire, les commandes et le
-contexte des sondes SHALL rester inchangés.
+Avant les inventaires et sondes du rendu commun, DIU SHALL préparer uniquement ces chemins sous `/home/${ENV_DEVOPS_USER}` : `go/current/bin/go`, `node/current/bin/node`, `node/current/bin/npm`, `.local/npm/bin/openspec`, `python/current/bin/python3` et `python/current/bin/pip3`. Les outils absents SHALL rester indisponibles sans création ni installation. La version documentaire, les commandes et le contexte des sondes SHALL rester inchangés.
 
 #### Scenario: Sept outils présents sans droit d'exécution
 
-- **WHEN** les sept fichiers DevOps existent sans bits d'exécution
-- **THEN** DIU ajoute leurs bits ugo+x avant les inventaires et les sondes
+- **WHEN** les sept fichiers historiques existent sans bits d'exécution
+- **THEN** DIU ajoute les bits ugo+x des six outils DevOps encore gérés avant les inventaires et les sondes
+- **AND** DIU n'inspecte ni ne modifie `.opencode/bin/opencode`
 - **AND THEN** les versions et inventaires disponibles sont relevés normalement
 - **AND THEN** propriétaires, droits de lecture et d'écriture, outils hôte et autres fichiers restent inchangés
+
+#### Scenario: OpenCode absent des outils DevOps
+
+- **WHEN** le rendu prépare les exécutables DevOps connus
+- **THEN** DIU ne recherche ni ne prépare `/home/${ENV_DEVOPS_USER}/.opencode/bin/opencode`
 
 ### Requirement: Confinement de la préparation DevOps
 
@@ -1239,24 +1197,3 @@ DIU SHALL produire une seule rubrique Python - Outils de compilation après pip 
 - **WHEN** une génération individuelle, groupée ou finale de création traite un projet déclarant un ou deux outils
 - **THEN** les observations égales produisent le même inventaire, avec une seule découverte et les sondes nécessaires aux noms encore recherchés
 - **AND** les bornes de 3 secondes par sonde et 12 secondes de recherche/sondes, les diagnostics sans sortie rejetée et les dépendances d’exécution restent conservés
-
-### Requirement: Source documentaire du mot de passe API OpenCode
-
-La rubrique OpenCode MUST ajouter une seule puce statique `La variable OPENCODE_PASSWORD pour l'API est chargée depuis project.env` immédiatement après le chemin du binaire, avant les dépendances éventuelles. Cet ajout MUST NOT lire project.env ou consulter la variable. Le rendu commun MUST conserver les sondes et le format 0.7.
-
-#### Scenario: Génération avec ou sans configuration API
-
-- **WHEN** le rendu commun génère la rubrique OpenCode, que la variable soit présente ou absente
-- **THEN** la puce exacte apparaît une seule fois immédiatement après le chemin du binaire
-- **AND THEN** aucun mot de passe n'est lu ou affiché pour produire cette indication
-
-#### Scenario: Dépendances OpenCode déclarées
-
-- **WHEN** le projet possède des dépendances OpenCode affichables
-- **THEN** la puce de provenance précède leur sous-section
-- **AND THEN** les versions, chemins, inventaires et autres rubriques conservent leur comportement
-
-#### Scenario: Parcours de génération
-
-- **WHEN** la génération est individuelle, groupée ou finale lors d'une création
-- **THEN** le rendu commun conserve la version 0.7 et l'ordre des autres rubriques

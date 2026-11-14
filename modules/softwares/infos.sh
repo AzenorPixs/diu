@@ -8,16 +8,21 @@ softwares_infos() {
         [[ -f "$file" ]] || continue
         name="${file##*/software_apt_}"
         name="${name%.sh}"
+        [[ "$name" == codex_cli ]] && continue
         variable="SOFTWARE_APT_${name^^}"
-        [[ "$name" == codex_cli ]] && variable=SOFTWARE_GITHUB_CODEX_CLI
         value="${!variable-}"
         name="${name//_/-}"
-        if [[ "$name" == codex-cli ]]; then
-            github_names+=("$name"); github_values+=("$value")
-        else
-            apt_names+=("$name"); apt_values+=("$value")
-        fi
+        apt_names+=("$name"); apt_values+=("$value")
     done
+    if declare -F software_github_convergence_names >/dev/null 2>&1 &&
+        declare -F software_github_convergence_metadata >/dev/null 2>&1; then
+        while IFS= read -r name; do
+            [[ -n "$name" ]] || continue
+            variable="$(software_github_convergence_metadata "$name" variable)" || continue
+            value="${!variable-}"
+            github_names+=("$name"); github_values+=("$value")
+        done < <(software_github_convergence_names)
+    fi
     apt_status=$'\033[1;31m'
     github_status=$'\033[1;31m'
     flatpak_status=$'\033[1;31m'
