@@ -14330,8 +14330,8 @@ Provenance : change-periods:2690afb06ec48f87bb49c4580f680689e6ec83cabf84a980c687
 | Commandes exécutées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 | Commandes réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 | Commandes en échec | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tests exécutés dans le bilan final | 228 | Reçus de runners unittest terminés, référencés par la revue ; aucune déclaration LLM. |
-| Tests finaux réussis | 228 | Reçus de runners unittest terminés, référencés par la revue ; aucune déclaration LLM. |
+| Tests exécutés dans le bilan final | 285 | Reçus de runners unittest terminés, référencés par la revue ; aucune déclaration LLM. |
+| Tests finaux réussis | 285 | Reçus de runners unittest terminés, référencés par la revue ; aucune déclaration LLM. |
 | Tests finaux échoués | 0 | Reçus de runners unittest terminés, référencés par la revue ; aucune déclaration LLM. |
 | Fichiers ayant passé un contrôle syntaxique | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 | Validations OpenSpec standard réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
@@ -14367,16 +14367,16 @@ Mesures partielles en cours — aucune valeur ci-dessous ne vaut total complet.
 
 | RUN | SID | Compteur | Incrément observé | Couverture |
 | --- | --- | --- | --- | --- |
-| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_read | 173099648 | bounded |
+| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_read | 206953344 | bounded |
 | SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_write | 0 | bounded |
-| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_input | 174389488 | bounded |
-| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_output | 470290 | bounded |
-| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_reasoning | 368471 | bounded |
-| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_total | 174859778 | bounded |
+| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_input | 208470625 | bounded |
+| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_output | 641281 | bounded |
+| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_reasoning | 520839 | bounded |
+| SCM-OPENCODE-GITHUB-20261114-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_total | 209111906 | bounded |
 
 
 <!-- CAB_STATISTICS_CURRENT_END -->
-<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "ec92d790db7f751de4f23a003865e4601335606e4a9c4f1c52216a16039444bd", "generated_at": "2026-11-14T21:59:00.589329+00:00", "revision": "ec92d790db7f751de4f23a003865e4601335606e4a9c4f1c52216a16039444bd", "scope": "change"} -->
+<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "8b41cee63e483c6d463b7fc9bafb07114c8247c8ad7f61adbad979a98577e077", "generated_at": "2026-11-14T22:54:05.786013+00:00", "revision": "8b41cee63e483c6d463b7fc9bafb07114c8247c8ad7f61adbad979a98577e077", "scope": "change"} -->
 
 
 ## Change `manage-production-hosts-entries` — openspec/changes/archive/2026-11-04-manage-production-hosts-entries/STATISTICS.md
@@ -20868,4 +20868,4 @@ L'archivage a réussi avec le chemin explicite du projet. L'archive contient les
 L'évolution est implémentée, ses contrôles ciblés réussissent et le change est archivé. La suite complète de tests et la validation OpenSpec stricte globale échouent sur des éléments hors des fichiers de ce change ; ces résultats restent visibles et ne sont pas présentés comme des succès. Aucun déploiement ou installation OpenCode réelle n'a été effectué.
 
 L'étape de commit local SCM est bloquée : les prérequis non secrets étaient valides et `main` correspond à `LOCAL_DEFAULT_BRANCH`, mais `git status --short` montre aussi le chemin préexistant `DEVOPS.md` modifié. La procédure impose `git add .`, ce qui inclurait ce fichier hors périmètre. Aucun `git config`, staging, commit, tag ou push n'a été exécuté. Forgejo, GitHub et GitLab n'ont pas été sollicités faute de commit local vérifié.
-<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "85470985a23d84c7370339495d4854458af95451049abb1c827888bcf03181d0", "generated_at": "2026-11-14T21:59:01.444847+00:00", "revision": "85470985a23d84c7370339495d4854458af95451049abb1c827888bcf03181d0", "scope": "project"} -->
+<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "171911cc7d2cea91f0f5dec9b6e156ce039387538b54edabac2c3d8a21b6367e", "generated_at": "2026-11-14T22:54:06.502139+00:00", "revision": "171911cc7d2cea91f0f5dec9b6e156ce039387538b54edabac2c3d8a21b6367e", "scope": "project"} -->
