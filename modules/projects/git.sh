@@ -556,7 +556,7 @@ projects_cicd_replay_merge_and_push() (
 # Compare les versions reconnues ; une version stable prime sur un horodatage.
 projects_git_tag_not_newer() {
     local requested="${1#v}" distant="${2#v}" requested_kind="" distant_kind="" highest=""
-    local stable='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local stable='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
     local timestamp='^[0-9]{4}(\.[0-9]{2}){4}$'
     if [[ "$requested" =~ $stable ]]; then requested_kind=stable
     elif [[ "$requested" =~ $timestamp ]]; then requested_kind=timestamp
@@ -2834,7 +2834,7 @@ git_get_latest_release() {
             $2 !~ /\^\{\}$/ {
                 sub("^refs/tags/", "", $2)
                 if (first == "") first = $2
-                if ($2 ~ /^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/) {
+                if ($2 ~ /^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$/) {
                     print $2
                     found = 1
                     exit
@@ -4775,7 +4775,7 @@ _projects_provider_push_direct() {
     local PROJECTS_DIRECT_PUSH_ACTIVE=1 PROJECTS_DIRECT_PUSH_VERSION="" PROJECTS_VERSION_AUTHORITY=1
     local PROJECTS_CICD_REPLAY_ROOT="" PROJECTS_CICD_RECONCILE=1
     local ENV_DEVOPS_PROJECTS_ROOT="$ENV_DEVOPS_PROJECTS_ROOT"
-    local version_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local version_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
     if [[ ! "$project_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ || "$project_id" == .. ||
           ! "$provider" =~ ^(forgejo|gitlab|github)$ || ! -d "$project_path" ]]; then
         print_error 'Fournisseur ou projet invalide.'; return 1
@@ -4784,7 +4784,7 @@ _projects_provider_push_direct() {
     project_version_get "$project_path/project.env" >/dev/null || return 1
     if [[ -n "$version" ]]; then
         if [[ ! "$version" =~ $version_pattern || ${#version} -gt 128 ]]; then
-            print_error 'La version doit respecter le format x.y.z.'; return 1
+            print_error 'La version doit respecter x.y.z ou x.y.z.w sans zéro initial.'; return 1
         fi
     else
         version="$(date '+%Y.%m.%d.%H.%M')" || return 1

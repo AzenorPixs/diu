@@ -79,7 +79,7 @@ AND la fonction retourne le code 1
 ### Requirement: Vérification Git avant publication
 
 La fonction SHALL conserver les contrôles Git préalables et la politique de
-bootstrap ci-dessous, en acceptant les tokens existants en `600` ou `660`. Lors du rejeu isolé, le commit du tag MAY être un ancêtre vérifié de la branche distante sans modifier cette dernière.
+bootstrap ci-dessous, en acceptant les tokens existants en `600` ou `660`. Lors du rejeu isolé ou d'une réconciliation CI/CD, le commit du tag MAY être un ancêtre vérifié de la branche distante sans modifier cette dernière.
 
 #### Scenario: Contrôles préalables conservés
 
@@ -96,7 +96,7 @@ La séquence obligatoire de la phase Git SHALL être :
 3. vérification de l'existence de `config/forgejo.token` ;
 4. politique d'accès au token (voir ci-dessous) ;
 5. `git fetch origin` exécuté via `forgejo-auth`/`git-auth` avec le token ;
-6. vérification HEAD == origin/main, ou ancêtre vérifié en rejeu isolé ;
+6. vérification HEAD == origin/main, ou ancêtre vérifié en rejeu isolé ou réconciliation CI/CD ;
 7. réutilisation du même token validé pour les appels API Release
    (vérification tag, création Release, upload asset).
 
@@ -132,7 +132,7 @@ Les vérifications Git obligatoires sont :
 - le remote origin existe
 - la branche courante est main
 - origin/main existe
-- HEAD et origin/main pointent sur le même commit après fetch, sauf ancêtre vérifié en rejeu isolé authentifié
+- HEAD et origin/main pointent sur le même commit après fetch, sauf ancêtre vérifié en rejeu isolé ou réconciliation CI/CD authentifié
 
 #### Scenario: Séquence complète avec token existant et valide
 
@@ -257,7 +257,7 @@ AND la fonction retourne le code 1
 
 #### Scenario: Rejeu isolé d’un commit antérieur
 
-- **WHEN** le commit du tag est un ancêtre vérifié de la branche distante dans le contexte isolé
+- **WHEN** le commit du tag est un ancêtre vérifié de la branche distante dans le contexte isolé ou après réconciliation CI/CD
 - **THEN** la release peut être vérifiée ou complétée sans modifier la branche distante
 
 ### Requirement: Déduction de l'URL Forgejo
@@ -383,7 +383,7 @@ Avant création, la fonction SHALL vérifier si le tag `v<VERSION>` et la Releas
 
 #### Scenario: Release déjà existante
 - **WHEN** une Release cohérente pour le tag v<VERSION> et son asset attendu existent déjà
-- **THEN** la fonction indique que l'asset est déjà publié sans rien écraser ni modifier
+- **THEN** la fonction indique que l'asset est présent, sans prétendre vérifier son contenu ni rien écraser
 
 #### Scenario: Release incomplète
 - **WHEN** une Release cohérente existe sans l'asset attendu
@@ -410,12 +410,12 @@ AND la fonction récupère l'identifiant de la Release créée
 La fonction SHALL créer une Release Forgejo via l'API REST.
 
 Le tag `v<VERSION>` SHALL cibler exactement le commit HEAD. HEAD ayant
-déjà été vérifié comme identique à `origin/main`, ou ancêtre en rejeu isolé, le tag ne SHALL donc jamais pointer vers un commit différent de celui validé lors de ces contrôles.
+déjà été vérifié comme identique à `origin/main`, ou ancêtre en rejeu isolé ou après réconciliation CI/CD, le tag ne SHALL donc jamais pointer vers un commit différent de celui validé lors de ces contrôles.
 
 La chaîne de vérification attendue est :
 
 ```
-HEAD == origin/main (ou ancêtre en rejeu isolé)
+HEAD == origin/main (ou ancêtre en rejeu isolé ou après réconciliation CI/CD)
         ↓
 tag v<VERSION>
         ↓
@@ -515,7 +515,7 @@ Une Release publiée SHALL être conservée. La fonction SHALL NOT écraser un a
 
 #### Scenario: Version déjà publiée
 - **WHEN** une Release et l'asset attendu existent pour la version demandée
-- **THEN** la fonction signale que la publication est déjà réalisée et ne modifie rien
+- **THEN** la fonction signale que l’asset est présent, précise que son contenu n’est pas vérifié et ne modifie rien
 
 ### Requirement: Sélection cohérente de la version de release
 

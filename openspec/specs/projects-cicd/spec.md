@@ -175,6 +175,11 @@ Le flux SHALL indiquer comme informations les étapes déjà satisfaites. Pour u
 - **WHEN** un tag distant est supérieur à la version demandée
 - **THEN** le fournisseur est refusé avant toute modification distante
 
+#### Scenario: Tag stable à quatre composants
+- **WHEN** le tag demandé est v1.2.3.4 et un tag distant stable est v1.2.3.5
+- **THEN** l'ordre numérique des composants reconnaît la version distante comme supérieure
+- **AND** le fournisseur est refusé avant toute modification distante
+
 #### Scenario: Erreur de vérification distante
 - **WHEN** le fournisseur est inaccessible ou qu’une référence change pendant la publication
 - **THEN** le flux signale l’erreur ou l’indisponibilité selon les règles applicables
@@ -183,6 +188,26 @@ Le flux SHALL indiquer comme informations les étapes déjà satisfaites. Pour u
 - **WHEN** le rejeu ne peut pas confirmer l'immutabilité du tag Docker distant
 - **THEN** la publication Docker est ignorée et indiquée sans erreur
 - **AND THEN** la publication Debian reste éligible indépendamment
+
+#### Scenario: Historiques distincts
+- **WHEN** la branche distante et le commit local n'ont pas d'ancêtre commun et qu'aucun tag supérieur ne bloque le push
+- **THEN** la branche distante est alignée sur le commit local sous lease
+
+#### Scenario: Conflit de sources
+- **WHEN** les historiques diffèrent et que la version demandée fait autorité
+- **THEN** la branche distante correspond exactement au commit local sélectionné
+
+#### Scenario: Tag distant divergent
+- **WHEN** le tag distant demandé désigne un autre commit et qu'aucun tag supérieur ne bloque le push
+- **THEN** il est remplacé seulement si sa valeur n'a pas changé depuis la vérification
+
+#### Scenario: Rejeu et modifications en attente
+- **WHEN** le tag local existe et que des modifications locales sont en attente
+- **THEN** le build utilise le commit du tag et les modifications en attente sont conservées
+
+#### Scenario: Refus distant ou conflit non résolu
+- **WHEN** la forge refuse la publication ou qu'un lease échoue
+- **THEN** le système signale explicitement l'échec sans annoncer la publication comme réussie
 
 ### Requirement: Messages cohérents des publications
 Les publications Debian SHALL identifier le fournisseur et le tag dans leurs messages. Les vérifications effectivement réalisées SHALL être annoncées sans exposer de secret ni attribuer à un fournisseur un contrôle non exécuté. Les informations de projet SHALL être visuellement alignées.

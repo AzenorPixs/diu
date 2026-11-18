@@ -1,11 +1,34 @@
 ## MODIFIED Requirements
 
+### Requirement: Lecture littérale et optionnelle
+DIU SHALL lire uniquement PROJECT_VERSION dans project.env sans exécuter le fichier. Une affectation unique x.y.z ou x.y.z.w, avec des entiers sans zéro initial sauf 0 et au plus 128 caractères, SHALL être acceptée. Une clé présente invalide SHALL provoquer un échec explicite.
+
+#### Scenario: Clé absente
+- **WHEN** PROJECT_VERSION n'est pas déclarée
+- **THEN** chaque opération conserve son mécanisme de sélection précédent
+
+#### Scenario: Valeur ambiguë
+- **WHEN** la clé est vide, dupliquée, invalide, contient un composant avec zéro initial ou nécessite une interprétation
+- **THEN** l'opération échoue sans repli silencieux et sans exposer d'autre variable
+
+### Requirement: Priorité des versions stables
+Les sélecteurs de version DIU SHALL privilégier les versions stables à trois ou quatre composants numériques sur les versions horodatées. La comparaison native Debian SHALL rester inchangée et aucun epoch ne SHALL être ajouté.
+
+#### Scenario: Versions stable et horodatée disponibles
+- **WHEN** une version stable à trois ou quatre composants et une version horodatée sont candidates
+- **THEN** DIU sélectionne la version stable
+
 ### Requirement: Push Git cohérent
 Les pushes individuels Forgejo, GitLab et GitHub SHALL préparer commit et tag selon la version explicite ou un horodatage, puis réutiliser la réconciliation CI/CD protégée. Le tag sélectionné SHALL désigner HEAD avant transport. La sélection SHALL NOT modifier PROJECT_VERSION ni déplacer un tag local. Les appels internes CI/CD et `forgejo push all` SHALL conserver leur comportement.
 
 #### Scenario: Version explicite
 - **WHEN** un push direct reçoit une version valide
-- **THEN** la version doit être valide au format x.y.z sans zéro initial et le commit et son tag v<VERSION> sont préparés avant publication
+- **THEN** une version x.y.z ou x.y.z.w sans zéro initial est acceptée et le commit et son tag v<VERSION> sont préparés avant publication
+
+#### Scenario: Version à quatre composants supérieure
+- **WHEN** un push ou une CI/CD compare le tag demandé v1.2.3.4 à un tag distant stable v1.2.3.5
+- **THEN** la version distante supérieure bloque la publication de branche et de tag
+- **AND** les versions stables à trois ou quatre composants sont comparées par ordre de version
 
 #### Scenario: Version omise
 - **WHEN** un push direct ne reçoit pas de version, même si PROJECT_VERSION est définie

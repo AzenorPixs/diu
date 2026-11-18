@@ -4,9 +4,7 @@
 
 DIU MUST exposer `diu projects forgejo push <ID PROJECT>` et sa variante
 `all`, conformément aux scénarios ci-dessous et à `git-provider-availability`.
-La branche MUST utiliser `--force-with-lease` et, hors CI/CD, les tags MUST rester sans forçage. Dans le CI/CD, un tag distant divergent MAY être remplacé avec un lease explicite sur sa valeur observée selon `projects-cicd`. Pour un dépôt annoncé absent, le lease MUST attendre l'absence de
-la branche avec `--force-with-lease=refs/heads/<branche>:` et MUST NOT
-dépendre d'une référence héritée ni supprimer une référence locale.
+La branche MUST utiliser `--force-with-lease`. Hors CI/CD, les tags MUST rester sans forçage. En CI/CD, un tag divergent MAY être remplacé sous lease explicite sur sa valeur observée, selon `projects-cicd`. Un premier push vers un dépôt absent MUST protéger l'absence de branche et MUST préserver les références locales.
 
 #### Scenario: publication du dépôt local
 

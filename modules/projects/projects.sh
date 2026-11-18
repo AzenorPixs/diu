@@ -518,13 +518,13 @@ update_projects() {
         return 1
     fi
     while true; do
-        read -r -p "PROJECT_VERSION [${project_version}] (x.y.z) : " value || return 1
+        read -r -p "PROJECT_VERSION [${project_version}] (x.y.z ou x.y.z.w) : " value || return 1
         value="${value:-${project_version}}"
-        if [[ "${value}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] && (( ${#value} <= 128 )); then
+        if [[ "${value}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$ ]] && (( ${#value} <= 128 )); then
             project_version="${value}"
             break
         fi
-        print_error 'PROJECT_VERSION doit respecter le format x.y.z sans zéro initial.'
+        print_error 'PROJECT_VERSION doit respecter x.y.z ou x.y.z.w sans zéro initial.'
     done
 
     if ! project_env_set_variables \

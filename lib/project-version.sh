@@ -4,7 +4,7 @@
 # Conserver les tags non horodatés lorsque des versions stables sont présentes.
 project_version_prefer_stable_tags() {
     local tag="" has_stable=0
-    local stable='^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local stable='^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
     local timestamp='^v?[0-9]{4}(\.[0-9]{2}){4}$'
     local -a version_tags_buffer=()
     while IFS= read -r tag; do
@@ -22,7 +22,7 @@ project_version_get() {
     local project_env="${1:-}" line="" raw="" value="" found=0
     local assignment='^[[:blank:]]*(export[[:blank:]]+)?PROJECT_VERSION[[:blank:]]*=(.*)$'
     local literal="^[[:blank:]]*([0-9.]+|\"[0-9.]+\"|'[0-9.]+')([[:blank:]]+#.*)?[[:blank:]]*$"
-    local version_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local version_pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
     if [[ -z "$project_env" ]]; then
         printf '%s\n' 'Erreur : chemin de configuration du projet absent.' >&2
         return 1
@@ -36,14 +36,14 @@ project_version_get() {
         [[ "$line" =~ $assignment ]] || continue
         raw="${BASH_REMATCH[2]}"
         if [[ "$found" == 1 || ! "$raw" =~ $literal ]]; then
-            printf '%s\n' 'Erreur : PROJECT_VERSION doit être une affectation littérale unique x.y.z.' >&2
+            printf '%s\n' 'Erreur : PROJECT_VERSION doit être une affectation littérale unique x.y.z ou x.y.z.w.' >&2
             return 1
         fi
         value="${BASH_REMATCH[1]}"
         value="${value#\"}"; value="${value%\"}"
         value="${value#\'}"; value="${value%\'}"
         if [[ ! "$value" =~ $version_pattern || ${#value} -gt 128 ]]; then
-            printf '%s\n' 'Erreur : PROJECT_VERSION doit respecter le format x.y.z sans zéro initial.' >&2
+            printf '%s\n' 'Erreur : PROJECT_VERSION doit respecter x.y.z ou x.y.z.w sans zéro initial.' >&2
             return 1
         fi
         found=1
@@ -54,7 +54,7 @@ project_version_get() {
 # Modifier uniquement la version, sans interpréter le reste de la configuration.
 project_version_set() {
     local file="${1:-}" version="${2:-}" current=""
-    local pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
     if [[ ! "$version" =~ $pattern || ${#version} -gt 128 || ! -f "$file" || -L "$file" ]]; then
         printf '%s\n' 'Erreur : version ou configuration du projet invalide.' >&2
         return 1

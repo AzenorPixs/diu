@@ -15,33 +15,33 @@ class ProjectVersionTests(unittest.TestCase):
     def test_latest_remote_tag_prefers_stable_version(self):
         result = self.run_shell(r'''
 source "$1/modules/projects/git.sh"
-git() { printf '1111111111111111111111111111111111111111\trefs/tags/v2026.11.03.08.38\n2222222222222222222222222222222222222222\trefs/tags/v1.0.7\n'; }
+git() { printf '1111111111111111111111111111111111111111\trefs/tags/v2026.11.03.08.38\n3333333333333333333333333333333333333333\trefs/tags/v1.0.7.2\n2222222222222222222222222222222222222222\trefs/tags/v1.0.7\n'; }
 git_get_latest_release https://example.test owner project
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), 'v1.0.7')
+        self.assertEqual(result.stdout.strip(), 'v1.0.7.2')
 
     def test_local_stable_tag_precedes_timestamp_for_both_debian_builders(self):
         (self.project / '.git').mkdir()
         result = self.run_shell(r'''
 source "$1/modules/projects/diu-packaging.sh"
 source "$1/modules/projects/debian-build.sh"
-runuser() { printf 'v2026.11.03.08.38\nv1.0.7\n'; }
+runuser() { printf 'v2026.11.03.08.38\nv1.0.7.2\n'; }
 diu_package_version_from_head "$project"; printf '\n'
 projects_debian_version "$project"; printf '\n'
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, '1.0.7\n1.0.7\n')
+        self.assertEqual(result.stdout, '1.0.7.2\n1.0.7.2\n')
 
     def test_set_version_preserves_other_content_and_permissions(self):
         self.config.write_bytes(b'OTHER=value\nexport PROJECT_VERSION="1.0.0" # note\nTAIL=no-newline')
         self.config.chmod(0o640)
-        result = self.run_shell('project_version_set "$project/project.env" 1.0.7')
+        result = self.run_shell('project_version_set "$project/project.env" 1.0.7.2')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.config.read_bytes(), b'OTHER=value\nexport PROJECT_VERSION="1.0.7" # note\nTAIL=no-newline')
+        self.assertEqual(self.config.read_bytes(), b'OTHER=value\nexport PROJECT_VERSION="1.0.7.2" # note\nTAIL=no-newline')
         self.assertEqual(self.config.stat().st_mode & 0o777, 0o640)
         before = self.config.stat().st_mtime_ns
-        result = self.run_shell('project_version_set "$project/project.env" 1.0.7')
+        result = self.run_shell('project_version_set "$project/project.env" 1.0.7.2')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.config.stat().st_mtime_ns, before)
 
@@ -57,20 +57,20 @@ projects_debian_version "$project"; printf '\n'
         bad = self.run_shell('project_version_set "$project/project.env" 01.0.7')
         self.assertNotEqual(bad.returncode, 0)
         self.assertEqual(self.config.read_bytes(), b'UNRELATED=value')
-        result = self.run_shell('project_version_set "$project/project.env" 1.0.7')
+        result = self.run_shell('project_version_set "$project/project.env" 1.0.7.2')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.config.read_bytes(), b'UNRELATED=value\nPROJECT_VERSION=1.0.7\n')
+        self.assertEqual(self.config.read_bytes(), b'UNRELATED=value\nPROJECT_VERSION=1.0.7.2\n')
 
     def test_cicd_cli_sets_version_before_dispatch_and_keeps_legacy_pair(self):
         self.config.write_text('OTHER=value\nPROJECT_VERSION=1.0.0\n')
         result = self.run_shell(r'''
 source <(sed -n '/^manage_project_action() {/,/^}/p' "$1/root-install-debian.sh")
 cicd_project() { printf 'CALL:%s:%s:%s:%s\n' "$1" "$2" "$3" "$(project_version_get "$project/project.env")"; }
-manage_project_action cicd project 1.0.7
+manage_project_action cicd project 1.0.7.2
 manage_project_action cicd project 'description' vcustom
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('CALL:project:1.0.7:v1.0.7:1.0.7', result.stdout)
+        self.assertIn('CALL:project:1.0.7.2:v1.0.7.2:1.0.7.2', result.stdout)
         self.assertIn('CALL:project:description:vcustom:1.0.7', result.stdout)
 
     def setUp(self):
@@ -101,23 +101,52 @@ project="$2/project"
     def test_reader_absence_quotes_comments_and_isolation(self):
         result = self.run_shell('project_version_get "$project/project.env"')
         self.assertEqual((result.returncode, result.stdout), (0, ''))
-        for value in ['1.0.0', '"1.0.0"', "'1.0.0' # public", '0.12.34']:
+        for value in ['1.0.0', '"1.0.0"', "'1.0.0' # public", '0.12.34', '1.2.3.4']:
             self.config.write_text(f'OTHER=$(touch "{self.base}/executed")\nexport PROJECT_VERSION={value}\n')
             result = self.run_shell('project_version_get "$project/project.env"')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn(result.stdout, ['1.0.0', '0.12.34'])
+            self.assertIn(result.stdout, ['1.0.0', '0.12.34', '1.2.3.4'])
             self.assertFalse((self.base / 'executed').exists())
         self.config.write_text('OTHER=value\n')
         self.assertEqual(self.run_shell('project_version_get "$project/project.env"').stdout, '')
 
     def test_reader_refuses_present_invalid_and_duplicate_versions(self):
-        for value in ['', '""', 'v1.0.0', '01.0.0', '1.0', '1.0.0-rc1',
+        for value in ['', '""', 'v1.0.0', '01.0.0', '1.0', '1.0.0-rc1', '1.2.3.04', '1.2.3.4.5',
                       '$(touch marker)', '1.0.0\nPROJECT_VERSION=2.0.0']:
             self.config.write_text('PROJECT_VERSION=' + value + '\n')
             result = self.run_shell('project_version_get "$project/project.env"')
             self.assertNotEqual(result.returncode, 0, value)
             self.assertEqual(result.stdout, '')
             self.assertIn('PROJECT_VERSION', result.stderr)
+
+    def test_stable_tag_comparison_accepts_four_components(self):
+        result = self.run_shell(r'''
+source "$1/modules/projects/git.sh"
+check() {
+    local requested="$1" distant="$2" rc
+    if projects_git_tag_not_newer "$requested" "$distant"; then
+        printf 'allowed:%s:%s\n' "$requested" "$distant"
+    else
+        rc=$?
+        printf 'refused:%s:%s:%s\n' "$requested" "$distant" "$rc"
+    fi
+}
+check v1.2.3.4 v1.2.3.3
+check v1.2.3.4 v1.2.3
+check v1.2.3.4 v2026.11.03.08.38
+check v1.2.3.4 v1.2.3.5
+check v2026.11.03.08.38 v1.2.3.4
+check v1.2.3.04 v1.2.3.3
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [
+            'allowed:v1.2.3.4:v1.2.3.3',
+            'allowed:v1.2.3.4:v1.2.3',
+            'allowed:v1.2.3.4:v2026.11.03.08.38',
+            'refused:v1.2.3.4:v1.2.3.5:1',
+            'refused:v2026.11.03.08.38:v1.2.3.4:1',
+            'refused:v1.2.3.04:v1.2.3.3:2',
+        ])
 
     def test_commit_parameter_selection_and_no_cross_project_leak(self):
         self.config.write_text('PROJECT_VERSION=1.0.0\n')

@@ -25,11 +25,11 @@ diu_display_help_context() {
     case "$context:$subcontext:$leaf" in
         projects::|projects:build:*|projects:deb:*|projects:docker:*|projects:git:*|projects:cicd:*|projects:cicddiu:*|projects:cicddr:*|projects:forgejo:push|projects:gitlab:push|projects:github:push|projects:forgejo:release|projects:gitlab:release|projects:github:release)
             if [[ "$leaf" == push && "$subcontext" =~ ^(forgejo|gitlab|github)$ ]]; then
-                printf '%s\n' 'Push direct : VERSION x.y.z ou horodatage si absente ; PROJECT_VERSION reste inchangée.'
+                printf '%s\n' 'Push direct : VERSION x.y.z ou x.y.z.w, ou horodatage si absente ; PROJECT_VERSION reste inchangée.'
                 printf '%s\n' 'Tag distant supérieur ou non comparable : refus ; sinon branche et tag sont alignés sous lease.'
                 printf '%s\n' 'Version stable prioritaire sur horodatage ; une version attribuée est rejouée isolément.'
             else
-                printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z dans project.env ; sans cette clé, mécanismes actuels conservés.'
+                printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z ou x.y.z.w dans project.env ; sans cette clé, mécanismes actuels conservés.'
                 printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
                 printf '%s\n' 'Le tag local ne sera pas déplacé ; les publications vérifient sa concordance avec HEAD.'
             fi
@@ -436,7 +436,7 @@ diu_display_help_context() {
             ;;
         projects:docker:build|projects:git:update|projects:gitlab:clone|projects:gitlab:update|projects:gitlab:push|projects:gitlab:release|projects:github:clone|projects:github:update|projects:github:push|projects:github:release|projects:forgejo:update|projects:forgejo:push|projects:forgejo:release)
             if [[ "$leaf" == push && "$subcontext" =~ ^(forgejo|gitlab|github)$ ]]; then
-                diu_help_line "diu projects ${subcontext} push <ID PROJECT> [VERSION]" 'Commit et tag avant réconciliation Git ; VERSION x.y.z ou horodatage si absente.'
+                diu_help_line "diu projects ${subcontext} push <ID PROJECT> [VERSION]" 'Commit et tag avant réconciliation Git ; VERSION x.y.z ou x.y.z.w, ou horodatage si absente.'
                 printf '%s\n' 'Une version déjà attribuée est rejouée isolément ; les modifications locales sont conservées.'
             else
                 diu_help_line "diu projects ${subcontext} ${leaf} <ID PROJECT>" "Exécute l'opération demandée."

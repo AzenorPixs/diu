@@ -44,7 +44,7 @@ projects_provider_push_direct "$3" fixture "$4"
 
     def test_explicit_and_automatic_selection_for_every_provider(self):
         for provider in ('forgejo', 'gitlab', 'github'):
-            for version, expected in [('1.0.1', '1.0.1'), ('', '2026.11.10.12.34')]:
+            for version, expected in [('1.0.1', '1.0.1'), ('1.0.1.2', '1.0.1.2'), ('', '2026.11.10.12.34')]:
                 with self.subTest(provider=provider, version=version):
                     result = self.run_case(provider, version)
                     self.assertEqual(result.returncode, 0, result.stderr)
@@ -60,6 +60,7 @@ projects_provider_push_direct "$3" fixture "$4"
 
     def test_invalid_version_collision_and_commit_failure_stop_push(self):
         for result in (self.run_case('github', '01.0.0'),
+                       self.run_case('github', '1.2.3.04'),
                        self.run_case('gitlab', '', existing=True),
                        self.run_case('forgejo', '1.0.0', fail_commit=True)):
             self.assertNotEqual(result.returncode, 0)

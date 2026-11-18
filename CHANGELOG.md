@@ -4,6 +4,9 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Git : accepter les versions stables à quatre composants dans PROJECT_VERSION,
+  les pushes directs des trois forges et les comparaisons de tags CI/CD.
+
 - Logiciels : configuration rejouée à chaque convergence d'un logiciel désiré,
   nettoyage après désinstallation et silence pour un logiciel absent non désiré.
 

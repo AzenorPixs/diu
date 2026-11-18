@@ -4,8 +4,8 @@
 
 `PROJECT_VERSION=1.0.0` dans `project.env` est prioritaire pour les deux
 constructeurs Debian. La clé est lue isolément comme une affectation littérale
-unique `x.y.z`, éventuellement citée et commentée, sans exécuter le fichier.
-Les trois entiers sont sans zéro initial sauf `0` ; la longueur est limitée à
+unique `x.y.z` ou `x.y.z.w`, éventuellement citée et commentée, sans exécuter le fichier.
+Les composants sont sans zéro initial sauf `0` ; la longueur est limitée à
 128 caractères. Une clé présente vide, dupliquée ou invalide est une erreur.
 Une clé absente conserve exactement les mécanismes précédents.
 

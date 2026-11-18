@@ -1317,8 +1317,8 @@ L’alias Zsh `sshhvp1` appelle une fonction à paramètres locaux : elle sélec
 
 `lib/project-version.sh` lit uniquement `PROJECT_VERSION` dans `project.env`,
 sans exécution de configuration ni réutilisation d'une valeur du projet précédent.
-Le format est une version stable `x.y.z`, sans préfixe v et sans zéro initial
-sur chacun des entiers sauf 0 ; les valeurs présentes invalides sont bloquantes.
+Le format est une version stable `x.y.z` ou `x.y.z.w`, sans préfixe v et sans zéro initial
+sur chacun des composants sauf 0 ; les valeurs présentes invalides sont bloquantes.
 Une clé absente conserve la sélection historique de chaque fonction.
 Le contrat transversal est `openspec/specs/project-version/spec.md`.
 Les règles de packaging sont détaillées dans BUILD.md.
@@ -1503,7 +1503,7 @@ la configuration Git locale et le clonage local le préservent.
 La création et la mise à jour utilisent le même questionnaire : le type
 propose BASH, GO, JAVASCRIPT, PERL et PYTHON sans interdire les autres valeurs ;
 les options Docker et paquet Debian acceptent `Yes` ou `No`. La version
-`PROJECT_VERSION` est obligatoire et conforme au format `x.y.z` sans zéro
+`PROJECT_VERSION` est obligatoire et conforme au format `x.y.z` ou `x.y.z.w` sans zéro
 initial ; une version existante est proposée par défaut. Une saisie invalide
 est redemandée et une fin d'entrée interrompt la configuration avant écriture.
 Le lecteur du mode continue à valider la configuration avant copie.
@@ -1795,7 +1795,7 @@ absente ou inaccessible échoue sans secours Forgejo. Les métadonnées du paque
 restent vérifiées avant installation. Les arguments supplémentaires sont refusés.
 
 Chaque source est paginée ; les brouillons et préversions sont exclus et les
-versions stables x.y.z sont prioritaires avant comparaison Debian des assets
+versions stables à trois ou quatre composants sont prioritaires avant comparaison Debian des assets
 `diu_<version>_all.deb` associés au tag `v<version>`. Le paquet est vérifié
 (nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
 Toute erreur après sélection (téléchargement, validation ou installation) bloque

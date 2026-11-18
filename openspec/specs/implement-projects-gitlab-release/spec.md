@@ -211,7 +211,7 @@ réussie. Aucun corps de réponse ni identifiant sensible SHALL être journalis�
 - **THEN** l’échec est propagé et aucune publication réussie n’est annoncée
 
 ### Requirement: Reprise de publication Debian
-La publication Debian GitLab SHALL conserver une release existante et ses assets. Un asset attendu déjà disponible SHALL être signalé comme déjà publié ; un asset manquant MAY être ajouté sans remplacement.
+La publication Debian GitLab SHALL conserver une release existante et ses assets. Un asset attendu déjà disponible SHALL être signalé comme présent avec contenu non vérifié ; un asset manquant MAY être ajouté sans remplacement.
 
 #### Scenario: Asset déjà présent
 - **WHEN** la release cohérente contient déjà l'asset attendu

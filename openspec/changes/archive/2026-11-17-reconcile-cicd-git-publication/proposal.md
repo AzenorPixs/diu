@@ -7,6 +7,7 @@ Les historiques indépendants et les tags distants divergents empêchent ou limi
 ## Changements
 
 - Contrôler les tags distants et aligner la branche sur le commit local sélectionné lorsque la version demandée fait autorité.
+- Accepter les versions stables à trois ou quatre composants numériques, notamment pour les pushes individuels et les comparaisons CI/CD entre forges.
 - Publier les tags locaux, y compris en remplaçant un tag distant divergent avec protection contre les changements concurrents.
 - Préserver les modifications locales en attente lors du rejeu et signaler séparément les indisponibilités et les échecs réels.
 - Ne pas remplacer les artefacts publiés sans preuve de cohérence.

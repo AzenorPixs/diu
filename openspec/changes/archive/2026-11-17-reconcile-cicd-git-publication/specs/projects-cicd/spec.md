@@ -20,6 +20,11 @@ Le flux SHALL indiquer comme informations les étapes déjà satisfaites. Pour u
 - **WHEN** un tag distant est supérieur à la version demandée
 - **THEN** le fournisseur est refusé avant toute modification distante
 
+#### Scenario: Tag stable à quatre composants
+- **WHEN** le tag demandé est v1.2.3.4 et un tag distant stable est v1.2.3.5
+- **THEN** l'ordre numérique des composants reconnaît la version distante comme supérieure
+- **AND** le fournisseur est refusé avant toute modification distante
+
 #### Scenario: Erreur de vérification distante
 - **WHEN** le fournisseur est inaccessible ou qu’une référence change pendant la publication
 - **THEN** le flux signale l’erreur ou l’indisponibilité selon les règles applicables

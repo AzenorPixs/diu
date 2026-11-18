@@ -145,6 +145,47 @@ cicd_project fixture automatic vautomatic
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
 
+    def test_four_component_remote_tag_blocks_cicd_when_newer(self):
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-four-part-test-') as temp:
+            project = Path(temp) / 'fixture'
+            project.mkdir()
+            def git(*args):
+                subprocess.run(['git', '-C', str(project), *args], check=True, capture_output=True)
+            git('init', '-q', '-b', 'main')
+            git('config', 'user.name', 'Fixture')
+            git('config', 'user.email', 'fixture@example.test')
+            (project / 'tracked').write_text('tagged\n')
+            git('add', '.')
+            git('commit', '-qm', 'tagged')
+            git('tag', 'v1.2.3.4')
+            git('remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
+            push_log = Path(temp) / 'push'
+            script = r'''
+set -Eeuo pipefail
+source "$1/modules/projects/git.sh"
+ENV_DEVOPS_USER=fixture
+REMOTE_FORGEJO_BASE_URL=https://forge.example
+REMOTE_FORGEJO_OWNER=owner
+REMOTE_FORGEJO_REPOSITORY=fixture
+runuser() { shift 3; "$@"; }
+print_info() { :; }
+print_error() { printf '%s\n' "$*" >&2; }
+projects_cicd_replay_git_transport() {
+  case "$3" in
+    ls-remote) printf '%s\trefs/heads/main\n%040d\trefs/tags/v1.2.3.5\n' "$(git -C "$2" rev-parse HEAD)" 1 ;;
+    *) printf 'unexpected transport\n' >&2; return 93 ;;
+  esac
+}
+if projects_cicd_replay_git_provider forgejo "$2" origin main v1.2.3.4; then exit 1
+else rc=$?; printf 'refused:%s\n' "$rc"; fi
+'''
+            result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
+                                    text=True, capture_output=True, env={**os.environ, 'PUSH_LOG': str(push_log), 'TMPDIR': temp})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('refused:1', result.stdout)
+            self.assertIn('v1.2.3.5', result.stderr)
+            self.assertFalse(push_log.exists())
+
     def test_remote_tag_conflict_uses_expected_sha_lease(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:
             project = Path(temp) / 'fixture'

@@ -115,7 +115,7 @@ sinon `No` ; une entrée vide conserve ce défaut. Une variable absente dans
 La création et la mise à jour demandent également le nom, le type (BASH par
 défaut, GO, JAVASCRIPT, PERL et PYTHON sont proposés), les options Docker et
 paquet Debian (`Yes` ou `No`, `No` par défaut) et `PROJECT_VERSION` au format
-`x.y.z`. La mise à jour propose la version existante ; une version est requise
+`x.y.z` ou `x.y.z.w`. La mise à jour propose la version existante ; une version est requise
 si elle est absente.
 
 À la création, `.worktrees/`, `config/`, `output/`, `.cab-tests/` et
@@ -154,8 +154,8 @@ PROJECT_VERSION=1.0.0
 ```
 
 Cette clé optionnelle est prioritaire pour les commits/tags, les builds Debian
-et Docker et leurs publications. Le format est `x.y.z`, sans préfixe v ni zéro
-initial sur les trois entiers sauf 0. Une valeur présente vide, invalide ou
+et Docker et leurs publications. Le format est `x.y.z` ou `x.y.z.w`, sans préfixe v et sans zéro initial
+sur les composants sauf 0. Une valeur présente vide, invalide ou
 dupliquée provoque une erreur ; sans clé, les mécanismes antérieurs restent
 inchangés. Debian utilise d'abord cette valeur, puis la recette et les tags
 selon le constructeur. Docker produit les tags VERSION et latest.
@@ -169,8 +169,7 @@ image absente ; les publications Debian refusent un paquet de version différent
 Les aides de commit, push, CICD et build rappellent ce contrat avant bootstrap.
 Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent les contrôles.
 
-Le flux `diu projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z`
-facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
+Le flux `diu projects cicd <ID PROJECT> [VERSION]` accepte une version `x.y.z` ou `x.y.z.w` facultative. Elle est enregistrée dans `PROJECT_VERSION` avant le traitement.
 Une version `PROJECT_VERSION` déjà attribuée est rejouée depuis une copie isolée du commit de
 son tag : les modifications locales en attente restent disponibles et ne sont
 pas incluses. Le tag local reste inchangé. Avant chaque push, DIU refuse un
@@ -208,7 +207,7 @@ effectivement réalisés, sans afficher les identifiants secrets.
 `diu projects cicd help` et `diu projects cicd <ID PROJECT> help` décrivent ces
 étapes avant bootstrap. Le détail figure dans [BUILD.md](BUILD.md).
 
-Pour les sélections de versions DIU, une version stable `x.y.z` est prioritaire
+Pour les sélections de versions DIU, une version stable `x.y.z` ou `x.y.z.w` est prioritaire
 sur un horodatage. Aucun epoch n'est ajouté au paquet Debian : `dpkg` et APT
 conservent leur propre ordre de versions, y compris pour un ancien paquet
 horodaté déjà installé.
@@ -298,7 +297,7 @@ les branches et le tag demandé sont alignés sur le commit local sous lease si
 aucun tag distant supérieur ou non comparable ne bloque la publication. `forgejo push all` conserve son parcours groupé.
 
 Les commandes `diu projects forgejo|gitlab|github push <ID PROJECT> [VERSION]`
-préparent le commit et le tag avant le push. VERSION suit le format `x.y.z` ;
+préparent le commit et le tag avant le push. VERSION suit le format `x.y.z` ou `x.y.z.w` ;
 sans argument, le tag utilise l'horodatage. Ce choix ne modifie pas
 `PROJECT_VERSION`. Une version déjà attribuée est rejouée depuis le commit du
 tag, en préservant les changements locaux en attente. Les identifiants GitHub
