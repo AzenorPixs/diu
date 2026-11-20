@@ -16453,14 +16453,14 @@ Change : `remove-diu-generated-tag-prefix` · état local : `archived`. Les vale
 
 | Mesure | Valeur | Preuve ou limite |
 | --- | --- | --- |
-| Durée globale | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Durée hors pauses et attentes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens d’entrée | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de sortie | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de raisonnement | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de cache lus | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de cache écrits | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Total natif des tokens | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Durée globale | 965.545373 | Bornes serveur et union des périodes fermées. |
+| Durée hors pauses et attentes | 965.545373 | Bornes serveur et union des périodes fermées. |
+| Tokens d’entrée | 45871589 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de sortie | 26068 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de raisonnement | 4676 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de cache lus | 45773952 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de cache écrits | 0 | Périodes CAB : bornes et empreintes de l’export. |
+| Total natif des tokens | 45897657 | Périodes CAB : bornes et empreintes de l’export. |
 | Compactions achevées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 | Demandes d’autorisation distinctes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 | Demandes approuvées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
@@ -16474,7 +16474,7 @@ Change : `remove-diu-generated-tag-prefix` · état local : `archived`. Les vale
 | coder | codex | N/A | N/A |
 
 
-Provenance : change-periods:87e7b73e8ffc86e2be76d6eef46b78db2fafd6ac4e64071079f2f1e59ddda256
+Provenance : change-periods:eff8bbfba1e1f6a39e3652efa9a1c38b53b47cdb8629618acb7058c3c616a6e1
 
 ## 2. Messages et outils
 
@@ -16536,21 +16536,8 @@ Provenance : change-periods:87e7b73e8ffc86e2be76d6eef46b78db2fafd6ac4e64071079f2
 | Total | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 
 
-
-Mesures partielles en cours — aucune valeur ci-dessous ne vaut total complet.
-
-| RUN | SID | Compteur | Incrément observé | Couverture |
-| --- | --- | --- | --- | --- |
-| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_read | 38559488 | bounded |
-| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_write | 0 | bounded |
-| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_input | 38651350 | bounded |
-| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_output | 24093 | bounded |
-| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_reasoning | 4353 | bounded |
-| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_total | 38675443 | bounded |
-
-
 <!-- CAB_STATISTICS_CURRENT_END -->
-<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "37614372c1a73fd20dd6b39a4cf7309e5c3170b5161ce0884401794eed02af0f", "generated_at": "2026-11-20T13:21:50.899298+00:00", "revision": "37614372c1a73fd20dd6b39a4cf7309e5c3170b5161ce0884401794eed02af0f", "scope": "change"} -->
+<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "7dbc33ec6c0ebc122f478755d94e3eb434df4ad30ff70b1ea7863c6e6c748428", "generated_at": "2026-11-20T13:24:07.166745+00:00", "revision": "7dbc33ec6c0ebc122f478755d94e3eb434df4ad30ff70b1ea7863c6e6c748428", "scope": "change"} -->
 
 
 ## Change `remove-diu-variables-version` — openspec/changes/archive/2026-11-02-remove-diu-variables-version/STATISTICS.md
@@ -21062,4 +21049,4 @@ L'archivage a réussi avec le chemin explicite du projet. L'archive contient les
 L'évolution est implémentée, ses contrôles ciblés réussissent et le change est archivé. La suite complète de tests et la validation OpenSpec stricte globale échouent sur des éléments hors des fichiers de ce change ; ces résultats restent visibles et ne sont pas présentés comme des succès. Aucun déploiement ou installation OpenCode réelle n'a été effectué.
 
 L'étape de commit local SCM est bloquée : les prérequis non secrets étaient valides et `main` correspond à `LOCAL_DEFAULT_BRANCH`, mais `git status --short` montre aussi le chemin préexistant `DEVOPS.md` modifié. La procédure impose `git add .`, ce qui inclurait ce fichier hors périmètre. Aucun `git config`, staging, commit, tag ou push n'a été exécuté. Forgejo, GitHub et GitLab n'ont pas été sollicités faute de commit local vérifié.
-<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "6bfa68dc431dbbd2b8db124eca6e44cd1a2456f5f412a92ba177c8e34187829d", "generated_at": "2026-11-20T13:21:53.575881+00:00", "revision": "6bfa68dc431dbbd2b8db124eca6e44cd1a2456f5f412a92ba177c8e34187829d", "scope": "project"} -->
+<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "38f2c28ddc899ed014c22b7046d37cf92b50c428d4b64da26b70856c1aae5fc1", "generated_at": "2026-11-20T13:24:09.535055+00:00", "revision": "38f2c28ddc899ed014c22b7046d37cf92b50c428d4b64da26b70856c1aae5fc1", "scope": "project"} -->
