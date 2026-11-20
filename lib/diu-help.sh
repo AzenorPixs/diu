@@ -30,7 +30,7 @@ diu_display_help_context() {
                 printf '%s\n' 'Version stable prioritaire sur horodatage ; une version attribuée est rejouée isolément.'
             else
                 printf '%s\n' 'Version prioritaire optionnelle : PROJECT_VERSION=x.y.z ou x.y.z.w dans project.env ; sans cette clé, mécanismes actuels conservés.'
-                printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : v<VERSION> ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
+                printf '%s\n' 'Valeur présente invalide : erreur. Tag Git : <VERSION> sans préfixe v ; Docker : <VERSION> et latest ; Debian : priorité sur recette et tags.'
                 printf '%s\n' 'Le tag local ne sera pas déplacé ; les publications vérifient sa concordance avec HEAD.'
             fi
             ;;

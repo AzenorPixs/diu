@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 _diu_update_version_gt() {
-    local left="$1" right="$2" stable='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+    local left="$1" right="$2" stable='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
     if [[ "$left" =~ $stable && ! "$right" =~ $stable ]]; then
         return 0
     fi
@@ -39,7 +39,7 @@ _diu_update_config() {
 # Choisir un candidat dans un seul fournisseur ; les résultats remontent au sous-shell appelant.
 _diu_update_select() {
     local provider="$1" prefix base_key owner_key repo_key base owner repo api page response previous_response count rows
-    local tag name url version
+    local tag name url version best_tag=""
     local REMOTE_GITHUB_BASE_URL='' REMOTE_GITHUB_OWNER='' REMOTE_GITHUB_REPOSITORY=''
     local REMOTE_FORGEJO_BASE_URL='' REMOTE_FORGEJO_OWNER='' REMOTE_FORGEJO_REPOSITORY=''
     # Les paramètres sont résolus par expansion indirecte.
@@ -70,14 +70,14 @@ _diu_update_select() {
         jq -e 'all(.[]; type == "object" and (.tag_name | type == "string") and ((.assets // []) | type == "array"))' <<< "$response" >/dev/null || { print_error "Réponse $provider invalide."; return 1; }
         rows="$(jq -er '[.[] | select(.draft != true and .prerelease != true and (.tag_name|type)=="string") | .tag_name as $tag | (.assets // [])[] | select((.name|type)=="string" and (.browser_download_url|type)=="string") | [$tag,.name,.browser_download_url] | @tsv] | .[]' <<< "$response")" || { [[ "$?" == 4 ]] || { print_error "Assets $provider invalides."; return 1; }; }
         while IFS=$'\t' read -r tag name url; do
-            [[ -n "$tag" && "$tag" == v* ]] || continue
             version="${tag#v}"
             [[ "$version" =~ ^[0-9][A-Za-z0-9.+~:-]*$ && "$name" == "diu_${version}_all.deb" ]] || continue
             dpkg --validate-version "$version" >/dev/null 2>&1 || continue
             [[ -z "$requested_version" || "$version" == "$requested_version" ]] || continue
             [[ "$url" == "$base/"* && "$url" != *[[:space:]]* ]] || { print_error "URL d'asset $provider non conforme."; return 1; }
-            if [[ -z "$best_version" ]] || _diu_update_version_gt "$version" "$best_version"; then
-                best_version="$version"; best_url="$url"
+            if [[ -z "$best_version" || ( "$version" == "$best_version" && "$best_tag" == v* && "$tag" == "$version" ) ]] ||
+                _diu_update_version_gt "$version" "$best_version"; then
+                best_version="$version"; best_url="$url"; best_tag="$tag"
             fi
         done <<< "$rows"
         page=$((page + 1))

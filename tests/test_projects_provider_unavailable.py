@@ -85,7 +85,7 @@ phase=""
 case "$*" in
     *'rev-parse --verify'*) exit 1 ;;
     *'branch --show-current'*) printf 'main\n'; exit 0 ;;
-    *'tag --points-at HEAD'*) printf 'v1.2.3\n'; exit 0 ;;
+    *'tag --points-at HEAD'*) printf '1.2.3\n'; exit 0 ;;
     *'remote get-url'*) printf 'https://%s.example.test/owner/project.git\n' "$PUSH_PROVIDER"; exit 0 ;;
     *' fetch '*) phase=fetch ;;
     *' push '*) phase=branch; [[ "$*" == *refs/tags/* ]] && phase=tag ;;
@@ -151,7 +151,7 @@ exit 0
                 result, calls = self.run_push(provider, phase='tag')
                 self.assert_unavailable(result)
                 self.assertIn('main:main', calls)
-                self.assertIn('refs/tags/v1.2.3:refs/tags/v1.2.3', calls)
+                self.assertIn('refs/tags/1.2.3:refs/tags/1.2.3', calls)
 
     def test_fetch_failure_does_not_push(self):
         for provider in ('forgejo', 'github'):
@@ -246,7 +246,7 @@ git_with_token "$ENV_DEVOPS_PROJECTS_ROOT/project" fixture-user fixture-token pu
                 self.assertIn('RESULT:0:publié', result.stdout)
                 self.assertIn('Push Git terminé avec succès', result.stdout)
                 self.assertIn('main:main', calls)
-                self.assertIn('refs/tags/v1.2.3', calls)
+                self.assertIn('refs/tags/1.2.3', calls)
 
     def test_local_project_errors_are_not_unavailability(self):
         for provider in ('forgejo', 'gitlab', 'github'):
@@ -303,7 +303,7 @@ git_with_token "$ENV_DEVOPS_PROJECTS_ROOT/project" fixture-user fixture-token pu
         self.assertNotIn('BUILD', result.stdout)
 
     def test_forgejo_group_reports_unavailability_without_false_success(self):
-        script = self.cicd_script().replace('cicd_project project commit v1.2.3', 'forgejo_push_all')
+        script = self.cicd_script().replace('cicd_project project commit 1.2.3', 'forgejo_push_all')
         result, _ = self.run_push('forgejo', script=script)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('terminé avec indisponibilités', result.stdout)
@@ -325,5 +325,5 @@ projects_docker_build() { printf 'BUILD\n'; }
 projects_forgejo_release() { printf 'RELEASE:forgejo\n'; }
 projects_gitlab_release() { printf 'RELEASE:gitlab\n'; }
 projects_github_release() { printf 'RELEASE:github\n'; }
-cicd_project project commit v1.2.3
+cicd_project project commit 1.2.3
 '''

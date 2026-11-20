@@ -1037,7 +1037,7 @@ create_project example
                 '#!/usr/bin/env bash\n'
                 'case "$*" in\n'
                 '  *"rev-parse --is-inside-work-tree"*) exit 0 ;;\n'
-                '  *"tag --points-at HEAD"*) printf "v2026.09.16.16.38\\n"; exit 0 ;;\n'
+                '  *"tag --points-at HEAD"*) printf "2026.09.16.16.38\\n"; exit 0 ;;\n'
                 'esac\n'
                 'exit 1\n',
                 encoding='utf-8',
@@ -1149,7 +1149,7 @@ projects_forgejo_release() { printf 'forgejo_release\n'; }
 projects_gitlab_release() { printf 'gitlab_release\n'; }
 projects_github_release() { printf 'github_release\n'; }
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-cicd_project project commit vcommit
+cicd_project project commit commit
 '''
             result = subprocess.run(
                 ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
@@ -1186,7 +1186,7 @@ projects_forgejo_release() { printf 'unexpected\n'; }
 projects_gitlab_release() { printf 'unexpected\n'; }
 projects_github_release() { printf 'unexpected\n'; }
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-cicd_project project commit vcommit
+cicd_project project commit commit
 '''
             result = subprocess.run(
                 ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
@@ -1201,7 +1201,7 @@ cicd_project project commit vcommit
         script = r'''
 source "$1/modules/projects/git.sh"
 print_title() { :; }
-cicd_project_print_summary project commit v1.2.3 réussi \
+cicd_project_print_summary project commit 1.2.3 réussi \
   'publié vers origin/main' 'non configuré, ignoré' 'non configuré, ignoré' \
   'project:latest (version 1.2.3)' 'forgejo/project:1.2.3 et latest' \
   'non Dockerisé ou non configuré, ignoré' 'non Dockerisé ou non configuré, ignoré'
@@ -1243,7 +1243,7 @@ source "$1/modules/projects/git.sh"
 print_title() { :; }
 print_error() { :; }
 git_commit() { :; }
-git() { printf 'v2026.09.23.13.17\n'; }
+git() { printf '2026.09.23.13.17\n'; }
 runuser() { shift 3; "$@"; }
 forgejo_push() { :; }
 gitlab_push() { :; }
@@ -1254,7 +1254,7 @@ projects_gitlab_release() { :; }
 projects_github_release() { :; }
 ENV_DEVOPS_USER=test
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-cicd_project project 2026.09.23.13.38 v2026.09.23.13.38
+cicd_project project 2026.09.23.13.38 2026.09.23.13.38
 '''
             result = subprocess.run(
                 ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
@@ -1263,7 +1263,7 @@ cicd_project project 2026.09.23.13.38 v2026.09.23.13.38
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('Tag     : v2026.09.23.13.17', result.stdout)
+            self.assertIn('Tag     : 2026.09.23.13.17', result.stdout)
             self.assertIn('Version : 2026.09.23.13.17', result.stdout)
             self.assertIn('Build   : project:latest (version 2026.09.23.13.17)', result.stdout)
             self.assertIn('Forgejo : forgejo.example.test/owner/project:2026.09.23.13.17 et latest', result.stdout)
@@ -1289,7 +1289,7 @@ print_error() { :; }
 git_commit() { :; }
 forgejo_push() { return 1; }
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-cicd_project project commit v1.2.3
+cicd_project project commit 1.2.3
 '''
             result = subprocess.run(
                 ['bash', '-c', script, 'bash', str(ROOT), str(projects_root)],
@@ -1303,10 +1303,10 @@ cicd_project project commit v1.2.3
 
     def test_github_release_publishes_existing_image_without_building(self):
         cases = (
-            ('owner', 'project', 'v1.2.3'),
-            ('AzenorPixs', 'pkeycloak', 'v1.2.3'),
-            ('owner', 'PKeycloak', 'v1.2.3'),
-            ('AzenorPixs', 'PKeycloak', 'v1.2.3-RC1'),
+            ('owner', 'project', '1.2.3'),
+            ('AzenorPixs', 'pkeycloak', '1.2.3'),
+            ('owner', 'PKeycloak', '1.2.3'),
+            ('AzenorPixs', 'PKeycloak', '1.2.3-RC1'),
         )
         for owner, repository, git_tag in cases:
             with self.subTest(owner=owner, repository=repository, git_tag=git_tag):
@@ -1364,7 +1364,7 @@ projects_github_release project || exit $?
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual((project_path / 'project.env').read_bytes(), original_configuration)
             remote_image = f'ghcr.io/{owner.lower()}/{repository.lower()}'
-            version = git_tag[1:]
+            version = git_tag.removeprefix("v")
             self.assertEqual(docker_log.read_text(encoding='utf-8').splitlines(), [
                 'image inspect project:latest',
                 f'tag project:latest {remote_image}:{version}',
@@ -1520,7 +1520,14 @@ print_success() { printf 'SUCCES:%s\n' "$*"; }
 print_error() { printf 'ERREUR:%s\n' "$*" >&2; }
 ENV_DEVOPS_USER=fixture
 ENV_DEVOPS_PROJECTS_ROOT="$2"
-runuser() { if [[ "$*" == *'rev-parse --verify HEAD'* ]]; then printf '%s\n' "$LOCAL_HEAD"; else printf 'v1.0\n'; fi; }
+runuser() {
+    case "$*" in
+        *'show-ref --verify --quiet refs/tags/v1.0') return 1 ;;
+        *'rev-parse --verify HEAD') printf '%s\n' "$LOCAL_HEAD" ;;
+        *'tag --points-at HEAD') printf '1.0\n' ;;
+        *) return 1 ;;
+    esac
+}
 _gitlab_ensure_credentials() { return 0; }
 _gitlab_read_username() { gitlab_username=fixture-user; }
 _gitlab_read_token() { gitlab_token=fixture-token; }
@@ -1534,8 +1541,8 @@ curl() {
         *'/uploads'*) printf '{"url":"/uploads/fixture/project.deb"}\n201' ;;
         *'/releases/'*)
             if [[ "$EXISTING_ASSET" == yes ]]; then
-                printf '{"tag_name":"v1.0","commit":{"id":"fixture-head"},"assets":{"links":[{"name":"project_1.0_all.deb"}]}}\n200'
-            else printf '{"tag_name":"v1.0","commit":{"id":"fixture-head"},"assets":{"links":[]}}\n200'; fi ;;
+                printf '{"tag_name":"1.0","commit":{"id":"fixture-head"},"assets":{"links":[{"name":"project_1.0_all.deb"}]}}\n200'
+            else printf '{"tag_name":"1.0","commit":{"id":"fixture-head"},"assets":{"links":[]}}\n200'; fi ;;
         *) return 89 ;;
     esac
 }
@@ -1574,8 +1581,8 @@ projects_gitlab_release_debian project
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('ERREUR:', result.stderr)
         self.assertIn('GitLab : identifiants disponibles.', result.stdout)
-        self.assertIn('tag v1.0 de la release cohérent', result.stdout)
-        self.assertIn('déjà présent sur GitLab pour v1.0', result.stdout)
+        self.assertIn('tag 1.0 de la release cohérent', result.stdout)
+        self.assertIn('déjà présent sur GitLab pour 1.0', result.stdout)
         self.assertIn('cohérence du contenu non vérifiée', result.stdout)
         self.assertNotIn('synchronisé avec', result.stdout)
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'Branche distante', 'Tag')

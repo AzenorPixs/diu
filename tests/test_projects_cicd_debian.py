@@ -53,7 +53,7 @@ projects_github_release() { fixture_release github_release "$1"; }
 publish_release_debian() { fixture_release forgejo_debian "$1"; }
 projects_gitlab_release_debian() { fixture_release gitlab_debian "$1"; }
 projects_github_release_debian() { fixture_release github_debian "$1"; }
-cicd_project project 2026.11.02.15.33 v2026.11.02.15.33
+cicd_project project 2026.11.02.15.33 2026.11.02.15.33
 '''
 
 
@@ -158,7 +158,7 @@ if [[ -s "$projects_git_unavailable_file" ]]; then printf unavailable; else prin
                                                  'debian', 'forgejo_debian', 'gitlab_debian', 'github_debian'])
         for number in range(1, 7):
             self.assertEqual(result.stdout.count(f'TITLE:Étape {number}/6'), 1)
-        self.assertIn('OP:commit:project:2.3.4:v2.3.4', result.stdout)
+        self.assertIn('OP:commit:project:2.3.4:2.3.4', result.stdout)
         self.assertIn('Paquet Debian\n  Build   : construit dans ', result.stdout)
         self.assertIn('GitHub  : paquet Debian publié depuis dist', result.stdout)
 
@@ -249,7 +249,7 @@ if [[ -s "$projects_git_unavailable_file" ]]; then printf unavailable; else prin
         second = self.base / 'second'
         second.mkdir()
         self.config(project=second, providers=(), debian=None)
-        harness = HARNESS + '\ncicd_project second 2026.11.02.15.33 v2026.11.02.15.33\n'
+        harness = HARNESS + '\ncicd_project second 2026.11.02.15.33 2026.11.02.15.33\n'
         result = self.run_flow(harness=harness)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.operations(result), ['commit', 'debian', 'commit'])

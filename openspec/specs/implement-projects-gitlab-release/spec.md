@@ -220,3 +220,10 @@ La publication Debian GitLab SHALL conserver une release existante et ses assets
 #### Scenario: Asset absent
 - **WHEN** la release cohérente ne contient pas l'asset attendu
 - **THEN** la commande peut publier cet asset sans remplacer les assets présents
+
+### Requirement: Tag GitLab sans préfixe
+DIU SHALL exiger un tag Git sans v initial pour publier une release Debian GitLab.
+
+#### Scenario: Seul un tag historique est présent
+- **WHEN** la version ne dispose que d'un tag préfixé v sur HEAD
+- **THEN** la publication GitLab est refusée avant création de la release

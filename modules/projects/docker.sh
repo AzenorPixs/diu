@@ -174,7 +174,7 @@ projects_docker_build() {
     echo "Répertoire  : ${project_dir}"
     echo "Dockerfile  : ${dockerfile}"
     if [[ -n "$replay_tag" ]]; then
-        if [[ ! "$replay_tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+        if [[ "$replay_tag" == v* || ! "$replay_tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
             echo '❌ Tag Docker de rejeu invalide.' >&2
             return 1
         fi

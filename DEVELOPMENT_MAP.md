@@ -1143,3 +1143,5 @@ Delta SCM du 2026-11-04 : [force-diu-update-version](openspec/changes/archive/20
 Delta SCM CAB 3.0.0 : [support-debian-maintainer-scripts](openspec/changes/archive/2026-11-11-support-debian-maintainer-scripts/QUALIFICATION.md), code non attribué, archivé ; 37 tests ciblés réussis, contrôles Bash/ShellCheck et OpenSpec strict réussis. Rapports individuels SGS produits ; publications et installation vérifiées séparément.
 
 Delta SCM paquet CAB3.0.0 : [publish-native-debian-architecture](openspec/changes/archive/2026-11-11-publish-native-debian-architecture/QUALIFICATION.md), code non attribué, archivé ; 58 tests ciblés et contrôles syntaxiques réussis. Rapport individuel SGS produit. Livraison DIU1.3.11 coordonnée avec le change CODING_RULES autorisé ; le même artefact CAB3.0.0 sera publié sans déplacement du tag.
+
+Delta SCM du 2026-11-20 : [remove-diu-generated-tag-prefix](openspec/changes/archive/2026-11-20-remove-diu-generated-tag-prefix/proposal.md), code non attribué. Tags générés sans préfixe pour Git et les artefacts DIU.

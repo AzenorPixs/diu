@@ -29,7 +29,7 @@ class CicdReplayTests(unittest.TestCase):
             git('config', 'user.email', 'fixture@example.test')
             git('add', '.')
             git('commit', '-qm', 'tagged')
-            git('tag', 'v1.0.0')
+            git('tag', '1.0.0')
             (project / 'project.env').write_text('PROJECT_ID=fixture\nPROJECT_NAME=Fixture\nPROJECT_TYPE=BASH\n'
                 'PROJECT_VERSION=1.0.0\nPROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=Yes\n')
             (project / 'payload/data').write_text('modified\n')
@@ -48,14 +48,14 @@ print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf '%s\n' "$*"; }
 print_success() { :; }
 print_title() { :; }
-cicd_project fixture automatic vautomatic
+cicd_project fixture automatic automatic
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertNotIn('permission refusée pour devops', result.stderr)
             self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
-            packages = list((project / 'dist/replay/v1.0.0').glob('*/fixture_1.0.0_all.deb'))
+            packages = list((project / 'dist/replay/1.0.0').glob('*/fixture_1.0.0_all.deb'))
             self.assertEqual(len(packages), 1)
             extract = base / 'extracted'
             subprocess.run(['dpkg-deb', '-x', str(packages[0]), str(extract)], check=True)
@@ -76,13 +76,13 @@ cicd_project fixture automatic vautomatic
             (project / 'tracked').write_text('old\n')
             git(project, 'add', '.')
             git(project, 'commit', '-qm', 'old')
-            git(project, 'tag', 'v1.0.0')
+            git(project, 'tag', '1.0.0')
             tagged = git(project, 'rev-parse', 'HEAD').stdout.strip()
             (project / 'tracked').write_text('new\n')
             git(project, 'commit', '-qam', 'new')
             newer = git(project, 'rev-parse', 'HEAD').stdout.strip()
             git(project, 'push', str(remote), 'main')
-            git(project, 'checkout', '-q', '--detach', 'v1.0.0')
+            git(project, 'checkout', '-q', '--detach', '1.0.0')
             tagged = git(project, 'rev-parse', 'HEAD').stdout.strip()
             git(project, 'remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
             script = r'''
@@ -103,13 +103,13 @@ projects_cicd_replay_git_transport() {
     push) shift; git -C "$path" push "$BARE" "$@" ;;
   esac
 }
-projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
+projects_cicd_replay_git_provider forgejo "$2" origin main 1.0.0
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
                                     text=True, capture_output=True, env={**os.environ, 'BARE': str(remote), 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(git(remote, 'rev-parse', 'refs/heads/main').stdout.strip(), tagged)
-            self.assertEqual(git(remote, 'rev-parse', 'refs/tags/v1.0.0^{commit}').stdout.strip(), tagged)
+            self.assertEqual(git(remote, 'rev-parse', 'refs/tags/1.0.0^{commit}').stdout.strip(), tagged)
 
     def test_interrupt_removes_private_replay_context(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-replay-test-') as temp:
@@ -125,7 +125,7 @@ projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
             (project / '.gitignore').write_text('project.env\nconfig/\n.cicd-replay.*\n')
             git('add', '.')
             git('commit', '-qm', 'tagged')
-            git('tag', 'v1.0.0')
+            git('tag', '1.0.0')
             (project / 'project.env').write_text('PROJECT_ID=fixture\nPROJECT_NAME=Fixture\n'
                 'PROJECT_TYPE=BASH\nPROJECT_VERSION=1.0.0\nPROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=Yes\n')
             script = r'''
@@ -138,7 +138,7 @@ print_error() { :; }
 print_info() { :; }
 print_title() { :; }
 projects_build_deb() { kill -TERM "$BASHPID"; }
-cicd_project fixture automatic vautomatic
+cicd_project fixture automatic automatic
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': temp})
@@ -157,7 +157,7 @@ cicd_project fixture automatic vautomatic
             (project / 'tracked').write_text('tagged\n')
             git('add', '.')
             git('commit', '-qm', 'tagged')
-            git('tag', 'v1.2.3.4')
+            git('tag', '1.2.3.4')
             git('remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
             push_log = Path(temp) / 'push'
             script = r'''
@@ -172,18 +172,18 @@ print_info() { :; }
 print_error() { printf '%s\n' "$*" >&2; }
 projects_cicd_replay_git_transport() {
   case "$3" in
-    ls-remote) printf '%s\trefs/heads/main\n%040d\trefs/tags/v1.2.3.5\n' "$(git -C "$2" rev-parse HEAD)" 1 ;;
+    ls-remote) printf '%s\trefs/heads/main\n%040d\trefs/tags/1.2.3.5\n' "$(git -C "$2" rev-parse HEAD)" 1 ;;
     *) printf 'unexpected transport\n' >&2; return 93 ;;
   esac
 }
-if projects_cicd_replay_git_provider forgejo "$2" origin main v1.2.3.4; then exit 1
+if projects_cicd_replay_git_provider forgejo "$2" origin main 1.2.3.4; then exit 1
 else rc=$?; printf 'refused:%s\n' "$rc"; fi
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
                                     text=True, capture_output=True, env={**os.environ, 'PUSH_LOG': str(push_log), 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('refused:1', result.stdout)
-            self.assertIn('v1.2.3.5', result.stderr)
+            self.assertIn('1.2.3.5', result.stderr)
             self.assertFalse(push_log.exists())
 
     def test_remote_tag_conflict_uses_expected_sha_lease(self):
@@ -198,7 +198,7 @@ else rc=$?; printf 'refused:%s\n' "$rc"; fi
             (project / 'tracked').write_text('tagged\n')
             git('add', '.')
             git('commit', '-qm', 'tagged')
-            git('tag', 'v1.0.0')
+            git('tag', '1.0.0')
             git('remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
             script = r'''
 set -Eeuo pipefail
@@ -212,12 +212,12 @@ print_info() { :; }
 print_error() { printf '%s\n' "$*" >&2; }
 projects_cicd_replay_git_transport() {
   case "$3" in
-    ls-remote) printf '%s\trefs/heads/main\n%040d\trefs/tags/v1.0.0\n' "$(git -C "$2" rev-parse HEAD)" 1 ;;
+    ls-remote) printf '%s\trefs/heads/main\n%040d\trefs/tags/1.0.0\n' "$(git -C "$2" rev-parse HEAD)" 1 ;;
     fetch) git -C "$2" update-ref refs/remotes/origin/main "$(git -C "$2" rev-parse HEAD)" ;;
     push) printf '%s\n' "$@" >> "$PUSH_LOG" ;;
   esac
 }
-projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
+projects_cicd_replay_git_provider forgejo "$2" origin main 1.0.0
 printf '%s\n' "$PROJECTS_CICD_REPLAY_GIT_STATUS"
 '''
             push_log = Path(temp) / 'push'
@@ -225,8 +225,8 @@ printf '%s\n' "$PROJECTS_CICD_REPLAY_GIT_STATUS"
                                     text=True, capture_output=True, env={**os.environ, 'PUSH_LOG': str(push_log), 'TMPDIR': temp})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('tag remplacé, artefacts à vérifier', result.stdout)
-            self.assertIn('--force-with-lease=refs/tags/v1.0.0:' + '0' * 39 + '1', push_log.read_text())
-            self.assertIn('refs/tags/v1.0.0:refs/tags/v1.0.0', push_log.read_text())
+            self.assertIn('--force-with-lease=refs/tags/1.0.0:' + '0' * 39 + '1', push_log.read_text())
+            self.assertIn('refs/tags/1.0.0:refs/tags/1.0.0', push_log.read_text())
 
     def test_recognized_unavailability_is_informational(self):
         script = r'''
@@ -235,7 +235,7 @@ source "$1/modules/projects/git.sh"
 print_error() { printf 'ERROR:%s\n' "$*" >&2; }
 print_info() { printf 'INFO:%s\n' "$*"; }
 _projects_cicd_replay_git_provider() { printf unavailable > "$projects_git_unavailable_file"; return 1; }
-projects_cicd_replay_git_provider forgejo /unused origin main v1.0.0
+projects_cicd_replay_git_provider forgejo /unused origin main 1.0.0
 printf 'STATUS:%s\n' "$PROJECTS_GIT_PUSH_STATUS"
 '''
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-network-test-') as temp:
@@ -260,7 +260,7 @@ printf 'STATUS:%s\n' "$PROJECTS_GIT_PUSH_STATUS"
             (project / '.gitattributes').write_text('tracked export-ignore\n')
             git('add', '.')
             git('commit', '-qm', '1.0.0')
-            git('tag', 'v1.0.0')
+            git('tag', '1.0.0')
             (project / 'project.env').write_text('PROJECT_ID=fixture\nPROJECT_NAME=Fixture\n'
                 'PROJECT_TYPE=BASH\nPROJECT_VERSION=1.0.0\nPROJECT_DOCKERED=Yes\nPROJECT_DEBIAN_PACKAGE=Yes\n'
                 'REMOTE_FORGEJO_BASE_URL=https://forge.example\nREMOTE_FORGEJO_OWNER=owner\n'
@@ -293,7 +293,7 @@ projects_build_deb() {
 }
 publish_release_debian() { printf 'DEBIAN-PUBLIÉ\n'; }
 projects_forgejo_release() { printf 'DOCKER-UNEXPECTED\n'; return 1; }
-cicd_project fixture automatic vautomatic
+cicd_project fixture automatic automatic
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': temp})
@@ -330,7 +330,7 @@ cicd_project fixture automatic vautomatic
             (project / '.gitignore').write_text('project.env\nconfig/\ndist/\n.cicd-replay.*\n')
             git('add', '.')
             git('commit', '-qm', '1.0.0')
-            git('tag', 'v1.0.0')
+            git('tag', '1.0.0')
             (project / 'project.env').write_text(
                 'PROJECT_ID=fixture\nPROJECT_NAME=Fixture\nPROJECT_TYPE=BASH\n'
                 'PROJECT_VERSION=1.0.0\nPROJECT_DOCKERED=No\nPROJECT_DEBIAN_PACKAGE=Yes\n'
@@ -362,8 +362,8 @@ publish_release_debian() {
   test "$(cat "$ENV_DEVOPS_PROJECTS_ROOT/$1/dist/fixture_1.0.0_all.deb")" = tagged
   printf 'PUBLICATION-ISOLÉE\n'
 }
-cicd_project fixture automatic vautomatic
-cicd_project fixture automatic vautomatic
+cicd_project fixture automatic automatic
+cicd_project fixture automatic automatic
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(base)],
                                     text=True, capture_output=True, env={**os.environ, 'TMPDIR': temp})
@@ -374,7 +374,7 @@ cicd_project fixture automatic vautomatic
             self.assertEqual(result.stdout.count('PUBLICATION-ISOLÉE'), 2)
             self.assertEqual(git('status', '--porcelain=v1').stdout, before)
             self.assertEqual((project / 'tracked').read_text(), 'unstaged\n')
-            artifacts = list((project / 'dist/replay/v1.0.0').glob('*/fixture_1.0.0_all.deb'))
+            artifacts = list((project / 'dist/replay/1.0.0').glob('*/fixture_1.0.0_all.deb'))
             self.assertEqual(len(artifacts), 1)
             self.assertEqual(artifacts[0].read_text(), 'tagged\n')
             self.assertEqual(list(Path(temp).glob('diu-cicd-replay.*')), [])
@@ -393,12 +393,12 @@ cicd_project fixture automatic vautomatic
             (project / 'tracked').write_text('old\n')
             git(project, 'add', '.')
             git(project, 'commit', '-qm', 'old')
-            git(project, 'tag', 'v1.0.0')
+            git(project, 'tag', '1.0.0')
             (project / 'tracked').write_text('new\n')
             git(project, 'commit', '-qam', 'new')
             newer = git(project, 'rev-parse', 'HEAD').stdout.strip()
-            git(project, 'push', str(remote), 'main', 'refs/tags/v1.0.0')
-            git(project, 'checkout', '-q', '--detach', 'v1.0.0')
+            git(project, 'push', str(remote), 'main', 'refs/tags/1.0.0')
+            git(project, 'checkout', '-q', '--detach', '1.0.0')
             tagged = git(project, 'rev-parse', 'HEAD').stdout.strip()
             git(project, 'remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
             script = r'''
@@ -419,7 +419,7 @@ projects_cicd_replay_git_transport() {
     push) shift; git -C "$path" push "$BARE" "$@" ;;
   esac
 }
-projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
+projects_cicd_replay_git_provider forgejo "$2" origin main 1.0.0
 printf 'STATUS:%s\n' "$PROJECTS_CICD_REPLAY_GIT_STATUS"
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
@@ -440,14 +440,14 @@ printf 'STATUS:%s\n' "$PROJECTS_CICD_REPLAY_GIT_STATUS"
             (project / 'tracked.txt').write_text('tagged\n')
             git('add', '.')
             git('commit', '-qm', '1.0.0')
-            git('tag', 'v1.0.0')
+            git('tag', '1.0.0')
             script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
 ENV_DEVOPS_USER=fixture
 runuser() { shift 3; "$@"; }
 print_error() { printf '%s\n' "$*" >&2; }
-if projects_cicd_replay_prepare fixture "$2" v1.0.0; then exit 1; fi
+if projects_cicd_replay_prepare fixture "$2" 1.0.0; then exit 1; fi
 test -z "$PROJECTS_CICD_REPLAY_ROOT"
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],
@@ -468,7 +468,7 @@ test -z "$PROJECTS_CICD_REPLAY_ROOT"
             (project / '.gitignore').write_text('project.env\nconfig/\n.cicd-replay.*\n')
             git('add', '.')
             git('commit', '-qm', '1.0.0')
-            git('tag', 'v1.0.0')
+            git('tag', '1.0.0')
             (project / 'project.env').write_text('PROJECT_VERSION=1.0.0\n')
             (project / 'config').mkdir()
             (project / 'config/github.token').write_text('fixture-token\n')
@@ -483,10 +483,10 @@ source "$1/modules/projects/git.sh"
 ENV_DEVOPS_USER=fixture
 runuser() { shift 3; "$@"; }
 print_error() { printf '%s\n' "$*" >&2; }
-projects_cicd_replay_prepare fixture "$2" v1.0.0
+projects_cicd_replay_prepare fixture "$2" 1.0.0
 test "$(cat "$PROJECTS_CICD_REPLAY_ROOT/fixture/tracked.txt")" = tagged
 test ! -e "$PROJECTS_CICD_REPLAY_ROOT/fixture/extra.txt"
-test "$(git -C "$PROJECTS_CICD_REPLAY_ROOT/fixture" rev-parse HEAD)" = "$(git -C "$2" rev-parse v1.0.0^{commit})"
+test "$(git -C "$PROJECTS_CICD_REPLAY_ROOT/fixture" rev-parse HEAD)" = "$(git -C "$2" rev-parse 1.0.0^{commit})"
 rm -rf -- "$PROJECTS_CICD_REPLAY_ROOT"
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(project)],

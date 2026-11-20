@@ -26,6 +26,7 @@ runuser() {
     shift 3
     if [[ "${1:-}" == env ]]; then shift 3; fi
     case "$*" in
+        *'show-ref --verify --quiet refs/tags/v'*) return 1 ;;
         *'remote get-url'*) printf '%s' "${REMOTE_OVERRIDE:-https://github.com/owner/project.git}" ;;
         *'branch --show-current') printf '%s' "${BRANCH_OVERRIDE:-main}" ;;
         *'rev-parse refs/remotes/github/main') printf '%s' "${REMOTE_SHA:-$HEAD_SHA}" ;;
@@ -67,12 +68,12 @@ curl() {
             kind=lookup; code=404
             if [[ "${RELEASE_EXISTS:-}" == yes ]]; then code=200; body='{"id":22}'; fi
             if [[ "${RELEASE_EXISTS:-}" == complete ]]; then
-                code=200; body='{"id":22,"tag_name":"v1.0.3","assets":[{"name":"project_1.0.3_all.deb","state":"uploaded"}]}'
+                code=200; body='{"id":22,"tag_name":"1.0.3","assets":[{"name":"project_1.0.3_all.deb","state":"uploaded"}]}'
             elif [[ "${RELEASE_EXISTS:-}" == incomplete ]]; then
-                code=200; body='{"id":22,"tag_name":"v1.0.3","assets":[],"upload_url":"https://uploads.github.com/repos/owner/project/releases/22/assets{?name,label}"}'
+                code=200; body='{"id":22,"tag_name":"1.0.3","assets":[],"upload_url":"https://uploads.github.com/repos/owner/project/releases/22/assets{?name,label}"}'
             fi ;;
         POST:*'/git/tags') kind=create_tag; code=201; body="$(jq -nc --arg sha "$TAG_SHA" '{sha:$sha}')" ;;
-        POST:*'/git/refs') kind=create_ref; code=201; body='{"ref":"refs/tags/v1.0.3"}' ;;
+        POST:*'/git/refs') kind=create_ref; code=201; body='{"ref":"refs/tags/1.0.3"}' ;;
         POST:*'/releases')
             kind=create_release; code=201
             body="$(jq -nc --arg url "${UPLOAD_URL:-https://uploads.github.com/repos/owner/project/releases/22/assets{?name,label}}" '{id:22,upload_url:$url}')" ;;
@@ -145,8 +146,8 @@ class GithubDebianReleaseTests(unittest.TestCase):
         self.assertIn('GitHub : identifiants disponibles.', result.stdout)
         self.assertIn('GitHub : récupération Git effectuée', result.stdout)
         self.assertIn('GitHub : HEAD synchronisé', result.stdout)
-        self.assertIn('GitHub : tag v1.0.3 déjà présent et cohérent.', result.stdout)
-        self.assertIn('déjà présent sur GitHub pour v1.0.3', result.stdout)
+        self.assertIn('GitHub : tag 1.0.3 déjà présent et cohérent.', result.stdout)
+        self.assertIn('déjà présent sur GitHub pour 1.0.3', result.stdout)
         labels = ('Projet', 'ID projet', 'Répertoire', 'Type distant', 'Dépôt distant', 'URL distante', 'Branche locale', 'Branche distante')
         rows = [line for line in result.stdout.splitlines() if ' : ' in line and line.split(' : ', 1)[0].strip() in labels]
         self.assertEqual(len(rows), len(labels))
@@ -208,7 +209,7 @@ class GithubDebianReleaseTests(unittest.TestCase):
         result = self.run_release()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('SUCCESS:Paquet Debian publié sur GitHub', result.stdout)
-        self.assertIn('/releases/download/v1.0.3/project_1.0.3_all.deb', result.stdout)
+        self.assertIn('/releases/download/1.0.3/project_1.0.3_all.deb', result.stdout)
         calls = self.calls()
         self.assertEqual([c['method'] for c in calls], ['GET', 'GET', 'GET', 'POST', 'POST'])
         self.assertEqual(json.loads(calls[-2]['data'])['target_commitish'], HEAD)
@@ -272,7 +273,7 @@ class GithubDebianReleaseTests(unittest.TestCase):
         self.assertIn('/git/tags', posts[0]['url'])
         self.assertIn('/git/refs', posts[1]['url'])
         self.assertEqual(json.loads(posts[0]['data'])['object'], HEAD)
-        self.assertEqual(json.loads(posts[1]['data'])['ref'], 'refs/tags/v1.0.3')
+        self.assertEqual(json.loads(posts[1]['data'])['ref'], 'refs/tags/1.0.3')
 
     def test_no_git_tag_fallback_matches_forgejo_existing_tag_policy(self):
         self.config.write_text(self.config.read_text().replace('PROJECT_VERSION=1.0.3\n', ''))

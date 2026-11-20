@@ -547,7 +547,7 @@ publish_release_debian() {
     if ! local_git_tag="$(diu_release_version_matches "${project_path}" "${deb_version}")"; then
         return 1
     fi
-    tag_name="v${deb_version}"
+    tag_name="${deb_version}"
     if [[ -n "${local_git_tag}" ]]; then
         tag_source="git"
     else
@@ -684,6 +684,8 @@ publish_release_debian() {
     if [[ "${head_sha}" == "${remote_branch_sha}" ]]; then
         print_success "HEAD == ${remote_branch_ref} (${head_sha:0:12})"
     fi
+
+    project_version_check_legacy_tag "$project_path" "$deb_version" "$head_sha" || return 1
 
     # ==========================================================
     # Étape 8 - Vérification du tag et de la Release

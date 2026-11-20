@@ -309,7 +309,7 @@ ENV_DEVOPS_PROJECTS_ROOT="$2"
 if [[ "$5" == 1 ]]; then
     PROJECTS_CICD_RECONCILE=1
     project_version_get() { printf '1.0.0\\n'; }
-    project_version_tag_for_head() { printf 'v1.0.0\\n'; }
+    project_version_tag_for_head() { printf '1.0.0\\n'; }
     projects_cicd_replay_git_provider() {
         printf 'reconcile:%s\\n' "$*"
         PROJECTS_GIT_PUSH_STATUS=publié
@@ -931,7 +931,7 @@ forgejo_api_get /tmp /repos/owner/project
         )
         self.assertIn('fetch:origin', result.stdout)
         self.assertIn(
-            '--force-with-lease --set-upstream origin main:main',
+            '--force-with-lease --no-follow-tags --set-upstream origin main:main',
             result.stdout,
         )
 
@@ -959,7 +959,7 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertLess(result.stdout.index('fetch:'), result.stdout.index('push:'))
         self.assertIn(
-            '--force-with-lease --set-upstream origin main:main',
+            '--force-with-lease --no-follow-tags --set-upstream origin main:main',
             result.stdout,
         )
 
@@ -1031,7 +1031,7 @@ forgejo_api_get /tmp /repos/owner/project
         self.assertNotIn('fetch:origin', result.stdout)
         self.assertIn('push:', result.stdout)
         self.assertIn(
-            '--force-with-lease=refs/heads/main: --set-upstream origin main:main',
+            '--force-with-lease=refs/heads/main: --no-follow-tags --set-upstream origin main:main',
             result.stdout,
         )
 

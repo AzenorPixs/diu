@@ -549,7 +549,7 @@ projects_cicd_replay_merge_and_push() (
     runuser -u "$ENV_DEVOPS_USER" -- git -C "$temp_path/repository" remote add "$remote" "$remote_url" || return 1
     runuser -u "$ENV_DEVOPS_USER" -- git -C "$temp_path/repository" fetch --quiet "$project_path" "$branch_sha" || return 1
     projects_cicd_merge_sources "$temp_path/repository" "$branch_sha" "$author_name" "$author_email" || return 1
-    projects_cicd_replay_git_transport "$provider" "$temp_path/repository" push "$remote" \
+    projects_cicd_replay_git_transport "$provider" "$temp_path/repository" push "$remote" --no-follow-tags \
         "--force-with-lease=refs/heads/$branch:$branch_sha" "HEAD:refs/heads/$branch"
 )
 
@@ -574,7 +574,7 @@ projects_git_tag_not_newer() {
 # La publication des références utilise un lease explicite sur leur valeur observée.
 _projects_cicd_replay_git_provider() {
     local provider="$1" project_path="$2" remote="$3" branch="$4" tag="$5"
-    local refs="" head_sha="" selected_sha="" branch_sha="" tag_sha="" peeled_sha="" sha="" ref="" remote_tag="" compare_rc=0
+    local refs="" head_sha="" selected_sha="" branch_sha="" tag_sha="" peeled_sha="" legacy_sha="" legacy_peeled_sha="" sha="" ref="" remote_tag="" compare_rc=0
     local prefix="REMOTE_${provider^^}" base_key="" owner_key="" repo_key="" expected_url="" actual_url=""
     PROJECTS_CICD_REPLAY_GIT_STATUS="déjà en ligne"
     base_key="${prefix}_BASE_URL"; owner_key="${prefix}_OWNER"; repo_key="${prefix}_REPOSITORY"
@@ -590,7 +590,7 @@ _projects_cicd_replay_git_provider() {
         print_error "Le tag $tag ne désigne pas le commit sélectionné."
         return 1
     fi
-    if ! projects_git_tag_not_newer "$tag" "$tag"; then
+    if [[ "$tag" == v* ]] || ! projects_git_tag_not_newer "$tag" "$tag"; then
         print_error "Tag demandé non comparable : $tag."
         return 1
     fi
@@ -605,6 +605,8 @@ _projects_cicd_replay_git_provider() {
         case "$ref" in
             "refs/heads/$branch") branch_sha="$sha" ;;
             "refs/tags/$tag^{}") peeled_sha="$sha" ;;
+            "refs/tags/v$tag^{}") legacy_peeled_sha="$sha" ;;
+            "refs/tags/v$tag") legacy_sha="$sha" ;;
             refs/tags/*^'{}') ;;
             refs/tags/*)
                 remote_tag="${ref#refs/tags/}"
@@ -621,8 +623,12 @@ _projects_cicd_replay_git_provider() {
                 ;;
         esac
     done <<< "$refs"
+    if [[ -n "${legacy_peeled_sha:-$legacy_sha}" && "${legacy_peeled_sha:-$legacy_sha}" != "$head_sha" ]]; then
+        print_error "Le tag distant historique v$tag désigne un autre commit ; publication refusée."
+        return 1
+    fi
     if [[ "$branch_sha" != "$head_sha" ]]; then
-        projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" \
+        projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" --no-follow-tags \
             "--force-with-lease=refs/heads/$branch:$branch_sha" "HEAD:refs/heads/$branch" || return 1
         projects_cicd_replay_git_transport "$provider" "$project_path" fetch --no-tags "$remote" \
             "+refs/heads/$branch:refs/remotes/$remote/$branch" || return 1
@@ -633,7 +639,7 @@ _projects_cicd_replay_git_provider() {
         fi
     fi
     if [[ -z "$tag_sha" || "${peeled_sha:-$tag_sha}" != "$head_sha" ]]; then
-        projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" \
+        projects_cicd_replay_git_transport "$provider" "$project_path" push "$remote" --no-follow-tags \
             "--force-with-lease=refs/tags/$tag:$tag_sha" "refs/tags/$tag:refs/tags/$tag" || return 1
         if [[ -n "$tag_sha" ]]; then
             PROJECTS_CICD_REPLAY_GIT_STATUS+=" ; tag remplacé, artefacts à vérifier"
@@ -829,12 +835,13 @@ _cicd_project_impl() {
     local selected_project_version=""
     selected_project_version="$(project_version_get "$project_env")" || return 1
     if [[ -n "$selected_project_version" ]]; then
-        commit_tag="v${selected_project_version}"
+        commit_tag="${selected_project_version}"
         docker_version="$selected_project_version"
     else
         effective_commit_tag="$(
             runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" tag --points-at HEAD 2>/dev/null |
+                sed '/^v/d' |
                 project_version_prefer_stable_tags |
                 head -n 1
         )"
@@ -1943,6 +1950,13 @@ git_commit() {
     fi
 
 
+    if [[ -e "$project_path/.git" && -n "$commit_tag" ]]; then
+        local canonical_commit=""
+        canonical_commit="$(runuser -u "$ENV_DEVOPS_USER" -- env -u GIT_COMMON_DIR git -C "$project_path" \
+            rev-parse --verify "refs/tags/${commit_tag}^{commit}" 2>/dev/null)" || canonical_commit=""
+        project_version_check_legacy_tag "$project_path" "$commit_tag" "$canonical_commit" || return 1
+    fi
+
     local project_name=""
     local git_user_name=""
     local git_user_email=""
@@ -2161,7 +2175,7 @@ git_commit() {
             if [[ "${PROJECTS_VERSION_AUTHORITY:-0}" != 1 ]]; then
                 while IFS= read -r remote; do
                     [[ -n "$remote" ]] || continue
-                    if ! remote_refs="$(runuser -u "$ENV_DEVOPS_USER" -- env -u GIT_COMMON_DIR GIT_TERMINAL_PROMPT=0 git -C "$project_path" ls-remote --tags "$remote" "refs/tags/$commit_tag" "refs/tags/$commit_tag^{}")"; then
+                    if ! remote_refs="$(runuser -u "$ENV_DEVOPS_USER" -- env -u GIT_COMMON_DIR GIT_TERMINAL_PROMPT=0 git -C "$project_path" ls-remote --tags "$remote" "refs/tags/$commit_tag" "refs/tags/$commit_tag^{}" "refs/tags/v$commit_tag" "refs/tags/v$commit_tag^{}")"; then
                         print_error "Impossible de vérifier le tag sur le dépôt ${remote}."
                         return 1
                     fi
@@ -3438,6 +3452,7 @@ _git_push_provider() {
             runuser -u "${ENV_DEVOPS_USER}" -- \
                 git -C "${project_path}" \
                 tag --points-at HEAD 2>/dev/null |
+                sed '/^v/d' |
                 project_version_prefer_stable_tags |
                 head -n 1
         )"
@@ -3710,6 +3725,7 @@ _git_push_provider() {
                     "${project_path}" \
                     "${remote_name}" \
                     "${forgejo_branch_lease}" \
+                    --no-follow-tags \
                     --set-upstream \
                     "${remote_name}" \
                     "${current_branch}:${remote_default_branch}" \
@@ -3717,6 +3733,7 @@ _git_push_provider() {
             else
                 forgejo_git_push \
                     "${project_path}" \
+                    --no-follow-tags \
                     --set-upstream \
                     "${remote_name}" \
                     "${current_branch}:${remote_default_branch}" \
@@ -3743,12 +3760,14 @@ _git_push_provider() {
                         "${project_path}" \
                         "${remote_name}" \
                         "${remote_name}" \
+                        --no-follow-tags \
                         "refs/tags/${current_tag}:refs/tags/${current_tag}" \
                         || push_rc=$?
                 else
                     forgejo_git_push \
                         "${project_path}" \
                         "${remote_name}" \
+                        --no-follow-tags \
                         "refs/tags/${current_tag}:refs/tags/${current_tag}" \
                         || push_rc=$?
                 fi
@@ -3791,6 +3810,7 @@ _git_push_provider() {
 
             gitlab_git_push \
                 "${project_path}" \
+                --no-follow-tags \
                 --set-upstream \
                 "${remote_name}" \
                 "${current_branch}:${remote_default_branch}" \
@@ -3812,6 +3832,7 @@ _git_push_provider() {
                 gitlab_git_push \
                     "${project_path}" \
                     "${remote_name}" \
+                    --no-follow-tags \
                     "refs/tags/${current_tag}:refs/tags/${current_tag}" \
                     || push_rc=$?
 
@@ -3854,6 +3875,7 @@ _git_push_provider() {
             github_git_push \
                 "${project_path}" \
                 --force-with-lease \
+                --no-follow-tags \
                 --set-upstream \
                 "${remote_name}" \
                 "${current_branch}:${remote_default_branch}" \
@@ -3875,6 +3897,7 @@ _git_push_provider() {
                 github_git_push \
                     "${project_path}" \
                     "${remote_name}" \
+                    --no-follow-tags \
                     "refs/tags/${current_tag}:refs/tags/${current_tag}" \
                     || push_rc=$?
 
@@ -4790,7 +4813,7 @@ _projects_provider_push_direct() {
         version="$(date '+%Y.%m.%d.%H.%M')" || return 1
     fi
     PROJECTS_DIRECT_PUSH_VERSION="$version"
-    tag="v$version"
+    tag="$version"
     if [[ -e "$project_path/.git" ]]; then
         if runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" show-ref --verify --quiet "refs/tags/$tag"; then
             tag_exists=1
@@ -6194,6 +6217,15 @@ projects_gitlab_release_debian() {
             return 1
         fi
     fi
+
+    if [[ "$git_tag" == v* ]]; then
+        print_error 'La release GitLab requiert un tag sans v initial sur HEAD.'
+        return 1
+    fi
+    local release_commit
+    release_commit="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" rev-parse --verify HEAD)" || return 1
+    project_version_check_legacy_tag "$project_path" "$git_tag" "$release_commit" || return 1
+
 
     local debian_file_path
     debian_file_path="$(find "${project_path}/dist" -maxdepth 1 -type f -name '*.deb' -print -quit 2>/dev/null || true)"

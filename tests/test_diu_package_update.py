@@ -87,8 +87,8 @@ diu_update "$@"
 
     def test_public_github_without_checkout_or_project_root(self):
         api = 'https://api.github.com/repos/AzenorPixs/diu/releases?per_page=100&page=1'
-        asset = 'https://github.com/AzenorPixs/diu/releases/download/v2.0.0/diu_2.0.0_all.deb'
-        releases = {api: [{'tag_name': 'v2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]}
+        asset = 'https://github.com/AzenorPixs/diu/releases/download/2.0.0/diu_2.0.0_all.deb'
+        releases = {api: [{'tag_name': '2.0.0', 'assets': [{'name': 'diu_2.0.0_all.deb', 'browser_download_url': asset}]}]}
         result, calls = self.run_update('', releases, no_project=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, [asset, 'install'])

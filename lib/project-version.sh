@@ -3,16 +3,20 @@
 
 # Conserver les tags non horodatés lorsque des versions stables sont présentes.
 project_version_prefer_stable_tags() {
-    local tag="" has_stable=0
+    local tag="" bare="" has_stable=0
     local stable='^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$'
     local timestamp='^v?[0-9]{4}(\.[0-9]{2}){4}$'
     local -a version_tags_buffer=()
+    local -A canonical_tags=()
     while IFS= read -r tag; do
         [[ -n "$tag" ]] || continue
         version_tags_buffer+=("$tag")
+        if [[ "$tag" != v* ]]; then canonical_tags["$tag"]=1; fi
         [[ "$tag" =~ $stable ]] && has_stable=1
     done
     for tag in "${version_tags_buffer[@]}"; do
+        bare="${tag#v}"
+        if [[ "$tag" != "$bare" && -n "$bare" && -n "${canonical_tags[$bare]:-}" ]]; then continue; fi
         if [[ "$has_stable" == 1 && "$tag" =~ $timestamp ]]; then continue; fi
         printf '%s\n' "$tag"
     done
@@ -110,10 +114,33 @@ finally:
 PY
 }
 
+# Une référence historique protège le même numéro contre une réattribution.
+project_version_check_legacy_tag() {
+    local project_path="$1" tag="$2" expected_commit="${3:-}"
+    local git_user="${4:-${ENV_DEVOPS_USER:-}}" status legacy_commit
+    local -a git_command=(runuser -u "$git_user" -- env -u GIT_COMMON_DIR git -C "$project_path")
+    if "${git_command[@]}" show-ref --verify --quiet "refs/tags/v$tag"; then
+        if [[ -n "$expected_commit" ]] &&
+            legacy_commit="$("${git_command[@]}" rev-parse --verify "refs/tags/v${tag}^{commit}")" &&
+            [[ "$legacy_commit" == "$expected_commit" ]]; then
+            return 0
+        fi
+        printf 'Erreur : le tag historique v%s protège une version déjà attribuée.\n' "$tag" >&2
+        return 1
+    else
+        status=$?
+        [[ "$status" == 1 ]] || return "$status"
+    fi
+}
+
 # Références vers les paramètres locaux du commit ou du flux appelant.
 project_version_commit_parameters() {
     local version_project_path="$1" selected_project_version=""
     local -n version_commit_name_ref="$2" version_commit_tag_ref="$3"
+    if [[ "$version_commit_tag_ref" == v* ]]; then
+        printf '%s\n' 'Erreur : saisir le tag sans v initial.' >&2
+        return 1
+    fi
     if [[ "${PROJECTS_DIRECT_PUSH_ACTIVE:-0}" == 1 ]]; then
         selected_project_version="$PROJECTS_DIRECT_PUSH_VERSION"
     else
@@ -122,7 +149,7 @@ project_version_commit_parameters() {
     if [[ -n "$selected_project_version" ]]; then
         # Sortie par référence vers le paramètre de l'appelant.
         # shellcheck disable=SC2034
-        version_commit_tag_ref="v${selected_project_version}"
+        version_commit_tag_ref="${selected_project_version}"
         if [[ -z "$version_commit_name_ref" ||
             "$version_commit_name_ref" =~ ^[0-9]{4}(\.[0-9]{2}){4}$ ]]; then
             version_commit_name_ref="$selected_project_version"
@@ -135,10 +162,11 @@ project_version_tag_for_head() {
     local project_path="$1" version="$2" git_user="${3:-${ENV_DEVOPS_USER:-}}"
     local head_sha="" tag_sha=""
     if ! head_sha="$(runuser -u "$git_user" -- env -u GIT_COMMON_DIR git -C "$project_path" rev-parse --verify HEAD)" ||
-        ! tag_sha="$(runuser -u "$git_user" -- env -u GIT_COMMON_DIR git -C "$project_path" rev-parse --verify "refs/tags/v${version}^{commit}" 2>/dev/null)" ||
+        ! tag_sha="$(runuser -u "$git_user" -- env -u GIT_COMMON_DIR git -C "$project_path" rev-parse --verify "refs/tags/${version}^{commit}" 2>/dev/null)" ||
         [[ -z "$head_sha" || "$tag_sha" != "$head_sha" ]]; then
         printf '%s\n' 'Erreur : le tag correspondant à PROJECT_VERSION doit exister et désigner HEAD.' >&2
         return 1
     fi
-    printf 'v%s' "$version"
+    project_version_check_legacy_tag "$project_path" "$version" "$head_sha" "$git_user" || return 1
+    printf '%s' "$version"
 }

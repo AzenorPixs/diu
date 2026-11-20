@@ -48,13 +48,13 @@ projects_provider_push_direct "$3" fixture "$4"
                 with self.subTest(provider=provider, version=version):
                     result = self.run_case(provider, version)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertIn(f'COMMIT:fixture:{expected}:v{expected}', result.stdout)
+                    self.assertIn(f'COMMIT:fixture:{expected}:{expected}', result.stdout)
                     self.assertIn(f'PUSH:{provider}:fixture:{expected}:1', result.stdout)
 
     def test_existing_version_uses_isolated_replay(self):
         result = self.run_case('forgejo', '1.0.1', existing=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('REPLAY:v1.0.1', result.stdout)
+        self.assertIn('REPLAY:1.0.1', result.stdout)
         self.assertNotIn('COMMIT:', result.stdout)
         self.assertIn('PUSH:forgejo:fixture:1.0.1:1', result.stdout)
 
@@ -104,7 +104,7 @@ projects_provider_push_direct forgejo fixture 1.0.1
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout.count('CONTENT:first'), 2)
             self.assertEqual((project / 'data').read_text(), 'pending\n')
-            self.assertEqual(git('rev-parse', 'HEAD'), git('rev-parse', 'v1.0.1^{commit}'))
+            self.assertEqual(git('rev-parse', 'HEAD'), git('rev-parse', '1.0.1^{commit}'))
             self.assertEqual(list(Path(tmp).glob('diu-cicd-replay.*')), [])
 
     def test_clean_tree_creates_local_tag_without_unauthenticated_remote_probe(self):
@@ -140,7 +140,7 @@ projects_provider_push_direct github fixture 1.0.2
                                     env={**os.environ, 'GIT_CONFIG_GLOBAL':'/dev/null', 'GIT_CONFIG_NOSYSTEM':'1'},
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(git('rev-parse', 'v1.0.2^{commit}'), git('rev-parse', 'HEAD'))
+            self.assertEqual(git('rev-parse', '1.0.2^{commit}'), git('rev-parse', 'HEAD'))
 
     def test_replay_initializes_credentials_in_source_and_reuses_them(self):
         for provider in ('github', 'gitlab'):
@@ -157,7 +157,7 @@ projects_provider_push_direct github fixture 1.0.2
                 git('config', 'user.email', 'fixture@example.test')
                 git('add', '.')
                 git('commit', '-qm', 'fixture')
-                git('tag', 'v1.0.2')
+                git('tag', '1.0.2')
                 script = r"""
 set -Eeuo pipefail
 source "$1/lib/project-version.sh"

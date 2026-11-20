@@ -26,7 +26,7 @@ class VersionAuthorityTests(unittest.TestCase):
         (self.local / 'file').write_text('selected\n')
         self.git(self.local, 'commit', '-qam', 'selected')
         self.selected = self.git(self.local, 'rev-parse', 'HEAD')
-        self.git(self.local, 'tag', 'v1.2.0')
+        self.git(self.local, 'tag', '1.2.0')
         (self.local / 'remote-only').write_text('remove\n')
         self.git(self.local, 'add', '.')
         self.git(self.local, 'commit', '-qm', 'remote-only')
@@ -39,7 +39,7 @@ class VersionAuthorityTests(unittest.TestCase):
     def git(path, *args):
         return subprocess.run(['git', '-C', str(path), *args], check=True, capture_output=True, text=True).stdout.strip()
 
-    def run_push(self, provider, tag='v1.2.0', concurrent=False):
+    def run_push(self, provider, tag='1.2.0', concurrent=False):
         script = r'''
 set -Eeuo pipefail
 source "$1/modules/projects/git.sh"
@@ -75,30 +75,40 @@ projects_cicd_replay_git_provider "$3" "$2" origin main "$4"
         for provider in ('forgejo', 'gitlab', 'github'):
             with self.subTest(provider=provider):
                 self.git(self.remote, 'update-ref', 'refs/heads/main', self.ahead)
-                self.git(self.remote, 'update-ref', 'refs/tags/v1.2.0', self.old)
+                self.git(self.remote, 'update-ref', 'refs/tags/1.2.0', self.old)
                 result = self.run_push(provider)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main'), self.selected)
-                self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/v1.2.0'), self.selected)
+                self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/1.2.0'), self.selected)
                 self.assertEqual(self.git(self.remote, 'ls-tree', '-r', '--name-only', 'main'), 'file')
 
+    def test_divergent_legacy_alias_blocks_all_forges_before_branch_push(self):
+        self.git(self.remote, 'update-ref', 'refs/tags/v1.2.0', self.old)
+        for provider in ('forgejo', 'gitlab', 'github'):
+            with self.subTest(provider=provider):
+                result = self.run_push(provider)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('tag distant historique v1.2.0', result.stderr)
+                self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main'), self.ahead)
+        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/v1.2.0'), self.old)
+
     def test_higher_version_stops_before_any_write(self):
-        self.git(self.remote, 'update-ref', 'refs/tags/v1.10.0', self.old)
+        self.git(self.remote, 'update-ref', 'refs/tags/1.10.0', self.old)
         for provider in ('forgejo', 'gitlab', 'github'):
             with self.subTest(provider=provider):
                 result = self.run_push(provider)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('supérieur', result.stderr)
                 self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main'), self.ahead)
-                self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/v1.10.0'), self.old)
+                self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/1.10.0'), self.old)
 
     def test_timestamp_yields_to_stable_and_unknown_tags_stop(self):
-        self.git(self.local, 'tag', 'v2026.11.10.12.34')
-        self.git(self.remote, 'update-ref', 'refs/tags/v1.0.0', self.old)
-        result = self.run_push('github', 'v2026.11.10.12.34')
+        self.git(self.local, 'tag', '2026.11.10.12.34')
+        self.git(self.remote, 'update-ref', 'refs/tags/1.0.0', self.old)
+        result = self.run_push('github', '2026.11.10.12.34')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('supérieur', result.stderr)
-        self.git(self.remote, 'update-ref', '-d', 'refs/tags/v1.0.0')
+        self.git(self.remote, 'update-ref', '-d', 'refs/tags/1.0.0')
         self.git(self.remote, 'update-ref', 'refs/tags/custom', self.old)
         result = self.run_push('github')
         self.assertNotEqual(result.returncode, 0)
@@ -106,28 +116,28 @@ projects_cicd_replay_git_provider "$3" "$2" origin main "$4"
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main'), self.ahead)
 
     def test_lower_tags_are_preserved_and_stable_beats_timestamp(self):
-        self.git(self.remote, 'update-ref', 'refs/tags/v1.1.9', self.old)
-        self.git(self.remote, 'update-ref', 'refs/tags/v2026.11.10.12.34', self.old)
+        self.git(self.remote, 'update-ref', 'refs/tags/1.1.9', self.old)
+        self.git(self.remote, 'update-ref', 'refs/tags/2026.11.10.12.34', self.old)
         result = self.run_push('gitlab')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main'), self.selected)
-        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/v1.1.9'), self.old)
-        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/v2026.11.10.12.34'), self.old)
+        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/1.1.9'), self.old)
+        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/2026.11.10.12.34'), self.old)
 
     def test_annotated_remote_tag_is_compared_without_treating_peeled_ref_as_tag(self):
-        self.git(self.local, 'tag', '-a', 'v1.1.0', self.old, '-m', 'fixture')
-        self.git(self.local, 'push', str(self.remote), 'refs/tags/v1.1.0')
+        self.git(self.local, 'tag', '-a', '1.1.0', self.old, '-m', 'fixture')
+        self.git(self.local, 'push', str(self.remote), 'refs/tags/1.1.0')
         result = self.run_push('github')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main'), self.selected)
-        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/v1.1.0^{commit}'), self.old)
+        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/1.1.0^{commit}'), self.old)
 
     def test_branch_lease_rejects_concurrent_change(self):
         result = self.run_push('forgejo', concurrent=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main'), self.old)
         self.assertNotEqual(subprocess.run(['git', '-C', str(self.remote), 'show-ref', '--verify', '--quiet',
-                                            'refs/tags/v1.2.0']).returncode, 0)
+                                            'refs/tags/1.2.0']).returncode, 0)
 
 
 if __name__ == '__main__':

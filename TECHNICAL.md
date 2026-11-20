@@ -1322,7 +1322,7 @@ sur chacun des composants sauf 0 ; les valeurs présentes invalides sont bloquan
 Une clé absente conserve la sélection historique de chaque fonction.
 Le contrat transversal est `openspec/specs/project-version/spec.md`.
 Les règles de packaging sont détaillées dans BUILD.md.
-Les paramètres automatiques de commit utilisent VERSION et le tag v<VERSION> ;
+Les paramètres automatiques de commit utilisent VERSION et le tag VERSION ;
 une description explicite est conservée. Une version `PROJECT_VERSION` déjà attribuée déclenche
 un rejeu isolé du commit marqué, sans remplacer le tag local ni inclure les changements
 locaux en attente. Un arbre inchangé ne crée pas de commit vide ; un push ou
@@ -1796,7 +1796,7 @@ restent vérifiées avant installation. Les arguments supplémentaires sont refu
 
 Chaque source est paginée ; les brouillons et préversions sont exclus et les
 versions stables à trois ou quatre composants sont prioritaires avant comparaison Debian des assets
-`diu_<version>_all.deb` associés au tag `v<version>`. Le paquet est vérifié
+`diu_<version>_all.deb` associés au tag `<version>` ou au tag historique `v<version>`. Le paquet est vérifié
 (nom, version, architecture) avant `dpkg` ; les temporaires sont supprimés.
 Toute erreur après sélection (téléchargement, validation ou installation) bloque
 sans essai sur l'autre source. `diu update diu` est un alias compatible.

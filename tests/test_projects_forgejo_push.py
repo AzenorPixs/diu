@@ -94,7 +94,7 @@ class ForgejoPushTests(unittest.TestCase):
         self.git(self.project, 'push', str(self.remote), 'HEAD:refs/seed/base')
         self.git(self.project, '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'local')
         self.head = self.git(self.project, 'rev-parse', 'HEAD').stdout.strip()
-        self.git(self.project, 'tag', 'v1.2.3')
+        self.git(self.project, 'tag', '1.2.3')
         self.git(self.project, 'remote', 'add', 'origin', OLD_URL)
         self.git(self.project, 'update-ref', 'refs/remotes/origin/main', self.base_commit)
         self.git(self.project, 'config', 'branch.main.remote', 'origin')
@@ -135,7 +135,7 @@ class ForgejoPushTests(unittest.TestCase):
         self.assertEqual(self.git(self.project, 'remote', 'get-url', 'gitlab').stdout, self.other_remote)
         self.assertEqual((self.project / 'project.env').read_text(encoding='utf-8'), self.project_env)
         self.assertEqual(self.git(self.project, 'rev-parse', 'HEAD').stdout.strip(), self.head)
-        self.assertEqual(self.git(self.project, 'rev-parse', 'refs/tags/v1.2.3').stdout.strip(), self.head)
+        self.assertEqual(self.git(self.project, 'rev-parse', 'refs/tags/1.2.3').stdout.strip(), self.head)
 
     def test_realigns_inherited_url_without_adding_pushurl(self):
         result = self.run_harness()
@@ -220,7 +220,7 @@ class ForgejoPushTests(unittest.TestCase):
         self.assertIn('--force-with-lease=refs/heads/main:', result.stdout)
         self.assertNotIn('FETCH', result.stdout)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main').stdout.strip(), self.head)
-        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/v1.2.3').stdout.strip(), self.head)
+        self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/tags/1.2.3').stdout.strip(), self.head)
         tag_push = [line for line in result.stdout.splitlines() if line.startswith('PUSH:') and 'refs/tags/' in line]
         self.assertEqual(len(tag_push), 1)
         self.assertNotIn('--force', tag_push[0])
@@ -231,7 +231,7 @@ class ForgejoPushTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('stale info', result.stderr)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main').stdout.strip(), self.base_commit)
-        self.assertNotEqual(self.git(self.remote, 'show-ref', '--verify', 'refs/tags/v1.2.3', check=False).returncode, 0)
+        self.assertNotEqual(self.git(self.remote, 'show-ref', '--verify', 'refs/tags/1.2.3', check=False).returncode, 0)
         self.assertEqual(self.git(self.project, 'rev-parse', 'refs/remotes/origin/main').stdout.strip(), self.base_commit)
         self.assertNotIn('PUSH:origin refs/tags/', result.stdout)
 
@@ -240,7 +240,7 @@ class ForgejoPushTests(unittest.TestCase):
         result = self.run_harness('push', MODE='existing')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertLess(result.stdout.index('FETCH'), result.stdout.index('PUSH:'))
-        self.assertIn('--force-with-lease --set-upstream', result.stdout)
+        self.assertIn('--force-with-lease --no-follow-tags --set-upstream', result.stdout)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/main').stdout.strip(), self.head)
 
     def test_existing_repository_fetch_failure_stops_push(self):
@@ -255,7 +255,7 @@ class ForgejoPushTests(unittest.TestCase):
         (self.project / 'project.env').write_text(self.project_env, encoding='utf-8')
         result = self.run_harness('push', TEST_REMOTE_NAME='forgejo', TEST_BRANCH='stable')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('--force-with-lease=refs/heads/stable: --set-upstream forgejo main:stable', result.stdout)
+        self.assertIn('--force-with-lease=refs/heads/stable: --no-follow-tags --set-upstream forgejo main:stable', result.stdout)
         self.assertEqual(self.git(self.remote, 'rev-parse', 'refs/heads/stable').stdout.strip(), self.head)
         self.assert_urls_aligned('forgejo')
 

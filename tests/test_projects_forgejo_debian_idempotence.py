@@ -37,17 +37,18 @@ runuser() {
       *'merge-base --is-ancestor'*) [[ "$ANCESTOR" == yes ]] ;;
       *'branch --show-current'*) printf 'main\n' ;;
       *'log -1 --format=%s'*) printf 'fixture\n' ;;
-      *'tag --points-at HEAD'*) printf 'v1.0.3\n' ;;
+      *'show-ref --verify --quiet refs/tags/v'*) return 1 ;;
+      *'tag --points-at HEAD'*) printf '1.0.3\n' ;;
       *) printf 'Git operation unexpected: %s\n' "$*" >&2; return 92 ;;
     esac
 }
 curl() {
     case "$*" in
-      *'/releases/tags/v1.0.3'*)
+      *'/releases/tags/1.0.3'*)
         if [[ "$MODE" == complete ]]; then
-          printf '{"id":22,"tag_name":"v1.0.3","assets":[{"name":"project_1.0.3_all.deb"}]}\n200'
-        else printf '{"id":22,"tag_name":"v1.0.3","assets":[]}\n200'; fi ;;
-      *'/tags/v1.0.3'*) printf '{"commit":{"sha":"%s"}}\n200' "${TAG_SHA:-$HEAD_SHA}" ;;
+          printf '{"id":22,"tag_name":"1.0.3","assets":[{"name":"project_1.0.3_all.deb"}]}\n200'
+        else printf '{"id":22,"tag_name":"1.0.3","assets":[]}\n200'; fi ;;
+      *'/tags/1.0.3'*) printf '{"commit":{"sha":"%s"}}\n200' "${TAG_SHA:-$HEAD_SHA}" ;;
       *'/releases/22/assets'*) printf 'UPLOAD\n' >> "$CALLS"; printf '{}\n201' ;;
       *) return 91 ;;
     esac

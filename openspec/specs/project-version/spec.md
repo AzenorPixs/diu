@@ -18,7 +18,7 @@ DIU SHALL lire uniquement PROJECT_VERSION dans project.env sans exécuter le fic
 - **THEN** l'opération échoue sans repli silencieux et sans exposer d'autre variable
 
 ### Requirement: Commits et traitements groupés
-Les commits et CICD SHALL utiliser le tag v<VERSION> lorsque PROJECT_VERSION est déclarée. Leur nom automatique SHALL utiliser VERSION et une description explicite SHALL rester utilisable. La version SHALL être relue pour chaque projet sans fuite entre projets.
+Les commits et CICD SHALL utiliser le tag VERSION sans préfixe lorsque PROJECT_VERSION est déclarée. Leur nom automatique SHALL utiliser VERSION et une description explicite SHALL rester utilisable. La version SHALL être relue pour chaque projet sans fuite entre projets.
 
 #### Scenario: Collision
 - **WHEN** un nouveau commit versionné est nécessaire et le tag existe déjà
@@ -39,16 +39,16 @@ Les pushes individuels Forgejo, GitLab et GitHub SHALL préparer commit et tag s
 
 #### Scenario: Version explicite
 - **WHEN** un push direct reçoit une version valide
-- **THEN** une version x.y.z ou x.y.z.w sans zéro initial est acceptée et le commit et son tag v<VERSION> sont préparés avant publication
+- **THEN** une version x.y.z ou x.y.z.w sans zéro initial est acceptée et le commit et son tag VERSION sont préparés avant publication
 
 #### Scenario: Version à quatre composants supérieure
-- **WHEN** un push ou une CI/CD compare le tag demandé v1.2.3.4 à un tag distant stable v1.2.3.5
+- **WHEN** un push ou une CI/CD compare le tag demandé 1.2.3.4 à un tag distant stable v1.2.3.5
 - **THEN** la version distante supérieure bloque la publication de branche et de tag
 - **AND** les versions stables à trois ou quatre composants sont comparées par ordre de version
 
 #### Scenario: Version omise
 - **WHEN** un push direct ne reçoit pas de version, même si PROJECT_VERSION est définie
-- **THEN** le tag vAAAA.MM.JJ.HH.MM est sélectionné pour le commit et la publication
+- **THEN** le tag AAAA.MM.JJ.HH.MM est sélectionné pour le commit et la publication
 - **AND THEN** une collision de ce tag arrête la publication
 
 #### Scenario: Collision
@@ -143,3 +143,15 @@ Avant un push individuel Forgejo, GitLab ou GitHub ou un push CI/CD, DIU SHALL c
 #### Scenario: Fournisseur d'un push direct
 - **WHEN** un fournisseur est indiqué dans la commande directe
 - **THEN** seul ce fournisseur est publié
+
+### Requirement: Tags projet sans préfixe
+DIU SHALL utiliser des noms sans v initial pour les tags projet nouvellement créés ou envoyés. DIU SHALL refuser un tag explicite préfixé avant écriture. Les tags historiques restent lisibles et leur version reste protégée lors des contrôles d’attribution.
+
+#### Scenario: Tag historique déjà attribué
+- **WHEN** une version demandée existe déjà sous la forme historique v<VERSION>
+- **THEN** son commit est vérifié et un tag de même version ne peut désigner un autre commit
+- **AND** la référence historique est conservée
+
+#### Scenario: Publication sans préfixe
+- **WHEN** le DIU publie le tag d'un projet ou crée une release
+- **THEN** le nom envoyé ne commence pas par v

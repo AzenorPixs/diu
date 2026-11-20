@@ -15,18 +15,18 @@ class ProjectVersionTests(unittest.TestCase):
     def test_latest_remote_tag_prefers_stable_version(self):
         result = self.run_shell(r'''
 source "$1/modules/projects/git.sh"
-git() { printf '1111111111111111111111111111111111111111\trefs/tags/v2026.11.03.08.38\n3333333333333333333333333333333333333333\trefs/tags/v1.0.7.2\n2222222222222222222222222222222222222222\trefs/tags/v1.0.7\n'; }
+git() { printf '1111111111111111111111111111111111111111\trefs/tags/2026.11.03.08.38\n3333333333333333333333333333333333333333\trefs/tags/1.0.7.2\n2222222222222222222222222222222222222222\trefs/tags/1.0.7\n'; }
 git_get_latest_release https://example.test owner project
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), 'v1.0.7.2')
+        self.assertEqual(result.stdout.strip(), '1.0.7.2')
 
     def test_local_stable_tag_precedes_timestamp_for_both_debian_builders(self):
         (self.project / '.git').mkdir()
         result = self.run_shell(r'''
 source "$1/modules/projects/diu-packaging.sh"
 source "$1/modules/projects/debian-build.sh"
-runuser() { printf 'v2026.11.03.08.38\nv1.0.7.2\n'; }
+runuser() { printf '2026.11.03.08.38\nv1.0.7.2\n'; }
 diu_package_version_from_head "$project"; printf '\n'
 projects_debian_version "$project"; printf '\n'
 ''')
@@ -67,11 +67,11 @@ projects_debian_version "$project"; printf '\n'
 source <(sed -n '/^manage_project_action() {/,/^}/p' "$1/root-install-debian.sh")
 cicd_project() { printf 'CALL:%s:%s:%s:%s\n' "$1" "$2" "$3" "$(project_version_get "$project/project.env")"; }
 manage_project_action cicd project 1.0.7.2
-manage_project_action cicd project 'description' vcustom
+manage_project_action cicd project 'description' custom
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('CALL:project:1.0.7.2:v1.0.7.2:1.0.7.2', result.stdout)
-        self.assertIn('CALL:project:description:vcustom:1.0.7', result.stdout)
+        self.assertIn('CALL:project:1.0.7.2:1.0.7.2:1.0.7.2', result.stdout)
+        self.assertIn('CALL:project:description:custom:1.0.7.2', result.stdout)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT, prefix='.version-fixture-')
@@ -131,38 +131,62 @@ check() {
         printf 'refused:%s:%s:%s\n' "$requested" "$distant" "$rc"
     fi
 }
-check v1.2.3.4 v1.2.3.3
-check v1.2.3.4 v1.2.3
-check v1.2.3.4 v2026.11.03.08.38
-check v1.2.3.4 v1.2.3.5
-check v2026.11.03.08.38 v1.2.3.4
-check v1.2.3.04 v1.2.3.3
+check 1.2.3.4 1.2.3.3
+check 1.2.3.4 1.2.3
+check 1.2.3.4 v2026.11.03.08.38
+check 1.2.3.4 1.2.3.5
+check 2026.11.03.08.38 1.2.3.4
+check 1.2.3.04 1.2.3.3
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.splitlines(), [
-            'allowed:v1.2.3.4:v1.2.3.3',
-            'allowed:v1.2.3.4:v1.2.3',
-            'allowed:v1.2.3.4:v2026.11.03.08.38',
-            'refused:v1.2.3.4:v1.2.3.5:1',
-            'refused:v2026.11.03.08.38:v1.2.3.4:1',
-            'refused:v1.2.3.04:v1.2.3.3:2',
+            'allowed:1.2.3.4:1.2.3.3',
+            'allowed:1.2.3.4:1.2.3',
+            'allowed:1.2.3.4:v2026.11.03.08.38',
+            'refused:1.2.3.4:1.2.3.5:1',
+            'refused:2026.11.03.08.38:1.2.3.4:1',
+            'refused:1.2.3.04:1.2.3.3:2',
         ])
+
+    def test_rejects_prefixed_explicit_tag(self):
+        result = self.run_shell(r"""
+name=description; tag=v1.2.3.4
+project_version_commit_parameters "$project" name tag
+""")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('sans v initial', result.stderr)
+
+    def test_legacy_tag_protects_an_assigned_version(self):
+        result = self.run_shell(r'''
+runuser() {
+    case "$*" in
+        *"show-ref --verify --quiet refs/tags/v1.2.3.4") return 0 ;;
+        *"rev-parse --verify refs/tags/v1.2.3.4^{commit}") printf 'historical-commit' ;;
+        *) return 2 ;;
+    esac
+}
+project_version_check_legacy_tag "$project" 1.2.3.4 historical-commit
+! project_version_check_legacy_tag "$project" 1.2.3.4 other-commit
+! project_version_check_legacy_tag "$project" 1.2.3.4
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr.count('version déjà attribuée'), 2)
 
     def test_commit_parameter_selection_and_no_cross_project_leak(self):
         self.config.write_text('PROJECT_VERSION=1.0.0\n')
         result = self.run_shell('''
-name=2026.11.02.15.33; tag=v2026.11.02.15.33
+name=2026.11.02.15.33; tag=2026.11.02.15.33
 project_version_commit_parameters "$project" name tag
 printf '%s|%s\n' "$name" "$tag"
-name='Description explicite'; tag=v9
+name='Description explicite'; tag=9
 project_version_commit_parameters "$project" name tag
 printf '%s|%s\n' "$name" "$tag"
-name=legacy; tag=vlegacy
+name=legacy; tag=legacy
 project_version_commit_parameters "$2/absent" name tag
 printf '%s|%s' "$name" "$tag"
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, '1.0.0|v1.0.0\nDescription explicite|v1.0.0\nlegacy|vlegacy')
+        self.assertEqual(result.stdout, '1.0.0|1.0.0\nDescription explicite|1.0.0\nlegacy|legacy')
 
     def prepare_debian_sources(self):
         (self.project / 'lib').mkdir()
@@ -232,8 +256,8 @@ source "$1/modules/projects/git.sh"
 runuser() { shift 3; "$@"; }
 check_devops_user() { return 0; }
 git -C "$project" init -q
-git_commit project 2026.11.02.15.33 v2026.11.02.15.33
-git -C "$project" rev-parse HEAD refs/tags/v1.0.0^{}
+git_commit project 2026.11.02.15.33 2026.11.02.15.33
+git -C "$project" rev-parse HEAD refs/tags/1.0.0^{}
 git -C "$project" log -1 --format=%s
 '''
         result = self.run_shell(script, GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1')
@@ -247,7 +271,7 @@ git -C "$project" log -1 --format=%s
 source "$1/modules/projects/git.sh"
 runuser() { shift 3; "$@"; }
 check_devops_user() { return 0; }
-git_commit project description vother
+git_commit project description other
 ''', GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('existe déjà', result.stdout)
@@ -263,7 +287,7 @@ source "$1/modules/projects/git.sh"
 runuser() { shift 3; "$@"; }
 check_devops_user() { return 0; }
 git -C "$project" init -q
-git_commit project 1.0.0 v1.0.0
+git_commit project 1.0.0 1.0.0
 '''
         env = {'GIT_CONFIG_GLOBAL': '/dev/null', 'GIT_CONFIG_NOSYSTEM': '1'}
         self.assertEqual(self.run_shell(setup, **env).returncode, 0)
@@ -274,10 +298,10 @@ git_commit project 1.0.0 v1.0.0
 source "$1/modules/projects/git.sh"
 runuser() { shift 3; "$@"; }
 check_devops_user() { return 0; }
-git_commit project 1.0.1 v1.0.1
+git_commit project 1.0.1 1.0.1
 ''', **env)
         self.assertEqual(result.returncode, 0, result.stderr)
-        target = subprocess.check_output(['git', '-C', str(self.project), 'rev-parse', 'v1.0.1^{commit}'], text=True).strip()
+        target = subprocess.check_output(['git', '-C', str(self.project), 'rev-parse', '1.0.1^{commit}'], text=True).strip()
         self.assertEqual(target, head)
 
     def test_clean_tree_with_version_tag_on_older_commit_is_informational(self):
@@ -290,11 +314,11 @@ source "$1/modules/projects/git.sh"
 runuser() { shift 3; "$@"; }
 check_devops_user() { return 0; }
 git -C "$project" init -q
-git_commit project 1.0.0 v1.0.0
+git_commit project 1.0.0 1.0.0
 printf second > "$project/tracked.txt"
 git -C "$project" add tracked.txt
 git -C "$project" commit -qm later
-git_commit project 1.0.0 v1.0.0
+git_commit project 1.0.0 1.0.0
 printf 'STATUS=%s\n' "$PROJECTS_GIT_COMMIT_STATUS"
 '''
         result = self.run_shell(script, GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1')
@@ -308,7 +332,7 @@ printf 'STATUS=%s\n' "$PROJECTS_GIT_COMMIT_STATUS"
                 fixture = push_fixtures.ForgejoPushTests()
                 fixture.setUp()
                 self.addCleanup(fixture.doCleanups)
-                fixture.git(fixture.project, 'tag', 'v1.0.0')
+                fixture.git(fixture.project, 'tag', '1.0.0')
                 config = fixture.project / 'project.env'
                 extra = 'PROJECT_VERSION=1.0.0\n'
                 url = push_fixtures.EXPECTED_URL
@@ -340,8 +364,8 @@ gitlab_git_push() { version_push_transport "$@"; }
                                         env={**fixture.env, 'EXPECTED_URL': url}, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(fixture.git(fixture.remote, 'rev-parse', 'refs/heads/main').stdout.strip(), fixture.head)
-                self.assertEqual(fixture.git(fixture.remote, 'rev-parse', 'refs/tags/v1.0.0').stdout.strip(), fixture.head)
-                self.assertNotEqual(fixture.git(fixture.remote, 'show-ref', '--verify', 'refs/tags/v1.2.3', check=False).returncode, 0)
+                self.assertEqual(fixture.git(fixture.remote, 'rev-parse', 'refs/tags/1.0.0').stdout.strip(), fixture.head)
+                self.assertNotEqual(fixture.git(fixture.remote, 'show-ref', '--verify', 'refs/tags/1.2.3', check=False).returncode, 0)
                 if provider == 'gitlab':
                     self.assertNotIn('--force', result.stdout)
 
@@ -355,7 +379,7 @@ check_devops_user() { return 0; }
 runuser() {
     case "$*" in
         *'rev-parse --verify HEAD') printf 'head-sha' ;;
-        *'refs/tags/v1.0.0'*) [[ "$WRONG" != missing ]] || return 1; printf 'other-sha' ;;
+        *'refs/tags/1.0.0'*) [[ "$WRONG" != missing ]] || return 1; printf 'other-sha' ;;
         *) printf 'UNEXPECTED TRANSPORT\n'; return 93 ;;
     esac
 }
@@ -384,9 +408,10 @@ docker() {
 }
 git() {
     case "$*" in
-        *'rev-parse --verify HEAD'|*'refs/tags/v1.0.0'*) printf 'same-sha' ;;
+        *'show-ref --verify --quiet refs/tags/v1.0.0'*) return 1 ;;
+        *'rev-parse --verify HEAD'|*'refs/tags/1.0.0'*) printf 'same-sha' ;;
         *'rev-parse --is-inside-work-tree'*) printf 'true' ;;
-        *'tag --points-at HEAD'*) printf 'v9.9.9\nv8.8.8\n' ;;
+        *'tag --points-at HEAD'*) printf '9.9.9\nv8.8.8\n' ;;
     esac
     return 0
 }
@@ -443,12 +468,12 @@ runuser() { shift 3; "$@"; }
 check_devops_user() { return 0; }
 git -C "$project" init -q
 git -C "$2/second" init -q
-git_commit_all 2026.11.02.15.33 v2026.11.02.15.33
+git_commit_all 2026.11.02.15.33 2026.11.02.15.33
 git -C "$project" tag --points-at HEAD
 git -C "$2/second" tag --points-at HEAD
 ''', GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.splitlines()[-2:], ['v1.0.0', 'v2.0.0'])
+        self.assertEqual(result.stdout.splitlines()[-2:], ['1.0.0', '2.0.0'])
 
     def test_cicd_summaries_prioritize_version_over_other_head_tags(self):
         self.config.write_text('PROJECT_ID=project\nPROJECT_NAME=Fixture\nPROJECT_TYPE=application\n'
@@ -456,12 +481,12 @@ git -C "$2/second" tag --points-at HEAD
         result = self.run_shell(r'''
 source "$1/modules/projects/git.sh"
 git_commit() { printf 'COMMIT:%s|%s|%s\n' "$1" "$2" "$3"; }
-runuser() { if [[ "$*" == *'show-ref --verify --quiet'* ]]; then return 1; fi; printf 'v9.9.9\n'; }
-cicd_project project 2026.11.02.15.33 v2026.11.02.15.33
+runuser() { if [[ "$*" == *'show-ref --verify --quiet'* ]]; then return 1; fi; printf '9.9.9\n'; }
+cicd_project project 2026.11.02.15.33 2026.11.02.15.33
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('COMMIT:project|1.0.0|v1.0.0', result.stdout)
-        self.assertNotIn('v9.9.9', result.stdout)
+        self.assertIn('COMMIT:project|1.0.0|1.0.0', result.stdout)
+        self.assertNotIn('9.9.9', result.stdout)
 
     def test_debian_release_checks_declared_version_and_tag(self):
         self.config.write_text('PROJECT_VERSION=1.0.0\n')
@@ -469,7 +494,8 @@ cicd_project project 2026.11.02.15.33 v2026.11.02.15.33
 source "$1/modules/projects/diu-packaging.sh"
 runuser() {
     case "$*" in
-        *'rev-parse --verify HEAD'|*'refs/tags/v1.0.0'*) printf 'same-sha' ;;
+        *'show-ref --verify --quiet refs/tags/v1.0.0'*) return 1 ;;
+        *'rev-parse --verify HEAD'|*'refs/tags/1.0.0'*) printf 'same-sha' ;;
         *) return 92 ;;
     esac
 }

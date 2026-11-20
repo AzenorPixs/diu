@@ -1446,10 +1446,10 @@ manage_project_action() {
                         fi
                         project_version_set "${ENV_DEVOPS_PROJECTS_ROOT}/${project_id}/project.env" "$3" || return 1
                         commit_name="$3"
-                        commit_tag="v$3"
+                        commit_tag="$3"
                     else
                         commit_name="${3:-${commit_timestamp}}"
-                        commit_tag="${4:-v${commit_timestamp}}"
+                        commit_tag="${4:-${commit_timestamp}}"
                     fi
                     cicd_project \
                         "${project_id}" \
@@ -1462,7 +1462,7 @@ manage_project_action() {
         cicddiu)
 			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
             commit_name="${2:-${commit_timestamp}}"
-            commit_tag="${3:-v${commit_timestamp}}"
+            commit_tag="${3:-${commit_timestamp}}"
             cicd_project_diu \
 				"$commit_name" \
 				"$commit_tag"
@@ -1472,7 +1472,7 @@ manage_project_action() {
         cicddr)
 			commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
             commit_name="${3:-${commit_timestamp}}"
-            commit_tag="${4:-v${commit_timestamp}}"
+            commit_tag="${4:-${commit_timestamp}}"
             cicd_project_docker_release \
 				"$project_id" \
 				"$commit_name" \
@@ -1577,7 +1577,7 @@ manage_project_action() {
                         all)
                             commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
                             commit_name="${commit_timestamp}"
-                            commit_tag="v${commit_timestamp}"
+                            commit_tag="${commit_timestamp}"
                             git_commit_all \
                                 "$commit_name" \
                                 "$commit_tag"
@@ -1588,7 +1588,7 @@ manage_project_action() {
                         *)
                             commit_timestamp="$(date '+%Y.%m.%d.%H.%M')"
                             commit_name="${4:-${commit_timestamp}}"
-                            commit_tag="${5:-v${commit_timestamp}}"
+                            commit_tag="${5:-${commit_timestamp}}"
                             git_commit \
                                 "$project_id" \
                                 "$commit_name" \

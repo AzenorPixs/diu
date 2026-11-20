@@ -159,13 +159,16 @@ sur les composants sauf 0. Une valeur présente vide, invalide ou
 dupliquée provoque une erreur ; sans clé, les mécanismes antérieurs restent
 inchangés. Debian utilise d'abord cette valeur, puis la recette et les tags
 selon le constructeur. Docker produit les tags VERSION et latest.
-Le tag Git local est `v1.0.0` et ne change pas de commit. Les pushes directs
+Le tag Git local est `1.0.0` et ne change pas de commit. Les pushes directs
 acceptent une version explicite ou utilisent un horodatage ; une version déjà
 attribuée est rejouée isolément. La réconciliation CI/CD peut remplacer un tag
 distant divergent sous protection de sa valeur observée. Pour une nouvelle livraison après attribution d'un tag,
 incrémenter PROJECT_VERSION. Un arbre inchangé ne crée pas de commit vide.
 Les publications Docker utilisent l'image locale versionnée et refusent une
 image absente ; les publications Debian refusent un paquet de version différente.
+
+Les tags de projet générés par DIU commencent directement par leur valeur, par exemple `1.2.3.4`. Une saisie de tag commençant par `v` est refusée. Le DIU sait lire les références historiques pour la comparaison des versions et les mises à jour de son paquet. Si un ancien tag est seul à attribuer un numéro, choisir un nouveau numéro avant de le publier.
+
 Les aides de commit, push, CICD et build rappellent ce contrat avant bootstrap.
 Les [règles techniques](TECHNICAL.md) et le [packaging](BUILD.md) détaillent les contrôles.
 

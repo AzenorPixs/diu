@@ -16108,14 +16108,14 @@ Change : `reconcile-cicd-git-publication` · état local : `archived`. Les valeu
 
 | Mesure | Valeur | Preuve ou limite |
 | --- | --- | --- |
-| Durée globale | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Durée hors pauses et attentes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens d’entrée | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de sortie | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de raisonnement | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de cache lus | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Tokens de cache écrits | N/A | Mesure absente ou périmètre exhaustif non identifiable |
-| Total natif des tokens | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Durée globale | 177068.97665 | Bornes serveur et union des périodes fermées. |
+| Durée hors pauses et attentes | 177068.97665 | Bornes serveur et union des périodes fermées. |
+| Tokens d’entrée | 89742861 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de sortie | 221976 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de raisonnement | 155250 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de cache lus | 86257920 | Périodes CAB : bornes et empreintes de l’export. |
+| Tokens de cache écrits | 0 | Périodes CAB : bornes et empreintes de l’export. |
+| Total natif des tokens | 89964837 | Périodes CAB : bornes et empreintes de l’export. |
 | Compactions achevées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 | Demandes d’autorisation distinctes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 | Demandes approuvées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
@@ -16129,7 +16129,7 @@ Change : `reconcile-cicd-git-publication` · état local : `archived`. Les valeu
 | coder | codex | N/A | N/A |
 
 
-Provenance : change-periods:05652584c2f90d76021d51f67838555ecab4563955ba46f1186a1d0ad86d23b6
+Provenance : change-periods:8ef9df308d5aed0a4eb9eef9ec944b9d3f7ece9bcee050d932745f274487589f
 
 ### 2. Messages et outils
 
@@ -16191,21 +16191,8 @@ Provenance : change-periods:05652584c2f90d76021d51f67838555ecab4563955ba46f1186a
 | Total | N/A | Mesure absente ou périmètre exhaustif non identifiable |
 
 
-
-Mesures partielles en cours — aucune valeur ci-dessous ne vaut total complet.
-
-| RUN | SID | Compteur | Incrément observé | Couverture |
-| --- | --- | --- | --- | --- |
-| SCM-GIT-4PART-TAGS-20261117-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_read | 49758208 | bounded |
-| SCM-GIT-4PART-TAGS-20261117-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_write | 0 | bounded |
-| SCM-GIT-4PART-TAGS-20261117-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_input | 50524780 | bounded |
-| SCM-GIT-4PART-TAGS-20261117-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_output | 190748 | bounded |
-| SCM-GIT-4PART-TAGS-20261117-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_reasoning | 148336 | bounded |
-| SCM-GIT-4PART-TAGS-20261117-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_total | 50715528 | bounded |
-
-
 <!-- CAB_STATISTICS_CURRENT_END -->
-<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "50574f48694b24b4339dd156e189ae3f4745742ba98569489934398a35ce638a", "generated_at": "2026-11-17T22:08:54.134048+00:00", "revision": "50574f48694b24b4339dd156e189ae3f4745742ba98569489934398a35ce638a", "scope": "change"} -->
+<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "df2fc7728f67dbefde3bf55245d1cf0c37efb67dfaba6d6203e3e1a83893df57", "generated_at": "2026-11-19T15:05:00.919477+00:00", "revision": "df2fc7728f67dbefde3bf55245d1cf0c37efb67dfaba6d6203e3e1a83893df57", "scope": "change"} -->
 
 
 ## Change `reconcile-diu-deb-packaging-contract` — openspec/changes/reconcile-diu-deb-packaging-contract/STATISTICS.md
@@ -16451,6 +16438,119 @@ Aucun accès web pendant cette session.
 ## Synthèse globale
 
 Les transitions de présence et d'absence sont détectées à chaque chargement et persistées lorsque la configuration est accessible. L'archivage OpenSpec a réussi ; aucune installation, CI/CD ou publication n'a été exécutée.
+
+
+## Change `remove-diu-generated-tag-prefix` — openspec/changes/archive/2026-11-20-remove-diu-generated-tag-prefix/STATISTICS.md
+
+
+# Statistiques du change — remove-diu-generated-tag-prefix
+
+<!-- CAB_STATISTICS_CURRENT_V1 -->
+
+Change : `remove-diu-generated-tag-prefix` · état local : `archived`. Les valeurs absentes restent N/A.
+
+## 1. Statistiques générales et décisions
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Durée globale | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Durée hors pauses et attentes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens d’entrée | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de sortie | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de raisonnement | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de cache lus | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tokens de cache écrits | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Total natif des tokens | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Compactions achevées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes d’autorisation distinctes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes approuvées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes refusées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes expirées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Demandes annulées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+
+| Rôle | Agent | Modèle | Raisonnement |
+| --- | --- | --- | --- |
+| coder | codex | N/A | N/A |
+
+
+Provenance : change-periods:87e7b73e8ffc86e2be76d6eef46b78db2fafd6ac4e64071079f2f1e59ddda256
+
+## 2. Messages et outils
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Messages des codeurs | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Messages utilisateur | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Messages assistant | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels d’outils des codeurs | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels terminés | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Erreurs techniques | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels en cours | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+
+## 3. Fichiers et tâches
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Écritures effectivement exécutées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Fichiers distincts touchés par change | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+
+## 4. Commandes et validations
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Commandes exécutées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Commandes réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Commandes en échec | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tests exécutés dans le bilan final | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tests finaux réussis | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tests finaux échoués | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Fichiers ayant passé un contrôle syntaxique | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec standard réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec standard échouées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec strictes réussies | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Validations OpenSpec strictes échouées | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Tâches OpenSpec prouvées et terminées | 3 | Cases locales de tasks.md ; ne valent pas validation du RUN. |
+
+
+## 5. Accès web
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Appels aux outils web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Appels web réussis | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Recherches web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Consultations web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+
+## 6. Synthèse et couverture
+
+| Mesure | Valeur | Preuve ou limite |
+| --- | --- | --- |
+| Écritures de fichiers | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Commandes | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Web | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Autres outils | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+| Total | N/A | Mesure absente ou périmètre exhaustif non identifiable |
+
+
+
+Mesures partielles en cours — aucune valeur ci-dessous ne vaut total complet.
+
+| RUN | SID | Compteur | Incrément observé | Couverture |
+| --- | --- | --- | --- | --- |
+| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_read | 38559488 | bounded |
+| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_cache_write | 0 | bounded |
+| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_input | 38651350 | bounded |
+| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_output | 24093 | bounded |
+| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_reasoning | 4353 | bounded |
+| SCM-DIU-TAGS-SANS-V-20261120-01 | 01a1d990-6548-78e1-9f50-1c75be2916e0 | tokens_total | 38675443 | bounded |
+
+
+<!-- CAB_STATISTICS_CURRENT_END -->
+<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "37614372c1a73fd20dd6b39a4cf7309e5c3170b5161ce0884401794eed02af0f", "generated_at": "2026-11-20T13:21:50.899298+00:00", "revision": "37614372c1a73fd20dd6b39a4cf7309e5c3170b5161ce0884401794eed02af0f", "scope": "change"} -->
 
 
 ## Change `remove-diu-variables-version` — openspec/changes/archive/2026-11-02-remove-diu-variables-version/STATISTICS.md
@@ -20962,4 +21062,4 @@ L'archivage a réussi avec le chemin explicite du projet. L'archive contient les
 L'évolution est implémentée, ses contrôles ciblés réussissent et le change est archivé. La suite complète de tests et la validation OpenSpec stricte globale échouent sur des éléments hors des fichiers de ce change ; ces résultats restent visibles et ne sont pas présentés comme des succès. Aucun déploiement ou installation OpenCode réelle n'a été effectué.
 
 L'étape de commit local SCM est bloquée : les prérequis non secrets étaient valides et `main` correspond à `LOCAL_DEFAULT_BRANCH`, mais `git status --short` montre aussi le chemin préexistant `DEVOPS.md` modifié. La procédure impose `git add .`, ce qui inclurait ce fichier hors périmètre. Aucun `git config`, staging, commit, tag ou push n'a été exécuté. Forgejo, GitHub et GitLab n'ont pas été sollicités faute de commit local vérifié.
-<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "12b469f4a24526c5ffa81955d4d171dd86b05eb0ca016c65527f22bd945bc82e", "generated_at": "2026-11-17T22:08:54.798003+00:00", "revision": "12b469f4a24526c5ffa81955d4d171dd86b05eb0ca016c65527f22bd945bc82e", "scope": "project"} -->
+<!-- CAB_STATISTICS_DOCUMENT_V1 {"content_sha256": "6bfa68dc431dbbd2b8db124eca6e44cd1a2456f5f412a92ba177c8e34187829d", "generated_at": "2026-11-20T13:21:53.575881+00:00", "revision": "6bfa68dc431dbbd2b8db124eca6e44cd1a2456f5f412a92ba177c8e34187829d", "scope": "project"} -->

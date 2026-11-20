@@ -55,7 +55,7 @@ Rechercher et installer de manière contrôlée la dernière version disponible 
 
 ### Requirement: Sélection des versions de mise à jour DIU
 
-La commande SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `v<version>`, en privilégiant les versions stables x.y.z puis la plus élevée selon dpkg.
+La commande SHALL parcourir toutes les pages, exclure les brouillons et préversions, sélectionner un asset `diu_<version>_all.deb` lié au tag `<version>` ou au tag historique `v<version>`, en privilégiant les versions stables x.y.z ou x.y.z.w puis la plus élevée selon dpkg.
 
 #### Scenario: Application de la règle
 

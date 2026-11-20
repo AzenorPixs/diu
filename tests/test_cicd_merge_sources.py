@@ -33,9 +33,9 @@ class CicdMergeSourcesTests(unittest.TestCase):
             (local / 'source.txt').write_text('third\n')
             git(local, 'commit', '-qam', 'third')
             third = git(local, 'rev-parse', 'HEAD')
-            git(local, 'tag', 'v1.0.0')
+            git(local, 'tag', '1.0.0')
             git(local, 'push', '-q', str(bare), 'main')
-            git(bare, 'update-ref', 'refs/tags/v1.0.0', first)
+            git(bare, 'update-ref', 'refs/tags/1.0.0', first)
             git(local, 'remote', 'add', 'origin', 'https://forge.example/owner/fixture.git')
             script = r'''
 source "$1/modules/projects/git.sh"
@@ -51,23 +51,23 @@ projects_cicd_replay_git_transport() {
   case "$operation" in
     ls-remote) shift; git -C "$path" ls-remote "$BARE" "$@" ;;
     fetch) shift 2; git -C "$path" fetch --no-tags "$BARE" "$@" ;;
-    push) shift; git -C "$BARE" update-ref refs/tags/v1.0.0 "$SECOND"; git -C "$path" push "$BARE" "$@" ;;
+    push) shift; git -C "$BARE" update-ref refs/tags/1.0.0 "$SECOND"; git -C "$path" push "$BARE" "$@" ;;
   esac
 }
-projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
+projects_cicd_replay_git_provider forgejo "$2" origin main 1.0.0
 '''
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(local)],
                                     text=True, capture_output=True,
                                     env={**os.environ, 'BARE': str(bare), 'SECOND': second, 'TMPDIR': tmp})
             self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertEqual(git(bare, 'rev-parse', 'refs/tags/v1.0.0'), second)
-            self.assertEqual(git(local, 'rev-parse', 'v1.0.0'), third)
-            stable_script = script.replace('git -C "$BARE" update-ref refs/tags/v1.0.0 "$SECOND"; ', '')
+            self.assertEqual(git(bare, 'rev-parse', 'refs/tags/1.0.0'), second)
+            self.assertEqual(git(local, 'rev-parse', '1.0.0'), third)
+            stable_script = script.replace('git -C "$BARE" update-ref refs/tags/1.0.0 "$SECOND"; ', '')
             result = subprocess.run(['bash', '-c', stable_script, 'fixture', str(ROOT), str(local)],
                                     text=True, capture_output=True,
                                     env={**os.environ, 'BARE': str(bare), 'SECOND': second, 'TMPDIR': tmp})
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertEqual(git(bare, 'rev-parse', 'refs/tags/v1.0.0'), third)
+            self.assertEqual(git(bare, 'rev-parse', 'refs/tags/1.0.0'), third)
 
     def test_local_deletion_wins_modify_delete_conflict(self):
         with tempfile.TemporaryDirectory(dir=ROOT, prefix='.cicd-merge-test-') as tmp:
@@ -124,7 +124,7 @@ projects_cicd_merge_sources "$2" "$3" Fixture fixture@example.test
             (local / 'source.txt').write_text('local\n')
             git(local, 'add', '.')
             git(local, 'commit', '-qm', 'local')
-            git(local, 'tag', 'v1.0.0')
+            git(local, 'tag', '1.0.0')
             original = git(local, 'rev-parse', 'HEAD')
             (other / 'source.txt').write_text('remote\n')
             (other / 'extra.txt').write_text('remote addition\n')
@@ -151,7 +151,7 @@ projects_cicd_replay_git_transport() {
     push) shift; git -C "$path" push "$BARE" "$@" ;;
   esac
 }
-projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
+projects_cicd_replay_git_provider forgejo "$2" origin main 1.0.0
 '''
             import os
             result = subprocess.run(['bash', '-c', script, 'fixture', str(ROOT), str(local)],
@@ -161,7 +161,7 @@ projects_cicd_replay_git_provider forgejo "$2" origin main v1.0.0
             self.assertEqual(git(local, 'rev-parse', 'HEAD'), original)
             self.assertEqual(git(bare, 'show', 'main:source.txt'), 'local')
             self.assertEqual(git(bare, 'rev-parse', 'refs/heads/main'), original)
-            self.assertEqual(git(bare, 'rev-parse', 'refs/tags/v1.0.0'), original)
+            self.assertEqual(git(bare, 'rev-parse', 'refs/tags/1.0.0'), original)
             self.assertEqual(git(bare, 'ls-tree', '-r', '--name-only', 'main'), 'source.txt')
 
     def test_unrelated_histories_keep_local_conflict_and_remote_addition(self):

@@ -13,7 +13,7 @@ La priorité du constructeur générique est `PROJECT_VERSION`, puis `version`
 de la recette, puis tags de `HEAD`, puis horodatage local. Le constructeur
 historique utilise `PROJECT_VERSION`, puis ses règles tags/horodatage.
 Les publications vérifient que la version déclarée correspond au paquet et
-au tag `v<VERSION>` de `HEAD`, sans déplacer un tag existant.
+au tag `<VERSION>` de `HEAD`, sans déplacer un tag existant.
 
 ## Construction générique par recette
 
@@ -237,13 +237,13 @@ YYYY.MM.DD.HH.MM
 Cet horodatage devient :
 
 - le nom du commit par défaut ;
-- le tag Git par défaut, préfixé par `v`.
+- le tag Git par défaut.
 
 Exemple :
 
 ```text
 commit : 2026.09.03.17.25
-tag    : v2026.09.03.17.25
+tag    : 2026.09.03.17.25
 ```
 
 Le commit et le tag du flux cicddiu restent créés avant le build. En absence de PROJECT_VERSION, la politique
@@ -256,7 +256,7 @@ Sans PROJECT_VERSION, et sans métadonnées Git à la racine du projet source ou
 sans tag de HEAD, le builder utilise l’heure locale YYYY.MM.DD.HH.MM. Il distingue l’absence de tag
 d’une erreur de lecture. La release utilise la même sélection et exige son
 égalité avec la version du paquet. Sans tag, elle conserve cette version du
-paquet sans générer un nouvel horodatage ; son tag est v<VERSION>.
+paquet sans générer un nouvel horodatage ; son tag est le numéro de version.
 Les versions issues de tags ne sont donc pas limitées au format calendaire.
 
 ## Prérequis

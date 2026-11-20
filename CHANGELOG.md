@@ -4,6 +4,9 @@ Toutes les évolutions significatives du Debian Installer Unified seront documen
 
 ## Unreleased - date à définir
 
+- Tags Git et releases DIU : générer et publier les tags de projet sans v initial.
+  La mise à jour reconnaît également les publications historiques préfixées.
+
 - Git : accepter les versions stables à quatre composants dans PROJECT_VERSION,
   les pushes directs des trois forges et les comparaisons de tags CI/CD.
 

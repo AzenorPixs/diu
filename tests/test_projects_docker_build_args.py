@@ -197,7 +197,7 @@ github_push() { return 99; }
 projects_forgejo_release() { return 99; }
 projects_gitlab_release() { return 99; }
 projects_github_release() { return 99; }
-cicd_project fixture fixture-version v1.2.3
+cicd_project fixture fixture-version 1.2.3
 '''
         # Seule cette entrée de test charge les fonctions, jamais leurs configurations.
         result = self.run_build(b'RELEASE_ID=1.2.3\n', entrypoint=script)

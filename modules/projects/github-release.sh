@@ -98,7 +98,7 @@ projects_github_release_debian() {
         return 1
     fi
     selected_version="$(diu_release_version_matches "$project_path" "$package_version")" || return 1
-    tag_name="v${package_version}"
+    tag_name="${package_version}"
     tag_source=debian
     if [[ -n "$selected_version" ]]; then tag_source=git; fi
     api_base="$(_github_api_base "$REMOTE_GITHUB_BASE_URL")" || return 1
@@ -137,6 +137,8 @@ projects_github_release_debian() {
     else
         print_info "GitHub : commit du tag présent dans ${REMOTE_GITHUB_NAME}/${REMOTE_GITHUB_BRANCH} (${head_sha:0:12})."
     fi
+    project_version_check_legacy_tag "$project_path" "$package_version" "$head_sha" || return 1
+
     head_message="$(runuser -u "$ENV_DEVOPS_USER" -- git -C "$project_path" log -1 --format=%s)" || return 1
 
     response="$(_github_api_request "$api_base" GET "$repository_path/git/ref/tags/$tag_name")" || return 1
